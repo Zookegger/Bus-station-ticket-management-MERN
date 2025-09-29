@@ -1,0 +1,36 @@
+{
+  // Visit https://aka.ms/tsconfig to read more about this file
+  "compilerOptions": {
+    /* File Layout */
+    "rootDir": "./src",           // keep all TS files in src/
+    "outDir": "./dist",           // compiled JS goes here
+
+    /* Environment Settings */
+    "target": "es2020",           // modern JS output
+    "module": "commonjs",         // safest with Sequelize
+    "moduleResolution": "node",   // standard Node.js resolution
+    "types": ["node"],            // enable Node.js globals
+
+    /* Other Outputs */
+    "sourceMap": true,            // useful for debugging
+    "declaration": true,          // generate .d.ts files
+    "declarationMap": true,
+
+    /* Stricter Typechecking Options */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+
+    /* Style Options */
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+
+    /* Misc */
+    "skipLibCheck": true          // skip checking .d.ts from node_modules
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
