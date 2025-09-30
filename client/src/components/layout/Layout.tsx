@@ -1,0 +1,27 @@
+import React from "react";
+import { Box } from "@mui/material";
+import Header from "./Header";
+import Footer from "./Footer";
+
+const Layout: React.FC<React.PropsWithChildren> = ({ children }) => {
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+      <Header />
+
+      <Box
+        component="main"
+        sx={{
+          flex: 1,
+          width: "100%",
+          overflow: "hidden",
+        }}
+      >
+        {children}
+      </Box>
+
+      <Footer />
+    </Box>
+  );
+};
+
+export default Layout;
