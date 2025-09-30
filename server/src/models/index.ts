@@ -1,12 +1,17 @@
 import { createTempConnection, sequelize } from "../config/database";
 import { Sequelize, Op, QueryTypes } from "sequelize";
+import { User } from "./users";
 import logger from "../utils/logger";
 
-export const db: {
-	sequelize: Sequelize;
+const db: {
+	sequelize: Sequelize,
+	user: typeof User;
 } = {
 	sequelize,
+	user: User
 };
+
+User.initialize(sequelize);
 
 export const createDatabase = async () => {
 	const temp_connection = createTempConnection();
@@ -39,7 +44,6 @@ export const createDatabase = async () => {
 
 export const connectToDatabase = async (): Promise<void> => {
     try {
-
         await createDatabase();
         logger.info("Connecting to Database Server...");
         await sequelize.authenticate();
@@ -51,3 +55,5 @@ export const connectToDatabase = async (): Promise<void> => {
         logger.error(err);
     }
 }
+
+export default db;

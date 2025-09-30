@@ -9,6 +9,14 @@ const DB_USER = process.env.DB_USER || "root";
 const DB_PASS = process.env.DB_PASS || "";
 const DB_NAME = process.env.DB_NAME || "bus_station_db";
 
+/**
+ * Create and export a configured Sequelize instance.
+ * We use MySQL dialect because your target stack is MySQLERN.
+ *
+ * Notes:
+ * - logging: false keeps console clean; set to console.log for SQL debugging
+ * - pool settings are sane defaults; tune for production
+ */
 export const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASS, {
 	host: DB_HOST,
 	port: DB_PORT,

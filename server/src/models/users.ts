@@ -1,5 +1,11 @@
 import { Model, DataTypes, Optional, Sequelize } from "sequelize";
 
+export enum role {
+    User,
+    Admin,
+    Operator
+}
+
 interface UserAttributes {
 	id: string;
 	email: string;
@@ -10,7 +16,7 @@ interface UserAttributes {
 	avatar?: string | null;
 	dateOfBirth?: Date | null;
 	emailConfirmed?: boolean;
-    role: 'User' | 'Admin' | string;
+    role: role | string;
 	passwordHash?: string | null;
 	phoneNumber?: string | null;
 	phoneNumberConfirmed?: boolean;
@@ -26,10 +32,13 @@ interface UserCreationAttributes
 		| "address"
         | "phoneNumberConfirmed"
 		| "dateOfBirth"
+        | "gender"
+        | "fullName" 
 		| "emailConfirmed"
 		| "createdAt"
 		| "updatedAt"
 	> {}
+
 
 export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
     public id!: string;

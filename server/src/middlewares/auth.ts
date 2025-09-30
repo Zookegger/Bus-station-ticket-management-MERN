@@ -1,6 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
+/**
+ * JWT verification middleware.
+ * - Reads "Authorization: Bearer <token>"
+ * - Verifies signature and expiry
+ * - Attaches payload to req.user for downstream handlers
+ */
 const JWT_SECRET = process.env.JWT_SECRET || "yourjwtsecret";
 
 export const authenticateJwt = (
@@ -31,4 +37,18 @@ export const authenticateJwt = (
 	} catch (err) {
 		return res.status(401).json({ message: "Invalid or expired token" });
 	}
+};
+
+/**
+ * Simple role-based authorization middleware.
+ * Usage: router.get('/admin', authenticateJWT, authorizeRole('Admin'), handler)
+ */
+export const authorizeRole = (requiredRole: string) => {
+	return (req: Request, res: Response, next: NextFunction) => {
+		const role = (req as any).user?.role as string | undefined;
+		if (!role) return res.status(403).json({ message: "No role found" });
+		if (role !== requiredRole)
+			return res.status(403).json({ message: "Insufficient role" });
+		return next();
+	};
 };
