@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import logger from "../utils/logger";
+import { UUID } from "crypto";
 
 /**
  * JWT verification middleware.
@@ -8,6 +10,13 @@ import jwt from "jsonwebtoken";
  * - Attaches payload to req.user for downstream handlers
  */
 const JWT_SECRET = process.env.JWT_SECRET || "yourjwtsecret";
+
+export interface JwtPayload {
+	id: UUID;
+	role: string;
+	iat?: number;
+	exp?: number;
+}
 
 export const authenticateJwt = (
 	req: Request,
@@ -25,16 +34,12 @@ export const authenticateJwt = (
 	}
 
 	try {
-		const payload = jwt.verify(token, JWT_SECRET) as {
-			id: number;
-			role: string;
-			iat?: number;
-			exp?: number;
-		};
+		const payload = jwt.verify(token, JWT_SECRET) as JwtPayload
 
 		(req as any).user = payload;
 		return next();
 	} catch (err) {
+		logger.error(err);
 		return res.status(401).json({ message: "Invalid or expired token" });
 	}
 };
