@@ -1,19 +1,27 @@
 import express, { Application, Request, Response } from "express";
 import cors from "cors";
 import morgan from "morgan";
-import cookieParser from 'cookie-parser';
+import cookieParser from "cookie-parser";
 import apiRouter from "./routes/api";
 
 export const app: Application = express();
 
-app.use(cors());
+app.use(
+	cors({
+		origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
+		credentials: true,
+	})
+);
 app.use(
 	morgan("dev", {
 		stream: {
 			write: (message: string) => {
-                const currentTime = new Date(Date.now());
+				const currentTime = new Date(Date.now());
 
-				console.log(`[SERVER - ${currentTime.toUTCString()}]:`, message.trim());
+				console.log(
+					`[SERVER - ${currentTime.toUTCString()}]:`,
+					message.trim()
+				);
 			},
 		},
 	})
@@ -29,5 +37,3 @@ app.get("/", (req: Request, res: Response): void => {
 		message: "Server is running",
 	});
 });
-
-// app.use('/api', routes);

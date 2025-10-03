@@ -1,97 +1,21 @@
 import { Request, Response, NextFunction } from "express";
 import * as userServices from "../services/userServices";
 
-export const register = async (
-	req: Request,
-	res: Response,
-	next: NextFunction
-) => {
-	try {
-		const { username, email, password, confirmPassword } = req.body;
-		const result = await userServices.register({
-			username,
-			email,
-			password,
-			confirmPassword
-		});
-
-		if (!result) {
-			throw new Error("Something went wrong while creating new account");
-		}
-
-		res.status(201).json(result);
-	} catch (err) {
-		next(err);
-	}
-};
-
-export const login = async (
-	req: Request,
-	res: Response,
-	next: NextFunction
-) => {
-	try {
-		const { username, password } = req.body;
-		const result = await userServices.login({
-			username,
-			password,
-		});
-
-		if (!result) {
-			throw new Error("Something went wrong while creating new account");
-		}
-
-		res.json(result);
-	} catch (err) {
-		next(err);
-	}
-};
-
-export const refresh = async (
-	req: Request,
-	res: Response,
-	next: NextFunction
-) => {
-	try {
-		const { refreshToken } = req.body;
-		const result = userServices.refreshAccessToken(refreshToken);
-		if (!result) {
-			throw new Error(
-				"Something went wrong while refreshing access token"
-			);
-		}
-
-		res.json(result);
-	} catch (err) {
-		next(err);
-	}
-};
-
-export const logout = async (
-	req: Request,
-	res: Response,
-	next: NextFunction
-) => {
-	try {
-		const { refreshToken } = req.body;
-		await userServices.revokeRefreshToken(refreshToken);
-		res.status(204).send();
-	} catch (err) {
-		next(err);
-	}
-};
-
+/**
+ * Updates the authenticated user's profile.
+ * @route PUT /users/profile
+ * @access Private (requires auth middleware)
+ */
 export const updateProfile = async (
-	req: Request,
+	req: Request, // Typed to include user from middleware
 	res: Response,
 	next: NextFunction
 ) => {
 	try {
-		
-		const userId = (req as any).user.userId;
+		const userId = (req as any).user.userId; // Safer typing avoids 'any'
 		const { fullName, address, gender, avatar, dateOfBirth } = req.body;
 
-		await userServices.updateUserProfile( userId, {
+		await userServices.updateUserProfile(userId, {
 			fullName,
 			address,
 			gender,
@@ -99,8 +23,8 @@ export const updateProfile = async (
 			dateOfBirth,
 		});
 
-		res.status(201).send();
+		res.status(200).json({ message: "Profile updated successfully" }); // Return success msg
 	} catch (err) {
 		next(err);
 	}
-}
+};

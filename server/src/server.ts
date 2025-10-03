@@ -6,7 +6,6 @@ import http from "http";
 import logger from "./utils/logger";
 import { connectToDatabase } from "./models";
 import { emailWorker } from "./workers/emailWorker";
-// import routes from './routes';
 
 dotenv.config();
 
@@ -17,8 +16,9 @@ const startServer = async (): Promise<void> => {
 		const server = http.createServer(app);
 		const io = new Server(server, {
 			cors: {
-				origin: "*",
-				methods: ["GET", "POST", "DELETE", "PUT"],
+				origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
+				methods: ["GET", "POST"],
+				credentials: true,
 			},
 			connectionStateRecovery: {
 				maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutes
@@ -42,7 +42,7 @@ const startServer = async (): Promise<void> => {
 	}
 };
 
-(async () => {
+( async () => {
 	await connectToDatabase();
 	await startServer();
 })();

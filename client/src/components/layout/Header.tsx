@@ -8,7 +8,7 @@ import {
 	Box,
 } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
-import { ROUTES } from "../../constants";
+import { APP_CONFIG, ROUTES } from "../../constants";
 
 const Header: React.FC = () => {
 	return (
@@ -25,7 +25,7 @@ const Header: React.FC = () => {
 							fontWeight: 700,
 						}}
 					>
-						EasyRide
+						{APP_CONFIG.name}
 					</Typography>
 					<Box sx={{ flexGrow: 1 }} />
 					<Button
