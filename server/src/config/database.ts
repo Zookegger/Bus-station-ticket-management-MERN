@@ -3,11 +3,12 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const DB_HOST = process.env.DB_HOST || "127.0.0.1";
-const DB_PORT = Number(process.env.DB_PORT) || 3306;
-const DB_USER = process.env.DB_USER || "root";
-const DB_PASS = process.env.DB_PASS || "";
-const DB_NAME = process.env.DB_NAME || "bus_station_db";
+const DB_HOST: string = process.env.DB_HOST || "127.0.0.1";
+const DB_PORT: number = Number(process.env.DB_PORT) || 3306;
+const DB_USER: string = process.env.DB_USER || "root";
+const DB_PASS: string = process.env.DB_PASS || "";
+const DB_NAME: string = process.env.DB_NAME || "bus_station_db";
+const DB_LOGGING: boolean = process.env.DB_LOGGING === "true";
 
 /**
  * Create and export a configured Sequelize instance.
@@ -22,7 +23,7 @@ export const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASS, {
 	port: DB_PORT,
 	dialect: "mysql",
 
-	logging: process.env.NODE_ENV === "development" ? console.log : false,
+	logging: DB_LOGGING,
 
 	pool: {
 		max: 10, // Maximum number of connections to create

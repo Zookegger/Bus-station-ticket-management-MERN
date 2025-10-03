@@ -7,11 +7,12 @@ export const register = async (
 	next: NextFunction
 ) => {
 	try {
-		const { username, email, password } = req.body;
+		const { username, email, password, confirmPassword } = req.body;
 		const result = await userServices.register({
 			username,
 			email,
 			password,
+			confirmPassword
 		});
 
 		if (!result) {
@@ -79,3 +80,27 @@ export const logout = async (
 		next(err);
 	}
 };
+
+export const updateProfile = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+) => {
+	try {
+		
+		const userId = (req as any).user.userId;
+		const { fullName, address, gender, avatar, dateOfBirth } = req.body;
+
+		await userServices.updateUserProfile( userId, {
+			fullName,
+			address,
+			gender,
+			avatar,
+			dateOfBirth,
+		});
+
+		res.status(201).send();
+	} catch (err) {
+		next(err);
+	}
+}

@@ -1,0 +1,44 @@
+{
+	// Use IntelliSense to learn about possible attributes.
+	// Hover to view descriptions of existing attributes.
+	// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "Debug Server (ts-node)",
+			"runtimeArgs": ["-r", "ts-node/register/transpile-only"],
+			"args": ["${workspaceFolder}/server/src/server.ts"],
+			"cwd": "${workspaceFolder}/server",
+			"skipFiles": ["<node_internals>/**"],
+			"env": {
+				"NODE_ENV": "development"
+			},
+			"console": "integratedTerminal",
+			"internalConsoleOptions": "neverOpen",
+			"autoAttachChildProcesses": true
+		},
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "Debug Current File",
+			"runtimeArgs": ["-r", "ts-node/register"],
+			"args": ["${file}"],
+			"cwd": "${workspaceFolder}/server",
+			"skipFiles": ["<node_internals>/**"],
+			"console": "integratedTerminal",
+			"sourceMaps": true
+		},
+		{
+			"type": "node",
+			"request": "attach",
+			"name": "Attach to Process",
+			"port": 9229,
+			"restart": true,
+			"skipFiles": ["<node_internals>/**"],
+			"sourceMaps": true,
+			"outFiles": ["${workspaceFolder}/server/dist/**/*.js"]
+		}
+	]
+}

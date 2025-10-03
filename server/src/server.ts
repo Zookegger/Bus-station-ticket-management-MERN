@@ -5,6 +5,7 @@ import { sequelize as Database } from "./config/database";
 import http from "http";
 import logger from "./utils/logger";
 import { connectToDatabase } from "./models";
+import { emailWorker } from "./workers/emailWorker";
 // import routes from './routes';
 
 dotenv.config();
@@ -31,6 +32,8 @@ const startServer = async (): Promise<void> => {
 				logger.debug("User disconnected:", socket.id);
 			});
 		});
+
+		logger.info("Email worker started and listening for jobs");
 
 		server.listen(PORT, () => logger.info(`Server listening on ${PORT}`));
 	} catch (err) {

@@ -12,6 +12,7 @@ import {
 import ms from "ms";
 import { role, User, UserAttributes } from "../models/users";
 import { Op } from "sequelize";
+import { sendVerificationEmail } from "./verificationServices";
 
 /**
  * Service layer encapsulating business logic for users and auth.
@@ -21,7 +22,9 @@ const BCRYPT_SALT_ROUNDS = 12;
 
 const JWT_SECRET: jwt.Secret = process.env.JWT_SECRET || "yoursupersecret";
 const JWT_EXPIRY = (process.env.JWT_EXPIRES_IN as ms.StringValue) || "3d";
-const REFRESH_TOKEN_EXPIRY = Number(process.env.REFRESH_TOKEN_EXPIRES_IN || 30);
+const REFRESH_TOKEN_EXPIRY =
+	Number(ms(process.env.REFRESH_TOKEN_EXPIRES_IN as ms.StringValue) / 1000) ||
+	2592000; // 30 days
 
 interface JwtPayload {
 	id: string;
@@ -42,7 +45,7 @@ const generateAccessToken = (payload: JwtPayload) => {
  */
 const generateRefreshTokenValue = (): { value: string; hashed: string } => {
 	const token = crypto.randomBytes(64).toString("hex");
-	const hashed = crypto.createHash("sha2566").update(token).digest("hex");
+	const hashed = crypto.createHash("sha256").update(token).digest("hex");
 
 	return { value: token, hashed: hashed };
 };
@@ -58,7 +61,8 @@ export const register = async (
 ): Promise<{
 	accessToken: string;
 	refreshToken: string;
-	user: { id: string; username: string; email: string; role: role };
+	user: { id: string; username: string; email: string; role: role, };
+	message: string;
 }> => {
 	const existing = await db.user.findOne({ where: { email: dto.email } });
 	if (existing) throw { status: 400, message: "Email already in use" };
@@ -71,8 +75,10 @@ export const register = async (
 		passwordHash,
 	});
 
+	await sendVerificationEmail(user.id, user.email, user.userName);
+
 	const refreshToken = generateRefreshTokenValue();
-	const expiresAt = add(new Date(), { days: REFRESH_TOKEN_EXPIRY });
+	const expiresAt = add(new Date(), { seconds: REFRESH_TOKEN_EXPIRY });
 
 	await db.refreshToken.create({
 		token: refreshToken.hashed,
@@ -91,6 +97,7 @@ export const register = async (
 			email: user.email,
 			role: user.role,
 		},
+		message: "Registration successful. Please check your email to verify your account.",
 	};
 };
 
@@ -103,20 +110,21 @@ export const login = async (
 	accessToken: string;
 	refreshToken: string;
 	user: { id: string; username: string; email: string; role: role };
+	message: string;
 }> => {
 	const user = await db.user.findOne({
 		where: {
 			[Op.or]: [{ email: dto.username }, { userName: dto.username }],
 		},
 	});
-	if (!user) throw { status: 401, mmessage: "Invalid credentials" };
+	if (!user) throw { status: 401, message: "Invalid credentials" };
 
-	const valid = bcrypt.compare(dto.password, user.passwordHash);
-	if (!valid) throw { status: 401, mmessage: "Invalid credentials" };
+	const valid = await bcrypt.compare(dto.password, user.passwordHash);
+	if (!valid) throw { status: 401, message: "Invalid credentials" };
 
 	const accessToken = generateAccessToken({ id: user.id, role: user.role });
 	const refreshToken = generateRefreshTokenValue();
-	const expiresAt = addDays(new Date(), REFRESH_TOKEN_EXPIRY);
+	const expiresAt = add(new Date(), { seconds: REFRESH_TOKEN_EXPIRY });
 
 	await db.refreshToken.create({
 		token: refreshToken.hashed,
@@ -133,6 +141,7 @@ export const login = async (
 			email: user.email,
 			role: user.role,
 		},
+		message: "Login successful.",
 	};
 };
 
@@ -286,6 +295,30 @@ export const changePassword = async (dto: ChangePasswordDTO): Promise<void> => {
 
 	// Revoke all sessions after password change
 	await db.refreshToken.destroy({ where: { userId: user.id } });
+};
+
+export const countTotalAdmin = async (): Promise<number> => {
+	return (await db.user.findAndCountAll({ where: { role: role.Admin } }))
+		.count;
+};
+
+/**
+ * Generate default admin account if there non exists.
+ */
+export const generateDefaultAdminAccount = async (): Promise<User | null> => {
+	if ((await countTotalAdmin()) !== 0) {
+		return null;
+	}
+
+	const passwordHash = await bcrypt.hash("123456789", BCRYPT_SALT_ROUNDS);
+
+	return await db.user.create({
+		email: "admin@example.com",
+		role: role.Admin,
+		userName: "admin",
+		fullName: "admin",
+		passwordHash,
+	});
 };
 
 /**

@@ -1,4 +1,4 @@
-import { role } from "../models/users";
+import { gender, role } from "../models/users";
 // Data transfer object
 
 /**
@@ -6,6 +6,7 @@ import { role } from "../models/users";
  * @property {string} [username]
  * @property {string} [email]
  * @property {string} [password]
+ * @property {string} [confirmPassword]
  *
  * @remarks
  * Validation (such as email format checking or password strength) should be performed
@@ -15,6 +16,7 @@ export interface RegisterDTO {
 	username: string;
 	email: string;
 	password: string;
+	confirmPassword: string;
 }
 
 /**
@@ -38,11 +40,9 @@ export interface LoginDTO {
  *
  * @interface UpdateProfileDTO
  *
- * @property {string} [email] - The user's new email address. Should conform to a valid email format.
  * @property {string} [fullName] - The user's full display name.
- * @property {string} [userName] - The user's unique username.
  * @property {string|null} [address] - The user's physical or mailing address.
- * @property {string|null} [gender] - The user's gender.
+ * @property {gender|null} [gender] - The user's gender.
  * @property {string|null} [avatar] - URL or data string (e.g., base64) for the user's avatar image.
  * @property {Date|null} [dateOfBirth] - The user's date of birth.
  * @property {string|null} [phoneNumber] - The user's phone number (include country code where applicable).
@@ -50,9 +50,8 @@ export interface LoginDTO {
 export interface UpdateProfileDTO {
 	email?: string;
 	fullName?: string;
-	userName?: string;
 	address?: string | null;
-	gender?: string | null;
+	gender?: gender | null;
 	avatar?: string | null;
 	dateOfBirth?: Date | null;
 }
@@ -74,4 +73,24 @@ export interface ChangePasswordDTO {
 	userId: string;
 	currentPassword: string;
 	newPassword: string;
+}
+
+/**
+ * Data Transfer Object for changing a user's email address.
+ *
+ * This DTO is used when a user requests to update their account's email.
+ * Validation should ensure that:
+ * - `userId` exists and corresponds to the requesting user.
+ * - `currentEmail` matches the email currently stored for the user.
+ * - `newEmail` is in a valid email format and not already in use.
+ *
+ * @interface ChangeEmailDTO
+ * @property {string} userId - The unique identifier of the user requesting the email change.
+ * @property {string} currentEmail - The user's current email address, used to verify ownership.
+ * @property {string} newEmail - The user's new desired email address. Must be unique and valid.
+ */
+export interface ChangeEmailDTO {
+	userId: string;
+	currentEmail: string;
+	newEmail: string;
 }

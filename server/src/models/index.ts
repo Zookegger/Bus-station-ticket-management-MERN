@@ -1,8 +1,9 @@
 import { createTempConnection, sequelize } from "../config/database";
 import { Sequelize, Op, QueryTypes } from "sequelize";
-import { User } from "./users";
+import { role, User } from "./users";
 import logger from "../utils/logger";
 import { RefreshToken } from "./refreshToken";
+import { generateDefaultAdminAccount } from "../services/userServices";
 
 const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
 
@@ -46,7 +47,6 @@ export const createDatabase = async () => {
 
 	try {
 		await temp_connection.authenticate();
-		logger.info("Connected to Database server");
 
 		const database = await temp_connection.query("SHOW DATABASES LIKE ?", {
 			replacements: [process.env.DB_NAME],
@@ -82,6 +82,8 @@ export const connectToDatabase = async (): Promise<void> => {
 			force: IS_DEVELOPMENT ? true : false,
 		});
 		logger.info("Models synchronized to Database");
+
+		generateDefaultAdminAccount();
 	} catch (err) {
 		logger.error(err);
 	}

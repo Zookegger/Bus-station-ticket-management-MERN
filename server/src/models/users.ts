@@ -13,6 +13,12 @@ export enum role {
 	Operator = "Operator",
 }
 
+export enum gender {
+	male = "male",
+	female = "female",
+	other = "other"
+}
+
 /**
  * Attributes representing a User in the system.
  *
@@ -39,7 +45,7 @@ export interface UserAttributes {
 	fullName: string;
 	userName: string;
 	address?: string | null;
-	gender?: string | null;
+	gender?: gender | null;
 	avatar?: string | null;
 	dateOfBirth?: Date | null;
 	emailConfirmed?: boolean;
@@ -88,7 +94,7 @@ interface UserCreationAttributes
  * @property {string|null} [address] - Optional physical address.
  * @property {string|null} [avatar] - Optional avatar image URL.
  * @property {Date|null} [dateOfBirth] - Optional date of birth.
- * @property {string|null} [gender] - Optional gender field.
+ * @property {gender|null} [gender] - Optional gender field.
  * @property {string|null} [phoneNumber] - Optional phone number.
  * @property {boolean} [phoneNumberConfirmed=false] - Whether the phone number has been verified.
  * @property {string|null} [passwordHash] - Hashed password for authentication.
@@ -112,7 +118,7 @@ export class User
 	public phoneNumberConfirmed!: boolean;
 	public userName!: string;
 	public fullName!: string;
-	public gender?: string | null;
+	public gender?: gender | null;
 
 	public readonly createdAt?: Date;
 	public readonly updatedAt?: Date;
@@ -180,7 +186,7 @@ export class User
 				},
 				gender: {
 					type: DataTypes.STRING,
-					allowNull: false,
+					allowNull: true,
 				},
 				createdAt: {
 					type: DataTypes.DATE,

@@ -31,6 +31,6 @@
     /* Misc */
     "skipLibCheck": true          // skip checking .d.ts from node_modules
   },
-  "include": ["src/**/*.ts", "src/services/userServices.js"],
+  "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }
