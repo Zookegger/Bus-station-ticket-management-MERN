@@ -182,7 +182,7 @@ export class User
 				},
 				fullName: {
 					type: DataTypes.STRING,
-					allowNull: false,
+					allowNull: true,
 				},
 				gender: {
 					type: DataTypes.STRING,

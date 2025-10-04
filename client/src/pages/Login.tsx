@@ -85,6 +85,8 @@ const LoginPage: React.FC = () => {
 					headers: {
 						"Content-Type": "application/json",
 					},
+					timeout: 7000,
+					timeoutErrorMessage: "Connection timeout, try again"
 				}
 			);
 

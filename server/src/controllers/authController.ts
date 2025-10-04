@@ -38,13 +38,15 @@ export const login = async (
 	res: Response,
 	next: NextFunction
 ) => {
-  try {
-    const { login, password } = req.body;
-    const result = await authServices.login({
-      username: login,
-      password,
-    });		if (!result) {
-			throw new Error("Invalid credentials"); // More specific error than "creating new account"
+	try {
+		const { login, password } = req.body;
+		const result = await authServices.login({
+			username: login,
+			password,
+		});
+
+		if (!result) {
+			throw new Error("An error has occured while trying to log you in");
 		}
 
 		res.json(result);

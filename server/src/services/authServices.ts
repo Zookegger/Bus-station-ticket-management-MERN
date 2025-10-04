@@ -117,10 +117,10 @@ export const login = async (
 			[Op.or]: [{ email: dto.username }, { userName: dto.username }],
 		},
 	});
-	if (!user) throw { status: 401, message: "Invalid credentials" };
+	if (!user) throw { status: 401, message: "The username or password you entered is incorrect. Please check your details and try again." };
 
 	const valid = await bcrypt.compare(dto.password, user.passwordHash);
-	if (!valid) throw { status: 401, message: "Invalid credentials" };
+	if (!valid) throw { status: 401, message: "The username or password you entered is incorrect. Please check your details and try again." };
 
 	const accessToken = generateAccessToken({ id: user.id, role: user.role });
 	const refreshToken = generateRefreshTokenValue();

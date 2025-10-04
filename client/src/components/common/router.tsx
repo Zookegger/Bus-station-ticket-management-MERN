@@ -1,13 +1,17 @@
 import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 import Layout from "../layout/Layout";
 import { ROUTES } from "@constants/index";
+import { Suspense } from "react";
+import LoadingSkeleton from "@components/layout/LoadingSkeleton";
 
 export const router = createBrowserRouter([
 	{
 		path: "/",
 		element: (
 			<Layout>
-				<Outlet />
+				<Suspense fallback={<LoadingSkeleton/>}>
+					<Outlet />
+				</Suspense>
 			</Layout>
 		),
 		children: [
@@ -44,6 +48,17 @@ export const router = createBrowserRouter([
 					return { Component: NotFound };
 				},
 			},
+
+			{
+				path: ROUTES.PRIVACY_POLICY,
+				lazy: async () => {
+					const { default: PrivacyPolicy } = await import (
+						"@pages/PrivacyPolicy"
+					)
+					return { Component: PrivacyPolicy };
+				}
+			},
+
 			{
 				path: "*",
 				element: <Navigate to={ROUTES.NOT_FOUND} replace />,

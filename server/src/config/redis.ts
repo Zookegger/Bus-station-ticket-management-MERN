@@ -1,5 +1,6 @@
 import { Redis } from "ioredis";
 import dotenv from "dotenv";
+import logger from "../utils/logger";
 
 dotenv.config();
 
@@ -25,13 +26,13 @@ const redis = new Redis({
 // Event listener for successful Redis connection
 // Logs a message when connected (useful for debugging in development)
 redis.on("connect", () => {
-	console.log("Redis connected successfully");
+	logger.info("Redis connected successfully");
 });
 
 // Event listener for Redis connection errors
 // Logs errors to help troubleshoot connection issues
 redis.on("error", (err) => {
-	console.error("Redis connection error:", err);
+	logger.info("Redis connection error:", err);
 });
 
 export default redis;
