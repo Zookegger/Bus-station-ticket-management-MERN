@@ -1,0 +1,37 @@
+[
+  {
+    "id": 1,
+    "label": "Home",
+    "icon": "home",
+    "path": "/dashboard/home",
+    "active": false
+  },
+  {
+    "id": 2,
+    "label": "Vehicle",
+    "icon": "car",
+    "path": "/dashboard/vehicle",
+    "active": true
+  },
+  {
+    "id": 3,
+    "label": "Trip",
+    "icon": "map-pin",
+    "path": "/dashboard/trip",
+    "active": false
+  },
+  {
+    "id": 4,
+    "label": "User",
+    "icon": "person",
+    "path": "/dashboard/user",
+    "active": false
+  },
+  {
+    "id": 5,
+    "label": "System",
+    "icon": "gear",
+    "path": "/dashboard/system",
+    "active": false
+  }
+]

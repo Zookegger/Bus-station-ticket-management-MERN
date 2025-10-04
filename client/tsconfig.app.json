@@ -29,7 +29,8 @@
       "@hooks/*": ["hooks/*"],
       "@context/*": ["context/*"],
       "@layouts/*": ["layouts/*"],
-      "@common/*": ["common/*"]
+      "@common/*": ["common/*"],
+      "@data/*": ["data/*"]
     },
 
     /* Linting */
