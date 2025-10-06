@@ -94,9 +94,9 @@ export const STORAGE_KEYS: StorageKeys = {
  * - Persist selection via localStorage with STORAGE_KEYS.THEME.
  */
 export const THEMES = {
-  LIGHT: "light",
-  DARK: "dark",
-  AUTO: "auto",
+	LIGHT: "light",
+	DARK: "dark",
+	AUTO: "auto",
 } as const;
 
 /**
@@ -108,8 +108,8 @@ export const THEMES = {
  * - Integrate with libraries like react-i18next for full i18n support.
  */
 export const LANGUAGES = {
-  EN: "en",
-  VI: "vi",
+	EN: "en",
+	VI: "vi",
 } as const;
 
 /**

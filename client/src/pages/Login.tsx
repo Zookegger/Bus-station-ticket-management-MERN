@@ -1,216 +1,318 @@
 import React, { useState } from "react";
 import {
-  Container,
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Alert as MUIAlert,
-  TextField,
-  InputAdornment,
-  IconButton,
-  Button,
-  Stack,
-  Divider,
-  Checkbox,
-  FormControlLabel,
+	Container,
+	Box,
+	Card,
+	CardContent,
+	Typography,
+	Alert as MUIAlert,
+	TextField,
+	InputAdornment,
+	IconButton,
+	Button,
+	Stack,
+	Divider,
+	Checkbox,
+	FormControlLabel,
+	CircularProgress,
+	Backdrop,
+	CardHeader,
+	Paper,
 } from "@mui/material";
 import {
-  Visibility,
-  VisibilityOff,
-  Key,
-  Email,
-  Google,
-  Facebook,
+	Visibility,
+	VisibilityOff,
+	Key,
+	Google,
+	Facebook,
+	Login,
+	PersonAdd,
 } from "@mui/icons-material";
 import { Link as RouterLink } from "react-router-dom";
-import { ROUTES } from "@constants/index";
+import axios, { isAxiosError } from "axios";
+import { API_ENDPOINTS, APP_CONFIG, ROUTES } from "@constants/index";
 
-const Login: React.FC = () => {
-  const [formData, setFormData] = useState({
-    email: "admin@example.com",
-    password: "******",
-    rememberMe: false,
-  });
-  const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(false);
+const LoginPage: React.FC = () => {
+	const [formData, setFormData] = useState({
+		login: "",
+		password: "",
+		rememberMe: false,
+	});
+	const [showPassword, setShowPassword] = useState(false);
+	const [errors, setErrors] = useState<Record<string, string>>({});
+	const [isLoading, setIsLoading] = useState(false);
 
-  const state = { error: null, isLoading: false } as any;
+	const validateForm = (): boolean => {
+		const newErrors: Record<string, string> = {};
+		if (!formData.login) newErrors.login = "Email or username is required";
+		if (!formData.password) newErrors.password = "Password is required";
+		setErrors(newErrors);
+		return Object.keys(newErrors).length === 0;
+	};
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    if (!formData.email) newErrors.email = "Email is required";
-    if (!formData.password) newErrors.password = "Password is required";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+	const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+		const { name, value, type, checked } = e.target;
+		setFormData((prev) => ({
+			...prev,
+			[name]: type === "checkbox" ? checked : value,
+		}));
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+		if (errors[name]) {
+			setErrors((prev) => ({
+				...prev,
+				[name]: "",
+			}));
+		}
+	};
 
-    if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
-    }
-  };
+	const handleSubmit = async (e: React.FormEvent): Promise<void> => {
+		e.preventDefault();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+		if (!validateForm()) {
+			return;
+		}
 
-    if (!validateForm()) {
-      return;
-    }
+		setIsLoading(true);
 
-    setIsLoading(true);
-    setTimeout(() => setIsLoading(false), 800);
-  };
+		try {
+			const response = await axios.post(
+				APP_CONFIG.apiBaseUrl + API_ENDPOINTS.AUTH.LOGIN,
+				{
+					login: formData.login,
+					password: formData.password,
+				},
+				{
+					headers: {
+						"Content-Type": "application/json",
+					},
+					timeout: 7000,
+					timeoutErrorMessage: "Connection timeout, try again"
+				}
+			);
 
-  return (
-    <Container maxWidth="sm" sx={{ py: 6 }}>
-      <Card sx={{ borderRadius: 2, boxShadow: 6 }}>
-        <Box
-          sx={{
-            bgcolor: "success.main",
-            color: "#fff",
-            textAlign: "center",
-            py: 2,
-            borderTopLeftRadius: 8,
-            borderTopRightRadius: 8,
-          }}
-        >
-          <Typography variant="h5" fontWeight={700}>
-            Log in
-          </Typography>
-        </Box>
-        <CardContent>
-          {state.error && (
-            <MUIAlert severity="error" sx={{ mb: 2 }}>
-              {state.error}
-            </MUIAlert>
-          )}
-          <Box component="form" onSubmit={handleSubmit} noValidate>
-            <Stack spacing={2}>
-              <TextField
-                label="Email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                error={!!errors.email}
-                helperText={errors.email}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Email fontSize="small" />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              <TextField
-                label="Password"
-                name="password"
-                type={showPassword ? "text" : "password"}
-                value={formData.password}
-                onChange={handleChange}
-                error={!!errors.password}
-                helperText={errors.password}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Key fontSize="small" />
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        size="small"
-                        onClick={() => setShowPassword(!showPassword)}
-                        edge="end"
-                      >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              <Box
-                display="flex"
-                justifyContent="space-between"
-                alignItems="center"
-              >
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      size="small"
-                      checked={formData.rememberMe}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          rememberMe: e.target.checked,
-                        }))
-                      }
-                    />
-                  }
-                  label={<Typography variant="body2">Remember me</Typography>}
-                />
-                <Button
-                  component={RouterLink}
-                  to="#"
-                  variant="text"
-                  size="small"
-                >
-                  Forgot your password?
-                </Button>
-              </Box>
-              <Stack direction="row" spacing={2}>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  size="small"
-                  fullWidth
-                >
-                  Log In
-                </Button>
-                <Button
-                  component={RouterLink}
-                  to={ROUTES.REGISTER}
-                  variant="outlined"
-                  size="small"
-                  fullWidth
-                >
-                  Register
-                </Button>
-              </Stack>
-              <Divider>Or log in using</Divider>
-              <Stack spacing={1}>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<Google fontSize="small" />}
-                >
-                  Google
-                </Button>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<Facebook fontSize="small" />}
-                >
-                  Facebook
-                </Button>
-              </Stack>
-            </Stack>
-          </Box>
-        </CardContent>
-      </Card>
-    </Container>
-  );
+			if (response.data.user === null) {
+				console.log("Login failed: ", response.data);
+			}
+
+			console.log("Login successful: ", response.data);
+		} catch (err: unknown) {
+			// Fixed: Use 'unknown' instead of specific type or 'any'
+			// Narrow the type safely
+			let errorMessage = "Login failed. Please try again.";
+
+			if (isAxiosError(err) && err.response?.data?.message) {
+				errorMessage = err.response.data.message; // Now TypeScript knows it's a string
+			} else if (err instanceof Error) {
+				errorMessage = err.message; // Fallback for other Errors
+			} // Else: Use the default message for non-Error throws (e.g., strings)
+
+			setErrors({ general: errorMessage }); // Or merge: setErrors((prev) => ({ ...prev, general: errorMessage }));
+			console.error("Login error:", err);
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	return (
+		<Container maxWidth="sm" sx={{ py: 6 }}>
+			<Paper elevation={6}>
+				<Card>
+					<CardHeader
+						sx={{
+							bgcolor: "success.main",
+							color: "#fff",
+							textAlign: "center",
+							py: 2,
+						}}
+						title="Log in"
+						slotProps={{
+							title: {
+								fontWeight: "bold",
+							},
+						}}
+					/>
+					<CardContent sx={{ py: 3 }}>
+						{Object.keys(errors).length > 0 && (
+							<MUIAlert severity="error" sx={{ mb: 2 }}>
+								{Object.values(errors).map((errMsg, index) => (
+									<Typography key={index}>
+										{errMsg}
+									</Typography>
+								))}
+							</MUIAlert>
+						)}
+						<Box
+							component="form"
+							onSubmit={handleSubmit}
+							noValidate
+						>
+							<Stack spacing={2}>
+								<TextField
+									label="Username or Email"
+									name="login"
+									type="text"
+									autoComplete="username"
+									placeholder="Enter username or email"
+									value={formData.login}
+									onChange={handleChange}
+									error={!!errors.login}
+									helperText={errors.login}
+									slotProps={{
+										input: {
+											startAdornment: (
+												<InputAdornment position="start">
+													<Login fontSize="small" />
+												</InputAdornment>
+											),
+										},
+									}}
+								/>
+								<TextField
+									label="Password"
+									name="password"
+									placeholder="Enter your password"
+									autoComplete="password"
+									type={showPassword ? "text" : "password"}
+									value={formData.password}
+									onChange={handleChange}
+									error={!!errors.password}
+									helperText={errors.password}
+									slotProps={{
+										input: {
+											startAdornment: (
+												<InputAdornment position="start">
+													<Key fontSize="small" />
+												</InputAdornment>
+											),
+											endAdornment: (
+												<InputAdornment position="end">
+													<IconButton
+														size="small"
+														onClick={() =>
+															setShowPassword(
+																!showPassword
+															)
+														}
+														edge="end"
+													>
+														{showPassword ? (
+															<VisibilityOff />
+														) : (
+															<Visibility />
+														)}
+													</IconButton>
+												</InputAdornment>
+											),
+										},
+									}}
+								/>
+								<Box
+									display="flex"
+									justifyContent="space-between"
+									alignItems="center"
+									sx={{
+										flexDirection: {
+											isMobile: "column",
+											isTablet: "column",
+											isDesktop: "column",
+										},
+									}}
+								>
+									<FormControlLabel
+										control={
+											<Checkbox
+												size="small"
+												checked={formData.rememberMe}
+												onChange={(e) =>
+													setFormData((prev) => ({
+														...prev,
+														rememberMe:
+															e.target.checked,
+													}))
+												}
+											/>
+										}
+										label={
+											<Typography>Remember me</Typography>
+										}
+									/>
+									<Button
+										component={RouterLink}
+										to="#"
+										variant="text"
+										size="small"
+									>
+										Forgot your password?
+									</Button>
+								</Box>
+								<Stack direction="row" spacing={2}>
+									<Button
+										type="submit"
+										variant="contained"
+										size="small"
+										fullWidth
+										startIcon={<Login />}
+									>
+										Log In
+									</Button>
+									<Button
+										component={RouterLink}
+										to={ROUTES.REGISTER}
+										variant="outlined"
+										size="small"
+										fullWidth
+										startIcon={<PersonAdd />}
+									>
+										Register
+									</Button>
+								</Stack>
+								<Divider>
+									<Typography>Or log in using</Typography>
+								</Divider>
+								<Stack spacing={1}>
+									<Button
+										variant="outlined"
+										size="small"
+										color="error"
+										startIcon={
+											<Google
+												fontSize="small"
+												color="inherit"
+											/>
+										}
+									>
+										Google
+									</Button>
+									<Button
+										variant="outlined"
+										size="small"
+										color="primary"
+										startIcon={
+											<Facebook
+												fontSize="small"
+												color="inherit"
+											/>
+										}
+									>
+										Facebook
+									</Button>
+								</Stack>
+							</Stack>
+						</Box>
+					</CardContent>
+				</Card>
+			</Paper>
+			<Backdrop
+				open={isLoading}
+				sx={(theme) => ({
+					color: "#fff",
+					zIndex: theme.zIndex.drawer + 1,
+				})}
+			>
+				<CircularProgress color="inherit" />
+			</Backdrop>
+		</Container>
+	);
 };
 
-export default Login;
+export default LoginPage;
