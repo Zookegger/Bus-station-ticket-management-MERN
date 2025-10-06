@@ -84,7 +84,7 @@ const VehicleList: React.FC = () => {
 
   const filteredVehicles = vehicles.filter((vehicle) => {
     const matchesStatus = !statusFilter || vehicle.status === statusFilter;
-    const matchesType = !typeFilter || vehicle.status === typeFilter;
+    const matchesType = !typeFilter || vehicle.vehicleType === typeFilter;
     const matchesSearch =
       !searchTerm ||
       vehicle.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
