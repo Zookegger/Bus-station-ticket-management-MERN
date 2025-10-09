@@ -1,12 +1,26 @@
+/**
+ * Email worker for processing background email jobs.
+ *
+ * Uses BullMQ Worker to process email sending tasks from the email queue.
+ * Handles job execution, error handling, and logging for email delivery.
+ */
+
 import { Worker, Job } from "bullmq";
 import redis from "../config/redis";
 import { EmailJobData } from "../queues/emailQueue";
 import logger from "../utils/logger";
 import { sendEmail } from "../services/emailService";
 
+/**
+ * BullMQ email worker instance.
+ *
+ * Processes email jobs from the email queue asynchronously.
+ * Configured with Redis connection and concurrency settings for
+ * efficient background email processing.
+ */
 export const emailWorker = new Worker<EmailJobData>(
 	"email",
-	async (job: Job<EmailJobData>): Promise<void> => {        
+	async (job: Job<EmailJobData>): Promise<void> => {
         logger.info("Email worker started");
 
 		logger.info(`Processing email job ${job.id} to ${job.data.to}`);
@@ -27,6 +41,7 @@ export const emailWorker = new Worker<EmailJobData>(
 	}
 );
 
+// Event listeners for job completion and failure monitoring
 emailWorker.on("completed", (job) => {
 	logger.info(`Job ${job.id} completed`);
 });

@@ -1,10 +1,36 @@
+/**
+ * Authentication validation rules.
+ *
+ * This module contains validation middleware for authentication-related
+ * operations including login and registration. Uses express-validator
+ * to validate request bodies and provide meaningful error messages.
+ */
+
 import { body } from "express-validator";
 
+/**
+ * Validation rules for user login.
+ *
+ * Validates that login credentials (username/email and password) are provided.
+ * Used in login endpoint to ensure required fields are present before
+ * authentication processing.
+ */
 export const loginValidation = [
 	body("login").notEmpty().withMessage("Username or email is required"),
 	body("password").notEmpty().withMessage("Password is required"),
 ];
 
+/**
+ * Validation rules for user registration.
+ *
+ * Comprehensive validation for new user registration including:
+ * - Username presence
+ * - Strong password requirements (length, numbers, letters, complexity)
+ * - Password confirmation matching
+ * - Valid email format
+ *
+ * Used in registration endpoint to validate user input before account creation.
+ */
 export const registerValidation = [
 	body("username").notEmpty().withMessage("Username is required"),
 	body("password")

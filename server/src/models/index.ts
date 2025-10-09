@@ -1,34 +1,49 @@
+/**
+ * Database models initialization and configuration.
+ *
+ * This module sets up all Sequelize models, defines their relationships,
+ * and provides database connection utilities. It serves as the central
+ * point for model management and database operations.
+ */
+
 import { createTempConnection, sequelize } from "../config/database";
 import { Sequelize, Op, QueryTypes } from "sequelize";
 import { role, User } from "./users";
 import logger from "../utils/logger";
 import { RefreshToken } from "./refreshToken";
 import { generateDefaultAdminAccount } from "../services/userServices";
+import { Vehicle } from "./vehicle";
+import { VehicleType } from "./vehicleType";
 
 const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
 
-// Definitions
 /**
- * Centralized model registry:
- * - Initializes each model with the Sequelize connection
- * - Defines relationships/associations
- * - Exports a "db" object for easy import across services/controllers
+ * Centralized model registry and database connection.
+ *
+ * This object contains all initialized models and the Sequelize instance,
+ * providing a single import point for database operations across the application.
  */
 const db: {
 	sequelize: Sequelize;
 	user: typeof User;
 	refreshToken: typeof RefreshToken;
+	vehicle: typeof Vehicle;
+	vehicleType: typeof VehicleType;
 } = {
 	sequelize,
 	user: User,
 	refreshToken: RefreshToken,
+	vehicle: Vehicle,
+	vehicleType: VehicleType
 };
 
-// Initialize models
+// Initialize models with Sequelize instance
 User.initializeModel(sequelize);
 RefreshToken.initializeModel(sequelize);
+Vehicle.initializeModel(sequelize);
+VehicleType.initializeModel(sequelize);
 
-// Define relationships/associations
+// Define relationships/associations between models
 User.hasMany(RefreshToken, {
 	foreignKey: "userId",
 	as: "refreshTokens",
@@ -40,8 +55,28 @@ RefreshToken.belongsTo(User, {
 	as: "user",
 });
 
-// Functions
+VehicleType.hasMany(Vehicle, {
+	foreignKey: "vehicleTypeId",
+	as: "vehicles",
+	onDelete: "SET NULL"
+});
 
+Vehicle.belongsTo(VehicleType, {
+	foreignKey: "vehicleTypeId",
+	as: "vehicleType"
+});
+
+/**
+ * Creates the database if it doesn't exist.
+ *
+ * This function establishes a temporary connection to the MySQL server
+ * (without specifying a database) and creates the application database
+ * if it doesn't already exist.
+ *
+ * @async
+ * @returns {Promise<void>} Resolves when database creation is complete
+ * @throws {Error} If database creation fails
+ */
 export const createDatabase = async () => {
 	const temp_connection = createTempConnection();
 
@@ -70,6 +105,19 @@ export const createDatabase = async () => {
 	}
 };
 
+/**
+ * Establishes connection to the database and synchronizes models.
+ *
+ * This function handles the complete database setup process:
+ * - Creates the database if needed
+ * - Authenticates the connection
+ * - Synchronizes all models with the database schema
+ * - Generates default admin account
+ *
+ * @async
+ * @returns {Promise<void>} Resolves when database connection and sync are complete
+ * @throws {Error} If connection or synchronization fails
+ */
 export const connectToDatabase = async (): Promise<void> => {
 	try {
 		await createDatabase();

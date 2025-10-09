@@ -24,8 +24,10 @@ export const getUserById = async (
  */
 export const listUsers = async (
 	...attributes: (keyof UserAttributes)[]
-): Promise<User[]> => {
-	return await db.user.findAll(attributes.length > 0 ? { attributes } : {});
+): Promise<{ rows: User[]; count: number }> => {
+	return await db.user.findAndCountAll(
+		attributes.length > 0 ? { attributes } : {}
+	);
 };
 
 /**

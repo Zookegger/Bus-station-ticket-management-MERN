@@ -1,12 +1,27 @@
+/**
+ * Email service module.
+ *
+ * Provides email sending functionality using nodemailer with SMTP configuration.
+ * Handles email verification templates and background email processing through
+ * BullMQ queues for reliable delivery.
+ */
+
 import nodemailer from "nodemailer";
 import { EmailJobData } from "../queues/emailQueue";
 
+// SMTP configuration from environment variables with defaults
 const SMTP_HOST: string = process.env.SMTP_HOST || "smtp.gmail.com";
 const SMTP_PORT: number = Number(process.env.SMTP_PORT) || 587;
 const SMTP_USER: string = process.env.SMTP_USER ?? "";
 const SMTP_PASS: string = process.env.SMTP_PASS ?? "";
 const FROM_EMAIL: string = process.env.FROM_EMAIL || SMTP_USER;
 
+/**
+ * Nodemailer transporter instance.
+ *
+ * Configured with SMTP settings for sending emails through the configured provider.
+ * Supports both secure (465) and non-secure (587) SMTP connections.
+ */
 const transporter = nodemailer.createTransport({
 	host: SMTP_HOST,
 	port: SMTP_PORT,
@@ -17,6 +32,16 @@ const transporter = nodemailer.createTransport({
 	},
 });
 
+/**
+ * Sends an email using the configured SMTP transporter.
+ *
+ * Processes email job data from BullMQ queue and sends the email asynchronously.
+ * Used by the email worker to handle background email sending tasks.
+ *
+ * @param data - Email job data containing recipient, subject, and content
+ * @returns Promise that resolves when email is sent successfully
+ * @throws {Error} When email sending fails due to SMTP errors or invalid data
+ */
 export const sendEmail = async (data: EmailJobData): Promise<void> => {
 	await transporter.sendMail({
 		from: FROM_EMAIL,
@@ -27,6 +52,17 @@ export const sendEmail = async (data: EmailJobData): Promise<void> => {
 	});
 };
 
+/**
+ * Generates HTML content for email verification emails.
+ *
+ * Creates a styled HTML email template with verification link and user greeting.
+ * Includes responsive design and fallback text link for email clients that
+ * don't support HTML or buttons.
+ *
+ * @param username - Username of the account being verified
+ * @param verificationLink - Complete verification URL with token
+ * @returns HTML string containing the formatted verification email
+ */
 export const generateVerificationEmailHTML = (
 	username: string,
 	verificationLink: string
