@@ -11,7 +11,11 @@ import cors from "cors";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import apiRouter from "./routes/api";
-import { doubleCsrfProtection, generateCsrfToken } from "./middlewares/csrf";
+import {
+	doubleCsrfProtection,
+	generateCsrfToken,
+	getCsrfToken,
+} from "./middlewares/csrf";
 
 /**
  * Configured Express application instance.
@@ -51,9 +55,7 @@ app.use(express.json());
 // Parse cookies from incoming requests
 app.use(cookieParser());
 
-
-
-
+// Mount CSRF protection
 app.use(doubleCsrfProtection);
 
 // Mount API routes under the /api prefix
@@ -61,8 +63,8 @@ app.use("/api", apiRouter);
 
 // CSRF token endpoint
 app.get("/api/csrf-token", (req: Request, res: Response): void => {
-  const csrfToken = generateCsrfToken(req, res);
-  res.json({ csrfToken });
+	const csrfToken = getCsrfToken(req, res);
+	res.json({ csrfToken });
 });
 
 /**
