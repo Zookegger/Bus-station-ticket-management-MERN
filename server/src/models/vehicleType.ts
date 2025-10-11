@@ -89,7 +89,7 @@ export class VehicleType
 	 *
 	 * @param {Sequelize} sequelize - The Sequelize instance.
 	 */
-	static initializeModel(sequelize: Sequelize) {
+	static initModel(sequelize: Sequelize) {
 		VehicleType.init(
 			{
 				id: {

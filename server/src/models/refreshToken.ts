@@ -128,7 +128,7 @@ export class RefreshToken
 	 *
 	 * @param {Sequelize} sequelize - The Sequelize instance.
 	 */
-	static initializeModel(sequelize: Sequelize) {
+	static initModel(sequelize: Sequelize) {
 		RefreshToken.init(
 			// Definition
 			{

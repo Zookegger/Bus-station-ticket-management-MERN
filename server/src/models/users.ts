@@ -128,7 +128,7 @@ export class User
 	 *
 	 * @param {Sequelize} sequelize - The Sequelize instance.
 	 */
-	static initializeModel(sequelize: Sequelize) {
+	static initModel(sequelize: Sequelize) {
 		User.init(
 			{
 				id: {
@@ -168,7 +168,7 @@ export class User
 					allowNull: true,
 				},
 				phoneNumber: {
-					type: DataTypes.STRING,
+					type: DataTypes.STRING(16),
 					allowNull: true,
 				},
 				phoneNumberConfirmed: {

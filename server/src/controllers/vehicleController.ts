@@ -100,13 +100,13 @@ export const AddVehicle = async (
 		if (!vehicle) {
 			throw {
 				status: 500,
-				message: "No vehicle added, Something went wrong",
+				message: "No vehicle added, Something went wrong.",
 			};
 		}
 
 		res.status(200).json({
 			vehicle,
-			message: "Vehicle added successfully",
+			message: "Vehicle added successfully.",
 		});
 	} catch (err) {
 		next(err);
@@ -143,13 +143,13 @@ export const UpdateVehicle = async (
 			throw {
 				status: 500,
 				message:
-					"No vehicle updated, Something went wrong or no new changes",
+					"No vehicle updated, Something went wrong or no new changes.",
 			};
 		}
 
 		res.status(200).json({
 			vehicle,
-			message: "Vehicle updated successfully",
+			message: "Vehicle updated successfully.",
 		});
 	} catch (err) {
 		next(err);
@@ -179,11 +179,23 @@ export const RemoveVehicle = async (
 ): Promise<void> => {
 	try {
 		const id = getParamsId(req);
+
 		await vehicleServices.removeVehicle(id);
 
+		const deletedVehicle = await vehicleServices.getVehicleById(id);
+
+		if (deletedVehicle) {
+			res.status(500).json({
+				success: false,
+				message: "Vehicle deletion failed - vehicle still exists.",
+			});
+			return;
+		}
+
+		// Deletion successful
 		res.status(200).json({
 			success: true,
-			message: "Vehicle deleted successfully",
+			message: "Vehicle deleted successfully.",
 		});
 	} catch (err) {
 		next(err);
@@ -216,7 +228,7 @@ export const GetVehicleById = async (
 		const vehicle = await vehicleServices.getVehicleById(id);
 
 		if (!vehicle) {
-			throw { status: 500, message: "No vehicle found" };
+			throw { status: 500, message: "No vehicle found." };
 		}
 
 		res.status(200).json(vehicle);

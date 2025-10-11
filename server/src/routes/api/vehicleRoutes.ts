@@ -36,12 +36,12 @@ vehicleRoutes.get("/search", vehicleController.SearchVehicle, errorHandler);
 vehicleRoutes.get("/:id", vehicleValidator.validateIdParam, handleValidationResult, vehicleController.GetVehicleById, errorHandler);
 
 // POST /vehicles - Create new vehicle
-vehicleRoutes.post("/", vehicleValidator.validateCreateVehicle, handleValidationResult, vehicleController.AddVehicle, errorHandler);
+vehicleRoutes.post("/", isAdmin, vehicleValidator.validateCreateVehicle, handleValidationResult, vehicleController.AddVehicle, errorHandler);
 
 // PUT /vehicles/:id - Update vehicle by ID
-vehicleRoutes.put("/:id", vehicleValidator.validateIdParam, vehicleValidator.validateUpdateVehicle, handleValidationResult, isAdmin, vehicleController.UpdateVehicle, errorHandler);
+vehicleRoutes.put("/:id", isAdmin, vehicleValidator.validateIdParam, vehicleValidator.validateUpdateVehicle, handleValidationResult, vehicleController.UpdateVehicle, errorHandler);
 
 // DELETE /vehicles/:id - Delete vehicle by ID
-vehicleRoutes.delete("/:id", vehicleValidator.validateIdParam, handleValidationResult, isAdmin, vehicleController.RemoveVehicle, errorHandler);
+vehicleRoutes.delete("/:id", isAdmin, vehicleValidator.validateIdParam, handleValidationResult, vehicleController.RemoveVehicle, errorHandler);
 
 export default vehicleRoutes;

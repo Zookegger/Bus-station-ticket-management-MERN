@@ -46,7 +46,8 @@ redis.on("connect", () => {
 // Event listener for Redis connection errors
 // Logs errors to help troubleshoot connection issues
 redis.on("error", (err) => {
-	logger.info("Redis connection error:", err);
+	logger.error("Redis connection failed - application cannot function without Redis:", err);
+	throw err;
 });
 
 export default redis;

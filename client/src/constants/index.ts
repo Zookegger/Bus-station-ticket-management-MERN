@@ -143,3 +143,22 @@ export const VALIDATION_RULES: ValidationRules = {
 	NAME_MIN_LENGTH: 2,
 	NAME_MAX_LENGTH: 50,
 } as const;
+
+/**
+ * Material-UI Chip color options for status indicators.
+ *
+ * @remarks
+ * - Used for consistent status color mapping across components.
+ * - Matches Material-UI Chip component's color prop values.
+ * @example
+ *   const color = CONSTANTS.CHIP_COLORS.SUCCESS; // "success"
+ */
+export const CHIP_COLORS = {
+    DEFAULT: "default",
+    PRIMARY: "primary",
+    SECONDARY: "secondary",
+    ERROR: "error",
+    INFO: "info",
+    SUCCESS: "success",
+    WARNING: "warning",
+} as const;

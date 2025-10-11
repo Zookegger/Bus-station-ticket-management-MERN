@@ -14,6 +14,7 @@ import { RefreshToken } from "./refreshToken";
 import { generateDefaultAdminAccount } from "../services/userServices";
 import { Vehicle } from "./vehicle";
 import { VehicleType } from "./vehicleType";
+import { Driver } from "./drivers";
 
 const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
 
@@ -26,22 +27,25 @@ const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
 const db: {
 	sequelize: Sequelize;
 	user: typeof User;
+	driver: typeof Driver;
 	refreshToken: typeof RefreshToken;
 	vehicle: typeof Vehicle;
 	vehicleType: typeof VehicleType;
 } = {
 	sequelize,
 	user: User,
+	driver: Driver,
 	refreshToken: RefreshToken,
 	vehicle: Vehicle,
 	vehicleType: VehicleType
 };
 
 // Initialize models with Sequelize instance
-User.initializeModel(sequelize);
-RefreshToken.initializeModel(sequelize);
-Vehicle.initializeModel(sequelize);
-VehicleType.initializeModel(sequelize);
+User.initModel(sequelize);
+Driver.initModel(sequelize);
+RefreshToken.initModel(sequelize);
+Vehicle.initModel(sequelize);
+VehicleType.initModel(sequelize);
 
 // Define relationships/associations between models
 User.hasMany(RefreshToken, {
