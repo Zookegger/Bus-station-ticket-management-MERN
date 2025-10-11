@@ -108,7 +108,7 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 			</Typography>
 
 			<Grid container spacing={3}>
-				<Grid item xs={12}>
+				<Grid size={{ xs: 12, md: 6}}>
 					<FormControl fullWidth error={!!errors.vehicleTypeId}>
 						<InputLabel>Select a vehicle type</InputLabel>
 						<Select
@@ -139,7 +139,7 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 					</FormControl>
 				</Grid>
 
-				<Grid item xs={12}>
+				<Grid size={{ xs: 12, md: 6}}>
 					<TextField
 						fullWidth
 						label="Number Plate"
@@ -153,7 +153,7 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 					/>
 				</Grid>
 
-				<Grid item xs={12} md={6}>
+				<Grid size={{ xs: 12, md: 6}}>
 					<TextField
 						fullWidth
 						label="Manufacturer"
@@ -167,7 +167,7 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 					/>
 				</Grid>
 
-				<Grid item xs={12} md={6}>
+				<Grid size={{ xs: 12, md: 6}}>
 					<TextField
 						fullWidth
 						label="Model"
