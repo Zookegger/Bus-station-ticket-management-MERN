@@ -55,17 +55,17 @@ app.use(express.json());
 // Parse cookies from incoming requests
 app.use(cookieParser());
 
-// Mount CSRF protection
-app.use(doubleCsrfProtection);
-
-// Mount API routes under the /api prefix
-app.use("/api", apiRouter);
-
 // CSRF token endpoint
 app.get("/api/csrf-token", (req: Request, res: Response): void => {
 	const csrfToken = getCsrfToken(req, res);
 	res.json({ csrfToken });
 });
+
+// Mount CSRF protection
+app.use(doubleCsrfProtection);
+
+// Mount API routes under the /api prefix
+app.use("/api", apiRouter);
 
 /**
  * Health check endpoint to verify server status.

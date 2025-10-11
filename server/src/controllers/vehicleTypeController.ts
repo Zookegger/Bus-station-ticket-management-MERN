@@ -12,6 +12,7 @@ import {
 	CreateVehicleTypeDTO,
 	UpdateVehicleTypeDTO,
 } from "../types/vehicleType";
+import { getParamsId } from "../utils/request";
 
 /**
  * Retrieves all vehicle types with comprehensive filtering, sorting, and pagination.
@@ -111,10 +112,10 @@ export const AddVehicleType = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
-		const newVehicleType: CreateVehicleTypeDTO = req.body;
+		const new_vehicle_type: CreateVehicleTypeDTO = req.body;
 
 		const vehicle_type = await vehicleTypeServices.addVehicleType(
-			newVehicleType
+			new_vehicle_type
 		);
 		if (!vehicle_type) {
 			throw {
@@ -123,7 +124,10 @@ export const AddVehicleType = async (
 			};
 		}
 
-		res.status(200).json(vehicle_type);
+		res.status(200).json({
+			vehicle_type,
+			message: "Vehicle type added successfully",
+		});
 	} catch (err) {
 		next(err);
 	}
@@ -151,20 +155,24 @@ export const UpdateVehicleType = async (
 ): Promise<void> => {
 	try {
 		const id = getParamsId(req);
-		const updatedVehicleType: UpdateVehicleTypeDTO = req.body;
+		const updated_vehicle_type: UpdateVehicleTypeDTO = req.body;
 
 		const vehicle_type = await vehicleTypeServices.updateVehicleType(
 			id,
-			updatedVehicleType
+			updated_vehicle_type
 		);
 		if (!vehicle_type) {
 			throw {
 				status: 500,
-				message: "No vehicle type updated, Something went wrong",
+				message:
+					"No vehicle type updated, Something went wrong or no new changes",
 			};
 		}
 
-		res.status(200).json(vehicle_type);
+		res.status(200).json({
+			vehicle_type,
+			message: "Vehicle type updated successfully",
+		});
 	} catch (err) {
 		next(err);
 	}
@@ -230,7 +238,6 @@ export const GetVehicleTypeById = async (
 
 		const vehicle_type = await vehicleTypeServices.getVehicleTypeById(id);
 
-        
 		if (!vehicle_type) {
 			throw { status: 500, message: "No vehicle type found" };
 		}
@@ -239,12 +246,4 @@ export const GetVehicleTypeById = async (
 	} catch (err) {
 		next(err);
 	}
-};
-
-const getParamsId = (req: Request) => {
-	const id: number = Number.parseInt(req.params.id as string);
-	if (isNaN(id)) {
-		throw { status: 400, message: "Invalid vehicle type ID" };
-	}
-	return id;
 };

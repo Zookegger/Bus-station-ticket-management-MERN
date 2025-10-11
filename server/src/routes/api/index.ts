@@ -10,6 +10,7 @@ import { Router } from "express";
 import userRoutes from "./userRoutes";
 import authRoutes from "./authRoutes";
 import vehicleTypeRoutes from "./vehicleTypeRoutes";
+import vehicleRoutes from "./vehicleRoutes";
 
 /**
  * Main API router instance.
@@ -27,5 +28,8 @@ apiRouter.use("/auth", authRoutes);
 
 // Mount vehicle type routes under /vehicle-type prefix
 apiRouter.use("/vehicle-types", vehicleTypeRoutes);
+
+// Mount vehicle routes under /vehicle prefix
+apiRouter.use("/vehicles", vehicleRoutes);
 
 export default apiRouter;
