@@ -37,6 +37,7 @@ interface VehicleDetailsDrawerProps {
   onClose: () => void;
   vehicle: VehicleDetail | null;
   onEdit?: (vehicle: VehicleDetail) => void;
+   onDelete?: (vehicle: VehicleDetail) => void;
 }
 
 const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
@@ -59,6 +60,10 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
   };
 
   if (!vehicle) return null;
+
+  function onDelete(_vehicle: VehicleDetail) {
+    throw new Error("Function not implemented.");
+  }
 
   return (
     <Drawer
@@ -207,39 +212,62 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
         </Box>
 
         {/* Action Buttons */}
-        <Box
-          sx={{
-            display: "flex",
-            gap: 2,
-            pt: 2,
-            borderTop: "1px solid #e0e0e0",
-            mt: 2,
-          }}
-        >
-          <Button
-            variant="contained"
-            startIcon={<EditIcon />}
-            onClick={() => onEdit && onEdit(vehicle)}
-            sx={{
-              backgroundColor: "#1976d2",
-              "&:hover": {
-                backgroundColor: "#1565c0",
-              },
-              flex: 1,
-            }}
-          >
-            Edit Vehicle
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<ArrowBackIcon />}
-            onClick={onClose}
-            sx={{
-              flex: 1,
-            }}
-          >
-            Back to List
-          </Button>
+<Box
+  sx={{
+    display: "flex",
+    gap: 1, // khoảng cách nhỏ giữa các nút
+    pt: 2,
+    borderTop: "1px solid #e0e0e0",
+    mt: 2,
+  }}
+>
+  <Button
+    variant="contained"
+    startIcon={<EditIcon />}
+    onClick={() => onEdit && onEdit(vehicle)}
+    sx={{
+      flex: 1,
+      backgroundColor: "#1976d2",
+      "&:hover": { backgroundColor: "#1565c0" },
+    }}
+  >
+    Edit
+  </Button>
+
+  <Button
+    variant="outlined"
+    startIcon={<ArrowBackIcon />}
+    onClick={onClose}
+    sx={{ flex: 1 }}
+  >
+    Back
+  </Button>
+
+  <Button
+  variant="contained"
+  color="error"
+  sx={{ flex: 1 }}
+  onClick={() => {
+    if (vehicle && onDelete) {
+      onDelete(vehicle); // gọi hàm xóa từ parent
+      onClose(); // đóng Drawer sau khi xóa
+    }
+  }}
+>
+  Delete
+</Button>
+
+
+
+  <Button
+    variant="outlined"
+    sx={{ flex: 1 }}
+  >
+    Info
+  </Button>
+
+
+
         </Box>
       </Box>
     </Drawer>

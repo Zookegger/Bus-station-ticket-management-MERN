@@ -20,96 +20,53 @@ import {
   IconButton,
   TablePagination,
   Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
-import {
-  Add as AddIcon,
-  Search as SearchIcon,
-  Visibility as VisibilityIcon,
-  ArrowUpward as ArrowUpIcon,
-} from "@mui/icons-material";
+import { Add as AddIcon, Search as SearchIcon, Visibility as VisibilityIcon, Delete as DeleteIcon } from "@mui/icons-material";
+import type { Vehicle, VehicleDetail } from "./types";
+import vehiclesData from "@data/vehicles.json";
 import vehicleDetailsData from "@data/vehicleDetails.json";
 import VehicleDetailsDrawer from "./VehicleDetailsDrawer";
-import vehiclesData from "@data/vehicles.json";
-
-interface Vehicle {
-  id: number;
-  name: string;
-  licensePlate: string;
-  status: string;
-  vehicleType: string;
-}
-
-interface VehicleDetail {
-  id: number;
-  name: string;
-  vehicleType: string;
-  licensePlate: string;
-  seatCapacity: number;
-  status: string;
-  acquiredDate: string;
-  lastUpdated: string;
-  description: string;
-  fuelType: string;
-  yearOfManufacture: number;
-  insuranceExpiry: string;
-  maintenanceSchedule: string;
-}
+import EditVehicleForm from "./EditVehicleForm";
 
 const VehicleList: React.FC = () => {
   const navigate = useNavigate();
-  const [vehicles] = useState<Vehicle[]>(vehiclesData);
-  const [vehicleDetails] = useState<VehicleDetail[]>(vehicleDetailsData);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [vehicles, setVehicles] = useState<Vehicle[]>(vehiclesData);
+  const [vehicleDetails, setVehicleDetails] = useState<VehicleDetail[]>(vehicleDetailsData);
+  const [selectedVehicle, setSelectedVehicle] = useState<VehicleDetail | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [vehicleToDelete, setVehicleToDelete] = useState<VehicleDetail | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedVehicle, setSelectedVehicle] = useState<VehicleDetail | null>(
-    null
-  );
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Hoạt động":
-        return "success";
-      case "Standby":
-        return "warning";
-      case "In Progress":
-        return "info";
-      default:
-        return "default";
+      case "Hoạt động": return "success";
+      case "Standby": return "warning";
+      case "In Progress": return "info";
+      default: return "default";
     }
   };
 
-  const filteredVehicles = vehicles.filter((vehicle) => {
-    const matchesStatus = !statusFilter || vehicle.status === statusFilter;
-    const matchesType = !typeFilter || vehicle.vehicleType === typeFilter;
-    const matchesSearch =
-      !searchTerm ||
-      vehicle.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      vehicle.licensePlate.toLowerCase().includes(searchTerm.toLowerCase());
-
+  const filteredVehicles = vehicles.filter(v => {
+    const matchesStatus = !statusFilter || v.status === statusFilter;
+    const matchesType = !typeFilter || v.vehicleType === typeFilter;
+    const matchesSearch = !searchTerm || v.name.toLowerCase().includes(searchTerm.toLowerCase()) || v.licensePlate.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesStatus && matchesType && matchesSearch;
   });
 
-  const handleChangePage = (_event: unknown, newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
   const handleViewDetails = (vehicle: Vehicle) => {
-    const vehicleDetail = vehicleDetails.find(
-      (detail) => detail.id === vehicle.id
-    );
-    if (vehicleDetail) {
-      setSelectedVehicle(vehicleDetail);
+    const detail = vehicleDetails.find(v => v.id === vehicle.id);
+    if (detail) {
+      setSelectedVehicle(detail);
       setDrawerOpen(true);
     }
   };
@@ -119,230 +76,124 @@ const VehicleList: React.FC = () => {
     setSelectedVehicle(null);
   };
 
-  const handleEditVehicle = (vehicle: VehicleDetail) => {
-    console.log("Edit vehicle:", vehicle);
+  const handleOpenEdit = (vehicle: VehicleDetail) => {
+    setSelectedVehicle(vehicle);
+    setEditOpen(true);
   };
 
-  const handleCreateVehicle = () => {
-    navigate("/dashboard/vehicle/create");
+  const handleSaveEdit = (updated: VehicleDetail) => {
+    setVehicleDetails(prev => prev.map(v => v.id === updated.id ? updated : v));
+    setVehicles(prev => prev.map(v => v.id === updated.id ? { ...v, name: updated.name, vehicleType: updated.vehicleType, licensePlate: updated.licensePlate } : v));
+  };
+
+  const handleOpenDelete = (vehicle: VehicleDetail) => {
+    setVehicleToDelete(vehicle);
+    setDeleteOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!vehicleToDelete) return;
+    setVehicleDetails(prev => prev.filter(v => v.id !== vehicleToDelete.id));
+    setVehicles(prev => prev.filter(v => v.id !== vehicleToDelete.id));
+    setVehicleToDelete(null);
+    setDeleteOpen(false);
+    setSelectedVehicle(null);
+    setDrawerOpen(false);
   };
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Header */}
-      <Typography
-        variant="h4"
-        sx={{
-          fontWeight: "bold",
-          color: "#2E7D32",
-          mb: 3,
-        }}
-      >
-        Vehicle List
-      </Typography>
+      <Typography variant="h4" sx={{ fontWeight: "bold", color: "#2E7D32", mb: 3 }}>Vehicle List</Typography>
 
-      {/* Action Button and Filters */}
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 3,
-          flexWrap: "wrap",
-          gap: 2,
-        }}
-      >
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleCreateVehicle}
-          sx={{
-            backgroundColor: "#1976d2",
-            "&:hover": {
-              backgroundColor: "#1565c0",
-            },
-          }}
-        >
-          Add New Vehicle
-        </Button>
-
-        <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-          <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel>Filter by Status</InputLabel>
-            <Select
-              value={statusFilter}
-              label="Filter by Status"
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <MenuItem value="">All</MenuItem>
-              <MenuItem value="Hoạt động">Hoạt động</MenuItem>
-              <MenuItem value="Standby">Standby</MenuItem>
-              <MenuItem value="In Progress">In Progress</MenuItem>
-            </Select>
-          </FormControl>
-
-          <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel>Filter by Type</InputLabel>
-            <Select
-              value={typeFilter}
-              label="Filter by Type"
-              onChange={(e) => setTypeFilter(e.target.value)}
-            >
-              <MenuItem value="">All</MenuItem>
-              <MenuItem value="Limousine 9 chỗ">Limousine 9 chỗ</MenuItem>
-              <MenuItem value="Ghế ngồi 16 chỗ">Ghế ngồi 16 chỗ</MenuItem>
-              <MenuItem value="Ghế ngồi 29 chỗ">Ghế ngồi 29 chỗ</MenuItem>
-              <MenuItem value="Giường nằm 44 chỗ (2 tầng)">
-                Giường nằm 44 chỗ (2 tầng)
-              </MenuItem>
-              <MenuItem value="Giường nằm 34 chỗ (VIP)">
-                Giường nằm 34 chỗ (VIP)
-              </MenuItem>
-            </Select>
-          </FormControl>
-        </Box>
+      <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 3 }}>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/dashboard/vehicle/create")}>Add Vehicle</Button>
       </Box>
 
-      {/* Show entries and Search */}
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 2,
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Typography variant="body2">Show</Typography>
-          <Select
-            size="small"
-            value={rowsPerPage}
-            onChange={(e) => setRowsPerPage(Number(e.target.value))}
-            sx={{ minWidth: 70 }}
-          >
-            <MenuItem value={5}>5</MenuItem>
-            <MenuItem value={10}>10</MenuItem>
-            <MenuItem value={20}>20</MenuItem>
-            <MenuItem value={50}>50</MenuItem>
+      <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel>Status</InputLabel>
+          <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+            <MenuItem value="">All</MenuItem>
+            <MenuItem value="Hoạt động">Hoạt động</MenuItem>
+            <MenuItem value="Standby">Standby</MenuItem>
+            <MenuItem value="In Progress">In Progress</MenuItem>
           </Select>
-          <Typography variant="body2">entries</Typography>
-        </Box>
-
+        </FormControl>
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel>Type</InputLabel>
+          <Select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
+            <MenuItem value="">All</MenuItem>
+            <MenuItem value="Limousine 9 chỗ">Limousine 9 chỗ</MenuItem>
+            <MenuItem value="Ghế ngồi 16 chỗ">Ghế ngồi 16 chỗ</MenuItem>
+            <MenuItem value="Ghế ngồi 29 chỗ">Ghế ngồi 29 chỗ</MenuItem>
+            <MenuItem value="Giường nằm 44 chỗ (2 tầng)">Giường nằm 44 chỗ (2 tầng)</MenuItem>
+            <MenuItem value="Giường nằm 34 chỗ (VIP)">Giường nằm 34 chỗ (VIP)</MenuItem>
+          </Select>
+        </FormControl>
         <TextField
           size="small"
           placeholder="Search"
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-          sx={{ minWidth: 200 }}
+          onChange={e => setSearchTerm(e.target.value)}
+          InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> }}
         />
       </Box>
 
-      {/* Table */}
-      <TableContainer component={Paper} sx={{ boxShadow: 1 }}>
+      <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-              <TableCell>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                  Name
-                  <ArrowUpIcon fontSize="small" />
-                </Box>
-              </TableCell>
-              <TableCell>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                  License Plate
-                  <ArrowUpIcon fontSize="small" />
-                </Box>
-              </TableCell>
-              <TableCell>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                  Status
-                  <ArrowUpIcon fontSize="small" />
-                </Box>
-              </TableCell>
-              <TableCell>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                  Vehicle Type
-                  <ArrowUpIcon fontSize="small" />
-                </Box>
-              </TableCell>
+              <TableCell>Name</TableCell>
+              <TableCell>License Plate</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Vehicle Type</TableCell>
               <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredVehicles
-              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-              .map((vehicle) => (
-                <TableRow key={vehicle.id} hover>
-                  <TableCell>{vehicle.name}</TableCell>
-                  <TableCell>{vehicle.licensePlate}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={vehicle.status}
-                      color={getStatusColor(vehicle.status) as any}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>{vehicle.vehicleType}</TableCell>
-                  <TableCell>
-                    <Box sx={{ display: "flex", gap: 1 }}>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleViewDetails(vehicle)}
-                        title="View Details"
-                      >
-                        <VisibilityIcon />
-                      </IconButton>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ))}
+            {filteredVehicles.slice(page*rowsPerPage, page*rowsPerPage+rowsPerPage).map(vehicle => (
+              <TableRow key={vehicle.id} hover>
+                <TableCell>{vehicle.name}</TableCell>
+                <TableCell>{vehicle.licensePlate}</TableCell>
+                <TableCell><Chip label={vehicle.status} color={getStatusColor(vehicle.status) as any} size="small"/></TableCell>
+                <TableCell>{vehicle.vehicleType}</TableCell>
+                <TableCell>
+                  <IconButton size="small" onClick={() => handleViewDetails(vehicle)} title="View Details"><VisibilityIcon /></IconButton>
+                  <IconButton size="small" color="error" onClick={() => {
+                    const detail = vehicleDetails.find(v => v.id === vehicle.id);
+                    if (detail) handleOpenDelete(detail);
+                  }} title="Delete Vehicle"><DeleteIcon /></IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </TableContainer>
 
-      {/* Pagination */}
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mt: 2,
-        }}
-      >
-        <Typography variant="body2" color="text.secondary">
-          {`${page * rowsPerPage + 1} to ${Math.min(
-            (page + 1) * rowsPerPage,
-            filteredVehicles.length
-          )} of ${filteredVehicles.length} entries`}
-        </Typography>
-
-        <TablePagination
-          component="div"
-          count={filteredVehicles.length}
-          page={page}
-          onPageChange={handleChangePage}
-          rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-          rowsPerPageOptions={[5, 10, 20, 50]}
-          labelRowsPerPage=""
-        />
-      </Box>
-
-      {/* Vehicle Details Drawer */}
-      <VehicleDetailsDrawer
-        open={drawerOpen}
-        onClose={handleCloseDrawer}
-        vehicle={selectedVehicle}
-        onEdit={handleEditVehicle}
+      <TablePagination
+        component="div"
+        count={filteredVehicles.length}
+        page={page}
+        onPageChange={(_e, newPage) => setPage(newPage)}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={e => setRowsPerPage(Number(e.target.value))}
+        rowsPerPageOptions={[5,10,20,50]}
       />
+
+      <VehicleDetailsDrawer open={drawerOpen} onClose={handleCloseDrawer} vehicle={selectedVehicle} onEdit={handleOpenEdit} />
+      <EditVehicleForm open={editOpen} vehicle={selectedVehicle} onClose={() => setEditOpen(false)} onSave={handleSaveEdit} />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)}>
+        <DialogTitle>Delete Vehicle</DialogTitle>
+        <DialogContent>
+          Are you sure you want to delete <strong>{vehicleToDelete?.name}</strong>?
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteOpen(false)}>Cancel</Button>
+          <Button color="error" onClick={handleConfirmDelete}>Delete</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
