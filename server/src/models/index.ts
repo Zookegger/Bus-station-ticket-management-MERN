@@ -15,6 +15,7 @@ import { generateDefaultAdminAccount } from "../services/userServices";
 import { Vehicle } from "./vehicle";
 import { VehicleType } from "./vehicleType";
 import { Driver } from "./drivers";
+import { Location } from "./location";
 
 const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
 
@@ -28,6 +29,7 @@ const db: {
 	sequelize: Sequelize;
 	user: typeof User;
 	driver: typeof Driver;
+	location: typeof Location;
 	refreshToken: typeof RefreshToken;
 	vehicle: typeof Vehicle;
 	vehicleType: typeof VehicleType;
@@ -35,6 +37,7 @@ const db: {
 	sequelize,
 	user: User,
 	driver: Driver,
+	location: Location,
 	refreshToken: RefreshToken,
 	vehicle: Vehicle,
 	vehicleType: VehicleType
@@ -43,6 +46,7 @@ const db: {
 // Initialize models with Sequelize instance
 User.initModel(sequelize);
 Driver.initModel(sequelize);
+Location.initModel(sequelize);
 RefreshToken.initModel(sequelize);
 Vehicle.initModel(sequelize);
 VehicleType.initModel(sequelize);
