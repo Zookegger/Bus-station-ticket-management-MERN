@@ -149,7 +149,7 @@ export const listVehicleTypes = async (options: ListOptions = {}
         order: [[orderBy, sortOrder]]
     };
 
-    // ✅ FIXED: Add pagination if provided
+    // Add pagination if provided
     if (page !== undefined && limit !== undefined) {
         queryOptions.offset = (page - 1) * limit;
         queryOptions.limit = limit;
@@ -171,13 +171,13 @@ export const listVehicleTypes = async (options: ListOptions = {}
 export const addVehicleType = async (
 	dto: CreateVehicleTypeDTO
 ): Promise<VehicleType | null> => {
-	const existingVehicleType = await db.vehicleType.findOne({
+	const existing_vehicle_type = await db.vehicleType.findOne({
 		where: {
 			name: dto.name,
 		},
 	});
 
-	if (existingVehicleType)
+	if (existing_vehicle_type)
 		throw { status: 409, message: "Vehicle type already exist." };
 
 	const vehicle_type = await db.vehicleType.create(dto);
