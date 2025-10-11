@@ -10,7 +10,8 @@ import { Router } from "express";
 import { isAdmin } from "../../middlewares/auth";
 import * as driverController from "../../controllers/driverController";
 import { errorHandler } from "../../middlewares/errorHandler";
-import { createDriverValidation, updateDriverValidation } from "../../validators/driverValidator";
+import { handleValidationResult } from "../../middlewares/validateRequest";
+import { createDriverValidation, updateDriverValidation, validateDriverIdParam } from "../../validators/driverValidator";
 
 /**
  * Driver management router instance.
@@ -32,15 +33,15 @@ driverRoutes.get("/", isAdmin, driverController.SearchDriver, errorHandler);
 driverRoutes.get("/search", isAdmin, driverController.SearchDriver, errorHandler);
 
 // GET /drivers/:id - Get driver by ID
-driverRoutes.get("/:id", isAdmin, driverController.GetDriverById, errorHandler);
+driverRoutes.get("/:id", isAdmin, validateDriverIdParam, handleValidationResult, driverController.GetDriverById, errorHandler);
 
 // POST /drivers - Create new driver
-driverRoutes.post("/", isAdmin, createDriverValidation, driverController.AddDriver, errorHandler);
+driverRoutes.post("/", isAdmin, createDriverValidation, handleValidationResult, driverController.AddDriver, errorHandler);
 
 // PUT /drivers/:id - Update driver by ID
-driverRoutes.put("/:id", isAdmin, updateDriverValidation, driverController.UpdateDriver, errorHandler);
+driverRoutes.put("/:id", isAdmin, validateDriverIdParam, updateDriverValidation, handleValidationResult, driverController.UpdateDriver, errorHandler);
 
 // DELETE /drivers/:id - Delete driver by ID
-driverRoutes.delete("/:id", isAdmin, driverController.DeleteDriver, errorHandler);
+driverRoutes.delete("/:id", isAdmin, validateDriverIdParam, handleValidationResult, driverController.DeleteDriver, errorHandler);
 
 export default driverRoutes;

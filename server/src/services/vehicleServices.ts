@@ -106,24 +106,24 @@ export const listVehicles = async (
 	if (keywords) {
 		where[Op.or] = [
 			{ numberPlate: { [Op.like]: `%${keywords}%` } },
-			{ '$VehicleType.name$': { [Op.like]: `%${keywords}%` } }, // If you have associations
+			{ "$VehicleType.name$": { [Op.like]: `%${keywords}%` } }, // If you have associations
 			{ model: { [Op.like]: `%${keywords}%` } },
-			{ manufacturer: { [Op.like]: `%${keywords}%` } }
-		]
+			{ manufacturer: { [Op.like]: `%${keywords}%` } },
+		];
 	}
 
-    const queryOptions: any = {
-        where: Object.keys(where).length > 0 ? where : undefined,
-        order: [[orderBy, sortOrder]]
-    };
+	const queryOptions: any = {
+		where: Object.keys(where).length > 0 ? where : undefined,
+		order: [[orderBy, sortOrder]],
+	};
 
-    // Add pagination if provided
-    if (page !== undefined && limit !== undefined) {
-        queryOptions.offset = (page - 1) * limit;
-        queryOptions.limit = limit;
-    }
+	// Add pagination if provided
+	if (page !== undefined && limit !== undefined) {
+		queryOptions.offset = (page - 1) * limit;
+		queryOptions.limit = limit;
+	}
 
-    return await db.vehicle.findAndCountAll(queryOptions);
+	return await db.vehicle.findAndCountAll(queryOptions);
 };
 
 /**
@@ -181,11 +181,13 @@ export const updateVehicle = async (
  * Removes a vehicle record from the database.
  *
  * Permanently deletes the vehicle after verifying it exists.
+ * Verifies deletion was successful by checking if vehicle still exists.
  * Consider adding cascade delete logic if vehicles have dependencies.
  *
  * @param id - Unique identifier of the vehicle to remove
  * @returns Promise resolving when deletion is complete
  * @throws {Object} Error with status 404 if vehicle not found
+ * @throws {Object} Error with status 500 if deletion verification fails
  */
 export const removeVehicle = async (id: number): Promise<void> => {
 	const vehicle = await getVehicleById(id);
@@ -194,4 +196,13 @@ export const removeVehicle = async (id: number): Promise<void> => {
 		throw { status: 404, message: `No vehicle found with id ${id}` };
 
 	await vehicle.destroy();
+
+	// Verify deletion was successful
+	const deletedVehicle = await getVehicleById(id);
+	if (deletedVehicle) {
+		throw {
+			status: 500,
+			message: "Vehicle deletion failed - vehicle still exists.",
+		};
+	}
 };

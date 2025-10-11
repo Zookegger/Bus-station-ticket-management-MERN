@@ -108,6 +108,22 @@ export const UpdateDriver = async (
  * @throws {Error} When driver not found or deletion fails
  * @returns JSON response with success message
  */
+/**
+ * Deletes a driver by ID.
+ *
+ * Permanently removes a driver record from the system.
+ * Returns appropriate status codes based on operation outcome.
+ *
+ * @param req - Express request object containing driver ID in URL parameters
+ * @param res - Express response object
+ * @param next - Express next function for error handling
+ *
+ * @route DELETE /drivers/:id
+ * @access Admin
+ *
+ * @throws {Error} When driver not found or deletion fails
+ * @returns JSON response with success message
+ */
 export const DeleteDriver = async (
 	req: Request,
 	res: Response,
@@ -117,16 +133,6 @@ export const DeleteDriver = async (
 		const id = getParamsId(req);
 
 		await driverServices.deleteDriver(id);
-
-		const deletedDriver = await driverServices.getDriverById(id);
-
-		if (deletedDriver) {
-			res.status(500).json({
-				success: false,
-				message: "Driver deletion failed - driver still exists.",
-			});
-			return;
-		}
 
 		res.status(200).json({
 			success: true,

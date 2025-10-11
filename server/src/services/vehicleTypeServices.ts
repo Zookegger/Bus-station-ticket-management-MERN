@@ -212,11 +212,13 @@ export const updateVehicleType = async (
  * Removes a vehicle type record from the database.
  *
  * Permanently deletes the vehicle type after verifying it exists.
+ * Verifies deletion was successful by checking if vehicle type still exists.
  * Consider adding cascade delete logic if vehicle types have dependencies.
  *
  * @param id - Unique identifier of the vehicle type to remove
  * @returns Promise resolving when deletion is complete
  * @throws {Object} Error with status 404 if vehicle type not found
+ * @throws {Object} Error with status 500 if deletion verification fails
  */
 export const removeVehicleType = async (id: number): Promise<void> => {
 	const vehicle_type = await getVehicleTypeById(id);
@@ -225,4 +227,13 @@ export const removeVehicleType = async (id: number): Promise<void> => {
 		throw { status: 404, message: `No vehicle type found with id ${id}` };
 
 	await vehicle_type.destroy();
+
+	// Verify deletion was successful
+	const deletedVehicleType = await getVehicleTypeById(id);
+	if (deletedVehicleType) {
+		throw {
+			status: 500,
+			message: "Vehicle type deletion failed - vehicle type still exists."
+		};
+	}
 };

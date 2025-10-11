@@ -214,15 +214,26 @@ export const updateDriver = async (
  * Removes a driver record from the database.
  *
  * Permanently deletes the driver after verifying it exists.
+ * Verifies deletion was successful by checking if driver still exists.
  * Consider adding cascade delete logic if drivers have dependencies.
  *
  * @param id - Unique identifier of the driver to remove
  * @returns Promise resolving when deletion is complete
  * @throws {Object} Error with status 404 if driver not found
+ * @throws {Object} Error with status 500 if deletion verification fails
  */
 export const deleteDriver = async (id: number): Promise<void> => {
     const driver = await getDriverById(id);
     if (!driver) throw { status: 404 , message: `No driver found with id ${id}` };
-    
+
     await driver.destroy();
+
+    // Verify deletion was successful
+    const deletedDriver = await getDriverById(id);
+    if (deletedDriver) {
+        throw {
+            status: 500,
+            message: "Driver deletion failed - driver still exists."
+        };
+    }
 };

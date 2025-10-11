@@ -182,17 +182,6 @@ export const RemoveVehicle = async (
 
 		await vehicleServices.removeVehicle(id);
 
-		const deletedVehicle = await vehicleServices.getVehicleById(id);
-
-		if (deletedVehicle) {
-			res.status(500).json({
-				success: false,
-				message: "Vehicle deletion failed - vehicle still exists.",
-			});
-			return;
-		}
-
-		// Deletion successful
 		res.status(200).json({
 			success: true,
 			message: "Vehicle deleted successfully.",

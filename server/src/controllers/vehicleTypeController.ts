@@ -204,16 +204,6 @@ export const RemoveVehicleType = async (
 
 		await vehicleTypeServices.removeVehicleType(id);
 
-		const deletedVehicleType = await vehicleTypeServices.getVehicleTypeById(id);
-
-		if (deletedVehicleType) {
-			res.status(500).json({
-				success: false,
-				message: "Vehicle type deletion failed - vehicle type still exists.",
-			});
-			return;
-		}
-
 		res.status(200).json({
 			success: true,
 			message: "Vehicle type deleted successfully",
