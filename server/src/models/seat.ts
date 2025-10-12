@@ -34,10 +34,13 @@ export interface SeatAttributes {
 }
 
 /**
- * Attributes used for creating a new Seat record.
- * Fields like `id`, `row`, `column`, `floor`, `isAvailable`, `isActive`, and timestamps are optional during creation.
+ * Attributes required for creating a new Seat.
+ * Some fields are optional because they are generated automatically
+ * or can be added later (e.g., id, timestamps).
+ *
+ * @interface SeatCreationAttributes
  */
-interface SeatCreationAttributes
+export interface SeatCreationAttributes
 	extends Optional<
 		SeatAttributes,
 		| "id"
@@ -57,20 +60,30 @@ interface SeatCreationAttributes
  * @class Seat
  * @extends Model
  * @implements {SeatAttributes}
+ * @property {number} id - Primary key of the seat.
+ * @property {string} number - Unique seat number (e.g., "A1", "B2").
+ * @property {number | null} [row] - Row index for layout positioning.
+ * @property {number | null} [column] - Column index for layout positioning.
+ * @property {number | null} [floor] - Floor level (for multi-floor buses).
+ * @property {boolean} [isAvailable] - Indicates if the seat is currently available for booking.
+ * @property {boolean} [isActive] - Indicates if the seat is active/enabled (not damaged/disabled).
+ * @property {number | null} [tripId] - Foreign key referencing the associated Trip.
+ * @property {Date} createdAt - Timestamp when the seat record was created.
+ * @property {Date} updatedAt - Timestamp when the seat record was last updated.
  */
 export class Seat
 	extends Model<SeatAttributes, SeatCreationAttributes>
 	implements SeatAttributes
 {
 	public id!: number;
-	public number!: string;
+	public number!: string; /** Unique seat number (e.g., "A1", "B2") */
 	public row?: number | null;
 	public column?: number | null;
 	public floor?: number | null;
-	public isAvailable?: boolean;
-	public isActive?: boolean;
+	public isAvailable?: boolean; /** Indicates if the seat is currently available for booking */
+	public isActive?: boolean; /** Indicates if the seat is active/enabled (not damaged/disabled) */
 	public tripId?: number | null;
-
+    
 	public readonly createdAt!: Date;
 	public readonly updatedAt!: Date;
 

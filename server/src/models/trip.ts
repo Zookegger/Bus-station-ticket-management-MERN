@@ -57,6 +57,7 @@ export interface TripCreationAttributes
  * Each trip links a vehicle and a route, with scheduling and pricing details.
  *
  * @class Trip
+ * @extends Model
  * @implements {TripAttributes}
  * @property {number} id - Unique identifier of the trip.
  * @property {number} vehicleId - Vehicle assigned to the trip.
@@ -72,20 +73,41 @@ export class Trip
 	extends Model<TripAttributes, TripCreationAttributes>
 	implements TripAttributes
 {
+	/** Unique identifier of the trip */
 	public id!: number;
+
+	/** Foreign key referencing the assigned vehicle */
 	public vehicleId!: number;
+
+	/** Foreign key referencing the route for this trip */
 	public routeId!: number;
+
+	/** Scheduled departure time for the trip */
 	public startTime!: Date;
+
+	/** Actual or estimated arrival time */
 	public endTime?: Date | null;
+
+	/** Ticket price for this specific trip */
 	public price?: number | null;
+
+	/** Current status of the trip (Scheduled, Departed, Completed, Cancelled) */
 	public status?: string;
 
+	/** Timestamp when the trip record was created */
 	public readonly createdAt!: Date;
+
+	/** Timestamp when the trip record was last updated */
 	public readonly updatedAt!: Date;
 
 	// Association properties
+	/** Vehicle assigned to the trip */
 	public vehicle?: Vehicle;
+
+	/** Route associated with the trip */
 	public route?: Route;
+
+	/** Seats assigned to this trip */
 	public seats?: Seat[];
 
 	/**

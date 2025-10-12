@@ -37,7 +37,9 @@ export interface DriverAttributes {
 }
 
 /**
- * Attributes for creating a driver, with optional fields for flexibility.
+ * Attributes required for creating a new Driver.
+ * Some fields are optional because they are generated automatically
+ * or can be added later (e.g., id, timestamps).
  *
  * @interface DriverCreationAttributes
  */

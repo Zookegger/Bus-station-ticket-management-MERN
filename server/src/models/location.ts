@@ -45,6 +45,7 @@ export interface LocationCreationAttributes extends Optional<LocationAttributes,
  * Maps the `locations` table and enforces schema via Sequelize.
  *
  * @class Location
+ * @extends Model
  * @implements {LocationAttributes}
  * @property {number} id - Unique identifier of the location.
  * @property {string} name - Name of the location.

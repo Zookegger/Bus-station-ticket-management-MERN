@@ -43,6 +43,7 @@ export interface VehicleCreationAttributes
  * Maps the `vehicle` table and defines schema validation rules via Sequelize.
  *
  * @class Vehicle
+ * @extends Model
  * @implements {VehicleAttributes}
  * @property {number} id - Unique identifier of the vehicle.
  * @property {string} numberPlate - Unique license plate number.
@@ -56,16 +57,32 @@ export class Vehicle
 	extends Model<VehicleAttributes, VehicleCreationAttributes>
 	implements VehicleAttributes
 {
+	/** Unique identifier of the vehicle */
 	public id!: number;
+
+	/** Unique license plate number of the vehicle */
 	public numberPlate!: string;
+
+	/** Foreign key referencing the vehicle type */
 	public vehicleTypeId!: number;
+
+	/** Manufacturer or brand of the vehicle */
 	public manufacturer?: string | null;
+
+	/** Model name or code of the vehicle */
 	public model?: string | null;
+
+	/** Timestamp when the vehicle record was created */
 	public createdAt?: Date;
+
+	/** Timestamp when the vehicle record was last updated */
 	public updatedAt?: Date;
 
 	// Association properties
+	/** Vehicle type configuration */
 	public vehicleType?: VehicleType;
+
+	/** Trips assigned to this vehicle */
 	public trips?: Trip[];
 
     /**
