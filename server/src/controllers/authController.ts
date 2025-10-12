@@ -4,7 +4,18 @@ import { verifyEmail } from "@services/verificationServices";
 
 /**
  * Registers a new user account.
+ *
+ * Validates input data and creates a new user in the database.
+ * Sends a verification email for account activation.
+ *
+ * @param req - Express request object containing user registration data
+ * @param res - Express response object
+ * @param next - Express next function for error handling
+ *
  * @route POST /auth/register
+ * @access Public
+ *
+ * @throws {Error} When registration fails or validation errors occur
  */
 export const Register = async (
 	req: Request,
@@ -32,7 +43,18 @@ export const Register = async (
 
 /**
  * Authenticates a user and issues access/refresh tokens.
+ *
+ * Validates user credentials and generates JWT tokens for session management.
+ * Returns tokens for client-side storage and API access.
+ *
+ * @param req - Express request object containing login credentials
+ * @param res - Express response object
+ * @param next - Express next function for error handling
+ *
  * @route POST /auth/login
+ * @access Public
+ *
+ * @throws {Error} When authentication fails or credentials are invalid
  */
 export const Login = async (
 	req: Request,
@@ -58,7 +80,18 @@ export const Login = async (
 
 /**
  * Refreshes an expired access token using a refresh token.
+ *
+ * Validates the refresh token and issues a new access token pair.
+ * Used to maintain user sessions without re-authentication.
+ *
+ * @param req - Express request object containing refresh token
+ * @param res - Express response object
+ * @param next - Express next function for error handling
+ *
  * @route POST /auth/refresh
+ * @access Public
+ *
+ * @throws {Error} When refresh token is invalid or expired
  */
 export const Refresh = async (
 	req: Request,
@@ -82,7 +115,18 @@ export const Refresh = async (
 
 /**
  * Revokes a refresh token on logout.
+ *
+ * Invalidates the refresh token to prevent further token refresh.
+ * Clears server-side session data for security.
+ *
+ * @param req - Express request object containing refresh token
+ * @param res - Express response object
+ * @param next - Express next function for error handling
+ *
  * @route POST /auth/logout
+ * @access Authenticated
+ *
+ * @throws {Error} When logout fails or token is invalid
  */
 export const Logout = async (
 	req: Request,
@@ -99,8 +143,19 @@ export const Logout = async (
 };
 
 /**
- * Revokes a refresh token on logout.
- * @route POST /auth/logout
+ * Returns the authenticated user's profile.
+ *
+ * Retrieves and returns the current user's profile information.
+ * Requires valid JWT token for authentication.
+ *
+ * @param req - Express request object (user ID extracted from JWT)
+ * @param res - Express response object
+ * @param next - Express next function for error handling
+ *
+ * @route GET /auth/me
+ * @access Authenticated
+ *
+ * @throws {Error} When user not found or authentication fails
  */
 export const GetMe = async (
 	req: Request,
@@ -118,6 +173,21 @@ export const GetMe = async (
 	}
 };
 
+/**
+ * Verifies a user's email address.
+ *
+ * Validates the email verification token and activates the user account.
+ * Allows users to complete registration and access the system.
+ *
+ * @param req - Express request object containing verification token
+ * @param res - Express response object
+ * @param next - Express next function for error handling
+ *
+ * @route POST /auth/verify-email
+ * @access Public
+ *
+ * @throws {Error} When token is invalid or verification fails
+ */
 export const VerifyEmail = async (
 	req: Request,
 	res: Response,

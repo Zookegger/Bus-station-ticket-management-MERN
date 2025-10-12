@@ -52,9 +52,14 @@ const issueExpiryDate = (value: number): Date => {
 
 /**
  * Registers a new user and issues access + refresh tokens.
- * - Hashes the password with bcrypt
- * - Ensures email uniqueness
- * - Persists a refresh token row, so it can be revoked later
+ *
+ * Validates input data, ensures email uniqueness, hashes password,
+ * creates user account, and generates authentication tokens.
+ * Sends verification email for account activation.
+ *
+ * @param dto - Data transfer object containing registration data
+ * @returns Promise resolving to object with tokens and user info
+ * @throws {Object} Error with status 400 if email already in use
  */
 export const register = async (
 	dto: DTO.RegisterDTO
@@ -104,6 +109,13 @@ export const register = async (
 
 /**
  * Authenticates user credentials and returns tokens.
+ *
+ * Validates username/email and password, generates new tokens
+ * for session management. Supports login by username or email.
+ *
+ * @param dto - Data transfer object containing login credentials
+ * @returns Promise resolving to object with tokens and user info
+ * @throws {Object} Error with status 401 if credentials are invalid
  */
 export const login = async (
 	dto: DTO.LoginDTO
@@ -148,8 +160,13 @@ export const login = async (
 
 /**
  * Exchanges a valid refresh token for a new access token.
- * - Validates existence and expiry of the refresh token in DB
- * - Rotate refresh tokens (issue a new one and delete the old)
+ *
+ * Validates refresh token existence and expiry, rotates tokens
+ * for security, and issues new access token pair.
+ *
+ * @param refreshTokenValue - The refresh token string to validate
+ * @returns Promise resolving to new access token and refresh token
+ * @throws {Object} Error with status 401 if token is invalid or expired
  */
 export const refreshAccessToken = async (
 	refreshTokenValue: string
@@ -202,6 +219,12 @@ export const refreshAccessToken = async (
 
 /**
  * Revokes a specific refresh token (logout for that session/device).
+ *
+ * Removes the refresh token from database to invalidate the session.
+ * Used for logout or token cleanup.
+ *
+ * @param refreshTokenValue - The refresh token string to revoke
+ * @returns Promise resolving to number of destroyed rows
  */
 export const revokeRefreshToken = async (
 	refreshTokenValue: string
@@ -213,7 +236,13 @@ export const revokeRefreshToken = async (
 
 /**
  * Changes password after validating the current password.
- * Also revokes all refresh tokens to invalidate existing sessions.
+ *
+ * Verifies current password, hashes new password, updates user record,
+ * and revokes all refresh tokens to invalidate existing sessions.
+ *
+ * @param dto - Data transfer object containing password change data
+ * @returns Promise resolving when password change is complete
+ * @throws {Object} Error with status 404 if user not found or password incorrect
  */
 export const changePassword = async (dto: DTO.ChangePasswordDTO): Promise<void> => {
 	const user = await db.user.findByPk(dto.userId, {
@@ -241,6 +270,16 @@ export const changePassword = async (dto: DTO.ChangePasswordDTO): Promise<void> 
 	await db.refreshToken.destroy({ where: { userId: user.id } });
 };
 
+/**
+ * Retrieves the authenticated user's profile by ID.
+ *
+ * Fetches user data excluding sensitive fields like password hash.
+ * Used for profile display and user information retrieval.
+ *
+ * @param userId - Unique identifier of the user
+ * @returns Promise resolving to user profile data
+ * @throws {Object} Error with status 404 if user not found
+ */
 export const getMe = async (userId: string): Promise<DTO.GetMeDTO> => {
 	const user = await getUserById(userId, "userName", "email", "emailConfirmed", "role", "avatar");
 	if (!user) throw { status: 404, message: "User not found" }
