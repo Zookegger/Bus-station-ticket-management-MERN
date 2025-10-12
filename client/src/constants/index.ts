@@ -40,6 +40,7 @@ export const ROUTES = {
 	DASHBOARD_USER: "/dashboard/user",
 	DASHBOARD_SYSTEM: "/dashboard/system",
 	PROFILE: "/profile",
+	VERIFY_EMAIL: "/verify-email",
 	SETTINGS: "/settings",
 	LOGIN: "/login",
 	REGISTER: "/register",

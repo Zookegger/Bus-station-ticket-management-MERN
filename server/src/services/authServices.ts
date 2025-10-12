@@ -3,11 +3,12 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { add, addDays } from "date-fns";
-import { RegisterDTO, LoginDTO, ChangePasswordDTO } from "../types/user";
+import * as DTO from "@my_types/user";
 import ms from "ms";
-import { role } from "../models/users";
+import { role } from "@models/users";
 import { Op } from "sequelize";
-import { sendVerificationEmail } from "./verificationServices";
+import { sendVerificationEmail } from "@services/verificationServices";
+import { getUserById } from "./userServices";
 
 /**
  * Service layer encapsulating business logic for authentication.
@@ -56,7 +57,7 @@ const issueExpiryDate = (value: number): Date => {
  * - Persists a refresh token row, so it can be revoked later
  */
 export const register = async (
-	dto: RegisterDTO
+	dto: DTO.RegisterDTO
 ): Promise<{
 	accessToken: string;
 	refreshToken: string;
@@ -105,7 +106,7 @@ export const register = async (
  * Authenticates user credentials and returns tokens.
  */
 export const login = async (
-	dto: LoginDTO
+	dto: DTO.LoginDTO
 ): Promise<{
 	accessToken: string;
 	refreshToken: string;
@@ -214,7 +215,7 @@ export const revokeRefreshToken = async (
  * Changes password after validating the current password.
  * Also revokes all refresh tokens to invalidate existing sessions.
  */
-export const changePassword = async (dto: ChangePasswordDTO): Promise<void> => {
+export const changePassword = async (dto: DTO.ChangePasswordDTO): Promise<void> => {
 	const user = await db.user.findByPk(dto.userId, {
 		attributes: ["id", "passwordHash"],
 	});
@@ -239,3 +240,18 @@ export const changePassword = async (dto: ChangePasswordDTO): Promise<void> => {
 	// Revoke all sessions after password change
 	await db.refreshToken.destroy({ where: { userId: user.id } });
 };
+
+export const getMe = async (userId: string): Promise<DTO.GetMeDTO> => {
+	const user = await getUserById(userId, "userName", "email", "emailConfirmed", "role", "avatar");
+	if (!user) throw { status: 404, message: "User not found" }
+	return {
+		user: {
+			id: user.id,
+			username: user.userName,
+			email: user.email,
+			emailConfirmed: user.emailConfirmed,
+			role: user.role,
+			...(user.avatar !== undefined && {avatar: user.avatar}),
+		},
+	};
+}

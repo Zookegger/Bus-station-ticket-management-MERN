@@ -10,9 +10,10 @@
 import { Request, Response, Router } from "express";
 import { errorHandler } from "../../middlewares/errorHandler";
 import { loginValidation, registerValidation } from "../../validators/authValidator";
-import { login, register } from "../../controllers/authController";
+import * as authController from "../../controllers/authController";
 import { handleValidationResult } from "../../middlewares/validateRequest";
 import { getCsrfToken } from "../../middlewares/csrf";
+import { authenticateJwt } from "@middlewares/auth";
 
 /**
  * Authentication router instance.
@@ -29,9 +30,18 @@ authRoutes.get("/csrf-token", (req: Request, res: Response): void => {
 });
 
 // POST /auth/login - Authenticate user credentials
-authRoutes.post("/login", loginValidation, handleValidationResult, login, errorHandler);
+authRoutes.post("/login", loginValidation, handleValidationResult, authController.Login, errorHandler);
 
 // POST /auth/register - Create new user account
-authRoutes.post("/register", registerValidation, handleValidationResult, register, errorHandler);
+authRoutes.post("/register", registerValidation, handleValidationResult, authController.Register, errorHandler);
+
+// POST /auth/logout - Log current user account session out
+authRoutes.post("/logout", authController.Logout, errorHandler);
+
+// GET /auth/me - Fetch authenticated user's profile
+authRoutes.get("/me", authenticateJwt, authController.GetMe, errorHandler);
+
+// POST /auth/verify-email - Verify user's email
+authRoutes.post("/verify-email", authController.VerifyEmail, errorHandler);
 
 export default authRoutes;

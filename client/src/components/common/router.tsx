@@ -44,27 +44,33 @@ export const router = createBrowserRouter([
 					return { Component: Register };
 				},
 			},
-
+			{
+				path: ROUTES.VERIFY_EMAIL,
+				lazy: async () => {
+					const { default: ConfirmEmail } = await import(
+						"@pages/common/ConfirmEmail"
+					);
+					return { Component: ConfirmEmail };
+				},
+			},
 			{
 				path: ROUTES.NOT_FOUND,
 				lazy: async () => {
 					const { default: NotFound } = await import(
-						"@pages/NotFound"
+						"@pages/common/NotFound"
 					);
 					return { Component: NotFound };
 				},
 			},
-
 			{
 				path: ROUTES.PRIVACY_POLICY,
 				lazy: async () => {
 					const { default: PrivacyPolicy } = await import(
-						"@pages/PrivacyPolicy"
+						"@pages/common/PrivacyPolicy"
 					);
 					return { Component: PrivacyPolicy };
 				},
 			},
-
 			{
 				path: "*",
 				element: <Navigate to={ROUTES.NOT_FOUND} replace />,
