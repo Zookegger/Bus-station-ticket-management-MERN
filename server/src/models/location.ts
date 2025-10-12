@@ -1,4 +1,5 @@
 import { DataTypes, Model, Optional, Sequelize } from "sequelize"
+import { Route } from "./route"
 
 /**
  * Sequelize model for Location entity.
@@ -61,6 +62,10 @@ export class Location extends Model<LocationAttributes, LocationCreationAttribut
     public longitude?: number | null
     public readonly createdAt!: Date
     public readonly updatedAt!: Date
+
+    // Association properties
+    public routesStartingHere?: Route[];
+    public routesEndingHere?: Route[];
 
     /**
 	 * Initializes the Sequelize model definition for Location.

@@ -1,4 +1,6 @@
 import { DataTypes, Model, Optional, Sequelize } from "sequelize";
+import { VehicleType } from "./vehicleType";
+import { Trip } from "./trip";
 
 /**
  * Attributes representing a Vehicle in the system.
@@ -61,6 +63,10 @@ export class Vehicle
 	public model?: string | null;
 	public createdAt?: Date;
 	public updatedAt?: Date;
+
+	// Association properties
+	public vehicleType?: VehicleType;
+	public trips?: Trip[];
 
     /**
 	 * Initializes the Sequelize model definition for Vehicle.

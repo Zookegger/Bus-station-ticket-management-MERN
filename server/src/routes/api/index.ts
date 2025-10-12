@@ -15,6 +15,7 @@ import driverRoutes from "./driverRoutes";
 import locationRoutes from "./locationRoutes";
 import routeRoutes from "./routeRoutes";
 import tripRoutes from "./tripRoutes";
+import seatRoutes from "./seatRoutes";
 
 /**
  * Main API router instance.
@@ -47,5 +48,8 @@ apiRouter.use("/routes", routeRoutes);
 
 // Mount trip routes under /trips prefix
 apiRouter.use("/trips", tripRoutes);
+
+// Mount seat routes under /seats prefix
+apiRouter.use("/seats", seatRoutes);
 
 export default apiRouter;

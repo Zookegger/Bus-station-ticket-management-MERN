@@ -1,4 +1,6 @@
 import { Model, DataTypes, Optional, Sequelize } from 'sequelize';
+import { Location } from './location';
+import { Trip } from './trip';
 
 export interface RouteAttributes {
   id: number;
@@ -23,6 +25,11 @@ export class Route extends Model<RouteAttributes, RouteCreationAttributes> imple
 
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
+
+  // Association properties
+  public startLocation?: Location;
+  public destinationLocation?: Location;
+  public trips?: Trip[];
 
   static initModel(sequelize: Sequelize) {
     Route.init(

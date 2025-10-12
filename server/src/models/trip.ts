@@ -1,4 +1,7 @@
 import { Model, DataTypes, Optional, Sequelize } from "sequelize";
+import { Vehicle } from "./vehicle";
+import { Route } from "./route";
+import { Seat } from "./seat";
 
 /**
  * Sequelize model for Trip entity.
@@ -79,6 +82,11 @@ export class Trip
 
 	public readonly createdAt!: Date;
 	public readonly updatedAt!: Date;
+
+	// Association properties
+	public vehicle?: Vehicle;
+	public route?: Route;
+	public seats?: Seat[];
 
 	/**
 	 * Initializes the Sequelize model definition for Trip.

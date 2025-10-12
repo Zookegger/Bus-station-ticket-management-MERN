@@ -18,6 +18,7 @@ import { Driver } from "./driver";
 import { Location } from "./location";
 import { Route } from "./route";
 import { Trip } from "./trip";
+import { Seat } from "./seat";
 
 const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
 
@@ -37,6 +38,7 @@ const db: {
 	vehicle: typeof Vehicle;
 	vehicleType: typeof VehicleType;
 	trip: typeof Trip;
+	seat: typeof Seat;
 } = {
 	sequelize,
 	user: User,
@@ -46,7 +48,8 @@ const db: {
 	refreshToken: RefreshToken,
 	vehicle: Vehicle,
 	vehicleType: VehicleType,
-	trip: Trip
+	trip: Trip,
+	seat: Seat
 };
 
 // Initialize models with Sequelize instance
@@ -58,6 +61,7 @@ RefreshToken.initModel(sequelize);
 Vehicle.initModel(sequelize);
 VehicleType.initModel(sequelize);
 Trip.initModel(sequelize);
+Seat.initModel(sequelize);
 
 // Define relationships/associations between models
 User.hasMany(RefreshToken, {
@@ -121,6 +125,17 @@ Vehicle.hasMany(Trip, {
 Route.hasMany(Trip, {
 	foreignKey: "routeId",
 	as: "trips"
+});
+
+// Seat associations
+Seat.belongsTo(Trip, {
+	foreignKey: "tripId",
+	as: "trip"
+});
+
+Trip.hasMany(Seat, {
+	foreignKey: "tripId",
+	as: "seats"
 });
 
 /**

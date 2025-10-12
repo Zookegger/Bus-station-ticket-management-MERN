@@ -10,6 +10,141 @@ import { Op } from "sequelize";
 import db from "../models";
 import { Trip } from "../models/trip";
 import { CreateTripDTO, UpdateTripDTO } from "../types/trip";
+import { VehicleType } from "../models/vehicleType";
+
+/**
+ * Generates seats for a trip based on vehicle type configuration.
+ *
+ * Creates seat records with proper numbering, layout positioning (row, column, floor),
+ * and associates them with the given trip. Uses the vehicle type's seat layout data
+ * to determine the number and arrangement of seats.
+ *
+ * @param tripId - ID of the trip to generate seats for
+ * @param vehicleType - Vehicle type containing seat layout configuration
+ * @throws {Error} When seat generation fails or vehicle type lacks seat data
+ */
+async function generateSeatsForTrip(
+	tripId: number,
+	vehicleType: VehicleType
+): Promise<void> {
+	const seats: Array<{
+		number: string;
+		row?: number;
+		column?: number;
+		floor?: number;
+		isAvailable: boolean;
+		isActive: boolean;
+		tripId: number;
+	}> = [];
+
+	// Check if vehicle type has seat layout information
+	if (!vehicleType.totalSeats || vehicleType.totalSeats <= 0) {
+		throw {
+			status: 400,
+			message: `Vehicle type ${vehicleType.name} does not have seat layout configured.`,
+		};
+	}
+
+	// Parse seat layout if available
+	let seatsPerFloor: any = null;
+	let rowsPerFloor: any = null;
+
+	if (vehicleType.seatsPerFloor) {
+		try {
+			seatsPerFloor = JSON.parse(vehicleType.seatsPerFloor);
+		} catch (e) {
+			// If parsing fails, fall back to simple generation
+			seatsPerFloor = null;
+		}
+	}
+
+	if (vehicleType.rowsPerFloor) {
+		try {
+			rowsPerFloor = JSON.parse(vehicleType.rowsPerFloor);
+		} catch (e) {
+			rowsPerFloor = null;
+		}
+	}
+
+	const totalFloors = vehicleType.totalFloors || 1;
+	const totalColumns = vehicleType.totalColumns || 4;
+
+	// Generate seats based on layout data
+	if (seatsPerFloor && Array.isArray(seatsPerFloor)) {
+		// Use detailed layout data
+		let seatCounter = 1;
+		for (let floorIndex = 0; floorIndex < seatsPerFloor.length; floorIndex++) {
+			const floorData = seatsPerFloor[floorIndex];
+			const floor = floorIndex + 1;
+
+			if (Array.isArray(floorData)) {
+				// Floor data is an array of rows
+				for (let rowIndex = 0; rowIndex < floorData.length; rowIndex++) {
+					const rowData = floorData[rowIndex];
+					const row = rowIndex + 1;
+
+					if (Array.isArray(rowData)) {
+						// Row data is an array of seat positions
+						for (let colIndex = 0; colIndex < rowData.length; colIndex++) {
+							const seatExists = rowData[colIndex];
+							if (seatExists) {
+								const column = colIndex + 1;
+								seats.push({
+									number: `${String.fromCharCode(64 + row)}${column}`,
+									row,
+									column,
+									floor,
+									isAvailable: true,
+									isActive: true,
+									tripId,
+								});
+								seatCounter++;
+							}
+						}
+					}
+				}
+			}
+		}
+	} else {
+		// Simple seat generation based on total count
+		const totalSeats = vehicleType.totalSeats;
+		const seatsPerFloor = Math.ceil(totalSeats / totalFloors);
+
+		for (let floor = 1; floor <= totalFloors; floor++) {
+			const seatsOnThisFloor =
+				floor === totalFloors
+					? totalSeats - seatsPerFloor * (floor - 1)
+					: seatsPerFloor;
+
+			for (let seatNum = 1; seatNum <= seatsOnThisFloor; seatNum++) {
+				const row = Math.ceil(seatNum / totalColumns);
+				const column = ((seatNum - 1) % totalColumns) + 1;
+				const seatLabel = `${String.fromCharCode(64 + row)}${column}`;
+				const floorPrefix = totalFloors > 1 ? `F${floor}-` : "";
+
+				const seatData: any = {
+					number: `${floorPrefix}${seatLabel}`,
+					row,
+					column,
+					isAvailable: true,
+					isActive: true,
+					tripId,
+				};
+
+				if (totalFloors > 1) {
+					seatData.floor = floor;
+				}
+
+				seats.push(seatData);
+			}
+		}
+	}
+
+	// Bulk create seats
+	if (seats.length > 0) {
+		await db.seat.bulkCreate(seats);
+	}
+}
 
 /**
  * Configuration options for trip listing and filtering.
@@ -178,15 +313,6 @@ export const searchTrip = async (
  * @throws {Object} Error with status 400 if validation fails
  */
 export const addTrip = async (dto: CreateTripDTO): Promise<Trip | null> => {
-	// Validate that vehicle exists
-	const vehicle = await db.vehicle.findByPk(dto.vehicleId);
-	if (!vehicle) {
-		throw {
-			status: 400,
-			message: `Vehicle with ID ${dto.vehicleId} does not exist.`,
-		};
-	}
-
 	// Validate that route exists
 	const route = await db.route.findByPk(dto.routeId);
 	if (!route) {
@@ -216,6 +342,30 @@ export const addTrip = async (dto: CreateTripDTO): Promise<Trip | null> => {
 		}
 	}
 
+	// Validate that vehicle exists and has vehicle type with seat layout
+	const vehicle = await db.vehicle.findByPk(dto.vehicleId, {
+		include: [
+			{
+				model: db.vehicleType,
+				as: "vehicleType",
+			},
+		],
+	});
+
+	if (!vehicle) {
+		throw {
+			status: 400,
+			message: `Vehicle with ID ${dto.vehicleId} does not exist.`,
+		};
+	}
+
+	if (!vehicle.vehicleType) {
+		throw {
+			status: 400,
+			message: `Vehicle ${dto.vehicleId} does not have an associated vehicle type.`,
+		};
+	}
+
 	// Convert date strings to Date objects for Sequelize
 	const createData: any = { ...dto };
 	createData.startTime = new Date(dto.startTime);
@@ -223,7 +373,12 @@ export const addTrip = async (dto: CreateTripDTO): Promise<Trip | null> => {
 		createData.endTime = new Date(createData.endTime);
 	}
 
+	// Create trip
 	const trip = await db.trip.create(createData);
+
+	// Generate seats based on vehicle type configuration
+	await generateSeatsForTrip(trip.id, vehicle.vehicleType);
+
 	return trip;
 };
 
@@ -306,8 +461,9 @@ export const updateTrip = async (
  * Removes a trip record from the database.
  *
  * Permanently deletes the trip after verifying it exists.
+ * Before deletion, releases all seats associated with the trip by setting
+ * their tripId to null and making them available for reassignment.
  * Verifies deletion was successful by checking if trip still exists.
- * Consider adding cascade delete logic if trips have dependencies (bookings, etc.).
  *
  * @param id - Unique identifier of the trip to remove
  * @returns Promise resolving when deletion is complete
@@ -320,6 +476,20 @@ export const deleteTrip = async (id: number): Promise<void> => {
 	if (!trip) {
 		throw { status: 404, message: `No trip found with id ${id}` };
 	}
+
+	// Release all seats associated with this trip
+	// Set tripId to null instead of deleting seats (maintains data integrity)
+	await db.seat.update(
+		{
+			tripId: null,
+			isAvailable: true,
+		},
+		{
+			where: {
+				tripId: id,
+			},
+		}
+	);
 
 	await trip.destroy();
 
