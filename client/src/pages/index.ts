@@ -8,7 +8,6 @@ export { default as Register } from "./landing/Register";
 // Admin pages
 export { default as AdminHome } from "./admin/home/Home";
 export { default as Vehicle } from "./admin/vehicle/Vehicle";
-export { default as VehicleList } from "./admin/vehicle/VehicleList";
 export { default as Trip } from "./admin/trip/Trip";
 export { default as User } from "./admin/user/User";
 export { default as System } from "./admin/system/System";

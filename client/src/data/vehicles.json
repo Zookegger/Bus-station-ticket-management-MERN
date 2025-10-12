@@ -4,13 +4,13 @@
     "name": "Limousine 01",
     "licensePlate": "C3B 99999",
     "status": "Standby",
-    "vehicleType": "Limousine 9 chỗ"
+    "vehicleType": "Limousine 9 seats"
   },
   {
     "id": 2,
     "name": "Xe 16 chỗ 01",
     "licensePlate": "91A-45678",
-    "status": "Hoạt động",
+    "status": "Active",
     "vehicleType": "Ghế ngồi 16 chỗ"
   },
   {
@@ -31,63 +31,7 @@
     "id": 5,
     "name": "Xe VIP 01",
     "licensePlate": "51B-54321",
-    "status": "Hoạt động",
-    "vehicleType": "Giường nằm 34 chỗ (VIP)"
-  },
-  {
-    "id": 5,
-    "name": "Xe VIP 01",
-    "licensePlate": "51B-54321",
-    "status": "Hoạt động",
-    "vehicleType": "Giường nằm 34 chỗ (VIP)"
-  },
-  {
-    "id": 5,
-    "name": "Xe VIP 01",
-    "licensePlate": "51B-54321",
-    "status": "Hoạt động",
-    "vehicleType": "Giường nằm 34 chỗ (VIP)"
-  },
-  {
-    "id": 5,
-    "name": "Xe VIP 01",
-    "licensePlate": "51B-54321",
-    "status": "Hoạt động",
-    "vehicleType": "Giường nằm 34 chỗ (VIP)"
-  },
-  {
-    "id": 5,
-    "name": "Xe VIP 01",
-    "licensePlate": "51B-54321",
-    "status": "Hoạt động",
-    "vehicleType": "Giường nằm 34 chỗ (VIP)"
-  },
-  {
-    "id": 5,
-    "name": "Xe VIP 01",
-    "licensePlate": "51B-54321",
-    "status": "Hoạt động",
-    "vehicleType": "Giường nằm 34 chỗ (VIP)"
-  },
-  {
-    "id": 5,
-    "name": "Xe VIP 01",
-    "licensePlate": "51B-54321",
-    "status": "Hoạt động",
-    "vehicleType": "Giường nằm 34 chỗ (VIP)"
-  },
-  {
-    "id": 5,
-    "name": "Xe VIP 01",
-    "licensePlate": "51B-54321",
-    "status": "Hoạt động",
-    "vehicleType": "Giường nằm 34 chỗ (VIP)"
-  },
-  {
-    "id": 5,
-    "name": "Xe VIP 01",
-    "licensePlate": "51B-54321",
-    "status": "Hoạt động",
+    "status": "Active",
     "vehicleType": "Giường nằm 34 chỗ (VIP)"
   }
 ]

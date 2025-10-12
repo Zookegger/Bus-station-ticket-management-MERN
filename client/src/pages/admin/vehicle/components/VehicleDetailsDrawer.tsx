@@ -51,7 +51,7 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
 		switch (status) {
 			case "Ready":
 				return "warning";
-			case "Hoạt động":
+			case "Active":
 				return "success";
 			case "In-Progress":
 				return "info";

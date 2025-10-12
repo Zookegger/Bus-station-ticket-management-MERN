@@ -1,4 +1,13 @@
-import { gender, role } from "../models/users";
+/**
+ * User roles.
+ */
+export type Role = "User" | "Admin" | "Operator";
+
+/**
+ * User gender options.
+ */
+export type Gender = "male" | "female" | "other";
+
 // Data transfer object
 
 /**
@@ -51,7 +60,7 @@ export interface UpdateProfileDTO {
 	email?: string;
 	fullName?: string;
 	address?: string | null;
-	gender?: gender | null;
+	gender?: Gender | null;
 	avatar?: string | null;
 	dateOfBirth?: Date | null;
 }
