@@ -16,6 +16,7 @@ import { Vehicle } from "./vehicle";
 import { VehicleType } from "./vehicleType";
 import { Driver } from "./driver";
 import { Location } from "./location";
+import { Route } from "./route";
 
 const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
 
@@ -30,6 +31,7 @@ const db: {
 	user: typeof User;
 	driver: typeof Driver;
 	location: typeof Location;
+	route: typeof Route;
 	refreshToken: typeof RefreshToken;
 	vehicle: typeof Vehicle;
 	vehicleType: typeof VehicleType;
@@ -38,6 +40,7 @@ const db: {
 	user: User,
 	driver: Driver,
 	location: Location,
+	route: Route,
 	refreshToken: RefreshToken,
 	vehicle: Vehicle,
 	vehicleType: VehicleType
@@ -47,6 +50,7 @@ const db: {
 User.initModel(sequelize);
 Driver.initModel(sequelize);
 Location.initModel(sequelize);
+Route.initModel(sequelize);
 RefreshToken.initModel(sequelize);
 Vehicle.initModel(sequelize);
 VehicleType.initModel(sequelize);
@@ -72,6 +76,26 @@ VehicleType.hasMany(Vehicle, {
 Vehicle.belongsTo(VehicleType, {
 	foreignKey: "vehicleTypeId",
 	as: "vehicleType"
+});
+
+Route.belongsTo(Location, {
+	foreignKey: "startId",
+	as: "startLocation"
+});
+
+Route.belongsTo(Location, {
+	foreignKey: "destinationId",
+	as: "destinationLocation"
+});
+
+Location.hasMany(Route, {
+	as: 'routesStartingHere',
+	foreignKey: 'startId'
+});
+
+Location.hasMany(Route, {
+	as: 'routesEndingHere',
+	foreignKey: 'destinationId'
 });
 
 /**
