@@ -21,8 +21,6 @@ import { sendEmail } from "../services/emailService";
 export const emailWorker = new Worker<EmailJobData>(
 	"email",
 	async (job: Job<EmailJobData>): Promise<void> => {
-        logger.info("Email worker started");
-
 		logger.info(`Processing email job ${job.id} to ${job.data.to}`);
 
 		try {
@@ -48,4 +46,12 @@ emailWorker.on("completed", (job) => {
 
 emailWorker.on("failed", (job, err) => {
 	logger.info(`Job ${job?.id} failed:`, err);
+});
+
+emailWorker.on("error", (err) => {
+	logger.error("Email worker error:", err);
+});
+
+emailWorker.on("ready", () => {
+	logger.info("Email worker is ready and listening for jobs");
 });

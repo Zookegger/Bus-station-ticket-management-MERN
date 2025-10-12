@@ -8,6 +8,7 @@
 
 import nodemailer from "nodemailer";
 import { EmailJobData } from "../queues/emailQueue";
+import logger from "../utils/logger";
 
 // SMTP configuration from environment variables with defaults
 const SMTP_HOST: string = process.env.SMTP_HOST || "smtp.gmail.com";
@@ -43,13 +44,16 @@ const transporter = nodemailer.createTransport({
  * @throws {Error} When email sending fails due to SMTP errors or invalid data
  */
 export const sendEmail = async (data: EmailJobData): Promise<void> => {
-	await transporter.sendMail({
-		from: FROM_EMAIL,
-		to: data.to,
-		subject: data.subject,
-		html: data.html,
-		text: data.text,
-	});
+    const result = await transporter.sendMail({
+        from: FROM_EMAIL,
+        to: data.to,
+        subject: data.subject,
+        html: data.html,
+        text: data.text,
+    });
+    if (!result) throw new Error("Something went wrong while sending email");
+
+    logger.info(`Email sent successfully. MessageId: ${result}`);
 };
 
 /**

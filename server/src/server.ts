@@ -34,6 +34,11 @@ const PORT = process.env.PORT || 5000;
  */
 const startServer = async (): Promise<void> => {
 	try {
+		
+		// Start and Log email worker status
+		await emailWorker.waitUntilReady();
+		logger.info("Email worker started and listening for jobs");
+
 		// Create HTTP server with Express app
 		const server = http.createServer(app);
 
@@ -57,9 +62,6 @@ const startServer = async (): Promise<void> => {
 				logger.debug("User disconnected:", socket.id);
 			});
 		});
-
-		// Log email worker status
-		logger.info("Email worker started and listening for jobs");
 
 		// Start server and listen on specified port
 		server.listen(PORT, () => logger.info(`Server listening on ${PORT}`));
