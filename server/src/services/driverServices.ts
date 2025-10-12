@@ -8,7 +8,7 @@
 
 import { Op } from "sequelize";
 import db from "../models";
-import { Driver, DriverAttributes } from "../models/drivers";
+import { Driver, DriverAttributes } from "../models/driver";
 import { CreateDriverDTO, UpdateDriverDTO } from "../types/driver";
 
 /**

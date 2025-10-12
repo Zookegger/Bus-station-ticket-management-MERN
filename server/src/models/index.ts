@@ -14,7 +14,7 @@ import { RefreshToken } from "./refreshToken";
 import { generateDefaultAdminAccount } from "../services/userServices";
 import { Vehicle } from "./vehicle";
 import { VehicleType } from "./vehicleType";
-import { Driver } from "./drivers";
+import { Driver } from "./driver";
 import { Location } from "./location";
 
 const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
