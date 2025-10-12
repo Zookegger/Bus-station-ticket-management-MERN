@@ -55,17 +55,12 @@ app.use(express.json());
 // Parse cookies from incoming requests
 app.use(cookieParser());
 
-// CSRF token endpoint
-app.get("/api/csrf-token", (req: Request, res: Response): void => {
-	const csrfToken = getCsrfToken(req, res);
-	res.json({ csrfToken });
-});
-
-// Mount CSRF protection
-app.use(doubleCsrfProtection);
 
 // Mount API routes under the /api prefix
 app.use("/api", apiRouter);
+
+// Mount CSRF protection only on admin routes
+// Note: CSRF is now applied per-route in the route files using csrfProtectionRoute
 
 /**
  * Health check endpoint to verify server status.

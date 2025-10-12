@@ -8,6 +8,70 @@
  *
  * @module csrfMiddleware
  * @see {@link https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html#double-submit-cookie} OWASP Double Submit Cookie
+ *
+ * == CSRF PROTECTION FLOW ==
+ *
+ * 1. USER AUTHENTICATION (JWT):
+ *    - Client sends POST /api/auth/login with credentials
+ *    - Server validates and returns JWT token
+ *    - Client stores JWT in localStorage/cookies
+ *
+ * 2. CSRF TOKEN GENERATION:
+ *    - Client calls GET /api/auth/csrf-token (requires JWT auth)
+ *    - Server generates CSRF token and:
+ *      - Sets HTTP-only cookie: "__Host-psifi.x-csrf-token" (auto-sent by browser)
+ *      - Returns token in JSON for manual header inclusion
+ *    - Token is tied to authenticated user session via req.user.id
+ *
+ * 3. ADMIN OPERATIONS (State-Changing Requests):
+ *    - Client sends POST/PUT/DELETE to admin routes with BOTH:
+ *      - Authorization: Bearer <jwt> (authentication)
+ *      - X-CSRF-Token: <csrf-token> (manual header)
+ *    - Server validates:
+ *      - JWT is valid + user has admin role (isAdmin middleware)
+ *      - CSRF token in header matches cookie token (doubleCsrfProtection)
+ *    - If both pass, request proceeds
+ *
+ * 4. SECURITY FEATURES:
+ *    - Double Submit: Token must be in both cookie (automatic) and header (manual)
+ *    - Session-Tied: Tokens linked to authenticated user (req.user.id)
+ *    - Secure Cookie: __Host- prefix ensures host-only, secure transmission
+ *    - SameSite: "strict" prevents cross-site requests
+ *    - HttpOnly: Prevents client-side JavaScript access
+ *
+ * 5. FRONTEND IMPLEMENTATION EXAMPLE:
+ *    ```javascript
+ *    // After login, store JWT
+ *    const jwt = loginResponse.data.token;
+ *    localStorage.setItem('jwt', jwt);
+ *
+ *    // Get CSRF token
+ *    const csrfResponse = await fetch('/api/auth/csrf-token', {
+ *      headers: { 'Authorization': `Bearer ${jwt}` }
+ *    });
+ *    const { csrfToken } = await csrfResponse.json();
+ *
+ *    // Use both for admin requests
+ *    await fetch('/api/locations', {
+ *      method: 'POST',
+ *      headers: {
+ *        'Authorization': `Bearer ${jwt}`,
+ *        'X-CSRF-Token': csrfToken,
+ *        'Content-Type': 'application/json'
+ *      },
+ *      body: JSON.stringify(locationData)
+ *    });
+ *    ```
+ *
+ * 6. MIDDLEWARE ORDER:
+ *    - csrfProtectionRoute = [isAdmin, doubleCsrfProtection]
+ *    - isAdmin runs first: verifies JWT → sets req.user
+ *    - doubleCsrfProtection runs second: uses req.user.id for session identification
+ *
+ * 7. PROTECTION SCOPE:
+ *    - Applied to: POST/PUT/DELETE admin routes (state-changing operations)
+ *    - Not applied to: GET/HEAD/OPTIONS (safe methods), auth routes (public)
+ *    - Global protection removed: CSRF applied per-route, not globally
  */
 
 import { doubleCsrf } from "csrf-csrf";

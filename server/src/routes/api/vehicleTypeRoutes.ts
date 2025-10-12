@@ -12,6 +12,7 @@ import { handleValidationResult } from "../../middlewares/validateRequest";
 import { AddVehicleType, GetVehicleTypeById, RemoveVehicleType, SearchVehicleTypes, UpdateVehicleType } from "../../controllers/vehicleTypeController";
 import { validateCreateVehicleType, validateIdParam, validateUpdateVehicleType } from "../../validators/vehicleTypeValidator";
 import { isAdmin } from "../../middlewares/auth";
+import { csrfProtectionRoute } from "../../middlewares/csrf";
 
 /**
  * Vehicle type management router instance.
@@ -36,12 +37,12 @@ vehicleTypeRoutes.get("/search", SearchVehicleTypes, errorHandler);
 vehicleTypeRoutes.get("/:id", validateIdParam, handleValidationResult, GetVehicleTypeById, errorHandler);
 
 // POST /vehicle-types - Create new vehicle type
-vehicleTypeRoutes.post("/", isAdmin, validateCreateVehicleType, handleValidationResult, AddVehicleType, errorHandler);
+vehicleTypeRoutes.post("/", csrfProtectionRoute, validateCreateVehicleType, handleValidationResult, AddVehicleType, errorHandler);
 
 // PUT /vehicle-types/:id - Update vehicle type by ID
-vehicleTypeRoutes.put("/:id", isAdmin, validateIdParam, validateUpdateVehicleType, handleValidationResult, UpdateVehicleType, errorHandler);
+vehicleTypeRoutes.put("/:id", csrfProtectionRoute, validateIdParam, validateUpdateVehicleType, handleValidationResult, UpdateVehicleType, errorHandler);
 
 // DELETE /vehicle-types/:id - Delete vehicle type by ID
-vehicleTypeRoutes.delete("/:id", isAdmin, validateIdParam, handleValidationResult, RemoveVehicleType, errorHandler);
+vehicleTypeRoutes.delete("/:id", csrfProtectionRoute, validateIdParam, handleValidationResult, RemoveVehicleType, errorHandler);
 
 export default vehicleTypeRoutes;
