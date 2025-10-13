@@ -19,7 +19,6 @@ import {
 	InputAdornment,
 	IconButton,
 	TablePagination,
-	Chip,
 	Dialog,
 	DialogTitle,
 	DialogContent,
@@ -31,55 +30,40 @@ import {
 	Visibility as VisibilityIcon,
 	Delete as DeleteIcon,
 } from "@mui/icons-material";
-import type { Vehicle, VehicleDetail } from "./types";
-import type { UpdateVehicleDTO } from "../../../../types/vehicle";
-import vehiclesData from "@data/vehicles.json";
-import vehicleDetailsData from "@data/vehicleDetails.json";
+// import type { UpdateVehicleDTO } from "@my-types/vehicle";
+import type { VehicleWithType, VehicleDetail } from "@my-types/vehicleList";
 import VehicleDetailsDrawer from "./VehicleDetailsDrawer";
 import EditVehicleForm from "./EditVehicleForm";
+import type { UpdateVehicleDTO } from "@my-types/vehicle";
 
 const VehicleList: React.FC = () => {
 	const navigate = useNavigate();
-	const [vehicles, setVehicles] = useState<Vehicle[]>(vehiclesData);
-	const [vehicleDetails, setVehicleDetails] =
-		useState<VehicleDetail[]>(vehicleDetailsData);
-	const [selectedVehicle, setSelectedVehicle] =
-		useState<VehicleDetail | null>(null);
+	const [vehicles, setVehicles] = useState<VehicleWithType[]>([]);
+	const [vehicleDetails, setVehicleDetails] = useState<VehicleDetail[]>([]);
+	const [selectedVehicle, setSelectedVehicle] = useState<VehicleDetail | null>(null);
 	const [drawerOpen, setDrawerOpen] = useState(false);
 	const [editOpen, setEditOpen] = useState(false);
+	const [vehicleToDelete, setVehicleToDelete] = useState<VehicleDetail | null>(null);
 	const [deleteOpen, setDeleteOpen] = useState(false);
-	const [vehicleToDelete, setVehicleToDelete] =
-		useState<VehicleDetail | null>(null);
 	const [searchTerm, setSearchTerm] = useState("");
-	const [statusFilter, setStatusFilter] = useState("");
 	const [typeFilter, setTypeFilter] = useState("");
 	const [page, setPage] = useState(0);
 	const [rowsPerPage, setRowsPerPage] = useState(5);
 
-	const getStatusColor = (status: string) => {
-		switch (status) {
-			case "Active":
-				return "success";
-			case "Standby":
-				return "warning";
-			case "In Progress":
-				return "info";
-			default:
-				return "default";
-		}
-	};
-
 	const filteredVehicles = vehicles.filter((v) => {
-		const matchesStatus = !statusFilter || v.status === statusFilter;
-		const matchesType = !typeFilter || v.vehicleType === typeFilter;
+		const matchesType = !typeFilter || v.vehicleType.name === typeFilter;
+		const displayName = v.manufacturer && v.model 
+			? `${v.manufacturer} ${v.model}` 
+			: v.numberPlate;
 		const matchesSearch =
 			!searchTerm ||
-			v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			v.licensePlate.toLowerCase().includes(searchTerm.toLowerCase());
-		return matchesStatus && matchesType && matchesSearch;
+			displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+			v.numberPlate.toLowerCase().includes(searchTerm.toLowerCase()) ||
+			v.vehicleType.name.toLowerCase().includes(searchTerm.toLowerCase());
+		return matchesType && matchesSearch;
 	});
 
-	const handleViewDetails = (vehicle: Vehicle) => {
+	const handleViewDetails = (vehicle: VehicleWithType) => {
 		const detail = vehicleDetails.find((v) => v.id === vehicle.id);
 		if (detail) {
 			setSelectedVehicle(detail);
@@ -104,7 +88,7 @@ const VehicleList: React.FC = () => {
 				v.id === updated.id
 					? {
 							...v,
-							licensePlate: updated.numberPlate || v.licensePlate,
+							numberPlate: updated.numberPlate || v.numberPlate,
 							// Note: vehicleTypeId mapping would need proper vehicle type lookup
 							// manufacturer and model would be added to VehicleDetail if needed
 					  }
@@ -116,7 +100,7 @@ const VehicleList: React.FC = () => {
 				v.id === updated.id
 					? {
 							...v,
-							licensePlate: updated.numberPlate || v.licensePlate,
+							numberPlate: updated.numberPlate || v.numberPlate,
 							// vehicleType would need to be looked up from vehicleTypeId
 					  }
 					: v
@@ -162,18 +146,6 @@ const VehicleList: React.FC = () => {
 
 			<Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
 				<FormControl size="small" sx={{ minWidth: 150 }}>
-					<InputLabel>Status</InputLabel>
-					<Select
-						value={statusFilter}
-						onChange={(e) => setStatusFilter(e.target.value)}
-					>
-						<MenuItem value="">All</MenuItem>
-						<MenuItem value="Hoạt động">Active</MenuItem>
-						<MenuItem value="Standby">Standby</MenuItem>
-						<MenuItem value="In Progress">In Progress</MenuItem>
-					</Select>
-				</FormControl>
-				<FormControl size="small" sx={{ minWidth: 150 }}>
 					<InputLabel>Type</InputLabel>
 					<Select
 						value={typeFilter}
@@ -218,7 +190,6 @@ const VehicleList: React.FC = () => {
 						<TableRow sx={{ backgroundColor: "#f5f5f5" }}>
 							<TableCell>Name</TableCell>
 							<TableCell>License Plate</TableCell>
-							<TableCell>Status</TableCell>
 							<TableCell>Vehicle Type</TableCell>
 							<TableCell>Actions</TableCell>
 						</TableRow>
@@ -229,62 +200,43 @@ const VehicleList: React.FC = () => {
 								page * rowsPerPage,
 								page * rowsPerPage + rowsPerPage
 							)
-							.map((vehicle) => (
-								<TableRow key={vehicle.id} hover>
-									<TableCell>{vehicle.name}</TableCell>
-									<TableCell>
-										{vehicle.licensePlate}
-									</TableCell>
-									<TableCell>
-										<Chip
-											label={vehicle.status}
-											color={
-												getStatusColor(
-													vehicle.status
-												) as
-													| "success"
-													| "warning"
-													| "info"
-													| "default"
-											}
-											size="small"
-										/>
-									</TableCell>
-									<TableCell>{vehicle.vehicleType}</TableCell>
-									<TableCell>
-										<IconButton
-											size="small"
-											onClick={() =>
-												handleViewDetails(vehicle)
-											}
-											title="View Details"
-										>
-											<VisibilityIcon />
-										</IconButton>
-										<IconButton
-											size="small"
-											color="error"
-											onClick={() => {
-												const detail =
-													vehicleDetails.find(
-														(v) =>
-															v.id === vehicle.id
+							.map((vehicle) => {
+								const displayName = vehicle.manufacturer && vehicle.model 
+									? `${vehicle.manufacturer} ${vehicle.model}` 
+									: `Vehicle ${vehicle.id}`;
+								return (
+									<TableRow key={vehicle.id} hover>
+										<TableCell>{displayName}</TableCell>
+										<TableCell>{vehicle.numberPlate}</TableCell>
+										<TableCell>{vehicle.vehicleType.name}</TableCell>
+										<TableCell>
+											<IconButton
+												size="small"
+												onClick={() => handleViewDetails(vehicle)}
+												title="View Details"
+											>
+												<VisibilityIcon />
+											</IconButton>
+											<IconButton
+												size="small"
+												color="error"
+												onClick={() => {
+													const detail = vehicleDetails.find(
+														(v) => v.id === vehicle.id
 													);
-												if (detail)
-													handleOpenDelete(detail);
-											}}
-											title="Delete Vehicle"
-										>
-											<DeleteIcon />
-										</IconButton>
-									</TableCell>
-								</TableRow>
-							))}
+													if (detail) handleOpenDelete(detail);
+												}}
+												title="Delete Vehicle"
+											>
+												<DeleteIcon />
+											</IconButton>
+										</TableCell>
+									</TableRow>
+								);
+							})}
 					</TableBody>
 				</Table>
-			</TableContainer>
-
-			<TablePagination
+			</TableContainer>			<TablePagination
 				component="div"
 				count={filteredVehicles.length}
 				page={page}
@@ -296,6 +248,7 @@ const VehicleList: React.FC = () => {
 				rowsPerPageOptions={[5, 10, 20, 50]}
 			/>
 
+			{/* TODO: Update VehicleDetailsDrawer to use VehicleDetail from vehicleList.ts */}
 			<VehicleDetailsDrawer
 				open={drawerOpen}
 				onClose={handleCloseDrawer}
@@ -303,6 +256,7 @@ const VehicleList: React.FC = () => {
 				onEdit={handleOpenEdit}
 			/>
 
+			{/* TODO: Update EditVehicleForm to handle VehicleDetail type */}
 			{editOpen && (
 				<EditVehicleForm
 					open={editOpen}
@@ -317,7 +271,12 @@ const VehicleList: React.FC = () => {
 				<DialogTitle>Delete Vehicle</DialogTitle>
 				<DialogContent>
 					Are you sure you want to delete{" "}
-					<strong>{vehicleToDelete?.name}</strong>?
+					<strong>
+						{vehicleToDelete 
+							? (vehicleToDelete.displayName || vehicleToDelete.numberPlate)
+							: "this vehicle"
+						}
+					</strong>?
 				</DialogContent>
 				<DialogActions>
 					<Button onClick={() => setDeleteOpen(false)}>Cancel</Button>

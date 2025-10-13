@@ -15,6 +15,11 @@ import logger from "./utils/logger";
 import { connectToDatabase } from "./models";
 import { emailWorker } from "./workers/emailWorker";
 
+// Register TypeScript path mappings for production
+if (process.env.NODE_ENV === 'production') {
+	require('tsconfig-paths/register');
+}
+
 // Load environment variables from .env file
 dotenv.config();
 

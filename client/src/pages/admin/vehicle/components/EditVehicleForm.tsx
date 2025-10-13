@@ -18,33 +18,23 @@ import {
 	ArrowBack as ArrowBackIcon,
 	Edit as EditIcon,
 } from "@mui/icons-material";
-import type { UpdateVehicleDTO } from "../../../../types/vehicle";
-
-interface VehicleType {
-	id: number;
-	name: string;
-	description: string;
-}
+import type { UpdateVehicleDTO } from "@my-types/vehicle";
+import type { VehicleDetail } from "@my-types/vehicleList";
+import type { VehicleType } from "@my-types/vehicleType";
 
 interface EditVehicleFormProps {
 	open: boolean;
-	vehicle: {
-		id: number;
-		numberPlate: string;
-		vehicleTypeId: number;
-		manufacturer?: string | null;
-		model?: string | null;
-	} | null;
+	vehicle: VehicleDetail | null;
 	onClose: () => void;
 	onSave: (updatedVehicle: UpdateVehicleDTO) => void;
 }
 
 const vehicleTypes: VehicleType[] = [
-	{ id: 1, name: "Quảng nam 4 chỗ (2 dòng)", description: "Xe 4 chỗ ngồi" },
-	{ id: 2, name: "Xe 16 chỗ", description: "Xe 16 chỗ tiêu chuẩn" },
-	{ id: 3, name: "Xe 29 chỗ", description: "Xe 29 chỗ lớn" },
-	{ id: 4, name: "Limousine 9 chỗ", description: "Xe Limousine cao cấp" },
-	{ id: 5, name: "Xe Giường nằm", description: "Xe giường nằm" },
+	{ id: 1, name: "Quảng nam 4 chỗ (2 dòng)" },
+	{ id: 2, name: "Xe 16 chỗ" },
+	{ id: 3, name: "Xe 29 chỗ" },
+	{ id: 4, name: "Limousine 9 chỗ" },
+	{ id: 5, name: "Xe Giường nằm" },
 ];
 
 const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
@@ -55,7 +45,7 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 }) => {
 	const [formData, setFormData] = useState({
 		numberPlate: vehicle?.numberPlate || "",
-		vehicleTypeId: vehicle?.vehicleTypeId || 0,
+		vehicleTypeId: vehicle?.vehicleType.id || 0,
 		manufacturer: vehicle?.manufacturer || "",
 		model: vehicle?.model || "",
 	});

@@ -49,3 +49,32 @@ export interface UpdateVehicleTypeDTO {
 	rowsPerFloor?: string | null;
 	seatsPerFloor?: string | null;
 }
+
+/**
+ * Represents a Vehicle Type entity as returned from the server API.
+ * This matches the server's VehicleTypeAttributes interface.
+ *
+ * @interface VehicleType
+ * @property {number} id - Unique identifier of the vehicle type.
+ * @property {string} name - Display name of the vehicle type (e.g., "Luxury Bus").
+ * @property {number | null} [price] - Base price or rental fee for this vehicle type.
+ * @property {number | null} [totalFloors] - Total number of floors (for multi-level vehicles).
+ * @property {number | null} [totalColumns] - Total number of seat columns per floor.
+ * @property {number | null} [totalSeats] - Total seat count across all floors.
+ * @property {string | null} [rowsPerFloor] - JSON or serialized layout of seat rows per floor.
+ * @property {string | null} [seatsPerFloor] - JSON or serialized layout of seats per floor.
+ * @property {string} [createdAt] - Timestamp when the vehicle type record was created (ISO string).
+ * @property {string} [updatedAt] - Timestamp when the vehicle type record was last updated (ISO string).
+ */
+export interface VehicleType {
+	id: number;
+	name: string;
+	price?: number | null;
+	totalFloors?: number | null;
+	totalColumns?: number | null;
+	totalSeats?: number | null;
+	rowsPerFloor?: string | null;
+	seatsPerFloor?: string | null;
+	createdAt?: string;
+	updatedAt?: string;
+}

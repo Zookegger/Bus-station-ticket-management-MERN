@@ -31,6 +31,7 @@
     "sourceMap": true,            // useful for debugging
     "declaration": true,          // generate .d.ts files
     "declarationMap": true,
+    "resolveJsonModule": true,    // allow importing JSON files
 
     /* Stricter Typechecking Options */
     "strict": true,

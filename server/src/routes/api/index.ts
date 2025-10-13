@@ -6,7 +6,7 @@
  * configuration for the application's API endpoints.
  */
 
-import { Router } from "express";
+import { Request, Response, Router } from "express";
 import userRoutes from "./userRoutes";
 import authRoutes from "./authRoutes";
 import vehicleTypeRoutes from "./vehicleTypeRoutes";
@@ -16,6 +16,7 @@ import locationRoutes from "./locationRoutes";
 import routeRoutes from "./routeRoutes";
 import tripRoutes from "./tripRoutes";
 import seatRoutes from "./seatRoutes";
+import { format } from "date-fns";
 
 /**
  * Main API router instance.
@@ -24,6 +25,37 @@ import seatRoutes from "./seatRoutes";
  * or configurations before mounting sub-routes.
  */
 const apiRouter = Router();
+
+const formatMemoryUsage = (usage: NodeJS.MemoryUsage) => {
+    const toMB = (bytes: number) => (bytes / 1024 / 1024).toFixed(2) + 'MB';
+    return Object.fromEntries(
+        Object.entries(usage).map(([key, value]) => [key, toMB(value)])
+    )
+}
+
+const formatUptime = (seconds: number) => {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    
+    const parts = [];
+    if (days > 0) parts.push(`${days}d`);
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0) parts.push(`${minutes}m`);
+    parts.push(`${secs}s`);
+    
+    return parts.join(' ');
+}
+
+apiRouter.get('/health', (req: Request, res: Response) => {
+    res.json({
+        status: 'active',
+        timestamp: new Date().toISOString(),
+        memoryUsage: formatMemoryUsage(process.memoryUsage()),
+        uptime: formatUptime(process.uptime())
+    });
+});
 
 // Mount user-related routes under /users prefix
 apiRouter.use("/users", userRoutes);

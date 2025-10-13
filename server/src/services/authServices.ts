@@ -71,7 +71,7 @@ export const register = async (
 }> => {
 	const existing = await db.user.findOne({ where: { email: dto.email } });
 	if (existing) throw { status: 400, message: "Email already in use" };
-
+ 
 	const passwordHash = await bcrypt.hash(dto.password, BCRYPT_SALT_ROUNDS);
 	const user = await db.user.create({
 		userName: dto.username,
