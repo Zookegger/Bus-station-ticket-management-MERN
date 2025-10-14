@@ -38,11 +38,12 @@ const TripList: React.FC<TripListProps> = ({ onOpenDetails }) => {
   const [menuTrip, setMenuTrip] = useState<TripItem | null>(null);
   const [search, setSearch] = useState("");
 
+  // For demo purposes, alternate status between "Completed" and "Standby"
+  const demoStatuses: TripItem["status"][] = ["Completed", "Standby"];
   const data: TripItem[] = useMemo(() => {
     return (trips as TripItem[]).map((t, idx) => ({
       ...t,
-      // add a simple status for demo purposes
-      status: idx % 2 === 0 ? "Completed" : "Standby",
+      status: demoStatuses[idx % demoStatuses.length],
     }));
   }, []);
 
