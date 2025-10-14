@@ -26,7 +26,7 @@ interface EditVehicleFormProps {
 	open: boolean;
 	vehicle: VehicleDetail | null;
 	onClose: () => void;
-	onSave: (id: number, updatedVehicle: UpdateVehicleDTO) => void;
+	onSave: (updatedVehicle: UpdateVehicleDTO) => void;
 }
 
 const vehicleTypes: VehicleType[] = [
@@ -90,7 +90,8 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 		e.preventDefault();
 		if (validateForm()) {
 			console.log("Updated vehicle:", formData);
-			onSave(vehicle.id, {
+			onSave({
+				id: vehicle.id,
 				numberPlate: formData.numberPlate,
 				vehicleTypeId: formData.vehicleTypeId,
 				manufacturer: formData.manufacturer || null,

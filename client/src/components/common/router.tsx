@@ -126,6 +126,8 @@ export const router = createBrowserRouter([
 					},
 				],
 			},
+			// DISABLED: Vehicle Type routes - uncomment to re-enable
+			/*
 			{
 				path: "vehicle-type",
 				children: [
@@ -158,6 +160,7 @@ export const router = createBrowserRouter([
 					},
 				],
 			},
+			*/
 			{
 				path: "trip",
 				children: [
