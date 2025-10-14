@@ -42,7 +42,7 @@ const authMeLimiter = rateLimit({
 // Rate limiter for email verification
 const verifyEmailLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 3, // limit each IP to 100 requests per windowMs
+    max: 3, // limit each IP to 3 requests per 15 minutes
 	message: {
         status: 429,
         error: "Too many verification attempts. Please try again later.",
