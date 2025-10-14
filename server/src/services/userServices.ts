@@ -1,7 +1,7 @@
 import db from "../models";
 import bcrypt from "bcrypt";
 import { UpdateProfileDTO } from "../types/user";
-import { role, User, UserAttributes } from "../models/users";
+import { role, User, UserAttributes } from "../models/user";
 
 /**
  * Service layer encapsulating business logic for user management.

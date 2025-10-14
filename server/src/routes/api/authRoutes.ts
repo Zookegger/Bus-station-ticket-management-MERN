@@ -14,6 +14,7 @@ import * as authController from "../../controllers/authController";
 import { handleValidationResult } from "../../middlewares/validateRequest";
 import { getCsrfToken } from "../../middlewares/csrf";
 import { authenticateJwt } from "@middlewares/auth";
+import rateLimit from "express-rate-limit";
 
 /**
  * Authentication router instance.
@@ -23,6 +24,33 @@ import { authenticateJwt } from "@middlewares/auth";
  */
 const authRoutes = Router();
 
+// Rate limiter for login
+const loginRateLimiter = rateLimit({
+	windowMs: 5 * 60 * 1000, 
+	limit: 5,
+	message: "Too many login attempts, please try again later."
+});
+
+// Rate limiter for auth
+const authMeLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per 15 minutes
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// Rate limiter for email verification
+const verifyEmailLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 3, // limit each IP to 3 requests per 15 minutes
+	message: {
+        status: 429,
+        error: "Too many verification attempts. Please try again later.",
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
 // CSRF token endpoint
 authRoutes.get("/csrf-token", (req: Request, res: Response): void => {
 	const csrfToken = getCsrfToken(req, res);
@@ -30,7 +58,7 @@ authRoutes.get("/csrf-token", (req: Request, res: Response): void => {
 });
 
 // POST /auth/login - Authenticate user credentials
-authRoutes.post("/login", loginValidation, handleValidationResult, authController.Login, errorHandler);
+authRoutes.post("/login", loginRateLimiter, loginValidation, handleValidationResult, authController.Login, errorHandler);
 
 // POST /auth/register - Create new user account
 authRoutes.post("/register", registerValidation, handleValidationResult, authController.Register, errorHandler);
@@ -39,9 +67,9 @@ authRoutes.post("/register", registerValidation, handleValidationResult, authCon
 authRoutes.post("/logout", authController.Logout, errorHandler);
 
 // GET /auth/me - Fetch authenticated user's profile
-authRoutes.get("/me", authenticateJwt, authController.GetMe, errorHandler);
+authRoutes.get("/me", authMeLimiter, authenticateJwt, authController.GetMe, errorHandler);
 
 // POST /auth/verify-email - Verify user's email
-authRoutes.post("/verify-email", authController.VerifyEmail, errorHandler);
+authRoutes.post("/verify-email", verifyEmailLimiter, authController.VerifyEmail, errorHandler);
 
 export default authRoutes;
