@@ -27,6 +27,34 @@ export default ({ mode }: { mode: string }) => {
 				"@data": path.resolve(__dirname, "./src/data"),
 			},
 		},
+		build: {
+			rollupOptions: {
+				output: {
+					manualChunks: {
+						// Separate MUI into its own chunk
+						'mui-core': [
+							'@mui/material',
+							'@mui/icons-material',
+							'@emotion/react',
+							'@emotion/styled',
+						],
+						// Separate React and related libraries
+						'react-vendor': [
+							'react',
+							'react-dom',
+							'react-router-dom',
+						],
+						// Separate Leaflet (map library)
+						'leaflet-vendor': [
+							'leaflet',
+							'react-leaflet',
+						],
+					},
+				},
+			},
+			chunkSizeWarningLimit: 1000, // Increase warning limit to 1000kb
+			sourcemap: (env.NODE_ENV === "production"), // Disable sourcemaps in production for smaller builds
+		},
 		define: {
 			// Stringify to avoid JSON issues; access as a global in client code if needed
 			'import.meta.env.VITE_CUSTOM_VAR': JSON.stringify(env.VITE_CUSTOM_VAR),
