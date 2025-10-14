@@ -366,12 +366,23 @@ export const addTrip = async (dto: CreateTripDTO): Promise<Trip | null> => {
 		};
 	}
 
+
+	if (!route.price || !vehicle.vehicleType.price) {
+		throw {
+			status: 500,
+			message: 'Route or Vehicle type is null'
+		}
+	}
+
+	const total_price = route.price + vehicle.vehicleType.price; 
+
 	// Convert date strings to Date objects for Sequelize
-	const createData: any = { ...dto };
+	const createData: CreateTripDTO = { ...dto };
 	createData.startTime = new Date(dto.startTime);
 	if (createData.endTime) {
 		createData.endTime = new Date(createData.endTime);
 	}
+	createData.price = total_price;
 
 	// Create trip
 	const trip = await db.trip.create(createData);

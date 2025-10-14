@@ -7,16 +7,16 @@
  * @interface CreateTripDTO
  * @property {number} vehicleId - ID of the vehicle assigned to the trip.
  * @property {number} routeId - ID of the route for the trip.
- * @property {Date | string} startTime - Scheduled start time of the trip.
- * @property {Date | string | null} [endTime] - Scheduled or actual end time of the trip.
+ * @property {Date} startTime - Scheduled start time of the trip.
+ * @property {Date | null} [endTime] - Scheduled or actual end time of the trip.
  * @property {number | null} [price] - Price of the trip.
  * @property {'Scheduled' | 'Departed' | 'Completed' | 'Cancelled'} [status] - Status of the trip.
  */
 export interface CreateTripDTO {
 	vehicleId: number;
 	routeId: number;
-	startTime: Date | string;
-	endTime?: Date | string | null;
+	startTime: Date;
+	endTime?: Date | null;
 	price?: number | null;
 	status?: "Scheduled" | "Departed" | "Completed" | "Cancelled";
 }
@@ -31,8 +31,8 @@ export interface CreateTripDTO {
  * @property {number} id - ID of the trip to update.
  * @property {number} [vehicleId] - Updated vehicle ID.
  * @property {number} [routeId] - Updated route ID.
- * @property {Date | string} [startTime] - Updated start time.
- * @property {Date | string | null} [endTime] - Updated end time.
+ * @property {Date} [startTime] - Updated start time.
+ * @property {Date | null} [endTime] - Updated end time.
  * @property {number | null} [price] - Updated price.
  * @property {'Scheduled' | 'Departed' | 'Completed' | 'Cancelled'} [status] - Updated status.
  */
@@ -40,8 +40,8 @@ export interface UpdateTripDTO {
 	id: number;
 	vehicleId?: number;
 	routeId?: number;
-	startTime?: Date | string;
-	endTime?: Date | string | null;
+	startTime: Date;
+	endTime?: Date | null;
 	price?: number | null;
 	status?: "Scheduled" | "Departed" | "Completed" | "Cancelled";
 }

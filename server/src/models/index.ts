@@ -6,19 +6,21 @@
  * point for model management and database operations.
  */
 
-import { createTempConnection, sequelize } from "../config/database";
+import { createTempConnection, sequelize } from "@config/database";
 import { Sequelize, Op, QueryTypes } from "sequelize";
-import { role, User } from "./users";
-import logger from "../utils/logger";
-import { RefreshToken } from "./refreshToken";
-import { generateDefaultAdminAccount } from "../services/userServices";
-import { Vehicle } from "./vehicle";
-import { VehicleType } from "./vehicleType";
-import { Driver } from "./driver";
-import { Location } from "./location";
-import { Route } from "./route";
-import { Trip } from "./trip";
-import { Seat } from "./seat";
+import { role, User } from "@models/user";
+import logger from "@utils/logger";
+import { RefreshToken } from "@models/refreshToken";
+import { generateDefaultAdminAccount } from "@services/userServices";
+import { Vehicle } from "@models/vehicle";
+import { VehicleType } from "@models/vehicleType";
+import { Driver } from "@models/driver";
+import { Location } from "@models/location";
+import { Route } from "@models/route";
+import { Trip } from "@models/trip";
+import { Seat } from "@models/seat";
+import { Ticket } from "@models/ticket";
+import { TripDriverAssignment } from "@models/tripDriverAssignment";
 
 const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
 
@@ -39,6 +41,8 @@ const db: {
 	vehicleType: typeof VehicleType;
 	trip: typeof Trip;
 	seat: typeof Seat;
+	ticket: typeof Ticket;
+	tripDriverAssignment: typeof TripDriverAssignment;
 } = {
 	sequelize,
 	user: User,
@@ -49,7 +53,9 @@ const db: {
 	vehicle: Vehicle,
 	vehicleType: VehicleType,
 	trip: Trip,
-	seat: Seat
+	seat: Seat,
+	ticket: Ticket,
+	tripDriverAssignment: TripDriverAssignment,
 };
 
 // Initialize models with Sequelize instance
@@ -62,6 +68,8 @@ Vehicle.initModel(sequelize);
 VehicleType.initModel(sequelize);
 Trip.initModel(sequelize);
 Seat.initModel(sequelize);
+Ticket.initModel(sequelize);
+TripDriverAssignment.initModel(sequelize);
 
 // Define relationships/associations between models
 User.hasMany(RefreshToken, {
@@ -136,6 +144,48 @@ Seat.belongsTo(Trip, {
 Trip.hasMany(Seat, {
 	foreignKey: "tripId",
 	as: "seats"
+});
+
+// Ticket associations
+Ticket.belongsTo(User, {
+	foreignKey: "userId",
+	as: "user"
+});
+
+Ticket.belongsTo(Seat, {
+	foreignKey: "seatId",
+	as: "seat"
+});
+
+User.hasMany(Ticket, {
+	foreignKey: "userId",
+	as: "tickets"
+});
+
+Seat.hasOne(Ticket, {
+	foreignKey: "seatId",
+	as: "ticket"
+});
+
+// TripDriverAssignment associations
+TripDriverAssignment.belongsTo(Trip, {
+	foreignKey: "tripId",
+	as: "trip"
+});
+
+TripDriverAssignment.belongsTo(Driver, {
+	foreignKey: "driverId",
+	as: "driver"
+});
+
+Trip.hasMany(TripDriverAssignment, {
+	foreignKey: "tripId",
+	as: "driverAssignments"
+});
+
+Driver.hasMany(TripDriverAssignment, {
+	foreignKey: "driverId",
+	as: "tripAssignments"
 });
 
 /**

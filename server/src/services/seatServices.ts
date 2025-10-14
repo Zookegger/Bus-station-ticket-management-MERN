@@ -36,9 +36,7 @@ interface ListOptions {
  * @param id - Unique identifier of the seat
  * @returns Promise resolving to the seat or null if not found
  */
-export const getSeatById = async (
-	id: number
-): Promise<Seat | null> => {
+export const getSeatById = async (id: number): Promise<Seat | null> => {
 	return await db.seat.findByPk(id, {
 		include: [
 			{
@@ -51,9 +49,9 @@ export const getSeatById = async (
 						include: [
 							{
 								model: db.vehicleType,
-								as: "vehicleType"
-							}
-						]
+								as: "vehicleType",
+							},
+						],
 					},
 					{
 						model: db.route,
@@ -61,17 +59,17 @@ export const getSeatById = async (
 						include: [
 							{
 								model: db.location,
-								as: "startLocation"
+								as: "startLocation",
 							},
 							{
 								model: db.location,
-								as: "destinationLocation"
-							}
-						]
-					}
-				]
-			}
-		]
+								as: "destinationLocation",
+							},
+						],
+					},
+				],
+			},
+		],
 	});
 };
 
@@ -89,12 +87,7 @@ export const searchSeats = async (
 	filters: SeatFilterDTO,
 	options: ListOptions = {}
 ): Promise<{ rows: Seat[]; count: number }> => {
-	const {
-		orderBy = "number",
-		sortOrder = "ASC",
-		page,
-		limit
-	} = options;
+	const { orderBy = "number", sortOrder = "ASC", page, limit } = options;
 
 	const where: any = {};
 
@@ -120,7 +113,10 @@ export const searchSeats = async (
 			{
 				model: db.trip,
 				as: "trip",
-				where: filters.vehicleId !== undefined ? { vehicleId: filters.vehicleId } : undefined,
+				where:
+					filters.vehicleId !== undefined
+						? { vehicleId: filters.vehicleId }
+						: undefined,
 				required: filters.vehicleId !== undefined, // INNER JOIN when filtering by vehicleId
 				include: [
 					{
@@ -129,9 +125,9 @@ export const searchSeats = async (
 						include: [
 							{
 								model: db.vehicleType,
-								as: "vehicleType"
-							}
-						]
+								as: "vehicleType",
+							},
+						],
 					},
 					{
 						model: db.route,
@@ -139,17 +135,17 @@ export const searchSeats = async (
 						include: [
 							{
 								model: db.location,
-								as: "startLocation"
+								as: "startLocation",
 							},
 							{
 								model: db.location,
-								as: "destinationLocation"
-							}
-						]
-					}
-				]
-			}
-		]
+								as: "destinationLocation",
+							},
+						],
+					},
+				],
+			},
+		],
 	};
 
 	// Add pagination if provided
@@ -196,7 +192,8 @@ export const updateSeat = async (
 	if (dto.isAvailable === true && dto.isActive === false) {
 		throw {
 			status: 400,
-			message: "Cannot make an inactive seat available. Activate the seat first."
+			message:
+				"Cannot make an inactive seat available. Activate the seat first.",
 		};
 	}
 

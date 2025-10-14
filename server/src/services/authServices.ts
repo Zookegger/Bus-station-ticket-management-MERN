@@ -5,7 +5,7 @@ import crypto from "crypto";
 import { add, addDays } from "date-fns";
 import * as DTO from "@my_types/user";
 import ms from "ms";
-import { role } from "@models/users";
+import { role } from "@models/user";
 import { Op } from "sequelize";
 import { sendVerificationEmail } from "@services/verificationServices";
 import { getUserById } from "./userServices";

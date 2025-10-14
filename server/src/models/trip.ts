@@ -2,6 +2,7 @@ import { Model, DataTypes, Optional, Sequelize } from "sequelize";
 import { Vehicle } from "./vehicle";
 import { Route } from "./route";
 import { Seat } from "./seat";
+import { TripDriverAssignment } from "./tripDriverAssignment";
 
 /**
  * Sequelize model for Trip entity.
@@ -109,6 +110,9 @@ export class Trip
 
 	/** Seats assigned to this trip */
 	public seats?: Seat[];
+
+	/** Driver assignments for this trip */
+	public driverAssignments?: TripDriverAssignment[];
 
 	/**
 	 * Initializes the Sequelize model definition for Trip.

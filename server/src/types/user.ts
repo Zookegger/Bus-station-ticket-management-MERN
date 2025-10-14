@@ -1,4 +1,4 @@
-import { gender, role } from "../models/users";
+import { gender, role } from "../models/user";
 // Data transfer object
 
 /**

@@ -1,4 +1,5 @@
 import { Model, DataTypes, Optional, Sequelize } from "sequelize";
+import { TripDriverAssignment } from "./tripDriverAssignment";
 
 /**
  * Represents a driver, including personal details and license information for bus ticket management.
@@ -99,6 +100,10 @@ export class Driver
 	public isSuspended!: boolean;
 	public readonly createdAt!: Date;
 	public readonly updatedAt!: Date;
+
+	// Association properties
+	/** Trip assignments for this driver */
+	public tripAssignments?: TripDriverAssignment[];
 
 	/**
 	 * Initializes the Driver model with Sequelize schema.
