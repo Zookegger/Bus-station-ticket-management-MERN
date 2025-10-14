@@ -40,7 +40,7 @@ export interface UpdateTripDTO {
 	id: number;
 	vehicleId?: number;
 	routeId?: number;
-	startTime: Date;
+	startTime?: Date;
 	endTime?: Date | null;
 	price?: number | null;
 	status?: "Scheduled" | "Departed" | "Completed" | "Cancelled";
