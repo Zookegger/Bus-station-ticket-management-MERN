@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1,
+    "name": "Ghế ngồi 16 chỗ",
+    "baseFare": 120000,
+    "totalSeats": 16,
+    "totalFlooring": 1,
+    "totalRow": 4,
+    "totalColumn": 4,
+    "description": "Xe 16 chỗ ngồi tiêu chuẩn"
+  },
+  {
+    "id": 2,
+    "name": "Ghế ngồi 29 chỗ",
+    "baseFare": 150000,
+    "totalSeats": 29,
+    "totalFlooring": 1,
+    "totalRow": 10,
+    "totalColumn": 3,
+    "description": "Xe 29 chỗ ngồi tiêu chuẩn"
+  },
+  {
+    "id": 3,
+    "name": "Giường nằm 34 chỗ (VIP)",
+    "baseFare": 220000,
+    "totalSeats": 34,
+    "totalFlooring": 2,
+    "totalRow": 9,
+    "totalColumn": 2,
+    "description": "Xe giường nằm VIP 2 tầng"
+  },
+  {
+    "id": 4,
+    "name": "Giường nằm 44 chỗ (2 tầng)",
+    "baseFare": 180000,
+    "totalSeats": 44,
+    "totalFlooring": 2,
+    "totalRow": 11,
+    "totalColumn": 2,
+    "description": "Xe giường nằm 2 tầng"
+  },
+  {
+    "id": 5,
+    "name": "Limousine 9 chỗ",
+    "baseFare": 250000,
+    "totalSeats": 9,
+    "totalFlooring": 1,
+    "totalRow": 3,
+    "totalColumn": 3,
+    "description": "Limousine cao cấp 9 chỗ"
+  },
+  {
+    "id": 6,
+    "name": "Double Decker",
+    "baseFare": 85000,
+    "totalSeats": 70,
+    "totalFlooring": 2,
+    "totalRow": 10,
+    "totalColumn": 7,
+    "description": "Xe 2 tầng"
+  },
+  {
+    "id": 7,
+    "name": "Electric Bus",
+    "baseFare": 88000,
+    "totalSeats": 35,
+    "totalFlooring": 1,
+    "totalRow": 7,
+    "totalColumn": 5,
+    "description": "Xe buýt điện"
+  }
+]

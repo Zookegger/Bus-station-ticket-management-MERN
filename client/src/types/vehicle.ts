@@ -31,7 +31,6 @@ export interface CreateVehicleDTO {
  * @property {string | null} [model] - Updated model.
  */
 export interface UpdateVehicleDTO {
-	id: number;
 	numberPlate?: string;
 	vehicleTypeId?: number;
 	manufacturer?: string | null;

@@ -16,7 +16,22 @@ import {
 	ArrowBack as ArrowBackIcon,
 } from "@mui/icons-material";
 import type { ChipColor } from "../../../../types/ChipColor";
-import type { VehicleDetail } from "../../../../types/vehicleList";
+
+interface VehicleDetail {
+	id: number;
+	name: string;
+	vehicleType: string;
+	licensePlate: string;
+	seatCapacity: number;
+	status: string;
+	acquiredDate: string;
+	lastUpdated: string;
+	description: string;
+	fuelType: string;
+	yearOfManufacture: number;
+	insuranceExpiry: string;
+	maintenanceSchedule: string;
+}
 
 interface VehicleDetailsDrawerProps {
 	open: boolean;
@@ -32,12 +47,11 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
 	vehicle,
 	onEdit,
 }) => {
-	const getStatusColor = (status?: string): ChipColor => {
-		if (!status) return "default";
+	const getStatusColor = (status: string): ChipColor => {
 		switch (status) {
 			case "Ready":
 				return "warning";
-			case "Active":
+			case "Hoạt động":
 				return "success";
 			case "In-Progress":
 				return "info";
@@ -131,10 +145,7 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
 												variant="body1"
 												fontWeight="medium"
 											>
-												{vehicle.displayName || 
-												 (vehicle.manufacturer && vehicle.model 
-													? `${vehicle.manufacturer} ${vehicle.model}` 
-													: `Vehicle ${vehicle.id}`)}
+												{vehicle.name}
 											</Typography>
 										</Box>
 										<Box>
@@ -148,7 +159,7 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
 												variant="body1"
 												fontWeight="medium"
 											>
-												{vehicle.vehicleType.name}
+												{vehicle.vehicleType}
 											</Typography>
 										</Box>
 										<Box>
@@ -162,57 +173,23 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
 												variant="body1"
 												fontWeight="medium"
 											>
-												{vehicle.numberPlate}
+												{vehicle.licensePlate}
 											</Typography>
 										</Box>
-										{vehicle.manufacturer && (
-											<Box>
-												<Typography
-													variant="body2"
-													color="text.secondary"
-												>
-													Manufacturer
-												</Typography>
-												<Typography
-													variant="body1"
-													fontWeight="medium"
-												>
-													{vehicle.manufacturer}
-												</Typography>
-											</Box>
-										)}
-										{vehicle.model && (
-											<Box>
-												<Typography
-													variant="body2"
-													color="text.secondary"
-												>
-													Model
-												</Typography>
-												<Typography
-													variant="body1"
-													fontWeight="medium"
-												>
-													{vehicle.model}
-												</Typography>
-											</Box>
-										)}
-										{vehicle.vehicleType.totalSeats && (
-											<Box>
-												<Typography
-													variant="body2"
-													color="text.secondary"
-												>
-													Total Seats
-												</Typography>
-												<Typography
-													variant="body1"
-													fontWeight="medium"
-												>
-													{vehicle.vehicleType.totalSeats}
-												</Typography>
-											</Box>
-										)}
+										<Box>
+											<Typography
+												variant="body2"
+												color="text.secondary"
+											>
+												Seat Capacity
+											</Typography>
+											<Typography
+												variant="body1"
+												fontWeight="medium"
+											>
+												{vehicle.seatCapacity}
+											</Typography>
+										</Box>
 									</Box>
 								</CardContent>
 							</Card>
@@ -239,54 +216,48 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
 											gap: 1.5,
 										}}
 									>
-										{vehicle.status && (
-											<Box>
-												<Typography
-													variant="body2"
-													color="text.secondary"
-												>
-													Status
-												</Typography>
-												<Chip
-													label={vehicle.status}
-													color={getStatusColor(vehicle.status) as ChipColor}
-													size="small"
-													sx={{ mt: 0.5 }}
-												/>
-											</Box>
-										)}
-										{vehicle.createdAt && (
-											<Box>
-												<Typography
-													variant="body2"
-													color="text.secondary"
-												>
-													Created Date
-												</Typography>
-												<Typography
-													variant="body1"
-													fontWeight="medium"
-												>
-													{new Date(vehicle.createdAt).toLocaleDateString()}
-												</Typography>
-											</Box>
-										)}
-										{vehicle.updatedAt && (
-											<Box>
-												<Typography
-													variant="body2"
-													color="text.secondary"
-												>
-													Last Updated
-												</Typography>
-												<Typography
-													variant="body1"
-													fontWeight="medium"
-												>
-													{new Date(vehicle.updatedAt).toLocaleDateString()}
-												</Typography>
-											</Box>
-										)}
+										<Box>
+											<Typography
+												variant="body2"
+												color="text.secondary"
+											>
+												Status
+											</Typography>
+											<Chip
+												label={vehicle.status}
+												color={getStatusColor(vehicle.status) as ChipColor}
+												size="small"
+												sx={{ mt: 0.5 }}
+											/>
+										</Box>
+										<Box>
+											<Typography
+												variant="body2"
+												color="text.secondary"
+											>
+												Acquired Date
+											</Typography>
+											<Typography
+												variant="body1"
+												fontWeight="medium"
+											>
+												{vehicle.acquiredDate}
+											</Typography>
+										</Box>
+										<Box>
+											<Typography
+												variant="body2"
+												color="text.secondary"
+											>
+												Last Updated
+											</Typography>
+											<Typography
+												variant="body1"
+												fontWeight="medium"
+											>
+												{vehicle.lastUpdated}
+											</Typography>
+										</Box>
 									</Box>
 								</CardContent>
 							</Card>
