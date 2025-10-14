@@ -16,22 +16,7 @@ import {
 	ArrowBack as ArrowBackIcon,
 } from "@mui/icons-material";
 import type { ChipColor } from "../../../../types/ChipColor";
-
-interface VehicleDetail {
-	id: number;
-	name: string;
-	vehicleType: string;
-	licensePlate: string;
-	seatCapacity: number;
-	status: string;
-	acquiredDate: string;
-	lastUpdated: string;
-	description: string;
-	fuelType: string;
-	yearOfManufacture: number;
-	insuranceExpiry: string;
-	maintenanceSchedule: string;
-}
+import type { VehicleDetail } from "../../../../types/vehicleList";
 
 interface VehicleDetailsDrawerProps {
 	open: boolean;
@@ -40,18 +25,18 @@ interface VehicleDetailsDrawerProps {
 	onEdit?: (vehicle: VehicleDetail) => void;
 	onDelete?: (vehicle: VehicleDetail) => void;
 }
-
 const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
 	open,
 	onClose,
 	vehicle,
 	onEdit,
 }) => {
-	const getStatusColor = (status: string): ChipColor => {
+	const getStatusColor = (status?: string): ChipColor => {
+		if (!status) return "default";
 		switch (status) {
 			case "Ready":
 				return "warning";
-			case "Hoạt động":
+			case "Active":
 				return "success";
 			case "In-Progress":
 				return "info";
@@ -59,14 +44,11 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
 				return "default";
 		}
 	};
-
 	if (!vehicle) return null;
-
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	function onDelete(_vehicle: VehicleDetail) {
 		throw new Error("Function not implemented.");
 	}
-
 	return (
 		<Drawer
 			anchor="right"
@@ -109,7 +91,6 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
 						<CloseIcon />
 					</IconButton>
 				</Box>
-
 				{/* Content */}
 				<Box sx={{ flex: 1, overflow: "auto" }}>
 					<Grid container spacing={3}>
@@ -145,7 +126,10 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
 												variant="body1"
 												fontWeight="medium"
 											>
-												{vehicle.name}
+												{vehicle.displayName || 
+												 (vehicle.manufacturer && vehicle.model 
+													? `${vehicle.manufacturer} ${vehicle.model}` 
+													: `Vehicle ${vehicle.id}`)}
 											</Typography>
 										</Box>
 										<Box>
@@ -159,7 +143,7 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
 												variant="body1"
 												fontWeight="medium"
 											>
-												{vehicle.vehicleType}
+												{vehicle.vehicleType.name}
 											</Typography>
 										</Box>
 										<Box>
@@ -173,28 +157,61 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
 												variant="body1"
 												fontWeight="medium"
 											>
-												{vehicle.licensePlate}
+												{vehicle.numberPlate}
 											</Typography>
 										</Box>
-										<Box>
-											<Typography
-												variant="body2"
-												color="text.secondary"
-											>
-												Seat Capacity
-											</Typography>
-											<Typography
-												variant="body1"
-												fontWeight="medium"
-											>
-												{vehicle.seatCapacity}
-											</Typography>
-										</Box>
+										{vehicle.manufacturer && (
+											<Box>
+												<Typography
+													variant="body2"
+													color="text.secondary"
+												>
+													Manufacturer
+												</Typography>
+												<Typography
+													variant="body1"
+													fontWeight="medium"
+												>
+													{vehicle.manufacturer}
+												</Typography>
+											</Box>
+										)}
+										{vehicle.model && (
+											<Box>
+												<Typography
+													variant="body2"
+													color="text.secondary"
+												>
+													Model
+												</Typography>
+												<Typography
+													variant="body1"
+													fontWeight="medium"
+												>
+													{vehicle.model}
+												</Typography>
+											</Box>
+										)}
+										{vehicle.vehicleType.totalSeats && (
+											<Box>
+												<Typography
+													variant="body2"
+													color="text.secondary"
+												>
+													Total Seats
+												</Typography>
+												<Typography
+													variant="body1"
+													fontWeight="medium"
+												>
+													{vehicle.vehicleType.totalSeats}
+												</Typography>
+											</Box>
+										)}
 									</Box>
 								</CardContent>
 							</Card>
 						</Grid>
-
 						{/* Status Information Card */}
 						<Grid size={{ xs: 12 }}>
 							<Card sx={{ boxShadow: 2 }}>
@@ -216,55 +233,60 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
 											gap: 1.5,
 										}}
 									>
-										<Box>
-											<Typography
-												variant="body2"
-												color="text.secondary"
-											>
-												Status
-											</Typography>
-											<Chip
-												label={vehicle.status}
-												color={getStatusColor(vehicle.status) as ChipColor}
-												size="small"
-												sx={{ mt: 0.5 }}
-											/>
-										</Box>
-										<Box>
-											<Typography
-												variant="body2"
-												color="text.secondary"
-											>
-												Acquired Date
-											</Typography>
-											<Typography
-												variant="body1"
-												fontWeight="medium"
-											>
-												{vehicle.acquiredDate}
-											</Typography>
-										</Box>
-										<Box>
-											<Typography
-												variant="body2"
-												color="text.secondary"
-											>
-												Last Updated
-											</Typography>
-											<Typography
-												variant="body1"
-												fontWeight="medium"
-											>
-												{vehicle.lastUpdated}
-											</Typography>
-										</Box>
+										{vehicle.status && (
+											<Box>
+												<Typography
+													variant="body2"
+													color="text.secondary"
+												>
+													Status
+												</Typography>
+												<Chip
+													label={vehicle.status}
+													color={getStatusColor(vehicle.status) as ChipColor}
+													size="small"
+													sx={{ mt: 0.5 }}
+												/>
+											</Box>
+										)}
+										{vehicle.createdAt && (
+											<Box>
+												<Typography
+													variant="body2"
+													color="text.secondary"
+												>
+													Created Date
+												</Typography>
+												<Typography
+													variant="body1"
+													fontWeight="medium"
+												>
+													{new Date(vehicle.createdAt).toLocaleDateString()}
+												</Typography>
+											</Box>
+										)}
+										{vehicle.updatedAt && (
+											<Box>
+												<Typography
+													variant="body2"
+													color="text.secondary"
+												>
+													Last Updated
+												</Typography>
+												<Typography
+													variant="body1"
+													fontWeight="medium"
+												>
+													{new Date(vehicle.updatedAt).toLocaleDateString()}
+												</Typography>
+											</Box>
+										)}
 									</Box>
 								</CardContent>
 							</Card>
 						</Grid>
 					</Grid>
 				</Box>
-
 				{/* Action Buttons */}
 				<Box
 					sx={{
@@ -287,7 +309,6 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
 					>
 						Edit
 					</Button>
-
 					<Button
 						variant="outlined"
 						startIcon={<ArrowBackIcon />}
@@ -296,7 +317,6 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
 					>
 						Back
 					</Button>
-
 					<Button
 						variant="contained"
 						color="error"
@@ -310,7 +330,6 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
 					>
 						Delete
 					</Button>
-
 					<Button variant="outlined" sx={{ flex: 1 }}>
 						Info
 					</Button>
@@ -319,5 +338,4 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
 		</Drawer>
 	);
 };
-
 export default VehicleDetailsDrawer;

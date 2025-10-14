@@ -17,5 +17,5 @@ export { default as User } from "./admin/user/User";
 export { default as System } from "./admin/system/System";
 
 // Common pages
-export { default as NotFound } from "./NotFound";
-export { default as PrivacyPolicy } from "./PrivacyPolicy";
+export { default as NotFound } from "@pages/common/NotFound";
+export { default as PrivacyPolicy } from "@pages/common/PrivacyPolicy";
