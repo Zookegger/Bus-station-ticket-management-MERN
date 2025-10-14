@@ -8,46 +8,50 @@ import {
 	Select,
 	MenuItem,
 	Button,
-	Grid,
-	Dialog,
-	DialogTitle,
-	DialogContent,
-	DialogActions,
+	Grid
 } from "@mui/material";
 import {
 	ArrowBack as ArrowBackIcon,
 	Edit as EditIcon,
 } from "@mui/icons-material";
-import type { UpdateVehicleDTO } from "@my-types/vehicle";
-import type { VehicleDetail } from "@my-types/vehicleList";
-import type { VehicleType } from "@my-types/vehicleType";
+import type { UpdateVehicleDTO } from "../../../../types/vehicle";
+
+interface VehicleType {
+	id: number;
+	name: string;
+	description: string;
+}
 
 interface EditVehicleFormProps {
-	open: boolean;
-	vehicle: VehicleDetail | null;
-	onClose: () => void;
-	onSave: (updatedVehicle: UpdateVehicleDTO) => void;
+	vehicle: {
+		id: number;
+		numberPlate: string;
+		vehicleTypeId: number;
+		manufacturer?: string | null;
+		model?: string | null;
+	};
+	onUpdate: (updatedVehicle: UpdateVehicleDTO) => void;
+	onCancel: () => void;
 }
 
 const vehicleTypes: VehicleType[] = [
-	{ id: 1, name: "Quảng nam 4 chỗ (2 dòng)" },
-	{ id: 2, name: "Xe 16 chỗ" },
-	{ id: 3, name: "Xe 29 chỗ" },
-	{ id: 4, name: "Limousine 9 chỗ" },
-	{ id: 5, name: "Xe Giường nằm" },
+	{ id: 1, name: "Quảng nam 4 chỗ (2 dòng)", description: "Xe 4 chỗ ngồi" },
+	{ id: 2, name: "Xe 16 chỗ", description: "Xe 16 chỗ tiêu chuẩn" },
+	{ id: 3, name: "Xe 29 chỗ", description: "Xe 29 chỗ lớn" },
+	{ id: 4, name: "Limousine 9 chỗ", description: "Xe Limousine cao cấp" },
+	{ id: 5, name: "Xe Giường nằm", description: "Xe giường nằm" },
 ];
 
 const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
-	open,
 	vehicle,
-	onClose,
-	onSave,
+	onUpdate,
+	onCancel,
 }) => {
 	const [formData, setFormData] = useState({
-		numberPlate: vehicle?.numberPlate || "",
-		vehicleTypeId: vehicle?.vehicleType.id || 0,
-		manufacturer: vehicle?.manufacturer || "",
-		model: vehicle?.model || "",
+		numberPlate: vehicle.numberPlate,
+		vehicleTypeId: vehicle.vehicleTypeId,
+		manufacturer: vehicle.manufacturer || "",
+		model: vehicle.model || "",
 	});
 	const [errors, setErrors] = useState({
 		numberPlate: "",
@@ -55,16 +59,6 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 		manufacturer: "",
 		model: "",
 	});
-
-	if (!vehicle) {
-		return (
-			<Box sx={{ p: 3 }}>
-				<Typography variant="h6" color="error">
-					Vehicle data not found
-				</Typography>
-			</Box>
-		);
-	}
 
 	const handleInputChange = (field: string, value: string | number) => {
 		setFormData((prev) => ({ ...prev, [field]: value }));
@@ -92,8 +86,7 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 		e.preventDefault();
 		if (validateForm()) {
 			console.log("Updated vehicle:", formData);
-			onSave({
-				id: vehicle.id,
+			onUpdate({
 				numberPlate: formData.numberPlate,
 				vehicleTypeId: formData.vehicleTypeId,
 				manufacturer: formData.manufacturer || null,
@@ -103,95 +96,105 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 	};
 
 	return (
-		<Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-			<DialogTitle>Edit Vehicle</DialogTitle>
-			<DialogContent>
-				<Box component="form" onSubmit={handleSubmit} sx={{ p: 1 }}>
-					<Typography variant="h6" sx={{ color: "#333", mb: 4 }}>
-						Update vehicle information
-					</Typography>
+		<Box component="form" onSubmit={handleSubmit} sx={{ p: 3 }}>
+			<Typography
+				variant="h4"
+				sx={{ fontWeight: "bold", color: "#2E7D32", mb: 1 }}
+			>
+				Edit Vehicle
+			</Typography>
+			<Typography variant="h6" sx={{ color: "#333", mb: 4 }}>
+				Update vehicle information
+			</Typography>
 
-					<Grid container spacing={3}>
-						<Grid size={{ xs: 12, md: 6}}>
-							<FormControl fullWidth error={!!errors.vehicleTypeId}>
-								<InputLabel>Select a vehicle type</InputLabel>
-								<Select
-									value={formData.vehicleTypeId}
-									label="Select a vehicle type"
-									onChange={(e) =>
-										handleInputChange(
-											"vehicleTypeId",
-											Number(e.target.value)
-										)
-									}
-								>
-									{vehicleTypes.map((type) => (
-										<MenuItem key={type.id} value={type.id}>
-											{type.name}
-										</MenuItem>
-									))}
-								</Select>
-								{errors.vehicleTypeId && (
-									<Typography
-										variant="caption"
-										color="error"
-										sx={{ mt: 1, ml: 2 }}
-									>
-										{errors.vehicleTypeId}
-									</Typography>
-								)}
-							</FormControl>
-						</Grid>
+			<Grid container spacing={3}>
+				<Grid size={{ xs: 12, md: 6}}>
+					<FormControl fullWidth error={!!errors.vehicleTypeId}>
+						<InputLabel>Select a vehicle type</InputLabel>
+						<Select
+							value={formData.vehicleTypeId}
+							label="Select a vehicle type"
+							onChange={(e) =>
+								handleInputChange(
+									"vehicleTypeId",
+									Number(e.target.value)
+								)
+							}
+						>
+							{vehicleTypes.map((type) => (
+								<MenuItem key={type.id} value={type.id}>
+									{type.name}
+								</MenuItem>
+							))}
+						</Select>
+						{errors.vehicleTypeId && (
+							<Typography
+								variant="caption"
+								color="error"
+								sx={{ mt: 1, ml: 2 }}
+							>
+								{errors.vehicleTypeId}
+							</Typography>
+						)}
+					</FormControl>
+				</Grid>
 
-						<Grid size={{ xs: 12, md: 6}}>
-							<TextField
-								fullWidth
-								label="Number Plate"
-								value={formData.numberPlate}
-								onChange={(e) =>
-									handleInputChange("numberPlate", e.target.value)
-								}
-								error={!!errors.numberPlate}
-								helperText={errors.numberPlate}
-								placeholder="Enter number plate"
-							/>
-						</Grid>
+				<Grid size={{ xs: 12, md: 6}}>
+					<TextField
+						fullWidth
+						label="Number Plate"
+						value={formData.numberPlate}
+						onChange={(e) =>
+							handleInputChange("numberPlate", e.target.value)
+						}
+						error={!!errors.numberPlate}
+						helperText={errors.numberPlate}
+						placeholder="Enter number plate"
+					/>
+				</Grid>
 
-						<Grid size={{ xs: 12, md: 6}}>
-							<TextField
-								fullWidth
-								label="Manufacturer"
-								value={formData.manufacturer}
-								onChange={(e) =>
-									handleInputChange("manufacturer", e.target.value)
-								}
-								error={!!errors.manufacturer}
-								helperText={errors.manufacturer}
-								placeholder="Enter manufacturer"
-							/>
-						</Grid>
+				<Grid size={{ xs: 12, md: 6}}>
+					<TextField
+						fullWidth
+						label="Manufacturer"
+						value={formData.manufacturer}
+						onChange={(e) =>
+							handleInputChange("manufacturer", e.target.value)
+						}
+						error={!!errors.manufacturer}
+						helperText={errors.manufacturer}
+						placeholder="Enter manufacturer"
+					/>
+				</Grid>
 
-						<Grid size={{ xs: 12, md: 6}}>
-							<TextField
-								fullWidth
-								label="Model"
-								value={formData.model}
-								onChange={(e) =>
-									handleInputChange("model", e.target.value)
-								}
-								error={!!errors.model}
-								helperText={errors.model}
-								placeholder="Enter model"
-							/>
-						</Grid>
-					</Grid>
-				</Box>
-			</DialogContent>
-			<DialogActions>
+				<Grid size={{ xs: 12, md: 6}}>
+					<TextField
+						fullWidth
+						label="Model"
+						value={formData.model}
+						onChange={(e) =>
+							handleInputChange("model", e.target.value)
+						}
+						error={!!errors.model}
+						helperText={errors.model}
+						placeholder="Enter model"
+					/>
+				</Grid>
+			</Grid>
+
+			<Box
+				sx={{
+					display: "flex",
+					justifyContent: "space-between",
+					mt: 4,
+					pt: 3,
+					borderTop: "1px solid #e0e0e0",
+				}}
+			>
 				<Button
 					variant="outlined"
 					startIcon={<ArrowBackIcon />}
-					onClick={onClose}
+					onClick={onCancel}
 					sx={{ borderColor: "#666", color: "#666" }}
 				>
 					Back
@@ -205,12 +208,11 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 						backgroundColor: "#1976d2",
 						"&:hover": { backgroundColor: "#1565c0" },
 					}}
-					onClick={handleSubmit}
 				>
 					Update
 				</Button>
-			</DialogActions>
-		</Dialog>
+			</Box>
+		</Box>
 	);
 };
 

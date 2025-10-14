@@ -1,4 +1,7 @@
-Custom CSS for React App
+/* Leaflet CSS */
+@import 'leaflet/dist/leaflet.css';
+
+/* Custom CSS for React App */
 
 /* Global Styles */
 :root {
