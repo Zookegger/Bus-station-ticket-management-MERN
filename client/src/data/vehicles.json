@@ -1,0 +1,37 @@
+[
+  {
+    "id": 1,
+    "name": "Limousine 01",
+    "licensePlate": "C3B 99999",
+    "status": "Standby",
+    "vehicleType": "Limousine 9 seats"
+  },
+  {
+    "id": 2,
+    "name": "Xe 16 chỗ 01",
+    "licensePlate": "91A-45678",
+    "status": "Active",
+    "vehicleType": "Ghế ngồi 16 chỗ"
+  },
+  {
+    "id": 3,
+    "name": "Xe 29 chỗ 01",
+    "licensePlate": "80C-67890",
+    "status": "In Progress",
+    "vehicleType": "Ghế ngồi 29 chỗ"
+  },
+  {
+    "id": 4,
+    "name": "Xe Giường 01",
+    "licensePlate": "51B-12345",
+    "status": "In Progress",
+    "vehicleType": "Giường nằm 44 chỗ (2 tầng)"
+  },
+  {
+    "id": 5,
+    "name": "Xe VIP 01",
+    "licensePlate": "51B-54321",
+    "status": "Active",
+    "vehicleType": "Giường nằm 34 chỗ (VIP)"
+  }
+]

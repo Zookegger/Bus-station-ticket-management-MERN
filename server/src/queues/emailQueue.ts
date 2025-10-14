@@ -1,13 +1,36 @@
+/**
+ * Email queue configuration using BullMQ.
+ *
+ * Defines the email job queue for background processing of email sending tasks.
+ * Configured with Redis connection and retry policies for reliable email delivery.
+ */
+
 import { Queue } from "bullmq";
 import redis from "../config/redis";
 
+/**
+ * Data structure for email job data.
+ *
+ * Defines the payload structure for email jobs processed by the queue.
+ * Contains all necessary information to send an email through the SMTP service.
+ */
 export interface EmailJobData {
+    /** Recipient email address */
     to: string;
+    /** Email subject line */
     subject: string;
+    /** HTML content of the email */
     html: string;
+    /** Optional plain text version of the email */
     text?: string;
 }
 
+/**
+ * BullMQ email queue instance.
+ *
+ * Configured queue for processing email sending jobs asynchronously.
+ * Uses Redis as the backing store and includes retry logic and cleanup policies.
+ */
 export const emailQueue = new Queue<EmailJobData>("email", {
     connection: redis,
 

@@ -1,3 +1,11 @@
+/**
+ * Database configuration and Sequelize setup.
+ *
+ * This module configures the Sequelize ORM instance for MySQL database connection.
+ * It handles environment-based configuration, connection pooling, and provides
+ * utilities for database operations.
+ */
+
 import { Sequelize } from "sequelize";
 import dotenv from "dotenv";
 
@@ -11,12 +19,10 @@ const DB_NAME: string = process.env.DB_NAME || "bus_station_db";
 const DB_LOGGING: boolean = process.env.DB_LOGGING === "true";
 
 /**
- * Create and export a configured Sequelize instance.
- * We use MySQL dialect because your target stack is MySQLERN.
+ * Configured Sequelize instance for database operations.
  *
- * Notes:
- * - logging: false keeps console clean; set to console.log for SQL debugging
- * - pool settings are sane defaults; tune for production
+ * This is the main database connection instance used throughout the application.
+ * It is configured with MySQL dialect, connection pooling, and default table options.
  */
 export const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASS, {
 	host: DB_HOST,
@@ -40,6 +46,14 @@ export const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASS, {
 	},
 });
 
+/**
+ * Creates a temporary Sequelize connection without specifying a database.
+ *
+ * This is useful for operations that need to create or drop databases,
+ * or perform other operations outside of a specific database context.
+ *
+ * @returns {Sequelize} A new Sequelize instance without database specification
+ */
 export const createTempConnection = (): Sequelize => {
     return new Sequelize(
         // @ts-ignore

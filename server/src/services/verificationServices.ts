@@ -1,3 +1,11 @@
+/**
+ * Email verification service module.
+ *
+ * Handles email verification workflow including token generation, email sending,
+ * token validation, and email confirmation. Uses Redis for temporary token storage
+ * and BullMQ for background email processing.
+ */
+
 import crypto from "crypto";
 import redis from "../config/redis";
 import db from "../models";
@@ -5,12 +13,34 @@ import { emailQueue } from "../queues/emailQueue";
 import { generateVerificationEmailHTML } from "./emailService";
 import logger from "../utils/logger";
 
+// Default verification token expiry time (24 hours in seconds)
 const VERIFICATION_TOKEN_EXPIRY = process.env.VERIFICATION_TOKEN_EXPIRY || 24 * 60 * 60;
 
+/**
+ * Generates a cryptographically secure verification token.
+ *
+ * Creates a random 32-byte token and converts it to hexadecimal string
+ * for use in email verification links.
+ *
+ * @returns Random hexadecimal string token
+ */
 export const generateVerificationToken = (): string => {
 	return crypto.randomBytes(32).toString("hex");
 };
 
+/**
+ * Sends a verification email to a user.
+ *
+ * Generates a verification token, stores it in Redis with expiry,
+ * creates the verification link, and queues the email for sending.
+ * Used during user registration and email resend operations.
+ *
+ * @param userId - Unique identifier of the user
+ * @param email - Email address to send verification to
+ * @param username - Username for personalization in email template
+ * @returns Promise that resolves when email is queued successfully
+ * @throws {Error} When email queuing fails
+ */
 export const sendVerificationEmail = async (
 	userId: string,
 	email: string,
@@ -37,6 +67,17 @@ export const sendVerificationEmail = async (
 	}
 };
 
+/**
+ * Verifies a user's email using a verification token.
+ *
+ * Validates the token against Redis storage, checks if user exists,
+ * ensures email isn't already verified, then updates the user's
+ * email confirmation status and cleans up the token.
+ *
+ * @param token - Verification token from email link
+ * @returns Promise resolving to true if verification successful
+ * @throws {Object} Error with status code and message for various failure cases
+ */
 export const verifyEmail = async (token: string): Promise<boolean> => {
 	const key = `email_verification:${token}`;
 	const userId = await redis.get(key);
@@ -68,6 +109,17 @@ export const verifyEmail = async (token: string): Promise<boolean> => {
 	return true;
 };
 
+/**
+ * Resends verification email to an existing user.
+ *
+ * Checks if user exists and hasn't already verified their email,
+ * then triggers a new verification email send. Used when users
+ * didn't receive the initial verification email or it expired.
+ *
+ * @param userId - Unique identifier of the user requesting resend
+ * @returns Promise that resolves when email is queued
+ * @throws {Object} Error with status code for user not found or already verified
+ */
 export const resendVerificationEmail = async (userId: string) => {
 	const user = await db.user.findByPk(userId);
 
@@ -79,9 +131,9 @@ export const resendVerificationEmail = async (userId: string) => {
 	}
 
 	if (user.emailConfirmed) {
-		throw { 
-            status: 400, 
-            message: "Email already verified" 
+		throw {
+            status: 400,
+            message: "Email already verified"
         };
 	}
 

@@ -1,7 +1,7 @@
 import db from "../models";
 import bcrypt from "bcrypt";
 import { UpdateProfileDTO } from "../types/user";
-import { role, User, UserAttributes } from "../models/users";
+import { role, User, UserAttributes } from "../models/user";
 
 /**
  * Service layer encapsulating business logic for user management.
@@ -24,8 +24,10 @@ export const getUserById = async (
  */
 export const listUsers = async (
 	...attributes: (keyof UserAttributes)[]
-): Promise<User[]> => {
-	return await db.user.findAll(attributes.length > 0 ? { attributes } : {});
+): Promise<{ rows: User[]; count: number }> => {
+	return await db.user.findAndCountAll(
+		attributes.length > 0 ? { attributes } : {}
+	);
 };
 
 /**

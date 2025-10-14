@@ -9,7 +9,7 @@ import {
 	Button,
 } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
-import { ROUTES } from "../constants";
+import { ROUTES } from "../../constants";
 
 const NotFound: React.FC = () => {
 	return (

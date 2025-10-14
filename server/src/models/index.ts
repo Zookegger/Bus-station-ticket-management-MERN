@@ -1,34 +1,77 @@
-import { createTempConnection, sequelize } from "../config/database";
+/**
+ * Database models initialization and configuration.
+ *
+ * This module sets up all Sequelize models, defines their relationships,
+ * and provides database connection utilities. It serves as the central
+ * point for model management and database operations.
+ */
+
+import { createTempConnection, sequelize } from "@config/database";
 import { Sequelize, Op, QueryTypes } from "sequelize";
-import { role, User } from "./users";
-import logger from "../utils/logger";
-import { RefreshToken } from "./refreshToken";
-import { generateDefaultAdminAccount } from "../services/userServices";
+import { role, User } from "@models/user";
+import logger from "@utils/logger";
+import { RefreshToken } from "@models/refreshToken";
+import { generateDefaultAdminAccount } from "@services/userServices";
+import { Vehicle } from "@models/vehicle";
+import { VehicleType } from "@models/vehicleType";
+import { Driver } from "@models/driver";
+import { Location } from "@models/location";
+import { Route } from "@models/route";
+import { Trip } from "@models/trip";
+import { Seat } from "@models/seat";
+import { Ticket } from "@models/ticket";
+import { TripDriverAssignment } from "@models/tripDriverAssignment";
 
 const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
 
-// Definitions
 /**
- * Centralized model registry:
- * - Initializes each model with the Sequelize connection
- * - Defines relationships/associations
- * - Exports a "db" object for easy import across services/controllers
+ * Centralized model registry and database connection.
+ *
+ * This object contains all initialized models and the Sequelize instance,
+ * providing a single import point for database operations across the application.
  */
 const db: {
 	sequelize: Sequelize;
 	user: typeof User;
+	driver: typeof Driver;
+	location: typeof Location;
+	route: typeof Route;
 	refreshToken: typeof RefreshToken;
+	vehicle: typeof Vehicle;
+	vehicleType: typeof VehicleType;
+	trip: typeof Trip;
+	seat: typeof Seat;
+	ticket: typeof Ticket;
+	tripDriverAssignment: typeof TripDriverAssignment;
 } = {
 	sequelize,
 	user: User,
+	driver: Driver,
+	location: Location,
+	route: Route,
 	refreshToken: RefreshToken,
+	vehicle: Vehicle,
+	vehicleType: VehicleType,
+	trip: Trip,
+	seat: Seat,
+	ticket: Ticket,
+	tripDriverAssignment: TripDriverAssignment,
 };
 
-// Initialize models
-User.initializeModel(sequelize);
-RefreshToken.initializeModel(sequelize);
+// Initialize models with Sequelize instance
+User.initModel(sequelize);
+Driver.initModel(sequelize);
+Location.initModel(sequelize);
+Route.initModel(sequelize);
+RefreshToken.initModel(sequelize);
+Vehicle.initModel(sequelize);
+VehicleType.initModel(sequelize);
+Trip.initModel(sequelize);
+Seat.initModel(sequelize);
+Ticket.initModel(sequelize);
+TripDriverAssignment.initModel(sequelize);
 
-// Define relationships/associations
+// Define relationships/associations between models
 User.hasMany(RefreshToken, {
 	foreignKey: "userId",
 	as: "refreshTokens",
@@ -40,8 +83,122 @@ RefreshToken.belongsTo(User, {
 	as: "user",
 });
 
-// Functions
+VehicleType.hasMany(Vehicle, {
+	foreignKey: "vehicleTypeId",
+	as: "vehicles",
+	onDelete: "SET NULL"
+});
 
+Vehicle.belongsTo(VehicleType, {
+	foreignKey: "vehicleTypeId",
+	as: "vehicleType"
+});
+
+Route.belongsTo(Location, {
+	foreignKey: "startId",
+	as: "startLocation"
+});
+
+Route.belongsTo(Location, {
+	foreignKey: "destinationId",
+	as: "destinationLocation"
+});
+
+Location.hasMany(Route, {
+	as: 'routesStartingHere',
+	foreignKey: 'startId'
+});
+
+Location.hasMany(Route, {
+	as: 'routesEndingHere',
+	foreignKey: 'destinationId'
+});
+
+// Trip associations
+Trip.belongsTo(Vehicle, {
+	foreignKey: "vehicleId",
+	as: "vehicle"
+});
+
+Trip.belongsTo(Route, {
+	foreignKey: "routeId",
+	as: "route"
+});
+
+Vehicle.hasMany(Trip, {
+	foreignKey: "vehicleId",
+	as: "trips"
+});
+
+Route.hasMany(Trip, {
+	foreignKey: "routeId",
+	as: "trips"
+});
+
+// Seat associations
+Seat.belongsTo(Trip, {
+	foreignKey: "tripId",
+	as: "trip"
+});
+
+Trip.hasMany(Seat, {
+	foreignKey: "tripId",
+	as: "seats"
+});
+
+// Ticket associations
+Ticket.belongsTo(User, {
+	foreignKey: "userId",
+	as: "user"
+});
+
+Ticket.belongsTo(Seat, {
+	foreignKey: "seatId",
+	as: "seat"
+});
+
+User.hasMany(Ticket, {
+	foreignKey: "userId",
+	as: "tickets"
+});
+
+Seat.hasOne(Ticket, {
+	foreignKey: "seatId",
+	as: "ticket"
+});
+
+// TripDriverAssignment associations
+TripDriverAssignment.belongsTo(Trip, {
+	foreignKey: "tripId",
+	as: "trip"
+});
+
+TripDriverAssignment.belongsTo(Driver, {
+	foreignKey: "driverId",
+	as: "driver"
+});
+
+Trip.hasMany(TripDriverAssignment, {
+	foreignKey: "tripId",
+	as: "driverAssignments"
+});
+
+Driver.hasMany(TripDriverAssignment, {
+	foreignKey: "driverId",
+	as: "tripAssignments"
+});
+
+/**
+ * Creates the database if it doesn't exist.
+ *
+ * This function establishes a temporary connection to the MySQL server
+ * (without specifying a database) and creates the application database
+ * if it doesn't already exist.
+ *
+ * @async
+ * @returns {Promise<void>} Resolves when database creation is complete
+ * @throws {Error} If database creation fails
+ */
 export const createDatabase = async () => {
 	const temp_connection = createTempConnection();
 
@@ -70,6 +227,19 @@ export const createDatabase = async () => {
 	}
 };
 
+/**
+ * Establishes connection to the database and synchronizes models.
+ *
+ * This function handles the complete database setup process:
+ * - Creates the database if needed
+ * - Authenticates the connection
+ * - Synchronizes all models with the database schema
+ * - Generates default admin account
+ *
+ * @async
+ * @returns {Promise<void>} Resolves when database connection and sync are complete
+ * @throws {Error} If connection or synchronization fails
+ */
 export const connectToDatabase = async (): Promise<void> => {
 	try {
 		await createDatabase();

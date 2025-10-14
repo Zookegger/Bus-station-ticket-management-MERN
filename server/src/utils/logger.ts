@@ -1,9 +1,27 @@
+/**
+ * Custom logging utility with colored console output.
+ *
+ * Provides structured logging with different levels (info, warn, error, debug)
+ * and colored output using chalk. Includes special handling for Error objects
+ * and HTTP request logging middleware.
+ */
+
 import chalk from "chalk";
 import { NextFunction, Request, Response } from "express";
 
+/** Supported log levels for the logger */
 type LogLevel = "error" | "warn" | "debug" | "info" | "log";
 
-// Create a core logging function
+/**
+ * Creates a logging function for a specific log level.
+ *
+ * Returns a function that formats and outputs log messages with timestamps,
+ * colored prefixes, and special handling for Error objects and objects
+ * with message properties.
+ *
+ * @param level - The log level for this logger function
+ * @returns Function that accepts log message arguments
+ */
 const createLog = (level: LogLevel) => {
 	return (...args: unknown[]): void => {
 		const timestamp = new Date().toISOString();
@@ -113,7 +131,14 @@ const createLog = (level: LogLevel) => {
 	};
 };
 
-// HTTP-specific middleware
+/**
+ * Express middleware for HTTP request logging.
+ *
+ * Logs HTTP requests with method, URL, status code, and response time.
+ * Automatically determines log level based on HTTP status code.
+ *
+ * @returns Express middleware function
+ */
 const httpLogger = () => {
 	return (req: Request, res: Response, next: NextFunction) => {
 		const start = Date.now();
@@ -137,7 +162,12 @@ const httpLogger = () => {
 	};
 };
 
-// Logger object with methods for each log level
+/**
+ * Logger object with methods for each log level and HTTP middleware.
+ *
+ * Provides structured logging interface with colored output and
+ * special handling for different types of log data.
+ */
 const logger = {
 	info: createLog("info"),
 	warn: createLog("warn"),

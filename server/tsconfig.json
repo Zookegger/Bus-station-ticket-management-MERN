@@ -11,10 +11,27 @@
     "moduleResolution": "node",   // standard Node.js resolution
     "types": ["node"],            // enable Node.js globals
 
+    /* Path Mapping */
+    "baseUrl": ".",
+    "paths": {
+      "@config/*": ["src/config/*"],
+      "@controllers/*": ["src/controllers/*"],
+      "@middlewares/*": ["src/middlewares/*"],
+      "@models/*": ["src/models/*"],
+      "@queues/*": ["src/queues/*"],
+      "@routes/*": ["src/routes/*"],
+      "@services/*": ["src/services/*"],
+      "@my_types/*": ["src/types/*"],
+      "@utils/*": ["src/utils/*"],
+      "@validators/*": ["src/validators/*"],
+      "@workers/*": ["src/workers/*"]
+    },
+
     /* Other Outputs */
     "sourceMap": true,            // useful for debugging
     "declaration": true,          // generate .d.ts files
     "declarationMap": true,
+    "resolveJsonModule": true,    // allow importing JSON files
 
     /* Stricter Typechecking Options */
     "strict": true,

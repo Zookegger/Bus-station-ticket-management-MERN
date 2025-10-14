@@ -48,7 +48,7 @@ export interface UserAttributes {
 	gender?: gender | null;
 	avatar?: string | null;
 	dateOfBirth?: Date | null;
-	emailConfirmed?: boolean;
+	emailConfirmed: boolean;
 	role: role;
 	passwordHash?: string | null;
 	phoneNumber?: string | null;
@@ -111,7 +111,7 @@ export class User
 	public avatar?: string | null;
 	public dateOfBirth?: Date | null;
 	public email!: string;
-	public emailConfirmed?: boolean;
+	public emailConfirmed!: boolean;
 	public role!: role;
 	public passwordHash!: string;
 	public phoneNumber?: string | null;
@@ -128,7 +128,7 @@ export class User
 	 *
 	 * @param {Sequelize} sequelize - The Sequelize instance.
 	 */
-	static initializeModel(sequelize: Sequelize) {
+	static initModel(sequelize: Sequelize) {
 		User.init(
 			{
 				id: {
@@ -168,7 +168,7 @@ export class User
 					allowNull: true,
 				},
 				phoneNumber: {
-					type: DataTypes.STRING,
+					type: DataTypes.STRING(16),
 					allowNull: true,
 				},
 				phoneNumberConfirmed: {

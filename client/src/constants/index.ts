@@ -34,13 +34,18 @@ export const APP_CONFIG: AppConfig = {
  */
 export const ROUTES = {
 	HOME: "/",
-	DASHBOARD: "/dashboard",
+	DASHBOARD_HOME: "/dashboard/home",
+	DASHBOARD_VEHICLE: "/dashboard/vehicle",
+	DASHBOARD_TRIP: "/dashboard/trip",
+	DASHBOARD_USER: "/dashboard/user",
+	DASHBOARD_SYSTEM: "/dashboard/system",
 	PROFILE: "/profile",
+	VERIFY_EMAIL: "/verify-email",
 	SETTINGS: "/settings",
 	LOGIN: "/login",
 	REGISTER: "/register",
 	NOT_FOUND: "/404",
-	PRIVACY_POLICY: "/privacy"
+	PRIVACY_POLICY: "/privacy",
 } as const;
 
 /**
@@ -138,4 +143,23 @@ export const VALIDATION_RULES: ValidationRules = {
 	PASSWORD_MIN_LENGTH: 8,
 	NAME_MIN_LENGTH: 2,
 	NAME_MAX_LENGTH: 50,
+} as const;
+
+/**
+ * Material-UI Chip color options for status indicators.
+ *
+ * @remarks
+ * - Used for consistent status color mapping across components.
+ * - Matches Material-UI Chip component's color prop values.
+ * @example
+ *   const color = CONSTANTS.CHIP_COLORS.SUCCESS; // "success"
+ */
+export const CHIP_COLORS = {
+    DEFAULT: "default",
+    PRIMARY: "primary",
+    SECONDARY: "secondary",
+    ERROR: "error",
+    INFO: "info",
+    SUCCESS: "success",
+    WARNING: "warning",
 } as const;

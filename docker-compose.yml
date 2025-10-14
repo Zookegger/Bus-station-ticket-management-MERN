@@ -1,0 +1,84 @@
+services:
+  # Redis Cache Service
+  redis_cache:
+    image: redis:7-alpine
+    container_name: easyride_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - easyride_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # MySQL Database Service
+  mysql_db:
+    image: mysql:8.0
+    container_name: easyride_mysql
+    env_file:
+      - .env.docker
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+    networks:
+      - easyride_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Express API Server
+  easyride_server:
+    build: 
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: easyride_api
+    env_file:
+      - .env.docker
+    ports:
+      - "5000:5000"
+    depends_on:
+      mysql_db:
+        condition: service_healthy
+      redis_cache:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - easyride_network
+    volumes:
+      - ./server/logs:/app/logs # For log persistence
+
+  # React Frontend App
+  easyride_client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: easyride_frontend
+    env_file:
+      - .env.docker
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:5000
+      - VITE_WS_URL=http://localhost:5000
+    depends_on:
+      - easyride_server
+    restart: unless-stopped
+    networks:
+      - easyride_network
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  easyride_network:
+    driver: bridge

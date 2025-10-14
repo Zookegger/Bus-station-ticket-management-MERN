@@ -1,3 +1,11 @@
+/**
+ * Redis client configuration and connection setup.
+ *
+ * This module configures and initializes the Redis client for caching,
+ * session storage, and background job queues. It handles connection
+ * management, error handling, and environment-based configuration.
+ */
+
 import { Redis } from "ioredis";
 import dotenv from "dotenv";
 import logger from "../utils/logger";
@@ -12,10 +20,16 @@ const REDIS_HOST: string = process.env.REDIS_HOST || "127.0.0.1";
 const REDIS_PORT: number = Number(process.env.REDIS_PORT) || 6379;
 const REDIS_PASSWORD: string = process.env.REDIS_PASSWORD ?? "";
 
-// Create a new Redis client instance with the configuration
-// - host and port: Connection details
-// - password: For secured Redis instances
-// - maxRetriesPerRequest: Set to null to allow unlimited retries (useful for BullMQ queues)
+/**
+ * Redis client instance.
+ *
+ * Configured Redis client for the application, used for:
+ * - Email verification token storage
+ * - BullMQ job queues
+ * - Session management and caching
+ *
+ * Connection settings are loaded from environment variables with sensible defaults.
+ */
 const redis = new Redis({
 	host: REDIS_HOST,
 	port: REDIS_PORT,
@@ -32,7 +46,8 @@ redis.on("connect", () => {
 // Event listener for Redis connection errors
 // Logs errors to help troubleshoot connection issues
 redis.on("error", (err) => {
-	logger.info("Redis connection error:", err);
+	logger.error("Redis connection failed - application cannot function without Redis:", err);
+	throw err;
 });
 
 export default redis;

@@ -1,0 +1,40 @@
+# Ignore local environment files - use docker-compose env_file instead
+.env
+.env.local
+.env.*.local
+
+# Node modules (installed in container)
+node_modules
+
+# Build output (generated during build)
+dist
+
+# Development files
+*.log
+logs/
+*.swp
+*.swo
+*~
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.sublime-*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+README.md
+*.md
+
+# Tests
+*.test.ts
+*.spec.ts
+__tests__
+coverage
