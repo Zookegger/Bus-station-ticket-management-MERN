@@ -34,7 +34,7 @@ const loginRateLimiter = rateLimit({
 // Rate limiter for auth
 const authMeLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
+    max: 100, // limit each IP to 100 requests per 15 minutes
     standardHeaders: true,
     legacyHeaders: false,
 });
