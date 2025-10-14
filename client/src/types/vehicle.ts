@@ -16,7 +16,6 @@ export interface CreateVehicleDTO {
 	manufacturer?: string | null;
 	model?: string | null;
 }
-
 /**
  * Data Transfer Object for updating an existing Vehicle.
  *
@@ -31,6 +30,7 @@ export interface CreateVehicleDTO {
  * @property {string | null} [model] - Updated model.
  */
 export interface UpdateVehicleDTO {
+	id: number;
 	numberPlate?: string;
 	vehicleTypeId?: number;
 	manufacturer?: string | null;
