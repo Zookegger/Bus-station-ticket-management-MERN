@@ -72,7 +72,7 @@ http {
 To modify the nginx configuration:
 
 1. Edit `client/nginx.conf`
-2. Rebuild the Docker containers: `docker-compose up --build`
+2. Rebuild the Docker containers: `docker compose up --build`
 3. For production deployment, you may need to adjust:
    - Server name and port
    - SSL/TLS configuration
