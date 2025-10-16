@@ -72,7 +72,8 @@ Before running this application, make sure you have the following installed:
     ```
 
 4. **Access the application:**
-    - Frontend: http://localhost:80
+    - Frontend: http://localhost:5173 (VITE)
+    - Frontend: http://localhost:YOUR-PORT (Production)
     - Backend API: http://localhost:5000
 
 ## Documentation

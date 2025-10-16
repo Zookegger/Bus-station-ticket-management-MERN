@@ -12,7 +12,7 @@ This guide covers various deployment options for the Bus Station Ticket Manageme
 2. **Build the production images:**
 
     ```bash
-    docker-compose -f docker-compose.yml up --build -d
+    docker compose -f docker-compose.yml up --build -d
     ```
 
 3. **Access the application:**
