@@ -11,6 +11,7 @@ A full-stack MEN (MySQL, Express.js, React, Node.js) application for managing bu
 - **Location Management**: Manage bus stations and routes
 - **Admin Dashboard**: Comprehensive admin interface for system management
 - **Email Notifications**: Automated email confirmations and updates via queue system
+- **Real-time Updates**: WebSocket integration for live seat availability, trip status, and notifications (planned)
 - **Responsive Design**: Mobile-friendly UI built with Material-UI
 
 ## Tech Stack
@@ -27,6 +28,7 @@ A full-stack MEN (MySQL, Express.js, React, Node.js) application for managing bu
 - **TypeScript** for type safety
 - **MySQL** database with initialization scripts
 - **Redis** for caching and session management
+- **WebSocket** for real-time communication (planned)
 - **JWT** for authentication
 - **bcrypt** for password hashing
 - **Nodemailer** for email services
@@ -55,30 +57,25 @@ Before running this application, make sure you have the following installed:
    cd Bus-station-ticket-management-MERN
    ```
 
-2. **Install dependencies for the client:**
+2. **Install dependencies:**
    ```bash
-   cd client
-   npm install
-   cd ..
+   npm run setup
    ```
-
-3. **Install dependencies for the server:**
-   ```bash
-   cd server
-   npm install
-   cd ..
-   ```
+   This will install dependencies for both client and server.
 
 ## Running the Application
 
 ### Using Docker (Recommended)
 
-1. **Build and run with Docker Compose:**
+1. **Configure environment variables:**
+   - Copy `.env.docker` to `.env` in the root directory (already configured for development)
+
+2. **Build and run with Docker Compose:**
    ```bash
    docker-compose up --build
    ```
 
-2. **Access the application:**
+3. **Access the application:**
    - Frontend: http://localhost:80
    - Backend API: http://localhost:5000
 
@@ -89,41 +86,40 @@ Before running this application, make sure you have the following installed:
    - Run the initialization script: `server/database/init.sql`
 
 2. **Configure environment variables:**
-   - Copy `.env.example` to `.env` in the server directory
-   - Update database connection, JWT secret, email settings, etc.
+   - **Server (.env):** Copy `server/.env.example` to `server/.env` and update database connection, JWT secret, email settings, etc.
+   - **Client (.env):** The `client/.env` file is already configured for development. Update `VITE_API_BASE_URL` if your backend runs on a different port.
 
-3. **Start the backend:**
+3. **Start the development servers:**
    ```bash
-   cd server
    npm run dev
    ```
+   This will start both the backend and frontend in development mode concurrently.
 
-4. **Start the frontend:**
-   ```bash
-   cd client
-   npm run dev
-   ```
-
-5. **Access the application:**
+4. **Access the application:**
    - Frontend: http://localhost:5173 (Vite dev server)
    - Backend: http://localhost:5000
+
+**Note:** The project includes npm scripts for convenience:
+- `npm run setup` - Install all dependencies
+- `npm run dev` - Start development servers
+- `npm start` - Start production servers (if configured)
 
 ## Deployment
 
 ### Production Deployment with Docker
 
-1. **Build the production images:**
+1. **Configure environment variables:**
+   - Copy `.env.docker` to `.env` in the root directory
+   - Update sensitive values like database passwords, JWT secrets, and email credentials
+
+2. **Build the production images:**
    ```bash
    docker-compose -f docker-compose.yml up --build -d
    ```
 
-2. **Configure environment variables:**
-   - Create a `.env` file in the root directory with production settings
-   - Ensure database credentials, JWT secrets, and email configurations are set
-
-3. **Set up reverse proxy (optional):**
-   - Use Nginx or Apache to proxy requests to the containerized app
-   - Configure SSL certificates for HTTPS
+3. **Access the application:**
+   - Frontend: http://localhost:80
+   - Backend API: http://localhost:5000
 
 ### Cloud Deployment Options
 
@@ -155,42 +151,73 @@ Before running this application, make sure you have the following installed:
    - Connect your GitHub repo to Vercel
    - Set build command: `npm run build`
    - Set output directory: `dist`
+   - Configure environment variables in Vercel dashboard (from `client/.env`)
 
 2. **Deploy backend to Railway or Heroku:**
    - Follow similar steps as above
+   - Set environment variables (from `server/.env`)
    - Update frontend environment variables to point to the backend URL
 
 ### Environment Variables
 
+#### Server (.env)
 Create a `.env` file in the server directory with the following variables:
 
 ```env
-# Database
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=bus_station_db
-DB_USER=your_db_user
-DB_PASSWORD=your_db_password
+# Client Configuration
+CLIENT_URL=http://localhost
+CLIENT_PORT=5173
 
-# JWT
-JWT_SECRET=your_jwt_secret
-JWT_EXPIRES_IN=7d
-
-# Redis
-REDIS_HOST=localhost
+# Redis Configuration
+REDIS_HOST=127.0.0.1
 REDIS_PORT=6379
+REDIS_PASSWORD=
 
-# Email
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_app_password
+# Email Configuration
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+FROM_EMAIL=noreply@easyride.com
 
-# Frontend URL
-CLIENT_URL=http://localhost:5173
-
-# Server
+# Server Configuration
 PORT=5000
+NODE_ENV=development
+CSRF_SECRET=replace_with_a_strong_csrf_secret
+
+# Database Configuration
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=root
+DB_PASS=your_db_password
+DB_NAME=bus_station_db
+DB_LOGGING=false
+
+# Authentication Configuration
+JWT_SECRET=replace_with_a_long_random_secret
+JWT_EXPIRES_IN=3600s
+REFRESH_TOKEN_SECRET=replace_with_another_secret
+REFRESH_TOKEN_EXPIRES_IN=30d
+
+# Verification Configuration
+VERIFICATION_TOKEN_EXPIRY=86400
+
+# VNPay configuration (for payments)
+VNP_TMN_CODE=YOUR_TMN_CODE
+VNP_HASH_SECRET=YOUR_VNP_HASH_SECRET
+VNP_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+VNP_RETURN_URL=http://localhost:4000/api/payments/vnpay/return
+VNP_LOCALE=vn
+VNP_ORDER_TYPE=other
+```
+
+#### Client (.env)
+The client `.env` file contains Vite-specific environment variables:
+
+```env
+VITE_API_BASE_URL=http://localhost:5000/api
+VITE_APP_NAME=EasyRide
+VITE_APP_EMAIL_ADDRESS=your-email@example.com
 NODE_ENV=development
 ```
 
@@ -209,26 +236,143 @@ For detailed API documentation, refer to the Swagger/OpenAPI specs or the route 
 
 ```
 Bus-station-ticket-management-MERN/
-├── client/                 # React frontend
-│   ├── src/
-│   │   ├── components/     # Reusable UI components
-│   │   ├── pages/          # Page components
-│   │   ├── contexts/       # React contexts
-│   │   └── utils/          # Utility functions
-│   ├── public/             # Static assets
-│   └── package.json
-├── server/                 # Node.js backend
-│   ├── src/
-│   │   ├── controllers/    # Route controllers
-│   │   ├── models/         # Database models
-│   │   ├── routes/         # API routes
-│   │   ├── middlewares/    # Custom middlewares
-│   │   └── services/       # Business logic
-│   ├── database/           # Database scripts
-│   └── package.json
-├── docker-compose.yml      # Docker configuration
-├── Dockerfile              # Docker build files
-└── README.md
+├── client/                          # React frontend
+│   ├── Dockerfile                   # Docker configuration for client
+│   ├── eslint.config.js            # ESLint configuration
+│   ├── index.html                  # Main HTML template
+│   ├── nginx.conf                  # Nginx configuration for production
+│   ├── package.json                # Client dependencies
+│   ├── README.md                   # Client-specific documentation
+│   ├── tsconfig.app.json           # TypeScript config for app
+│   ├── tsconfig.json               # TypeScript configuration
+│   ├── tsconfig.node.json          # TypeScript config for Node.js
+│   ├── vite.config.ts              # Vite build configuration
+│   ├── public/                     # Static assets
+│   └── src/
+│       ├── App.css                 # Main app styles
+│       ├── App.tsx                 # Main React component
+│       ├── index.css               # Global styles
+│       ├── main.tsx                # React entry point
+│       ├── assets/                 # Static assets (images, fonts)
+│       ├── components/             # Reusable UI components
+│       │   ├── index.ts            # Component exports
+│       │   ├── common/             # Common components
+│       │   └── layout/             # Layout components
+│       ├── constants/              # Application constants
+│       │   └── index.ts            # Constant exports
+│       ├── contexts/               # React contexts
+│       │   ├── AuthContext.context.tsx
+│       │   └── AuthContext.tsx     # Authentication context
+│       ├── data/                   # Static data files
+│       │   └── menuItems.json      # Navigation menu data
+│       ├── hooks/                  # Custom React hooks
+│       │   └── useAuth.tsx         # Authentication hook
+│       ├── pages/                  # Page components
+│       │   ├── DevDebug.tsx        # Development debug page
+│       │   ├── index.ts            # Page exports
+│       │   ├── admin/              # Admin pages
+│       │   ├── common/             # Common pages
+│       │   ├── landing/            # Landing pages
+│       │   └── user/               # User pages
+│       ├── types/                  # TypeScript type definitions
+│       │   ├── auth.ts             # Authentication types
+│       │   ├── ChipColor.ts        # UI component types
+│       │   ├── driver.ts           # Driver types
+│       │   ├── location.ts         # Location types
+│       │   ├── types.ts            # General types
+│       │   ├── user.ts             # User types
+│       │   ├── vehicle.ts          # Vehicle types
+│       │   ├── vehicleList.ts      # Vehicle list types
+│       │   └── vehicleType.ts      # Vehicle type types
+│       └── utils/                  # Utility functions
+│           └── deviceHooks.tsx     # Device-related hooks
+├── server/                          # Node.js backend
+│   ├── Dockerfile                   # Docker configuration for server
+│   ├── nodemon.json                # Nodemon configuration
+│   ├── package.json                # Server dependencies
+│   ├── tsconfig.json               # TypeScript configuration
+│   ├── database/                   # Database files
+│   │   └── init.sql/               # Database initialization script
+│   ├── logs/                       # Application logs
+│   └── src/
+│       ├── app.ts                  # Express app configuration
+│       ├── server.ts               # Server entry point
+│       ├── config/                 # Configuration files
+│       │   ├── database.ts         # Database configuration
+│       │   └── redis.ts            # Redis configuration
+│       ├── controllers/            # Route controllers
+│       │   ├── authController.ts   # Authentication controller
+│       │   ├── driverController.ts # Driver management
+│       │   ├── locationController.ts # Location management
+│       │   ├── routeController.ts  # Route management
+│       │   ├── seatController.ts   # Seat management
+│       │   ├── tripController.ts   # Trip management
+│       │   ├── userController.ts   # User management
+│       │   ├── vehicleController.ts # Vehicle management
+│       │   └── vehicleTypeController.ts # Vehicle type management
+│       ├── middlewares/            # Express middlewares
+│       │   ├── auth.ts             # Authentication middleware
+│       │   ├── csrf.ts             # CSRF protection
+│       │   ├── errorHandler.ts     # Error handling
+│       │   └── validateRequest.ts  # Request validation
+│       ├── models/                 # Database models
+│       │   ├── driver.ts           # Driver model
+│       │   ├── index.ts            # Model exports
+│       │   ├── location.ts         # Location model
+│       │   ├── refreshToken.ts     # Refresh token model
+│       │   ├── route.ts            # Route model
+│       │   ├── seat.ts             # Seat model
+│       │   ├── ticket.ts           # Ticket model
+│       │   ├── trip.ts             # Trip model
+│       │   ├── tripDriverAssignment.ts # Trip-driver assignment
+│       │   ├── user.ts             # User model
+│       │   ├── vehicle.ts          # Vehicle model
+│       │   └── vehicleType.ts      # Vehicle type model
+│       ├── queues/                 # Background job queues
+│       │   └── emailQueue.ts       # Email queue
+│       ├── routes/                 # API routes
+│       │   └── api/                # API route definitions
+│       ├── services/               # Business logic services
+│       │   ├── authServices.ts     # Authentication services
+│       │   ├── driverServices.ts   # Driver services
+│       │   ├── emailService.ts     # Email services
+│       │   ├── locationServices.ts # Location services
+│       │   ├── routeServices.ts    # Route services
+│       │   ├── seatServices.ts     # Seat services
+│       │   ├── ticketServices.ts   # Ticket services
+│       │   ├── tripServices.ts     # Trip services
+│       │   ├── userServices.ts     # User services
+│       │   ├── vehicleServices.ts  # Vehicle services
+│       │   ├── vehicleTypeServices.ts # Vehicle type services
+│       │   └── verificationServices.ts # Verification services
+│       ├── types/                  # TypeScript type definitions
+│       │   ├── driver.ts           # Driver types
+│       │   ├── location.ts         # Location types
+│       │   ├── route.ts            # Route types
+│       │   ├── seat.ts             # Seat types
+│       │   ├── ticket.ts           # Ticket types
+│       │   ├── trip.ts             # Trip types
+│       │   ├── user.ts             # User types
+│       │   ├── vehicle.ts          # Vehicle types
+│       │   ├── vehicleType.ts      # Vehicle type types
+│       │   └── verification.ts     # Verification types
+│       ├── utils/                  # Utility functions
+│       │   ├── logger.ts           # Logging utilities
+│       │   └── request.ts          # Request utilities
+│       ├── validators/             # Input validation
+│       │   ├── authValidator.ts    # Authentication validation
+│       │   ├── driverValidator.ts  # Driver validation
+│       │   ├── locationValidator.ts # Location validation
+│       │   ├── routeValidator.ts   # Route validation
+│       │   ├── seatValidator.ts    # Seat validation
+│       │   └── ...                 # Additional validators
+│       └── workers/                # Background job workers
+├── .env.docker                     # Docker environment variables
+├── docker-compose.yml              # Docker Compose configuration
+├── Dockerfile                      # Root Dockerfile
+├── LICENSE                         # Project license
+├── package.json                    # Root package.json with scripts
+└── README.md                       # This file
 ```
 
 ## Contributing
