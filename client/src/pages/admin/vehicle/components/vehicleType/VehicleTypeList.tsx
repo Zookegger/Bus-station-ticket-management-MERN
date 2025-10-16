@@ -149,7 +149,7 @@ const VehicleTypeList: React.FC = () => {
 
 				<TextField
 					size="small"
-					placeholder="Search:"
+					placeholder="Search"
 					value={searchTerm}
 					onChange={(e) => setSearchTerm(e.target.value)}
 					InputProps={{
