@@ -1,10 +1,8 @@
 import React from "react";
 import { Box, Typography } from "@mui/material";
-import DashboardLayout from "../../../components/layout/DashboardLayout";
 
 const System: React.FC = () => {
   return (
-    <DashboardLayout>
       <Box sx={{ p: 3 }}>
         <Typography
           variant="h4"
@@ -21,7 +19,6 @@ const System: React.FC = () => {
           Configure system settings and preferences
         </Typography>
       </Box>
-    </DashboardLayout>
   );
 };
 

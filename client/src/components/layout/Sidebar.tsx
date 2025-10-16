@@ -24,7 +24,8 @@ import {
   KeyboardArrowDown as ArrowDownIcon,
   KeyboardArrowRight as ArrowRightIcon,
 } from "@mui/icons-material";
-import menuItemsData from "../../data/menuItems.json";
+import menuItemsData from "@data/menuItems.json";
+import { APP_CONFIG } from "@constants/index";
 
 interface SubMenuItem {
   id: number;
@@ -120,7 +121,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
               color: "white",
             }}
           >
-            Easyrider
+            {APP_CONFIG.name || "Placeholder app name"}
           </Typography>
         )}
         <IconButton

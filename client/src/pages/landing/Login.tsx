@@ -30,7 +30,7 @@ import {
 } from "@mui/icons-material";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import axios, { isAxiosError } from "axios";
-import { API_ENDPOINTS, APP_CONFIG, ROUTES } from "../../constants/index";
+import { API_ENDPOINTS, APP_CONFIG, ROUTES } from "@constants/index";
 import ForgotPasswordDialog from "./ForgotPasswordDialog";
 
 const LoginPage: React.FC = () => {

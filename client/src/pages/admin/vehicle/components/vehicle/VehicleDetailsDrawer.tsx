@@ -15,8 +15,8 @@ import {
 	Edit as EditIcon,
 	ArrowBack as ArrowBackIcon,
 } from "@mui/icons-material";
-import type { ChipColor } from "../../../../types/ChipColor";
-import type { VehicleDetail } from "../../../../types/vehicleList";
+import type { ChipColor } from "@@types/ChipColor";
+import type { VehicleDetail } from "@@types/vehicleList";
 
 interface VehicleDetailsDrawerProps {
 	open: boolean;

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
 	Box,
 	Typography,
@@ -18,9 +18,11 @@ import {
 	ArrowBack as ArrowBackIcon,
 	Edit as EditIcon,
 } from "@mui/icons-material";
+import axios, { isAxiosError } from "axios";
 import type { UpdateVehicleDTO } from "@my-types/vehicle";
 import type { VehicleDetail } from "@my-types/vehicleList";
 import type { VehicleType } from "@my-types/vehicleType";
+import { APP_CONFIG, API_ENDPOINTS } from "@constants/index";
 
 interface EditVehicleFormProps {
 	open: boolean;
@@ -28,14 +30,6 @@ interface EditVehicleFormProps {
 	onClose: () => void;
 	onSave: (updatedVehicle: UpdateVehicleDTO) => void;
 }
-
-const vehicleTypes: VehicleType[] = [
-	{ id: 1, name: "Quảng nam 4 chỗ (2 dòng)" },
-	{ id: 2, name: "Xe 16 chỗ" },
-	{ id: 3, name: "Xe 29 chỗ" },
-	{ id: 4, name: "Limousine 9 chỗ" },
-	{ id: 5, name: "Xe Giường nằm" },
-];
 
 const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 	open,
@@ -49,12 +43,63 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 		manufacturer: vehicle?.manufacturer || "",
 		model: vehicle?.model || "",
 	});
-	const [errors, setErrors] = useState({
+	const [errors, setErrors] = useState<Record<string, string>>({
 		numberPlate: "",
 		vehicleTypeId: "",
 		manufacturer: "",
 		model: "",
 	});
+	const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
+	const [loadingTypes, setLoadingTypes] = useState(false);
+
+	useEffect(() => {
+		if (vehicle) {
+			setFormData({
+				numberPlate: vehicle.numberPlate || "",
+				vehicleTypeId: vehicle.vehicleType.id || 0,
+				manufacturer: vehicle.manufacturer || "",
+				model: vehicle.model || "",
+			});
+		}
+	}, [vehicle]);
+
+	useEffect(() => {
+		const getVehicleTypes = async () => {
+			setLoadingTypes(true);
+			try {
+				const response = await axios.get(`${APP_CONFIG.apiBaseUrl}${API_ENDPOINTS.VEHICLE_TYPE.BASE}`);
+				if (response.data === null) {
+					throw new Error("Server returned empty set");
+				}
+
+				if (Array.isArray(response.data)) {
+					setVehicleTypes(response.data);
+				} else {
+					throw new Error("Invalid data format from server");
+				}
+
+			} catch (err: unknown) {
+				// Fixed: Use 'unknown' instead of specific type or 'any'
+				// Narrow the type safely
+				let errorMessage = "Failed to load vehicle types.";
+	
+				if (isAxiosError(err) && err.response?.data?.message) {
+					errorMessage = err.response.data.message; // Now TypeScript knows it's a string
+				} else if (err instanceof Error) {
+					errorMessage = err.message; // Fallback for other Errors
+				} // Else: Use the default message for non-Error throws (e.g., strings)
+	
+				setErrors((prev) => ({ ...prev, general: errorMessage }));
+				console.error("Vehicle type fetch error:", err);
+			} finally {
+				setLoadingTypes(false);
+			}
+		}
+
+		if (open) {
+			getVehicleTypes();
+		}
+	}, [open]);
 
 	if (!vehicle) {
 		return (
@@ -104,6 +149,11 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 		<Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
 			<DialogTitle>Edit Vehicle</DialogTitle>
 			<DialogContent>
+				{errors.general && (
+					<Typography variant="body2" color="error" sx={{ mb: 2 }}>
+						{errors.general}
+					</Typography>
+				)}
 				<Box component="form" onSubmit={handleSubmit} sx={{ p: 1 }}>
 					<Typography variant="h6" sx={{ color: "#333", mb: 4 }}>
 						Update vehicle information
@@ -122,12 +172,17 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 											Number(e.target.value)
 										)
 									}
+									disabled={loadingTypes}
 								>
-									{vehicleTypes.map((type) => (
-										<MenuItem key={type.id} value={type.id}>
-											{type.name}
-										</MenuItem>
-									))}
+									{loadingTypes ? (
+										<MenuItem disabled>Loading...</MenuItem>
+									) : (
+										vehicleTypes.map((type) => (
+											<MenuItem key={type.id} value={type.id}>
+												{type.name}
+											</MenuItem>
+										))
+									)}
 								</Select>
 								{errors.vehicleTypeId && (
 									<Typography

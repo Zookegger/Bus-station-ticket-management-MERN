@@ -117,7 +117,7 @@ const Register: React.FC = () => {
 		} catch (err: unknown) {
 			// Fixed: Use 'unknown' instead of specific type or 'any'
 			// Narrow the type safely
-			let errorMessage = "Login failed. Please try again.";
+			let errorMessage = "Registration failed. Please try again.";
 
 			if (isAxiosError(err) && err.response?.data?.message) {
 				errorMessage = err.response.data.message; // Now TypeScript knows it's a string
@@ -126,7 +126,7 @@ const Register: React.FC = () => {
 			} // Else: Use the default message for non-Error throws (e.g., strings)
 
 			setErrors({ general: errorMessage }); // Or merge: setErrors((prev) => ({ ...prev, general: errorMessage }));
-			console.error("Login error:", err);
+			console.error("Registration error:", err);
 		} finally {
 			setIsLoading(false);
 		}

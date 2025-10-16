@@ -1,8 +1,6 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
 	Box,
-	Typography,
 	Button,
 	Table,
 	TableBody,
@@ -34,16 +32,17 @@ import {
 import type { VehicleWithType, VehicleDetail } from "@my-types/vehicleList";
 import VehicleDetailsDrawer from "./VehicleDetailsDrawer";
 import EditVehicleForm from "./EditVehicleForm";
+import CreateVehicleForm from "./CreateVehicleForm";
 import type { UpdateVehicleDTO } from "@my-types/vehicle";
 
 const VehicleList: React.FC = () => {
-	const navigate = useNavigate();
 	const [vehicles, setVehicles] = useState<VehicleWithType[]>([]);
 	const [vehicleDetails, setVehicleDetails] = useState<VehicleDetail[]>([]);
 	const [selectedVehicle, setSelectedVehicle] =
 		useState<VehicleDetail | null>(null);
 	const [drawerOpen, setDrawerOpen] = useState(false);
 	const [editOpen, setEditOpen] = useState(false);
+	const [createOpen, setCreateOpen] = useState(false);
 	const [vehicleToDelete, setVehicleToDelete] =
 		useState<VehicleDetail | null>(null);
 	const [deleteOpen, setDeleteOpen] = useState(false);
@@ -130,22 +129,14 @@ const VehicleList: React.FC = () => {
 
 	return (
 		<Box sx={{ p: 3 }}>
-			<Typography
-				variant="h4"
-				sx={{ fontWeight: "bold", color: "#2E7D32", mb: 3 }}
-			>
-				Vehicle List
-			</Typography>
-			<Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 3 }}>
+			<Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
 				<Button
 					variant="contained"
 					startIcon={<AddIcon />}
-					onClick={() => navigate("/dashboard/vehicle/create")}
+					onClick={() => setCreateOpen(true)}
 				>
 					Add Vehicle
 				</Button>
-			</Box>
-			<Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
 				<FormControl size="small" sx={{ minWidth: 150 }}>
 					<InputLabel>Type</InputLabel>
 					<Select
@@ -153,21 +144,7 @@ const VehicleList: React.FC = () => {
 						onChange={(e) => setTypeFilter(e.target.value)}
 					>
 						<MenuItem value="">All</MenuItem>
-						<MenuItem value="Limousine 9 chỗ">
-							Limousine 9 chỗ
-						</MenuItem>
-						<MenuItem value="Ghế ngồi 16 chỗ">
-							Ghế ngồi 16 chỗ
-						</MenuItem>
-						<MenuItem value="Ghế ngồi 29 chỗ">
-							Ghế ngồi 29 chỗ
-						</MenuItem>
-						<MenuItem value="Giường nằm 44 chỗ (2 tầng)">
-							Giường nằm 44 chỗ (2 tầng)
-						</MenuItem>
-						<MenuItem value="Giường nằm 34 chỗ (VIP)">
-							Giường nằm 34 chỗ (VIP)
-						</MenuItem>
+						{/* TODO: Fetch vehicle type from API */}
 					</Select>
 				</FormControl>
 				<TextField
@@ -175,12 +152,14 @@ const VehicleList: React.FC = () => {
 					placeholder="Search"
 					value={searchTerm}
 					onChange={(e) => setSearchTerm(e.target.value)}
-					InputProps={{
-						startAdornment: (
-							<InputAdornment position="start">
-								<SearchIcon />
-							</InputAdornment>
-						),
+					slotProps={{
+						input: {
+							startAdornment: (
+								<InputAdornment position="start">
+									<SearchIcon />
+								</InputAdornment>
+							),
+						},
 					}}
 				/>
 			</Box>
@@ -297,6 +276,11 @@ const VehicleList: React.FC = () => {
 					</Button>
 				</DialogActions>
 			</Dialog>
+			{/* Create Vehicle Dialog */}
+			<CreateVehicleForm
+				open={createOpen}
+				onClose={() => setCreateOpen(false)}
+			/>
 		</Box>
 	);
 };

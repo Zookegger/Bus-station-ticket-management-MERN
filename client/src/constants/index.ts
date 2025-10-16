@@ -64,11 +64,51 @@ export const API_ENDPOINTS: ApiEndpoints = {
 		REGISTER: "/auth/register",
 		LOGOUT: "/auth/logout",
 		REFRESH: "/auth/refresh",
-		FORGOT_PASSWORD: "/auth/forgot-password"
+		FORGOT_PASSWORD: "/auth/forgot-password",
+		VERIFY_EMAIL: "/auth/verify-email",
+		RESET_PASSWORD: "/auth/reset-password",
+		ME: "/auth/me",
+		CSRF_TOKEN: "/auth/csrf-token"
 	},
 	USERS: {
 		BASE: "/users",
 		PROFILE: "/users/profile",
+		UPDATE_PROFILE: "/users/update-profile",
+	},
+	VEHICLE: {
+		BASE: "/vehicles",
+		SEARCH: "/vehicles/search",
+		BY_ID: "/vehicles/:id"
+	},
+	VEHICLE_TYPE: {
+		BASE: "/vehicle-types",
+		SEARCH: "/vehicle-types/search",
+		BY_ID: "/vehicle-types/:id"
+	},
+	TRIP: {
+		BASE: "/trips",
+		SEARCH: "/trips/search",
+		BY_ID: "/trips/:id"
+	},
+	DRIVER: {
+		BASE: "/drivers",
+		SEARCH: "/drivers/search",
+		BY_ID: "/drivers/:id"
+	},
+	LOCATION: {
+		BASE: "/locations",
+		SEARCH: "/locations/search",
+		BY_ID: "/locations/:id",
+		BY_COORDINATES: "/locations/:lat/:lon"
+	},
+	ROUTE: {
+		BASE: "/routes",
+		SEARCH: "/routes/search",
+		BY_ID: "/routes/:id"
+	},
+	SEAT: {
+		BASE: "/seats",
+		BY_ID: "/seats/:id"
 	},
 } as const;
 

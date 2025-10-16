@@ -1,6 +1,6 @@
 import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
-import Layout from "../layout/Layout";
-import DashboardLayout from "../layout/DashboardLayout";
+import Layout from "@components/layout/Layout";
+import DashboardLayout from "@components/layout/DashboardLayout";
 import { ROUTES } from "@constants/index";
 import { Suspense } from "react";
 import LoadingSkeleton from "@components/layout/LoadingSkeleton";
@@ -89,7 +89,7 @@ export const router = createBrowserRouter([
       {
         path: "home",
         lazy: async () => {
-          const { default: Home } = await import("@pages/admin/home/Home");
+          const { default: Home } = await import("@pages/admin/home/Dashboard");
           return { Component: Home };
         },
       },
@@ -103,47 +103,6 @@ export const router = createBrowserRouter([
                 "@pages/admin/vehicle/Vehicle"
               );
               return { Component: Vehicle };
-            },
-          },
-          {
-            path: "create",
-            lazy: async () => {
-              const { default: CreateVehicle } = await import(
-                "@pages/admin/vehicle/CreateVehicle"
-              );
-              return { Component: CreateVehicle };
-            },
-          },
-        ],
-      },
-      {
-        path: "vehicle-type",
-        children: [
-          {
-            path: "",
-            lazy: async () => {
-              const { default: VehicleType } = await import(
-                "@pages/admin/vehicleType/VehicleType"
-              );
-              return { Component: VehicleType };
-            },
-          },
-          {
-            path: "create",
-            lazy: async () => {
-              const { default: CreateVehicleType } = await import(
-                "@pages/admin/vehicleType/CreateVehicleType"
-              );
-              return { Component: CreateVehicleType };
-            },
-          },
-          {
-            path: "edit/:id",
-            lazy: async () => {
-              const { default: EditVehicleType } = await import(
-                "@pages/admin/vehicleType/EditVehicleType"
-              );
-              return { Component: EditVehicleType };
             },
           },
         ],

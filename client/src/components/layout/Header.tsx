@@ -8,7 +8,7 @@ import {
 	Box,
 } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
-import { APP_CONFIG, ROUTES } from "../../constants";
+import { APP_CONFIG, ROUTES } from "@constants";
 
 const Header: React.FC = () => {
 	return (

@@ -10,25 +10,8 @@
     "id": 2,
     "label": "Vehicle Management",
     "icon": "car",
-    "path": null,
-    "active": false,
-    "hasSubmenu": true,
-    "submenu": [
-      {
-        "id": 2.1,
-        "label": "Vehicle",
-        "icon": "car",
-        "path": "/dashboard/vehicle",
-        "active": false
-      },
-      {
-        "id": 2.2,
-        "label": "Vehicle Type",
-        "icon": "bus",
-        "path": "/dashboard/vehicle-type",
-        "active": true
-      }
-    ]
+    "path": "/dashboard/vehicle",
+    "active": false
   },
   {
     "id": 3,
