@@ -68,7 +68,7 @@ Before running this application, make sure you have the following installed:
 
 3. **Run with Docker (Recommended):**
     ```bash
-    docker-compose up --build
+    docker compose up --build
     ```
 
 4. **Access the application:**
