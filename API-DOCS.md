@@ -72,6 +72,24 @@ Authorization: Bearer <your_jwt_token>
 - `PUT /api/users/:id` - Update user
 - `DELETE /api/users/:id` - Delete user
 
+### Notifications
+
+- `GET /api/notifications` - Get user notifications
+- `GET /api/notifications/:id` - Get notification by ID
+- `PUT /api/notifications/:id/read` - Mark notification as read
+- `PUT /api/notifications/read-all` - Mark all notifications as read
+- `DELETE /api/notifications/:id` - Delete notification
+- `POST /api/notifications/broadcast` - Send broadcast notification (Admin only)
+
+### Admin Dashboard & Statistics
+
+- `GET /api/admin/stats` - Get real-time system statistics (Admin only)
+- `GET /api/admin/stats/overview` - Get dashboard overview metrics (Admin only)
+- `GET /api/admin/stats/revenue` - Get revenue statistics (Admin only)
+- `GET /api/admin/stats/bookings` - Get booking statistics over time (Admin only)
+- `GET /api/admin/stats/users` - Get user registration statistics (Admin only)
+- `GET /api/admin/stats/vehicles` - Get vehicle utilization statistics (Admin only)
+
 ## Response Format
 
 All API responses follow this general structure:
