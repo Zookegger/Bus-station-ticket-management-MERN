@@ -10,6 +10,26 @@ export default ({ mode }: { mode: string }) => {
 
 	return defineConfig({
 		plugins: [react(), tsconfigPaths()],
+		server: {
+			watch: {
+				usePolling: true,
+				interval: 300,
+				binaryInterval: 1000,
+				ignored: ['**/node_modules/**', '**/dist/**', '**/.git/**'],
+			},
+			hmr: {
+				overlay: true,
+				port: 5174, // Use a different port for HMR
+			},
+			host: true,
+			port: 5173,
+			strictPort: false, // Allow fallback to next available port
+			open: true,
+			fs: {
+				// Allow serving files from one level up to the project root
+				allow: ['..']
+			}
+		},
 		resolve: {
 			alias: {
 				'@': path.resolve(__dirname, './src'),

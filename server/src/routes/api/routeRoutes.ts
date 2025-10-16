@@ -7,12 +7,12 @@
  */
 
 import { Router } from "express";
-import { isAdmin } from "../../middlewares/auth";
-import { csrfProtectionRoute } from "../../middlewares/csrf";
-import { errorHandler } from "../../middlewares/errorHandler";
-import { handleValidationResult } from "../../middlewares/validateRequest";
-import * as routeController from "../../controllers/routeController";
-import * as routeValidator from "../../validators/routeValidator";
+import { isAdmin } from "@middlewares/auth";
+import { csrfProtectionRoute } from "@middlewares/csrf";
+import { errorHandler } from "@middlewares/errorHandler";
+import { handleValidationResult } from "@middlewares/validateRequest";
+import * as routeController from "@controllers/routeController";
+import * as routeValidator from "@validators/routeValidator";
 
 /**
  * Route management router instance.

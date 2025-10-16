@@ -12,6 +12,7 @@ export interface ApiEndpoints {
 		readonly REGISTER: string;
 		readonly LOGOUT: string;
 		readonly REFRESH: string;
+		readonly FORGOT_PASSWORD: string;
 	};
 	readonly USERS: {
 		readonly BASE: string;

@@ -47,7 +47,7 @@ export interface LoginDTO {
  *
  * @interface UpdateProfileDTO
  *
- * @property {string} [fullName] - The user's full display name.
+ * @property {string|null} [fullName] - The user's full display name.
  * @property {string|null} [address] - The user's physical or mailing address.
  * @property {gender|null} [gender] - The user's gender.
  * @property {string|null} [avatar] - URL or data string (e.g., base64) for the user's avatar image.
@@ -55,10 +55,10 @@ export interface LoginDTO {
  * @property {string|null} [phoneNumber] - The user's phone number (include country code where applicable).
  */
 export interface UpdateProfileDTO {
-	email?: string;
-	fullName?: string;
+	fullName?: string | null;
 	address?: string | null;
 	gender?: Gender | null;
 	avatar?: string | null;
 	dateOfBirth?: Date | null;
+	phoneNumber?: string | null;
 }

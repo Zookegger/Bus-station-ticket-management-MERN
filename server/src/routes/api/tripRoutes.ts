@@ -7,12 +7,12 @@
  */
 
 import { Router } from "express";
-import { isAdmin } from "../../middlewares/auth";
-import { csrfProtectionRoute } from "../../middlewares/csrf";
-import { errorHandler } from "../../middlewares/errorHandler";
-import { handleValidationResult } from "../../middlewares/validateRequest";
-import * as tripController from "../../controllers/tripController";
-import * as tripValidator from "../../validators/tripValidator";
+import { isAdmin } from "@middlewares/auth";
+import { csrfProtectionRoute } from "@middlewares/csrf";
+import { errorHandler } from "@middlewares/errorHandler";
+import { handleValidationResult } from "@middlewares/validateRequest";
+import * as tripController from "@controllers/tripController";
+import * as tripValidator from "@validators/tripValidator";
 
 /**
  * Trip management router instance.

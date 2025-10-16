@@ -1,0 +1,32 @@
+{
+  "name": "bus-station-ticket-management-mern",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/Zookegger/Bus-station-ticket-management-MERN#readme",
+  "bugs": {
+    "url": "https://github.com/Zookegger/Bus-station-ticket-management-MERN/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Zookegger/Bus-station-ticket-management-MERN.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "start": "concurrently \"npm run server\" \"npm run client\"",
+    "client": "cd client && npm run start",
+    "server": "cd server && npm run start",
+    "client_dev": "cd client && npm run dev",
+    "server_dev": "cd server && npm run dev",
+    "dev": "concurrently \"npm run server_dev\" \"npm run client_dev\"",
+    "install_client": "cd client && npm install",    
+    "install_server": "cd server && npm install",
+    "setup": "npm run install_server && npm run install_client",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

@@ -4,6 +4,8 @@ import { CircularProgress, Box } from "@mui/material";
 import { router } from "@components/common/router";
 
 function App() {
+	// const userState = useState();
+
 	return (
 		<Suspense
 			fallback={
@@ -12,6 +14,7 @@ function App() {
 					justifyContent="center"
 					alignItems="center"
 					p={5}
+					sx={{ backgroundColor: "#52525256"}}
 				>
 					<CircularProgress />
 				</Box>

@@ -73,6 +73,26 @@ export interface ChangePasswordDTO {
 	userId: string;
 	currentPassword: string;
 	newPassword: string;
+	newConfirmPassword: string;
+}
+
+/**
+ * Data Transfer Object for resetting a user's password.
+ *
+ * @interface ResetPasswordDTO
+ *
+ * @property {string} userId - Unique identifier of the user requesting the password reset.
+ * @property {string} newPassword - The user's new desired password. Should meet security requirements (length, complexity).
+ * @property {string} newConfirmPassword - Confirmation of the new password to prevent typos.
+ *
+ * @remarks
+ * Used for password reset via token. The service layer should validate the token,
+ * ensure `newPassword` matches `newConfirmPassword`, and hash the new password before saving.
+ */
+export interface ResetPasswordDTO {
+	token: string;
+	newPassword: string;
+	newConfirmPassword: string;
 }
 
 /**
