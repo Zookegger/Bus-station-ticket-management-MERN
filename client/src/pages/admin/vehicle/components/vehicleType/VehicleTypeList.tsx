@@ -115,7 +115,6 @@ const VehicleTypeList: React.FC = () => {
 
 	return (
 		<Box sx={{ p: 3 }}>
-				
 			<Box
 				sx={{
 					display: "flex",
@@ -152,12 +151,14 @@ const VehicleTypeList: React.FC = () => {
 					placeholder="Search"
 					value={searchTerm}
 					onChange={(e) => setSearchTerm(e.target.value)}
-					InputProps={{
-						startAdornment: (
-							<InputAdornment position="start">
-								<SearchIcon />
-							</InputAdornment>
-						),
+					slotProps={{
+						input: {
+							startAdornment: (
+								<InputAdornment position="start">
+									<SearchIcon />
+								</InputAdornment>
+							),
+						},
 					}}
 					sx={{ minWidth: 200 }}
 				/>
