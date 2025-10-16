@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import * as authServices from "@services/authServices";
-import { verifyEmail } from "@services/verificationServices";
+import * as verificationServices from "@services/verificationServices";
+import logger from "@utils/logger";
+import { ResetPasswordDTO } from "@my_types/user";
 
 /**
  * Registers a new user account.
@@ -35,7 +37,7 @@ export const Register = async (
 			throw new Error("Something went wrong while creating new account");
 		}
 
-		res.status(201).json(result);
+		res.status(200).json(result);
 	} catch (err) {
 		next(err);
 	}
@@ -198,12 +200,69 @@ export const VerifyEmail = async (
 
 		if (!token) throw { status: 400, message: "Token is required" };
 
-		const result = (await verifyEmail(token))
-			? { status: 200, message: "Email verified successfully! You can now log in.", }
+		const result = (await verificationServices.verifyEmail(token))
+			? {
+					status: 200,
+					message: "Email verified successfully! You can now log in.",
+			  }
 			: { status: 500, message: "Email verified failed." };
-	
-		res.status(result.status).json(result.message)
-		} catch (err) {
+
+		res.status(result.status).json(result.message);
+	} catch (err) {
 		next(err);
 	}
 };
+
+/**
+ * Initiates password reset by sending a reset link to the user's email.
+ *
+ * Validates the email and triggers the forgot password service.
+ * Sends a generic response to prevent email enumeration.
+ *
+ * @param req - Express request object containing email
+ * @param res - Express response object
+ * @param next - Express next function for error handling
+ *
+ * @route POST /auth/forgot-password
+ * @access Public
+ *
+ * @throws {Error} When email is missing or service fails
+ */
+export const ForgotPassword = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+): Promise<void> => {
+	try {
+		const { email } = req.body;
+
+		if (!email) throw { status: 400, message: "Email is required" };
+
+		await authServices.forgotPassword(email);
+
+		res.status(200).json({ message: "If an account with this email exists, a password reset link has been sent. Please check your inbox and spam folder.", });
+	} catch (err) {
+		next(err);
+	}
+};
+
+export const ResetPassword = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+): Promise<void> => {
+	try {
+		// Token taken from forgotPassword's generated token
+		const { token } = req.params;
+		
+		if (!token) throw { status: 400, message: "Invalid reset password token" };
+
+		const payload: ResetPasswordDTO = req.body;
+
+		await authServices.resetPassword(payload);
+
+		res.status(200).json({ message: "Password reset successfully" });
+	} catch (err) {
+		next(err);
+	}
+}

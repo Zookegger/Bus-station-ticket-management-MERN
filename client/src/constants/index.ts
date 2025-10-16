@@ -64,6 +64,7 @@ export const API_ENDPOINTS: ApiEndpoints = {
 		REGISTER: "/auth/register",
 		LOGOUT: "/auth/logout",
 		REFRESH: "/auth/refresh",
+		FORGOT_PASSWORD: "/auth/forgot-password"
 	},
 	USERS: {
 		BASE: "/users",

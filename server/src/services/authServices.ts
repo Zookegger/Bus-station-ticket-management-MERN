@@ -1,14 +1,18 @@
 import db from "../models";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import crypto from "crypto";
+import crypto, { verify } from "crypto";
 import { add, addDays } from "date-fns";
 import * as DTO from "@my_types/user";
 import ms from "ms";
 import { role } from "@models/user";
 import { Op } from "sequelize";
-import { sendVerificationEmail } from "@services/verificationServices";
-import { getUserById } from "./userServices";
+import * as verificationServices from "@services/verificationServices";
+import { getUserByEmail, getUserById } from "./userServices";
+import { emailQueue } from "@queues/emailQueue";
+import redis from "@config/redis";
+import { generateResetPasswordHTML } from "./emailService";
+import logger from "@utils/logger";
 
 /**
  * Service layer encapsulating business logic for authentication.
@@ -21,17 +25,21 @@ const JWT_EXPIRY = (process.env.JWT_EXPIRES_IN as ms.StringValue) || "3d";
 const REFRESH_TOKEN_EXPIRY =
 	Number(ms(process.env.REFRESH_TOKEN_EXPIRES_IN as ms.StringValue) / 1000) ||
 	2592000; // 30 days
+const CHANGE_PASSWORD_EXPIRY = (process.env.CHANGE_PASSWORD_EXPIRES_IN as ms.StringValue) || "1h";
 
-interface JwtPayload {
+interface AuthJwtPayload {
 	id: string;
 	role: role;
+}
+interface ResetPasswordJwtPayload {
+	userId: string;
 }
 
 /**
  * Creates a signed JWT access token.
  * Keep access tokens short-lived (15m–1h) to limit risk if stolen.
  */
-const generateAccessToken = (payload: JwtPayload) => {
+const generateAccessToken = (payload: AuthJwtPayload): string => {
 	return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRY });
 };
 
@@ -80,7 +88,7 @@ export const register = async (
 		passwordHash,
 	});
 
-	await sendVerificationEmail(user.id, user.email, user.userName);
+	await verificationServices.sendVerificationEmail(user.id, user.email, user.userName);
 
 	const refreshToken = generateRefreshTokenValue();
 	const expiresAt = add(new Date(), { seconds: REFRESH_TOKEN_EXPIRY });
@@ -270,6 +278,23 @@ export const changePassword = async (dto: DTO.ChangePasswordDTO): Promise<void> 
 	await db.refreshToken.destroy({ where: { userId: user.id } });
 };
 
+export const resetPassword = async (dto: DTO.ResetPasswordDTO): Promise<void> => {
+	const decoded = verifyResetPasswordToken(dto.token) as ResetPasswordJwtPayload;
+    
+    const user = await getUserById(decoded.userId);
+    if (!user) throw { status: 404, message: "User not found" };
+
+	const newPasswordHash = await bcrypt.hash(
+		dto.newPassword,
+		BCRYPT_SALT_ROUNDS
+	);
+
+	await user.update({ passwordHash: newPasswordHash });
+
+	// Revoke all sessions after password change
+	await db.refreshToken.destroy({ where: { userId: user.id } });
+};
+
 /**
  * Retrieves the authenticated user's profile by ID.
  *
@@ -293,4 +318,65 @@ export const getMe = async (userId: string): Promise<DTO.GetMeDTO> => {
 			...(user.avatar !== undefined && {avatar: user.avatar}),
 		},
 	};
+}
+
+
+/**
+ * Creates a signed JWT access token.
+ * Keep change password tokens short-lived (15m–1h) to limit risk if stolen.
+ */
+const generateResetPasswordToken = (payload: ResetPasswordJwtPayload): string => {
+	return jwt.sign(payload, JWT_SECRET, { expiresIn: CHANGE_PASSWORD_EXPIRY });
+};
+
+const verifyResetPasswordToken = (token: string): ResetPasswordJwtPayload => {
+	return jwt.verify(token, JWT_SECRET) as ResetPasswordJwtPayload;
+}
+
+export const sendResetPasswordEmail = async (
+	userId: string,
+	username: string,
+	email: string,
+): Promise<void> => {
+	try {
+		// Generate token for change password
+		const payload: ResetPasswordJwtPayload = { userId: userId };
+
+		const token = generateResetPasswordToken(payload);
+		const key = `forgot_password:${token}`;
+		await redis.setex(key, CHANGE_PASSWORD_EXPIRY, userId);
+
+		const baseUrl = `${process.env.CLIENT_URL || "http://localhost"}:${process.env.CLIENT_PORT || "3000"}`;		
+		const resetLink = `${baseUrl}/reset-passwordtoken=${token}`;
+
+		await emailQueue.add("password-reset-email", {
+			to: email,
+			subject: "Password Reset Request - EasyRide",
+			html: generateResetPasswordHTML(username, resetLink),
+		});
+
+		logger.info(`Password reset email queued for ${email}`);
+	} catch (err) {
+		logger.error("Error queueing password reset email:", err);
+	}
+};
+
+/**
+ * Checks if a user exists with the given email address.
+ * @param {string} email - The email address to check.
+ * @returns {Promise<boolean>} True if a user with the email exists, false otherwise.
+ * @example
+ * const exists = await forgotPassword('user@example.com');
+ */
+export const forgotPassword = async (email: string): Promise<void> => {
+	try {
+		const user = await getUserByEmail(email, "id", "userName", "email" );
+
+		if (user) {
+			// Send email to the email address 
+			await sendResetPasswordEmail(user.id, user.userName, user.email);
+		}
+	} catch (err) {
+		logger.error("Failed to process forgotPassword request due to a service-level error:", err);
+	}
 }

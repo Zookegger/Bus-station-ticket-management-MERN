@@ -7,12 +7,12 @@
  */
 
 import { Router } from "express";
-import { isAdmin } from "../../middlewares/auth";
-import { csrfProtectionRoute } from "../../middlewares/csrf";
-import { errorHandler } from "../../middlewares/errorHandler";
-import { handleValidationResult } from "../../middlewares/validateRequest";
-import * as vehicleController from "../../controllers/vehicleController";
-import * as vehicleValidator from "../../validators/vehicleValidator";
+import { isAdmin } from "@middlewares/auth";
+import { csrfProtectionRoute } from "@middlewares/csrf";
+import { errorHandler } from "@middlewares/errorHandler";
+import { handleValidationResult } from "@middlewares/validateRequest";
+import * as vehicleController from "@controllers/vehicleController";
+import * as vehicleValidator from "@validators/vehicleValidator";
 
 /**
  * Vehicle management router instance.

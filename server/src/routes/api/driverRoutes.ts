@@ -7,12 +7,12 @@
  */
 
 import { Router } from "express";
-import { isAdmin } from "../../middlewares/auth";
-import { csrfProtectionRoute } from "../../middlewares/csrf";
-import * as driverController from "../../controllers/driverController";
-import { errorHandler } from "../../middlewares/errorHandler";
-import { handleValidationResult } from "../../middlewares/validateRequest";
-import { createDriverValidation, updateDriverValidation, validateDriverIdParam } from "../../validators/driverValidator";
+import { isAdmin } from "@middlewares/auth";
+import { csrfProtectionRoute } from "@middlewares/csrf";
+import * as driverController from "@controllers/driverController";
+import { errorHandler } from "@middlewares/errorHandler";
+import { handleValidationResult } from "@middlewares/validateRequest";
+import { createDriverValidation, updateDriverValidation, validateDriverIdParam } from "@validators/driverValidator";
 
 /**
  * Driver management router instance.

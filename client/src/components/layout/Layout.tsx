@@ -14,6 +14,8 @@ const Layout: React.FC<React.PropsWithChildren> = ({ children }) => {
 					flex: 1,
 					width: "100%",
 					overflow: "hidden",
+					display: "flex",
+					position: "relative"
 				}}
 			>
 				{children}

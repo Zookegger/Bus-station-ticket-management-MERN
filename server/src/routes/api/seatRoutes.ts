@@ -8,13 +8,13 @@
  */
 
 import { Router } from "express";
-import { isAdmin } from "../../middlewares/auth";
-import { csrfProtectionRoute } from "../../middlewares/csrf";
-import { errorHandler } from "../../middlewares/errorHandler";
-import { handleValidationResult } from "../../middlewares/validateRequest";
-import * as seatController from "../../controllers/seatController";
-import * as seatValidator from "../../validators/seatValidator";
-import * as routeValidator from "../../validators/routeValidator"; // Reuse validateIdParam
+import { isAdmin } from "@middlewares/auth";
+import { csrfProtectionRoute } from "@middlewares/csrf";
+import { errorHandler } from "@middlewares/errorHandler";
+import { handleValidationResult } from "@middlewares/validateRequest";
+import * as seatController from "@controllers/seatController";
+import * as seatValidator from "@validators/seatValidator";
+import * as routeValidator from "@validators/routeValidator"; // Reuse validateIdParam
 
 /**
  * Seat management router instance.

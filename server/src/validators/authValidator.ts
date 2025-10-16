@@ -6,7 +6,7 @@
  * to validate request bodies and provide meaningful error messages.
  */
 
-import { body } from "express-validator";
+import { body, param } from "express-validator";
 
 /**
  * Validation rules for user login.
@@ -57,4 +57,48 @@ export const registerValidation = [
 		.normalizeEmail()
 		.isEmail()
 		.withMessage("Email must be in valid email format"),
+];
+
+/**
+ * Validation rules for forgot password request.
+ *
+ * Validates that email is provided and in valid format.
+ * Used in forgot password endpoint to ensure email is present before
+ * sending reset link.
+ */
+export const forgotPasswordValidation = [
+	body("email")
+		.notEmpty()
+		.withMessage("Email is required")
+		.normalizeEmail()
+		.isEmail()
+		.withMessage("Email must be in valid email format"),
+];
+
+/**
+ * Validation rules for password reset.
+ *
+ * Validates reset token, new password strength, and confirmation matching.
+ * Used in reset password endpoint to ensure secure password update.
+ */
+export const resetPasswordValidation = [
+	param("token").notEmpty().withMessage("Reset token is required"),
+	body("newPassword")
+		.notEmpty()
+		.isLength({ min: 8 })
+		.withMessage("Password must be at least 8 characters")
+		.matches(/\d/)
+		.withMessage("Password must contain a number")
+		.matches(/[a-zA-Z]/)
+		.withMessage("Password must contain a letter")
+		.isStrongPassword()
+		.withMessage("Password is not strong enough"),
+	body("newConfirmPassword")
+		.notEmpty()
+		.custom((value, { req }) => {
+			if (value !== req.body.newPassword) {
+				throw new Error("Passwords do not match");
+			}
+			return true;
+		}),
 ];

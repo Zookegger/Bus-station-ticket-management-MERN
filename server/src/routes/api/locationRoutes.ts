@@ -8,12 +8,12 @@
  */
 
 import { Router } from "express";
-import * as locationValidators from "../../validators/locationValidator";
-import * as locationController from "../../controllers/locationController";
-import { errorHandler } from "../../middlewares/errorHandler";
-import { handleValidationResult } from "../../middlewares/validateRequest";
-import { isAdmin } from "../../middlewares/auth";
-import { csrfProtectionRoute } from "../../middlewares/csrf";
+import * as locationValidators from "@validators/locationValidator";
+import * as locationController from "@controllers/locationController";
+import { errorHandler } from "@middlewares/errorHandler";
+import { handleValidationResult } from "@middlewares/validateRequest";
+import { isAdmin } from "@middlewares/auth";
+import { csrfProtectionRoute } from "@middlewares/csrf";
 
 /**
  * Location router instance.

@@ -7,11 +7,11 @@
  */
 
 import { Router } from "express";
-import { updateProfile } from "../../controllers/userController";
-import { errorHandler } from "../../middlewares/errorHandler";
-import { userInfoValidation, updateProfileValidation } from "../../validators/userValidator";
-import { loginValidation, registerValidation } from "../../validators/authValidator";
-import { handleValidationResult } from "../../middlewares/validateRequest";
+import { updateProfile } from "@controllers/userController";
+import { errorHandler } from "@middlewares/errorHandler";
+import { userInfoValidation, updateProfileValidation } from "@validators/userValidator";
+import { loginValidation, registerValidation } from "@validators/authValidator";
+import { handleValidationResult } from "@middlewares/validateRequest";
 
 /**
  * User management router instance.
