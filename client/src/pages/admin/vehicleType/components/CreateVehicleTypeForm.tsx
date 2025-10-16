@@ -2,9 +2,6 @@
 // TODO: Fix Grid component usage (remove 'item' and 'container' props) and error type definitions
 // See: https://mui.com/material-ui/migration/migration-grid-v2/
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-nocheck
-/* eslint-disable */
 import React, { useState } from "react";
 import { Box, Typography, TextField, Button, Grid, Paper } from "@mui/material";
 import {
@@ -32,7 +29,10 @@ const CreateVehicleTypeForm: React.FC<CreateVehicleTypeFormProps> = ({
     description: "",
   });
 
-  const [errors, setErrors] = useState<Partial<CreateVehicleTypeDTO>>({});
+  type CreateVehicleTypeErrors = Partial<
+    Record<keyof CreateVehicleTypeDTO, string>
+  >;
+  const [errors, setErrors] = useState<CreateVehicleTypeErrors>({});
 
   const handleInputChange =
     (field: keyof CreateVehicleTypeDTO) =>
@@ -57,7 +57,7 @@ const CreateVehicleTypeForm: React.FC<CreateVehicleTypeFormProps> = ({
     };
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<CreateVehicleTypeDTO> = {};
+    const newErrors: CreateVehicleTypeErrors = {};
 
     if (!formData.name.trim()) {
       newErrors.name = "Name is required";
@@ -123,7 +123,7 @@ const CreateVehicleTypeForm: React.FC<CreateVehicleTypeFormProps> = ({
         {/* Form */}
         <Box component="form" onSubmit={handleSubmit}>
           <Grid container spacing={3}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label="Name"
@@ -136,7 +136,7 @@ const CreateVehicleTypeForm: React.FC<CreateVehicleTypeFormProps> = ({
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Price"
@@ -153,7 +153,7 @@ const CreateVehicleTypeForm: React.FC<CreateVehicleTypeFormProps> = ({
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Seats"
@@ -167,7 +167,7 @@ const CreateVehicleTypeForm: React.FC<CreateVehicleTypeFormProps> = ({
               />
             </Grid>
 
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <TextField
                 fullWidth
                 label="Floors"
@@ -181,7 +181,7 @@ const CreateVehicleTypeForm: React.FC<CreateVehicleTypeFormProps> = ({
               />
             </Grid>
 
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <TextField
                 fullWidth
                 label="Rows"
@@ -195,7 +195,7 @@ const CreateVehicleTypeForm: React.FC<CreateVehicleTypeFormProps> = ({
               />
             </Grid>
 
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <TextField
                 fullWidth
                 label="Columns"
@@ -209,7 +209,7 @@ const CreateVehicleTypeForm: React.FC<CreateVehicleTypeFormProps> = ({
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label="Description"

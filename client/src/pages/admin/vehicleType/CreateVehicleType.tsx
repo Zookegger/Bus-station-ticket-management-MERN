@@ -7,8 +7,6 @@ const CreateVehicleType: React.FC = () => {
 
   const handleCreate = (vehicleType: any) => {
     console.log("Creating vehicle type:", vehicleType);
-    // TODO: Implement API call
-    // After successful creation, navigate back to list
     navigate("/dashboard/vehicle-type");
   };
 

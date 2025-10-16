@@ -1,10 +1,3 @@
-// DISABLED: This component has MUI v7 breaking changes that need to be fixed
-// TODO: Fix Grid component usage (remove 'item' and 'container' props) and error type definitions
-// See: https://mui.com/material-ui/migration/migration-grid-v2/
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-nocheck
-/* eslint-disable */
 import React, { useState, useEffect } from "react";
 import { Box, Typography, TextField, Button, Grid, Paper } from "@mui/material";
 import {
@@ -34,7 +27,10 @@ const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
     description: vehicleType.description || "",
   });
 
-  const [errors, setErrors] = useState<Partial<UpdateVehicleTypeDTO>>({});
+  type UpdateVehicleTypeErrors = Partial<
+    Record<keyof UpdateVehicleTypeDTO, string>
+  >;
+  const [errors, setErrors] = useState<UpdateVehicleTypeErrors>({});
 
   useEffect(() => {
     setFormData({
@@ -61,7 +57,6 @@ const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
         [field]: value,
       }));
 
-      // Clear error when user starts typing
       if (errors[field]) {
         setErrors((prev) => ({
           ...prev,
@@ -71,7 +66,7 @@ const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
     };
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<UpdateVehicleTypeDTO> = {};
+    const newErrors: UpdateVehicleTypeErrors = {};
 
     if (!formData.name?.trim()) {
       newErrors.name = "Name is required";
@@ -97,7 +92,6 @@ const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
       newErrors.totalColumn = "Total columns must be greater than 0";
     }
 
-    // Validate that seats = rows * columns * flooring
     const totalSeats = formData.totalSeats || 0;
     const totalRow = formData.totalRow || 0;
     const totalColumn = formData.totalColumn || 0;
@@ -140,7 +134,7 @@ const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
         {/* Form */}
         <Box component="form" onSubmit={handleSubmit}>
           <Grid container spacing={3}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label="Vehicle Type Name"
@@ -152,7 +146,7 @@ const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Price"
@@ -168,7 +162,7 @@ const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Total Seats"
@@ -181,7 +175,7 @@ const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
               />
             </Grid>
 
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <TextField
                 fullWidth
                 label="Total Flooring"
@@ -194,7 +188,7 @@ const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
               />
             </Grid>
 
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <TextField
                 fullWidth
                 label="Total Rows"
@@ -207,7 +201,7 @@ const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
               />
             </Grid>
 
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <TextField
                 fullWidth
                 label="Total Columns"
@@ -220,7 +214,7 @@ const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label="Description"

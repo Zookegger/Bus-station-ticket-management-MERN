@@ -1,10 +1,3 @@
-// DISABLED: This component has MUI v7 breaking changes that need to be fixed
-// TODO: Fix Grid component usage (remove 'item' and 'container' props) and error type definitions
-// See: https://mui.com/material-ui/migration/migration-grid-v2/
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-nocheck
-/* eslint-disable */
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -80,18 +73,10 @@ const VehicleTypeList: React.FC = () => {
     navigate("/dashboard/vehicle-type/create");
   };
 
-  const handleCloseCreate = () => {
-    navigate("/dashboard/vehicle-type");
-  };
-
   // Removed handleCreate since we're using separate pages now
 
   const handleOpenEdit = (vehicleType: VehicleType) => {
     navigate(`/dashboard/vehicle-type/edit/${vehicleType.id}`);
-  };
-
-  const handleCloseEdit = () => {
-    navigate("/dashboard/vehicle-type");
   };
 
   // Removed handleUpdate since we're using separate pages now
