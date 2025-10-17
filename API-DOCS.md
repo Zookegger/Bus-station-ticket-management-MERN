@@ -4,7 +4,7 @@ This document provides an overview of the Bus Station Ticket Management System A
 
 ## Base URL
 
-```
+```text
 http://localhost:5000/api
 ```
 
@@ -12,7 +12,7 @@ http://localhost:5000/api
 
 Most endpoints require authentication. Include the JWT token in the Authorization header:
 
-```
+```text
 Authorization: Bearer <your_jwt_token>
 ```
 
@@ -27,11 +27,11 @@ Short flow:
 
 1. Login and obtain a JWT via `POST /api/auth/login`.
 2. Call `GET /api/auth/csrf-token` with header `Authorization: Bearer <accessToken>`.
-   - Server sets a CSRF cookie (dev: `psifi.x-csrf-token`, prod: `__Host-psifi.x-csrf-token`) and returns `{ csrfToken: "<token>" }`.
+    - Server sets a CSRF cookie (dev: `psifi.x-csrf-token`, prod: `__Host-psifi.x-csrf-token`) and returns `{ csrfToken: "<token>" }`.
 3. For state-changing requests include both:
-   - `Authorization: Bearer <accessToken>`
-   - `X-CSRF-Token: <token-from-json>`
-   The CSRF cookie will be sent automatically by the browser. Server validates header token matches cookie token.
+    - `Authorization: Bearer <accessToken>`
+    - `X-CSRF-Token: <token-from-json>`
+      The CSRF cookie will be sent automatically by the browser. Server validates header token matches cookie token.
 
 Important notes:
 
@@ -42,25 +42,27 @@ Important notes:
 Examples
 
 fetch (browser)
+
 ```javascript
 // after you have accessToken
 const csrfResp = await fetch("/api/auth/csrf-token", {
-  headers: { 'Authorization': `Bearer ${accessToken}` }
+ headers: { Authorization: `Bearer ${accessToken}` },
 });
 const { csrfToken } = await csrfResp.json();
 
-await fetch('/api/vehicle-types', {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${accessToken}`,
-    'X-CSRF-Token': csrfToken,
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({ name: 'Mini Bus', maxCapacity: 20 })
+await fetch("/api/vehicle-types", {
+ method: "POST",
+ headers: {
+  Authorization: `Bearer ${accessToken}`,
+  "X-CSRF-Token": csrfToken,
+  "Content-Type": "application/json",
+ },
+ body: JSON.stringify({ name: "Mini Bus", maxCapacity: 20 }),
 });
 ```
 
 curl (scripted)
+
 ```bash
 # Login and capture access token (extract manually or with jq)
 curl -s -X POST -H "Content-Type: application/json" \
@@ -85,21 +87,26 @@ Postman (quick)
 
 - Create an environment variable `accessToken` and `csrfToken`.
 - Request 1 (Login): `POST {{baseUrl}}/api/auth/login` — store `accessToken` in Tests tab:
-  ```js
-  const body = pm.response.json();
-  pm.environment.set('accessToken', body.accessToken);
-  ```
+
+    ```js
+    const body = pm.response.json();
+    pm.environment.set("accessToken", body.accessToken);
+    ```
+
 - Request 2 (Get CSRF): `GET {{baseUrl}}/api/auth/csrf-token` with header `Authorization: Bearer {{accessToken}}`.
-  In Tests tab:
-  ```js
-  const body = pm.response.json();
-  pm.environment.set('csrfToken', body.csrfToken);
-  ```
-  Confirm cookie appears in Postman's cookie jar for the host.
+    In Tests tab:
+
+    ```js
+    const body = pm.response.json();
+    pm.environment.set("csrfToken", body.csrfToken);
+    ```
+
+    Confirm cookie appears in Postman's cookie jar for the host.
+
 - Request 3 (Protected POST): include headers:
   - `Authorization: Bearer {{accessToken}}`
   - `X-CSRF-Token: {{csrfToken}}`
-  Make sure Postman will send cookies from the cookie jar (it does by default for that host).
+        Make sure Postman will send cookies from the cookie jar (it does by default for that host).
 
 Troubleshooting
 
@@ -108,7 +115,6 @@ Troubleshooting
 - Cookie missing in browser: ensure you are calling GET `/api/auth/csrf-token` from the same host/origin and that the cookie name is valid for your environment (dev uses `psifi.x-csrf-token`, production uses `__Host-psifi.x-csrf-token` and requires HTTPS).
 
 Optional debug route (dev only): the server includes a temporary debug endpoint at `POST /api/debug/csrf-check` which returns the header and cookie values the server received and whether validation passed. It requires `Authorization`.
-
 
 ## Key Endpoints
 
