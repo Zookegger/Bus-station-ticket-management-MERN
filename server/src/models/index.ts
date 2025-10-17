@@ -6,12 +6,10 @@
  * point for model management and database operations.
  */
 
-import { createTempConnection, sequelize } from "@config/database";
-import { Sequelize, Op, QueryTypes } from "sequelize";
-import { role, User } from "@models/user";
-import logger from "@utils/logger";
+import { sequelize } from "@config/database";
+import { Sequelize } from "sequelize";
+import { User } from "@models/user";
 import { RefreshToken } from "@models/refreshToken";
-import { generateDefaultAdminAccount } from "@services/userServices";
 import { Vehicle } from "@models/vehicle";
 import { VehicleType } from "@models/vehicleType";
 import { Driver } from "@models/driver";
@@ -21,8 +19,8 @@ import { Trip } from "@models/trip";
 import { Seat } from "@models/seat";
 import { Ticket } from "@models/ticket";
 import { TripDriverAssignment } from "@models/tripDriverAssignment";
-
-const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
+import { Notification } from "./notification";
+import { defineAssociations } from "./associations";
 
 /**
  * Centralized model registry and database connection.
@@ -33,6 +31,7 @@ const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
 const db: {
 	sequelize: Sequelize;
 	user: typeof User;
+	notification: typeof Notification;
 	driver: typeof Driver;
 	location: typeof Location;
 	route: typeof Route;
@@ -46,6 +45,7 @@ const db: {
 } = {
 	sequelize,
 	user: User,
+	notification: Notification,
 	driver: Driver,
 	location: Location,
 	route: Route,
@@ -60,6 +60,7 @@ const db: {
 
 // Initialize models with Sequelize instance
 User.initModel(sequelize);
+Notification.initModel(sequelize);
 Driver.initModel(sequelize);
 Location.initModel(sequelize);
 Route.initModel(sequelize);
@@ -71,192 +72,7 @@ Seat.initModel(sequelize);
 Ticket.initModel(sequelize);
 TripDriverAssignment.initModel(sequelize);
 
-// Define relationships/associations between models
-User.hasMany(RefreshToken, {
-	foreignKey: "userId",
-	as: "refreshTokens",
-	onDelete: "CASCADE",
-});
-
-RefreshToken.belongsTo(User, {
-	foreignKey: "userId",
-	as: "user",
-});
-
-VehicleType.hasMany(Vehicle, {
-	foreignKey: "vehicleTypeId",
-	as: "vehicles",
-	onDelete: "SET NULL"
-});
-
-Vehicle.belongsTo(VehicleType, {
-	foreignKey: "vehicleTypeId",
-	as: "vehicleType"
-});
-
-Route.belongsTo(Location, {
-	foreignKey: "startId",
-	as: "startLocation"
-});
-
-Route.belongsTo(Location, {
-	foreignKey: "destinationId",
-	as: "destinationLocation"
-});
-
-Location.hasMany(Route, {
-	as: 'routesStartingHere',
-	foreignKey: 'startId'
-});
-
-Location.hasMany(Route, {
-	as: 'routesEndingHere',
-	foreignKey: 'destinationId'
-});
-
-// Trip associations
-Trip.belongsTo(Vehicle, {
-	foreignKey: "vehicleId",
-	as: "vehicle"
-});
-
-Trip.belongsTo(Route, {
-	foreignKey: "routeId",
-	as: "route"
-});
-
-Vehicle.hasMany(Trip, {
-	foreignKey: "vehicleId",
-	as: "trips"
-});
-
-Route.hasMany(Trip, {
-	foreignKey: "routeId",
-	as: "trips"
-});
-
-// Seat associations
-Seat.belongsTo(Trip, {
-	foreignKey: "tripId",
-	as: "trip"
-});
-
-Trip.hasMany(Seat, {
-	foreignKey: "tripId",
-	as: "seats"
-});
-
-// Ticket associations
-Ticket.belongsTo(User, {
-	foreignKey: "userId",
-	as: "user"
-});
-
-Ticket.belongsTo(Seat, {
-	foreignKey: "seatId",
-	as: "seat"
-});
-
-User.hasMany(Ticket, {
-	foreignKey: "userId",
-	as: "tickets"
-});
-
-Seat.hasOne(Ticket, {
-	foreignKey: "seatId",
-	as: "ticket"
-});
-
-// TripDriverAssignment associations
-TripDriverAssignment.belongsTo(Trip, {
-	foreignKey: "tripId",
-	as: "trip"
-});
-
-TripDriverAssignment.belongsTo(Driver, {
-	foreignKey: "driverId",
-	as: "driver"
-});
-
-Trip.hasMany(TripDriverAssignment, {
-	foreignKey: "tripId",
-	as: "driverAssignments"
-});
-
-Driver.hasMany(TripDriverAssignment, {
-	foreignKey: "driverId",
-	as: "tripAssignments"
-});
-
-/**
- * Creates the database if it doesn't exist.
- *
- * This function establishes a temporary connection to the MySQL server
- * (without specifying a database) and creates the application database
- * if it doesn't already exist.
- *
- * @async
- * @returns {Promise<void>} Resolves when database creation is complete
- * @throws {Error} If database creation fails
- */
-export const createDatabase = async () => {
-	const temp_connection = createTempConnection();
-
-	try {
-		await temp_connection.authenticate();
-
-		const database = await temp_connection.query("SHOW DATABASES LIKE ?", {
-			replacements: [process.env.DB_NAME],
-			type: QueryTypes.SELECT,
-		});
-
-		if (database.length === 0) {
-			await temp_connection.query(
-				`CREATE DATABASE IF NOT EXISTS \`${process.env.DB_NAME}\``,
-				{ type: QueryTypes.RAW }
-			);
-			logger.info(`Database ${process.env.DB_NAME} created successfully`);
-		} else {
-			logger.debug(`Database ${process.env.DB_NAME} already exist`);
-		}
-	} catch (err) {
-		logger.error(err);
-		throw err;
-	} finally {
-		await temp_connection.close();
-	}
-};
-
-/**
- * Establishes connection to the database and synchronizes models.
- *
- * This function handles the complete database setup process:
- * - Creates the database if needed
- * - Authenticates the connection
- * - Synchronizes all models with the database schema
- * - Generates default admin account
- *
- * @async
- * @returns {Promise<void>} Resolves when database connection and sync are complete
- * @throws {Error} If connection or synchronization fails
- */
-export const connectToDatabase = async (): Promise<void> => {
-	try {
-		await createDatabase();
-		logger.info("Connecting to Database Server...");
-		await sequelize.authenticate();
-		logger.info("Database connected");
-		logger.info("Synchronizing models...");
-		await sequelize.sync({
-			alter: true,
-			force: IS_DEVELOPMENT ? true : false,
-		});
-		logger.info("Models synchronized to Database");
-
-		generateDefaultAdminAccount();
-	} catch (err) {
-		logger.error(err);
-	}
-};
+defineAssociations();
 
 export default db;
+export { connectToDatabase } from './setup';
