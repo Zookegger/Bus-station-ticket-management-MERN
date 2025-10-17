@@ -119,7 +119,7 @@ export class Vehicle
 			},
 			{
 				sequelize,
-				tableName: "vehicle",
+				tableName: "vehicles",
 				timestamps: true,
 			}
 		);
