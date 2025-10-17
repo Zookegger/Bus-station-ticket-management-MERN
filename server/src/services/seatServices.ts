@@ -10,7 +10,7 @@
 import { Op } from "sequelize";
 import db from "@models/index";
 import { Seat, SeatAttributes } from "@models/seat";
-import { UpdateSeatDTO, SeatFilterDTO } from "@my_types/seat";
+import { UpdateSeatDTO, SeatFilterDTO, SeatStatus } from "@my_types/seat";
 
 /**
  * Configuration options for seat listing and filtering.
@@ -91,14 +91,9 @@ export const searchSeats = async (
 
 	const where: any = {};
 
-	// Filter by availability status
-	if (filters.isAvailable !== undefined) {
-		where.isAvailable = filters.isAvailable;
-	}
-
-	// Filter by active status
-	if (filters.isActive !== undefined) {
-		where.isActive = filters.isActive;
+	// Filter by seat lifecycle status (preferred)
+	if (filters.status !== undefined) {
+		where.status = filters.status;
 	}
 
 	// Filter by trip ID
@@ -188,15 +183,17 @@ export const updateSeat = async (
 		}
 	}
 
-	// Business rule: Only active seats can be made available
-	if (dto.isAvailable === true && dto.isActive === false) {
-		throw {
-			status: 400,
-			message:
-				"Cannot make an inactive seat available. Activate the seat first.",
-		};
+	// If status is being set to 'available', ensure current status allows it
+	if (dto.status === "available") {
+		if (seat.status === SeatStatus.DISABLED || seat.status === SeatStatus.MAINTENANCE) {
+			throw { status: 400, message: "Cannot mark a disabled/maintenance seat as available." };
+		}
 	}
 
-	await seat.update(dto);
+	const allowed: any = {};
+	if (dto.status !== undefined) allowed.status = dto.status;
+	if (dto.tripId !== undefined) allowed.tripId = dto.tripId;
+
+	await seat.update(allowed);
 	return await getSeatById(id); // Return updated seat with associations
 };

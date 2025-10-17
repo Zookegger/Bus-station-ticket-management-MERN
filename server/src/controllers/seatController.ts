@@ -44,8 +44,7 @@ export const SearchSeat = async (
 		const {
 			tripId,
 			vehicleId,
-			isAvailable,
-			isActive,
+			status,
 			orderBy = "number",
 			sortOrder = "ASC",
 			page,
@@ -56,8 +55,7 @@ export const SearchSeat = async (
 
 		if (tripId !== undefined) filters.tripId = parseInt(tripId as string);
 		if (vehicleId !== undefined) filters.vehicleId = parseInt(vehicleId as string);
-		if (isAvailable !== undefined) filters.isAvailable = isAvailable === "true";
-		if (isActive !== undefined) filters.isActive = isActive === "true";
+	if (status !== undefined) filters.status = status as any;
 
 		const options: any = {
 			orderBy: orderBy as string,

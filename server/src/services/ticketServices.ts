@@ -1,6 +1,7 @@
 import db from "@models/index";
 import { Ticket, TicketStatus } from "@models/ticket";
 import { CreateTicketDTO } from "@my_types/ticket";
+import { SeatStatus } from "@my_types/seat";
 
 export const CreateTicket = async (dto: CreateTicketDTO): Promise<Ticket> => {
 	// Start a transaction for atomicity
@@ -18,10 +19,11 @@ export const CreateTicket = async (dto: CreateTicketDTO): Promise<Ticket> => {
 		if (!seat || !seat.trip)
 			throw { status: 500, message: "Failed to get seat data" };
 
-		// Check seat availability
-		if (!seat.isActive) throw { status: 409, message: "Seat is inactive" };
-		if (!seat.isAvailable)
-			throw { status: 409, message: "Seat is already taken" };
+		// Check seat availability via status
+		if (seat.status === SeatStatus.DISABLED || seat.status === SeatStatus.MAINTENANCE)
+			throw { status: 409, message: "Seat is inactive" };
+		if (seat.status !== SeatStatus.AVAILABLE)
+			throw { status: 409, message: "Seat is already taken or reserved" };
 
 		// Validate trip price
 		if (!seat.trip.price || seat.trip.price <= 0)
@@ -61,8 +63,9 @@ export const CreateTicket = async (dto: CreateTicketDTO): Promise<Ticket> => {
 		if (!new_ticket)
 			throw { status: 500, message: "Failed to create new ticket" };
 
-		// Mark seat as unavailable
-		await seat.update({ isAvailable: false }, { transaction });
+	// Mark seat as reserved
+	const reservedUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+	await seat.update({ status: SeatStatus.RESERVED, reservedBy: dto.userId, reservedUntil }, { transaction });
 
 		// Commit transaction
 		await transaction.commit();
@@ -102,7 +105,7 @@ export const cancelTicket = async (
 
 		if (ticket.seatId) {
 			await db.seat.update(
-				{ isAvailable: true },
+				{ status: SeatStatus.AVAILABLE, reservedBy: null, reservedUntil: null },
 				{ where: { id: ticket.seatId }, transaction }
 			);
 		}

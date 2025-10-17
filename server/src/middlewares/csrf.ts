@@ -76,7 +76,7 @@
 
 import { doubleCsrf } from "csrf-csrf";
 import { Request, Response } from "express";
-import { isAdmin } from "./auth";
+import { authenticateJwt, isAdmin } from "./auth";
 
 /**
  * Configuration object for Double CSRF protection
@@ -141,7 +141,14 @@ export const doubleCsrfUtilities = doubleCsrf({
 		"default-secret-change-in-production",
 	getSessionIdentifier: (req) =>
 		(req as any).user?.id || req.ip || "anonymous", // Identifies the session (use user ID if authenticated, fallback to IP)
-	cookieName: "__Host-psifi.x-csrf-token",
+	// Use the __Host- prefix only in production where Secure cookies are expected.
+	// Browsers require the Secure attribute for __Host- cookies; during local
+	// development (HTTP) the cookie would be ignored by the browser which
+	// causes CSRF validation to fail because the cookie is never sent back.
+	cookieName:
+		process.env.NODE_ENV === "production"
+			? "__Host-psifi.x-csrf-token"
+			: "psifi.x-csrf-token",
 	cookieOptions: {
 		httpOnly: true,
 		secure: process.env.NODE_ENV === "production",
@@ -178,7 +185,7 @@ export const { doubleCsrfProtection, generateCsrfToken, validateRequest } =
  *
  * @returns {Function[]} Array containing [isAdmin, doubleCsrfProtection] middleware
  */
-export const csrfProtectionRoute = [isAdmin, doubleCsrfProtection];
+export const csrfProtectionRoute = [authenticateJwt, isAdmin, doubleCsrfProtection];
 
 /**
  * Generates and returns a CSRF token

@@ -1,19 +1,25 @@
+export enum SeatStatus {
+	AVAILABLE = "available", // Seat is available for booking
+	RESERVED = "reserved", // Seat is temporarily reserved (payment in progress)
+	BOOKED = "booked", // Seat is confirmed and paid for
+	MAINTENANCE = "maintenance", // Seat is under maintenance/damaged
+	DISABLED = "disabled", // Seat is permanently disabled
+}
+
 /**
  * Data Transfer Object for updating an existing Seat.
  *
  * Used for PUT/PATCH requests to modify seat state or assignment.
- * Only allows updating availability, active status, and trip assignment.
+ * Use `status` (SeatStatus) to represent lifecycle instead of boolean flags.
  *
  * @interface UpdateSeatDTO
  * @property {number} id - ID of the seat to update.
- * @property {boolean} [isAvailable] - Updated availability status.
- * @property {boolean} [isActive] - Updated active status (for damaged/disabled seats).
+ * @property {SeatStatus} [status] - New seat lifecycle status (available, reserved, booked, etc.).
  * @property {number | null} [tripId] - Updated trip assignment.
  */
 export interface UpdateSeatDTO {
 	id: number;
-	isAvailable?: boolean;
-	isActive?: boolean;
+	status?: SeatStatus;
 	tripId?: number | null;
 }
 
@@ -21,16 +27,15 @@ export interface UpdateSeatDTO {
  * Query parameters for filtering seats.
  *
  * Used for GET requests to retrieve seats by various criteria.
+ * Prefer filtering by `status` (SeatStatus) rather than booleans.
  *
  * @interface SeatFilterDTO
  * @property {number} [tripId] - Filter by trip ID.
  * @property {number} [vehicleId] - Filter by vehicle ID (requires joining with Trip).
- * @property {boolean} [isAvailable] - Filter by availability status.
- * @property {boolean} [isActive] - Filter by active status.
+ * @property {SeatStatus} [status] - Filter by seat lifecycle status.
  */
 export interface SeatFilterDTO {
 	tripId?: number;
 	vehicleId?: number;
-	isAvailable?: boolean;
-	isActive?: boolean;
+	status?: SeatStatus;
 }

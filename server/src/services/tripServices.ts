@@ -10,6 +10,7 @@ import { Op } from "sequelize";
 import db from "@models/index";
 import { Trip } from "@models/trip";
 import { CreateTripDTO, UpdateTripDTO } from "@my_types/trip";
+import { SeatStatus } from "@my_types/seat";
 import { VehicleType } from "@models/vehicleType";
 
 /**
@@ -32,8 +33,9 @@ async function generateSeatsForTrip(
 		row?: number;
 		column?: number;
 		floor?: number;
-		isAvailable: boolean;
-		isActive: boolean;
+		status: SeatStatus;
+		reservedBy?: string | null;
+		reservedUntil?: Date | null;
 		tripId: number;
 	}> = [];
 
@@ -94,8 +96,9 @@ async function generateSeatsForTrip(
 									row,
 									column,
 									floor,
-									isAvailable: true,
-									isActive: true,
+									status: SeatStatus.AVAILABLE,
+									reservedBy: null,
+									reservedUntil: null,
 									tripId,
 								});
 								seatCounter++;
@@ -126,8 +129,9 @@ async function generateSeatsForTrip(
 					number: `${floorPrefix}${seatLabel}`,
 					row,
 					column,
-					isAvailable: true,
-					isActive: true,
+					status: SeatStatus.AVAILABLE,
+					reservedBy: null,
+					reservedUntil: null,
 					tripId,
 				};
 
@@ -489,11 +493,13 @@ export const deleteTrip = async (id: number): Promise<void> => {
 	}
 
 	// Release all seats associated with this trip
-	// Set tripId to null instead of deleting seats (maintains data integrity)
+	// Set tripId to null and mark seats available
 	await db.seat.update(
 		{
 			tripId: null,
-			isAvailable: true,
+			status: SeatStatus.AVAILABLE,
+			reservedBy: null,
+			reservedUntil: null,
 		},
 		{
 			where: {

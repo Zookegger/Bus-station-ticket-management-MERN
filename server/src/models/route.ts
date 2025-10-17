@@ -1,16 +1,16 @@
-import { Model, DataTypes, Optional, Sequelize } from 'sequelize';
-import { Location } from './location';
-import { Trip } from './trip';
+import { Model, DataTypes, Optional, Sequelize } from "sequelize";
+import { Location } from "./location";
+import { Trip } from "./trip";
 
 export interface RouteAttributes {
-  id: number;
-  startId: number;
-  destinationId: number;
-  distance?: number | null;
-  duration?: number | null;
-  price?: number | null;
-  createdAt?: Date;
-  updatedAt?: Date;
+	id: number;
+	startId: number;
+	destinationId: number;
+	distance?: number | null;
+	duration?: number | null;
+	price?: number | null;
+	createdAt?: Date;
+	updatedAt?: Date;
 }
 
 /**
@@ -20,7 +20,11 @@ export interface RouteAttributes {
  *
  * @interface RouteCreationAttributes
  */
-export interface RouteCreationAttributes extends Optional<RouteAttributes, 'id' | 'distance' | 'duration' | 'price' | 'createdAt' | 'updatedAt'> {}
+export interface RouteCreationAttributes
+	extends Optional<
+		RouteAttributes,
+		"id" | "distance" | "duration" | "price" | "createdAt" | "updatedAt"
+	> {}
 
 /**
  * Sequelize model representing a Route.
@@ -40,37 +44,47 @@ export interface RouteCreationAttributes extends Optional<RouteAttributes, 'id' 
  * @property {Date} createdAt - Timestamp when the route record was created.
  * @property {Date} updatedAt - Timestamp when the route record was last updated.
  */
-export class Route extends Model<RouteAttributes, RouteCreationAttributes> implements RouteAttributes {
-  public id!: number;
-  public startId!: number;
-  public destinationId!: number;
-  public distance?: number | null;
-  public duration?: number | null;
-  public price?: number | null;
+export class Route
+	extends Model<RouteAttributes, RouteCreationAttributes>
+	implements RouteAttributes
+{
+	public id!: number;
+	public startId!: number;
+	public destinationId!: number;
+	public distance?: number | null;
+	public duration?: number | null;
+	public price?: number | null;
 
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+	public readonly createdAt!: Date;
+	public readonly updatedAt!: Date;
 
-  // Association properties
-  public startLocation?: Location;
-  public destinationLocation?: Location;
-  public trips?: Trip[];
+	// Association properties
+	public startLocation?: Location;
+	public destinationLocation?: Location;
+	public trips?: Trip[];
 
-  static initModel(sequelize: Sequelize) {
-    Route.init(
-      {
-        id: { type: DataTypes.INTEGER.UNSIGNED, primaryKey: true, autoIncrement: true },
-        startId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
-        destinationId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
-        distance: { type: DataTypes.FLOAT, allowNull: true },
-        duration: { type: DataTypes.FLOAT, allowNull: true },
-        price: { type: DataTypes.DECIMAL(10, 2), allowNull: true }
-      },
-      {
-        sequelize,
-        tableName: 'routes',
-        timestamps: true
-      }
-    );
-  }
+	static initModel(sequelize: Sequelize) {
+		Route.init(
+			{
+				id: {
+					type: DataTypes.INTEGER.UNSIGNED,
+					primaryKey: true,
+					autoIncrement: true,
+				},
+				startId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+				destinationId: {
+					type: DataTypes.INTEGER.UNSIGNED,
+					allowNull: false,
+				},
+				distance: { type: DataTypes.FLOAT, allowNull: true },
+				duration: { type: DataTypes.FLOAT, allowNull: true },
+				price: { type: DataTypes.DECIMAL(10, 2), allowNull: true },
+			},
+			{
+				sequelize,
+				tableName: "routes",
+				timestamps: true,
+			}
+		);
+	}
 }

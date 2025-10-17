@@ -12,7 +12,7 @@ import { errorHandler } from "@middlewares/errorHandler";
 import * as authValidator from "@middlewares/validators/authValidator";
 import * as authController from "@controllers/authController";
 import { handleValidationResult } from "@middlewares/validateRequest";
-import { getCsrfToken } from "@middlewares/csrf";
+import { getCsrfToken, isValidCsrfToken } from "@middlewares/csrf";
 import { authenticateJwt } from "@middlewares/auth";
 import rateLimit from "express-rate-limit";
 
@@ -76,10 +76,9 @@ const resetPasswordLimiter = rateLimit({
 });
 
 // CSRF token endpoint
-authRoutes.get("/csrf-token", (req: Request, res: Response): void => {
-	const csrfToken = getCsrfToken(req, res);
-	res.json({ csrfToken });
-});
+authRoutes.get("/csrf-token", authenticateJwt, authController.GetCsrfToken, errorHandler);
+
+authRoutes.post("/csrf-token",  authenticateJwt, authController.VerifyCsrfToken, errorHandler);
 
 /**
  * POST /auth/login

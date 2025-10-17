@@ -3,6 +3,7 @@ import * as authServices from "@services/authServices";
 import * as verificationServices from "@services/verificationServices";
 import logger from "@utils/logger";
 import { ResetPasswordDTO } from "@my_types/user";
+import { getCsrfToken, isValidCsrfToken } from "@middlewares/csrf";
 
 /**
  * Registers a new user account.
@@ -138,13 +139,16 @@ export const Logout = async (
 	try {
 		const { refreshToken } = req.body;
 		if (!refreshToken) {
-            throw { status: 400, message: "Refresh token is required" };
-        }
+			throw { status: 400, message: "Refresh token is required" };
+		}
 		const result = await authServices.revokeRefreshToken(refreshToken);
 		if (result === 0) {
-            throw { status: 400, message: "Invalid or already revoked refresh token" };
-        }
-		
+			throw {
+				status: 400,
+				message: "Invalid or already revoked refresh token",
+			};
+		}
+
 		res.status(200).json({ message: "Logged out successfully" });
 	} catch (err) {
 		next(err);
@@ -273,6 +277,38 @@ export const ResetPassword = async (
 		await authServices.resetPassword(payload);
 
 		res.status(200).json({ message: "Password reset successfully" });
+	} catch (err) {
+		next(err);
+	}
+};
+
+export const GetCsrfToken = (
+	req: Request,
+	res: Response,
+	next: NextFunction
+): void => {
+	try {
+		const csrfToken = getCsrfToken(req, res);
+		res.status(200).json({ csrfToken });
+	} catch (err) {
+		next(err);
+	}
+};
+
+export const VerifyCsrfToken = (
+	req: Request,
+	res: Response,
+	next: NextFunction
+): void => {
+	try {
+		const isValid = isValidCsrfToken(req);
+		if (!isValid) {
+			res.status(403).json({
+				isValid: false,
+				error: "Invalid CSRF token",
+			});
+		}
+		res.status(200).json({ isValid: true });
 	} catch (err) {
 		next(err);
 	}

@@ -7,6 +7,7 @@
  */
 
 import { body } from "express-validator";
+import { SeatStatus } from "@my_types/seat";
 
 /**
  * Validation rules for updating existing seats.
@@ -16,17 +17,10 @@ import { body } from "express-validator";
  * Ensures data integrity and business rule compliance.
  */
 export const validateUpdateSeat = [
-	body("isAvailable")
+	body("status")
 		.optional()
-		.isBoolean()
-		.withMessage("isAvailable must be a boolean value")
-		.toBoolean(),
-
-	body("isActive")
-		.optional()
-		.isBoolean()
-		.withMessage("isActive must be a boolean value")
-		.toBoolean(),
+		.isIn(Object.values(SeatStatus))
+		.withMessage(`status must be one of: ${Object.values(SeatStatus).join(", ")}`),
 
 	body("tripId")
 		.optional()

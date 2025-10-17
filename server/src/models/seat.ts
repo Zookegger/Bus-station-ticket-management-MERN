@@ -1,5 +1,6 @@
 import { Model, DataTypes, Optional, Sequelize } from "sequelize";
 import { Trip } from "./trip";
+import { SeatStatus } from "@my_types/seat";
 
 /**
  * Attributes representing a Seat in the system.
@@ -14,8 +15,9 @@ import { Trip } from "./trip";
  * @property {number | null} [row] - Row index for layout positioning.
  * @property {number | null} [column] - Column index for layout positioning.
  * @property {number | null} [floor] - Floor level (for multi-floor buses).
- * @property {boolean} [isAvailable] - Indicates if the seat is currently available.
- * @property {boolean} [isActive] - Indicates if the seat is active/enabled (not damaged/disabled).
+ * @property {SeatStatus} [status] - Lifecycle status for the seat (available, reserved, booked, etc.).
+ * @property {string | null} [reservedBy] - Identifier of the user who reserved the seat (if reserved).
+ * @property {Date | null} [reservedUntil] - Timestamp indicating when a reservation expires.
  * @property {number | null} [tripId] - Foreign key referencing the associated Trip.
  * @property {Date} [createdAt] - Timestamp when the seat record was created.
  * @property {Date} [updatedAt] - Timestamp when the seat record was last updated.
@@ -26,8 +28,9 @@ export interface SeatAttributes {
 	row?: number | null;
 	column?: number | null;
 	floor?: number | null;
-	isAvailable?: boolean;
-	isActive?: boolean;
+	status?: SeatStatus;
+	reservedBy?: string | null;
+	reservedUntil?: Date | null;
 	tripId?: number | null;
 	createdAt?: Date;
 	updatedAt?: Date;
@@ -47,8 +50,9 @@ export interface SeatCreationAttributes
 		| "row"
 		| "column"
 		| "floor"
-		| "isAvailable"
-		| "isActive"
+		| "status"
+		| "reservedBy"
+		| "reservedUntil"
 		| "tripId"
 		| "createdAt"
 		| "updatedAt"
@@ -80,8 +84,9 @@ export class Seat
 	public row?: number | null;
 	public column?: number | null;
 	public floor?: number | null;
-	public isAvailable?: boolean; /** Indicates if the seat is currently available for booking */
-	public isActive?: boolean; /** Indicates if the seat is active/enabled (not damaged/disabled) */
+	public status?: SeatStatus;
+	public reservedBy?: string | null;
+	public reservedUntil?: Date | null;
 	public tripId?: number | null;
     
 	public readonly createdAt!: Date;
@@ -119,18 +124,28 @@ export class Seat
 					type: DataTypes.INTEGER,
 					allowNull: true,
 				},
-				isAvailable: {
-					type: DataTypes.BOOLEAN,
-					allowNull: false,
-					defaultValue: true,
-				},
-				isActive: {
-					type: DataTypes.BOOLEAN,
-					allowNull: false,
-					defaultValue: true,
-				},
 				tripId: {
 					type: DataTypes.INTEGER.UNSIGNED,
+					allowNull: true,
+				},
+				// New lifecycle/status field
+				status: {
+					type: DataTypes.ENUM(
+						"available",
+						"reserved",
+						"booked",
+						"maintenance",
+						"disabled"
+					),
+					allowNull: false,
+					defaultValue: "available",
+				},
+				reservedBy: {
+					type: DataTypes.STRING,
+					allowNull: true,
+				},
+				reservedUntil: {
+					type: DataTypes.DATE,
 					allowNull: true,
 				},
 			},

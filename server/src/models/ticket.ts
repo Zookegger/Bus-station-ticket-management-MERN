@@ -2,6 +2,12 @@ import { Model, DataTypes, Optional, Sequelize } from "sequelize";
 import { Seat } from "./seat";
 import { User } from "./user";
 
+export type GuestUser = {
+	guestEmail?: string;
+	guestName?: string;
+	guestPhone?: string;
+};
+
 export enum TicketStatus {
 	PENDING = "PENDING",
 	BOOKED = "BOOKED",
@@ -33,12 +39,19 @@ export enum RefundPolicy {
  */
 export interface TicketAttributes {
 	id: number;
-	userId: string; // UUID string to match User model
+	userId: string | null; // UUID string to match User model
 	seatId?: number | null;
 	basePrice: number;
 	finalPrice: number;
 	paymentId?: number | null;
 	status: TicketStatus;
+
+	// Guest fields (nullable)
+	guestEmail?: string | null;
+	guestName?: string | null;
+	guestPhone?: string | null;
+
+	cancelledAt?: Date;
 	createdAt?: Date;
 	updatedAt?: Date;
 }
@@ -53,7 +66,16 @@ export interface TicketAttributes {
 export interface TicketCreationAttributes
 	extends Optional<
 		TicketAttributes,
-		"id" | "seatId" | "paymentId" | "status" | "createdAt" | "updatedAt"
+		| "id"
+		| "seatId"
+		| "paymentId"
+		| "status"
+		| "cancelledAt"
+		| "createdAt"
+		| "updatedAt"
+		| "guestEmail"
+		| "guestName"
+		| "guestPhone"
 	> {}
 
 /**
@@ -111,7 +133,7 @@ export class Ticket
 					primaryKey: true,
 					autoIncrement: true,
 				},
-				userId: { type: DataTypes.UUID, allowNull: false },
+				userId: { type: DataTypes.UUID, allowNull: true },
 				seatId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
 				basePrice: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
 				finalPrice: {
@@ -126,6 +148,22 @@ export class Ticket
 					type: DataTypes.ENUM(...Object.values(TicketStatus)),
 					allowNull: false,
 					defaultValue: "BOOKED",
+				},
+				// Guest fields
+				guestEmail: {
+					type: DataTypes.STRING,
+					allowNull: true,
+					validate: {
+						isEmail: true,
+					},
+				},
+				guestName: {
+					type: DataTypes.STRING,
+					allowNull: true,
+				},
+				guestPhone: {
+					type: DataTypes.STRING,
+					allowNull: true,
 				},
 			},
 			{
