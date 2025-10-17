@@ -111,14 +111,14 @@ Bus-station-ticket-management-MERN/
 │       ├── config/                  # Configuration files
 │       ├── controllers/             # Route controllers
 │       ├── middlewares/             # Express middlewares
+│       │   └── validators/          # Input validation
 │       ├── models/                  # Database models
-│       ├── queues/                  # Background job queues
 │       ├── routes/                  # API routes
 │       ├── services/                # Business logic services
 │       ├── types/                   # TypeScript type definitions
-│       ├── utils/                   # Utility functions
-│       ├── validators/              # Input validation
-│       └── workers/                 # Background job workers
+│       └── utils/                   # Utility functions
+│           ├── queues/              # Background job queues
+│           └── workers/             # Background job workers
 ├── .env.docker                      # Docker environment variables
 ├── API-DOCS.md                      # API documentation
 ├── DEPLOYMENT.md                    # Deployment guide
