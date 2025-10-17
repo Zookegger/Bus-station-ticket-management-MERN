@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import logger from "../utils/logger";
+import logger from "@utils/logger";
 import { UUID } from "crypto";
-import { role } from "../models/user";
+import { role } from "@models/user";
 
 /**
  * JWT verification middleware.

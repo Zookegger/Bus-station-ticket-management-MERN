@@ -6,7 +6,7 @@
  */
 
 import { Queue } from "bullmq";
-import redis from "../config/redis";
+import redis from "@config/redis";
 
 /**
  * Data structure for email job data.

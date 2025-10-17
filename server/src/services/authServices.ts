@@ -1,4 +1,4 @@
-import db from "../models";
+import db from "@models/index";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import crypto, { verify } from "crypto";
@@ -9,7 +9,7 @@ import { role } from "@models/user";
 import { Op } from "sequelize";
 import * as verificationServices from "@services/verificationServices";
 import { getUserByEmail, getUserById } from "./userServices";
-import { emailQueue } from "@queues/emailQueue";
+import { emailQueue } from "@utils/queues/emailQueue";
 import redis from "@config/redis";
 import { generateResetPasswordHTML } from "./emailService";
 import logger from "@utils/logger";

@@ -7,8 +7,8 @@
  */
 
 import nodemailer from "nodemailer";
-import { EmailJobData } from "../queues/emailQueue";
-import logger from "../utils/logger";
+import { EmailJobData } from "@utils/queues/emailQueue";
+import logger from "@utils/logger";
 
 // SMTP configuration from environment variables with defaults
 const SMTP_HOST: string = process.env.SMTP_HOST || "smtp.gmail.com";

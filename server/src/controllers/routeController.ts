@@ -7,9 +7,9 @@
  */
 
 import { NextFunction, Request, Response } from "express";
-import { getParamsId } from "../utils/request";
-import { CreateRouteDTO, UpdateRouteDTO } from "../types/route";
-import * as routeServices from "../services/routeServices";
+import { getParamsId } from "@utils/request";
+import { CreateRouteDTO, UpdateRouteDTO } from "@my_types/route";
+import * as routeServices from "@services/routeServices";
 
 /**
  * Retrieves all routes with comprehensive filtering, sorting, and pagination.

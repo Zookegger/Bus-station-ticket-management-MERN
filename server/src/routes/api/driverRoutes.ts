@@ -12,7 +12,7 @@ import { csrfProtectionRoute } from "@middlewares/csrf";
 import * as driverController from "@controllers/driverController";
 import { errorHandler } from "@middlewares/errorHandler";
 import { handleValidationResult } from "@middlewares/validateRequest";
-import { createDriverValidation, updateDriverValidation, validateDriverIdParam } from "@validators/driverValidator";
+import { createDriverValidation, updateDriverValidation, validateDriverIdParam } from "@utils/validators/driverValidator";
 
 /**
  * Driver management router instance.

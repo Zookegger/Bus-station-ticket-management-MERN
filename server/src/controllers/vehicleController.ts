@@ -7,9 +7,9 @@
  */
 
 import { NextFunction, Request, Response } from "express";
-import { getParamsId } from "../utils/request";
-import { CreateVehicleDTO, UpdateVehicleDTO } from "../types/vehicle";
-import * as vehicleServices from "../services/vehicleServices";
+import { getParamsId } from "@utils/request";
+import { CreateVehicleDTO, UpdateVehicleDTO } from "@my_types/vehicle";
+import * as vehicleServices from "@services/vehicleServices";
 
 /**
  * Retrieves all vehicles with comprehensive filtering, sorting, and pagination.

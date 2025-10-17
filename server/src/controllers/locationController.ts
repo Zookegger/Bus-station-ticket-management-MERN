@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
-import { getParamsId } from "../utils/request";
-import * as locationServices from "../services/locationServices";
-import { CreateLocationDTO, UpdateLocationDTO } from "../types/location";
+import { getParamsId } from "@utils/request";
+import * as locationServices from "@services/locationServices";
+import { CreateLocationDTO, UpdateLocationDTO } from "@my_types/location";
 
 /**
  * Location management controller.

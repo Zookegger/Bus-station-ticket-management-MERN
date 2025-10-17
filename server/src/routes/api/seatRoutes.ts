@@ -13,8 +13,8 @@ import { csrfProtectionRoute } from "@middlewares/csrf";
 import { errorHandler } from "@middlewares/errorHandler";
 import { handleValidationResult } from "@middlewares/validateRequest";
 import * as seatController from "@controllers/seatController";
-import * as seatValidator from "@validators/seatValidator";
-import * as routeValidator from "@validators/routeValidator"; // Reuse validateIdParam
+import * as seatValidator from "@utils/validators/seatValidator";
+import * as routeValidator from "@utils/validators/routeValidator"; // Reuse validateIdParam
 
 /**
  * Seat management router instance.

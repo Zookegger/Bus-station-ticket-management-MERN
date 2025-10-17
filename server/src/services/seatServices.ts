@@ -8,9 +8,9 @@
  */
 
 import { Op } from "sequelize";
-import db from "../models";
-import { Seat, SeatAttributes } from "../models/seat";
-import { UpdateSeatDTO, SeatFilterDTO } from "../types/seat";
+import db from "@models/index";
+import { Seat, SeatAttributes } from "@models/seat";
+import { UpdateSeatDTO, SeatFilterDTO } from "@my_types/seat";
 
 /**
  * Configuration options for seat listing and filtering.

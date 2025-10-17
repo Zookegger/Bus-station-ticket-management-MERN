@@ -13,7 +13,7 @@ import { sequelize as Database } from "./config/database";
 import http from "http";
 import logger from "./utils/logger";
 import { connectToDatabase } from "./models";
-import { emailWorker } from "./workers/emailWorker";
+import { emailWorker } from "@utils/workers/emailWorker";
 
 // Register TypeScript path mappings for production
 if (process.env.NODE_ENV === 'production') {

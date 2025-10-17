@@ -7,12 +7,12 @@
  */
 
 import { NextFunction, Request, Response } from "express";
-import * as vehicleTypeServices from "../services/vehicleTypeServices";
+import * as vehicleTypeServices from "@services/vehicleTypeServices";
 import {
 	CreateVehicleTypeDTO,
 	UpdateVehicleTypeDTO,
-} from "../types/vehicleType";
-import { getParamsId } from "../utils/request";
+} from "@my_types/vehicleType";
+import { getParamsId } from "@utils/request";
 
 /**
  * Retrieves all vehicle types with comprehensive filtering, sorting, and pagination.

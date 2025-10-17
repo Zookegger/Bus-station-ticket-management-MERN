@@ -7,9 +7,9 @@
  */
 
 import { NextFunction, Request, Response } from "express";
-import * as driverServices from "../services/driverServices";
-import { getParamsId } from "../utils/request";
-import { CreateDriverDTO, UpdateDriverDTO } from "../types/driver";
+import * as driverServices from "@services/driverServices";
+import { getParamsId } from "@utils/request";
+import { CreateDriverDTO, UpdateDriverDTO } from "@my_types/driver";
 
 /**
  * Creates a new driver record.

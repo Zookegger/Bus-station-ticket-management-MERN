@@ -10,7 +10,7 @@ import { Router } from "express";
 import { errorHandler } from "@middlewares/errorHandler";
 import { handleValidationResult } from "@middlewares/validateRequest";
 import { AddVehicleType, GetVehicleTypeById, RemoveVehicleType, SearchVehicleTypes, UpdateVehicleType } from "@controllers/vehicleTypeController";
-import { validateCreateVehicleType, validateIdParam, validateUpdateVehicleType } from "@validators/vehicleTypeValidator";
+import { validateCreateVehicleType, validateIdParam, validateUpdateVehicleType } from "@utils/validators/vehicleTypeValidator";
 import { isAdmin } from "@middlewares/auth";
 import { csrfProtectionRoute } from "@middlewares/csrf";
 

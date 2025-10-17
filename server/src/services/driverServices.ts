@@ -7,9 +7,9 @@
  */
 
 import { Op } from "sequelize";
-import db from "../models";
-import { Driver, DriverAttributes } from "../models/driver";
-import { CreateDriverDTO, UpdateDriverDTO } from "../types/driver";
+import db from "@models/index";
+import { Driver, DriverAttributes } from "@models/driver";
+import { CreateDriverDTO, UpdateDriverDTO } from "@my_types/driver";
 
 /**
  * Configuration options for driver listing and filtering.

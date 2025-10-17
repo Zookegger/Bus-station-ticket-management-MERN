@@ -7,10 +7,10 @@
  */
 
 import { Op } from "sequelize";
-import db from "../models";
-import { Trip } from "../models/trip";
-import { CreateTripDTO, UpdateTripDTO } from "../types/trip";
-import { VehicleType } from "../models/vehicleType";
+import db from "@models/index";
+import { Trip } from "@models/trip";
+import { CreateTripDTO, UpdateTripDTO } from "@my_types/trip";
+import { VehicleType } from "@models/vehicleType";
 
 /**
  * Generates seats for a trip based on vehicle type configuration.

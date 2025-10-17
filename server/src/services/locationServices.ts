@@ -7,9 +7,9 @@
  */
 
 import { Op } from "sequelize";
-import db from "../models";
-import { Location, LocationAttributes } from "../models/location";
-import { CreateLocationDTO, UpdateLocationDTO } from "../types/location";
+import db from "@models/index";
+import { Location, LocationAttributes } from "@models/location";
+import { CreateLocationDTO, UpdateLocationDTO } from "@my_types/location";
 
 /**
  * Configuration options for location listing and filtering.

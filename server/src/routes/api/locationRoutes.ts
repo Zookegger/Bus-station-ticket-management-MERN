@@ -8,7 +8,7 @@
  */
 
 import { Router } from "express";
-import * as locationValidators from "@validators/locationValidator";
+import * as locationValidators from "@utils/validators/locationValidator";
 import * as locationController from "@controllers/locationController";
 import { errorHandler } from "@middlewares/errorHandler";
 import { handleValidationResult } from "@middlewares/validateRequest";

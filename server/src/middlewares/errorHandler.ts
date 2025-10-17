@@ -7,7 +7,7 @@
 
 import { Request, Response, NextFunction } from "express";
 import { format } from "date-fns";
-import logger from "../utils/logger";
+import logger from "@utils/logger";
 
 /**
  * Express error handling middleware function.

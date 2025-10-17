@@ -7,9 +7,9 @@
  */
 
 import { NextFunction, Request, Response } from "express";
-import { getParamsId } from "../utils/request";
-import { UpdateSeatDTO, SeatFilterDTO } from "../types/seat";
-import * as seatServices from "../services/seatServices";
+import { getParamsId } from "@utils/request";
+import { UpdateSeatDTO, SeatFilterDTO } from "@my_types/seat";
+import * as seatServices from "@services/seatServices";
 
 /**
  * Retrieves seats with comprehensive filtering, sorting, and pagination.

@@ -6,8 +6,8 @@
  */
 
 import { Request, Response, NextFunction } from "express";
-import * as userServices from "../services/userServices";
-import { UpdateProfileDTO } from "../types/user";
+import * as userServices from "@services/userServices";
+import { UpdateProfileDTO } from "@my_types/user";
 
 /**
  * Updates the authenticated user's profile information.

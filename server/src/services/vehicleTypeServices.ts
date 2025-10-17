@@ -7,12 +7,12 @@
  */
 
 import { Op } from "sequelize";
-import db from "../models";
-import { VehicleType, VehicleTypeAttributes } from "../models/vehicleType";
+import db from "@models/index";
+import { VehicleType, VehicleTypeAttributes } from "@models/vehicleType";
 import {
 	CreateVehicleTypeDTO,
 	UpdateVehicleTypeDTO,
-} from "../types/vehicleType";
+} from "@my_types/vehicleType";
 
 /**
  * Configuration options for vehicle type listing and filtering.

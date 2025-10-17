@@ -9,7 +9,7 @@
 
 import { Request, Response, Router } from "express";
 import { errorHandler } from "@middlewares/errorHandler";
-import * as authValidator from "@validators/authValidator";
+import * as authValidator from "@utils/validators/authValidator";
 import * as authController from "@controllers/authController";
 import { handleValidationResult } from "@middlewares/validateRequest";
 import { getCsrfToken } from "@middlewares/csrf";

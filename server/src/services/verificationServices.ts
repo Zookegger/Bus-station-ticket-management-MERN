@@ -7,11 +7,11 @@
  */
 
 import crypto from "crypto";
-import redis from "../config/redis";
-import db from "../models";
-import { emailQueue } from "../queues/emailQueue";
+import redis from "@config/redis";
+import db from "@models/index";
+import { emailQueue } from "@utils/queues/emailQueue";
 import { generateVerificationEmailHTML } from "./emailService";
-import logger from "../utils/logger";
+import logger from "@utils/logger";
 
 // Default verification token expiry time (24 hours in seconds)
 const VERIFICATION_TOKEN_EXPIRY = process.env.VERIFICATION_TOKEN_EXPIRY || 24 * 60 * 60;

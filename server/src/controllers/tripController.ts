@@ -7,9 +7,9 @@
  */
 
 import { NextFunction, Request, Response } from "express";
-import { getParamsId } from "../utils/request";
-import { CreateTripDTO, UpdateTripDTO } from "../types/trip";
-import * as tripServices from "../services/tripServices";
+import { getParamsId } from "@utils/request";
+import { CreateTripDTO, UpdateTripDTO } from "@my_types/trip";
+import * as tripServices from "@services/tripServices";
 
 /**
  * Retrieves all trips with comprehensive filtering, sorting, and pagination.

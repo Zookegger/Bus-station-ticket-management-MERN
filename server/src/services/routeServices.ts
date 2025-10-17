@@ -7,9 +7,9 @@
  */
 
 import { Op } from "sequelize";
-import db from "../models";
-import { Route, RouteAttributes } from "../models/route";
-import { CreateRouteDTO, UpdateRouteDTO } from "../types/route";
+import db from "@models/index";
+import { Route, RouteAttributes } from "@models/route";
+import { CreateRouteDTO, UpdateRouteDTO } from "@my_types/route";
 
 /**
  * Configuration options for route listing and filtering.
