@@ -9,7 +9,7 @@
 
 import { Request, Response, Router } from "express";
 import { errorHandler } from "@middlewares/errorHandler";
-import * as authValidator from "@utils/validators/authValidator";
+import * as authValidator from "@middlewares/validators/authValidator";
 import * as authController from "@controllers/authController";
 import { handleValidationResult } from "@middlewares/validateRequest";
 import { getCsrfToken } from "@middlewares/csrf";
@@ -97,7 +97,7 @@ authRoutes.post("/register", authValidator.registerValidation, handleValidationR
  * POST /auth/logout
  * Revokes the refresh token to log out the current session.
  */
-authRoutes.post("/logout", authController.Logout, errorHandler);
+authRoutes.post("/logout", authValidator.logoutValidation, handleValidationResult, authController.Logout, errorHandler);
 
 /**
  * GET /auth/me

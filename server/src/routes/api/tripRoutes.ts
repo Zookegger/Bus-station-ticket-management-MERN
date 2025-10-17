@@ -12,7 +12,7 @@ import { csrfProtectionRoute } from "@middlewares/csrf";
 import { errorHandler } from "@middlewares/errorHandler";
 import { handleValidationResult } from "@middlewares/validateRequest";
 import * as tripController from "@controllers/tripController";
-import * as tripValidator from "@utils/validators/tripValidator";
+import * as tripValidator from "@middlewares/validators/tripValidator";
 
 /**
  * Trip management router instance.

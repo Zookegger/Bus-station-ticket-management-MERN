@@ -23,7 +23,7 @@
       "@services/*": ["src/services/*"],
       "@my_types/*": ["src/types/*"],
       "@utils/*": ["src/utils/*"],
-      "@validators/*": ["src/utils/validators/*"],
+      "@validators/*": ["src/middlewares/validators/*"],
       "@workers/*": ["src/workers/*"]
     },
 

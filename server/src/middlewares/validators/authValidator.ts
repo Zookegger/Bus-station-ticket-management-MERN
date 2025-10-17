@@ -102,3 +102,19 @@ export const resetPasswordValidation = [
 			return true;
 		}),
 ];
+
+/**
+ * Validation rules for user logout.
+ *
+ * Validates that refresh token is provided and in valid JWT format.
+ * Used in logout endpoint to ensure token is present before revocation.
+ */
+export const logoutValidation = [
+	body("refreshToken")
+		.notEmpty()
+		.withMessage("Refresh token is required")
+		.isString()
+		.withMessage("Refresh token must be a valid string")
+		.isLength({ min: 10 })
+		.withMessage("Refresh token appears to be invalid")
+]

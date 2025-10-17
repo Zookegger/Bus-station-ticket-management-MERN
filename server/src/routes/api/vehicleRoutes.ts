@@ -12,7 +12,7 @@ import { csrfProtectionRoute } from "@middlewares/csrf";
 import { errorHandler } from "@middlewares/errorHandler";
 import { handleValidationResult } from "@middlewares/validateRequest";
 import * as vehicleController from "@controllers/vehicleController";
-import * as vehicleValidator from "@utils/validators/vehicleValidator";
+import * as vehicleValidator from "@middlewares/validators/vehicleValidator";
 
 /**
  * Vehicle management router instance.

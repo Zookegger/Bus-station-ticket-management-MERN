@@ -137,8 +137,15 @@ export const Logout = async (
 ): Promise<void> => {
 	try {
 		const { refreshToken } = req.body;
-		await authServices.revokeRefreshToken(refreshToken);
-		res.status(204).send();
+		if (!refreshToken) {
+            throw { status: 400, message: "Refresh token is required" };
+        }
+		const result = await authServices.revokeRefreshToken(refreshToken);
+		if (result === 0) {
+            throw { status: 400, message: "Invalid or already revoked refresh token" };
+        }
+		
+		res.status(200).json({ message: "Logged out successfully" });
 	} catch (err) {
 		next(err);
 	}
@@ -240,7 +247,10 @@ export const ForgotPassword = async (
 
 		await authServices.forgotPassword(email);
 
-		res.status(200).json({ message: "If an account with this email exists, a password reset link has been sent. Please check your inbox and spam folder.", });
+		res.status(200).json({
+			message:
+				"If an account with this email exists, a password reset link has been sent. Please check your inbox and spam folder.",
+		});
 	} catch (err) {
 		next(err);
 	}
@@ -254,8 +264,9 @@ export const ResetPassword = async (
 	try {
 		// Token taken from forgotPassword's generated token
 		const { token } = req.params;
-		
-		if (!token) throw { status: 400, message: "Invalid reset password token" };
+
+		if (!token)
+			throw { status: 400, message: "Invalid reset password token" };
 
 		const payload: ResetPasswordDTO = req.body;
 
@@ -265,4 +276,4 @@ export const ResetPassword = async (
 	} catch (err) {
 		next(err);
 	}
-}
+};
