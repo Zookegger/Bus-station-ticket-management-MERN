@@ -7,11 +7,12 @@
  */
 
 import { Router } from "express";
-import { updateProfile } from "@controllers/userController";
+import * as userController from "@controllers/userController";
 import { errorHandler } from "@middlewares/errorHandler";
-import { userInfoValidation, updateProfileValidation } from "@middlewares/validators/userValidator";
+import { userInfoValidation, updateProfileValidation, validateUserIdParam } from "@middlewares/validators/userValidator";
 import { loginValidation, registerValidation } from "@middlewares/validators/authValidator";
 import { handleValidationResult } from "@middlewares/validateRequest";
+import { csrfProtectionRoute } from "@middlewares/csrf";
 
 /**
  * User management router instance.
@@ -21,11 +22,15 @@ import { handleValidationResult } from "@middlewares/validateRequest";
 const userRoutes = Router();
 
 // POST /users/update-profile - Update authenticated user's profile
-userRoutes.post("/update-profile", updateProfileValidation, handleValidationResult, updateProfile, errorHandler);
+userRoutes.post("/update-profile", updateProfileValidation, handleValidationResult, userController.updateProfile, errorHandler);
 
-// GET /users/ - Health check endpoint for user routes
-userRoutes.get("/", (req, res) => {
-	res.json("It's working");
-});
+// GET /users - Get all users (Admin only)
+userRoutes.get("/", csrfProtectionRoute, userController.getAllUsers, errorHandler);
+
+// PUT /users/:id - Update user by ID (Admin only)
+userRoutes.put("/:id", csrfProtectionRoute, validateUserIdParam, handleValidationResult, userController.updateUser, errorHandler);
+
+// DELETE /users/:id - Delete user by ID (Admin only)
+userRoutes.delete("/:id", csrfProtectionRoute, validateUserIdParam, handleValidationResult, userController.deleteUser, errorHandler);
 
 export default userRoutes;

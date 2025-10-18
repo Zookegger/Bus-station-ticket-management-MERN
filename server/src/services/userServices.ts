@@ -135,3 +135,51 @@ export const generateDefaultAdminAccount = async (): Promise<User | null> => {
 		passwordHash,
 	});
 };
+
+/**
+ * Updates a user by ID (Admin function).
+ * @param {string} userId - The ID of the user to update.
+ * @param {Partial<UserAttributes>} updateData - The fields to update.
+ * @throws {Object} Throws an error if the user is not found or email is already in use.
+ * @example
+ * await updateUser('123', { email: 'new@example.com', fullName: 'New Name' });
+ */
+export const updateUser = async (
+	userId: string,
+	updateData: Partial<UserAttributes>
+): Promise<void> => {
+	const user = await db.user.findByPk(userId);
+	if (!user) throw { status: 404, message: "User not found" };
+
+	// Prevent email duplication
+	if (updateData.email && updateData.email !== user.email) {
+		const exist = await db.user.findOne({ where: { email: updateData.email } });
+		if (exist) throw { status: 400, message: "Email already in use" };
+	}
+
+	await user.update(updateData);
+};
+
+/**
+ * Deletes a user by ID (Admin function).
+ * @param {string} userId - The ID of the user to delete.
+ * @throws {Object} Throws an error if the user is not found.
+ * @example
+ * await deleteUser('123');
+ */
+export const deleteUser = async (userId: string): Promise<void> => {
+	const user = await db.user.findByPk(userId);
+	if (!user) throw { status: 404, message: "User not found" };
+
+	await user.destroy();
+};
+
+/**
+ * Gets all users (Admin function).
+ * @returns {Promise<User[]>} Array of all users.
+ * @example
+ * const users = await getAllUsers();
+ */
+export const getAllUsers = async (): Promise<User[]> => {
+	return await db.user.findAll();
+};
