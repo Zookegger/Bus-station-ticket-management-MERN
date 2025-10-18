@@ -20,6 +20,11 @@
 		/* Path mapping */
 		"baseUrl": "./src",
 		"paths": {
+			"@constants": ["constants"],  // Maps bare @constants to src/constants/index.ts
+			"@data": ["data"],  // Maps bare @data to src/data/index.json or similar (if needed)
+			"@my-types": ["types"],  // Maps bare @my-types to src/types/index.ts (if needed)
+
+
 			"@components/*": ["components/*"],
 			"@utils/*": ["utils/*"],
 			"@assets/*": ["assets/*"],
