@@ -21,11 +21,11 @@ import { sendEmail } from "@services/emailService";
 export const emailWorker = new Worker<EmailJobData>(
 	"email",
 	async (job: Job<EmailJobData>): Promise<void> => {
-		logger.info(`Processing email job ${job.id} to ${job.data.to}`);
+		logger.debug(`Processing email job ${job.id} to ${job.data.to}`);
 
 		try {
 			await sendEmail(job.data);
-			logger.info(`Email sent successfully to ${job.data.to}`);
+			logger.debug(`Email sent successfully to ${job.data.to}`);
 		} catch (error) {
 			logger.error(
 				`Email Worker Error: Failed to send email to ${job.data.to}: ${error}`
@@ -53,5 +53,5 @@ emailWorker.on("error", (err) => {
 });
 
 emailWorker.on("ready", () => {
-	logger.info("Email worker is ready and listening for jobs");
+	logger.debug("Email worker is ready and listening for jobs");
 });

@@ -7,24 +7,23 @@
  */
 
 import dotenv from "dotenv";
-import { app } from "./app";
-import { Server } from "socket.io";
-import { sequelize as Database } from "./config/database";
-import http from "http";
-import logger from "./utils/logger";
-import { connectToDatabase } from "./models";
-import { emailWorker } from "@utils/workers/emailWorker";
+
+// Load environment variables from .env file
+dotenv.config();
 
 // Register TypeScript path mappings for production
 if (process.env.NODE_ENV === 'production') {
 	require('tsconfig-paths/register');
 }
 
-// Load environment variables from .env file
-dotenv.config();
+import logger from "@utils/logger";
+import { configService } from "@services/settingServices";
+import { connectToDatabase } from "@models";
+import { generateDefaultAdminAccount } from "@services/userServices";
 
 // Server port configuration with fallback to 5000
 const PORT = process.env.PORT || 5000;
+
 
 /**
  * Initializes and starts the HTTP server with Socket.IO integration.
@@ -39,11 +38,17 @@ const PORT = process.env.PORT || 5000;
  */
 const startServer = async (): Promise<void> => {
 	try {
+		await connectToDatabase();
+		await configService.initialize();
 		
-		// Start and Log email worker status
-		await emailWorker.waitUntilReady();
-		logger.info("Email worker started and listening for jobs");
+		const { app } = await import("./app");
+        const { emailWorker } = await import("@utils/workers/emailWorker");
+        const http = await import("http");
+        const { Server } = await import("socket.io");
 
+		// Start email worker		
+		await emailWorker.waitUntilReady();
+		
 		// Create HTTP server with Express app
 		const server = http.createServer(app);
 
@@ -68,6 +73,8 @@ const startServer = async (): Promise<void> => {
 			});
 		});
 
+		await generateDefaultAdminAccount();
+
 		// Start server and listen on specified port
 		server.listen(PORT, () => logger.info(`Server listening on ${PORT}`));
 	} catch (err) {
@@ -83,6 +90,5 @@ const startServer = async (): Promise<void> => {
  * only starts after successful database connection.
  */
 (async () => {
-	await connectToDatabase();
 	await startServer();
 })();

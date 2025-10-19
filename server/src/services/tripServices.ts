@@ -7,6 +7,7 @@
  */
 
 import { Op } from "sequelize";
+import logger from "@utils/logger";
 import db from "@models/index";
 import { Trip } from "@models/trip";
 import { CreateTripDTO, UpdateTripDTO } from "@my_types/trip";
@@ -16,9 +17,22 @@ import { VehicleType } from "@models/vehicleType";
 /**
  * Generates seats for a trip based on vehicle type configuration.
  *
- * Creates seat records with proper numbering, layout positioning (row, column, floor),
- * and associates them with the given trip. Uses the vehicle type's seat layout data
- * to determine the number and arrangement of seats.
+ * This function supports two seat generation modes:
+ *
+ * 1. **Detailed Layout Mode**: If `vehicleType.seatsPerFloor` is provided and valid,
+ *    it is parsed as a matrix (array of arrays) representing each floor's seat arrangement.
+ *    Each entry in the matrix is a row, and each value in the row is a seat position (truthy for seat, falsy for empty).
+ *    - If `vehicleType.rowsPerFloor` is provided, it is validated against the number of rows in each floor's layout.
+ *    - Seats are created at every truthy position, with row/column/floor info and a label (e.g., 'A1', 'B2').
+ *
+ * 2. **Simple Generation Mode**: If no detailed layout is provided, seats are generated using total seat count,
+ *    total floors, and total columns. If `vehicleType.rowsPerFloor` is provided, it is used to determine the number
+ *    of rows per floor; otherwise, rows are derived as `ceil(seatsOnFloor / totalColumns)`.
+ *    - Seats are distributed in a grid (rows × columns) for each floor, with labels matching frontend expectations.
+ *    - Stops placing seats when the quota for the floor is reached (handles partial rows).
+ *
+ * Both modes create seat records with proper numbering, layout positioning (row, column, floor), and associate them
+ * with the given trip. The function ensures consistency with frontend seat map rendering and supports multi-floor vehicles.
  *
  * @param tripId - ID of the trip to generate seats for
  * @param vehicleType - Vehicle type containing seat layout configuration
@@ -48,23 +62,26 @@ async function generateSeatsForTrip(
 	}
 
 	// Parse seat layout if available
-	let seatsPerFloor: any = null;
-	let rowsPerFloor: any = null;
+	let seatsPerFloorLayout: any[][] | null = null;
+	let rowsPerFloorConfig: number[] | null = null;
 
 	if (vehicleType.seatsPerFloor) {
 		try {
-			seatsPerFloor = JSON.parse(vehicleType.seatsPerFloor);
+			const parsed = JSON.parse(vehicleType.seatsPerFloor);
+			seatsPerFloorLayout = Array.isArray(parsed) ? parsed : null;
 		} catch (e) {
-			// If parsing fails, fall back to simple generation
-			seatsPerFloor = null;
+			logger.warn(`Failed to parse seatsPerFloor for vehicle type ${vehicleType.name}`);
 		}
 	}
 
 	if (vehicleType.rowsPerFloor) {
 		try {
-			rowsPerFloor = JSON.parse(vehicleType.rowsPerFloor);
+			const parsed = JSON.parse(vehicleType.rowsPerFloor);
+			rowsPerFloorConfig = Array.isArray(parsed) 
+				? parsed.map((r: any) => Number(r) || 0)
+				: null;
 		} catch (e) {
-			rowsPerFloor = null;
+			logger.warn(`Failed to parse rowsPerFloor for vehicle type ${vehicleType.name}`);
 		}
 	}
 
@@ -72,11 +89,26 @@ async function generateSeatsForTrip(
 	const totalColumns = vehicleType.totalColumns || 4;
 
 	// Generate seats based on layout data
-	if (seatsPerFloor && Array.isArray(seatsPerFloor)) {
+	if (seatsPerFloorLayout && Array.isArray(seatsPerFloorLayout)) {
+		// Validate rowsPerFloorConfig against detailed layout if provided
+		if (rowsPerFloorConfig && rowsPerFloorConfig.length > 0) {
+			for (let floorIndex = 0; floorIndex < seatsPerFloorLayout.length; floorIndex++) {
+				const floorData = seatsPerFloorLayout[floorIndex];
+				if (Array.isArray(floorData)) {
+					const actualRows = floorData.length;
+					const expectedRows = rowsPerFloorConfig[floorIndex] || 0;
+					if (expectedRows && actualRows !== expectedRows) {
+						logger.warn(
+							`rowsPerFloor mismatch on floor ${floorIndex + 1}: expected ${expectedRows}, layout has ${actualRows}`
+						);
+					}
+				}
+			}
+		}
+
 		// Use detailed layout data
-		let seatCounter = 1;
-		for (let floorIndex = 0; floorIndex < seatsPerFloor.length; floorIndex++) {
-			const floorData = seatsPerFloor[floorIndex];
+		for (let floorIndex = 0; floorIndex < seatsPerFloorLayout.length; floorIndex++) {
+			const floorData = seatsPerFloorLayout[floorIndex];
 			const floor = floorIndex + 1;
 
 			if (Array.isArray(floorData)) {
@@ -101,7 +133,6 @@ async function generateSeatsForTrip(
 									reservedUntil: null,
 									tripId,
 								});
-								seatCounter++;
 							}
 						}
 					}
@@ -111,35 +142,60 @@ async function generateSeatsForTrip(
 	} else {
 		// Simple seat generation based on total count
 		const totalSeats = vehicleType.totalSeats;
-		const seatsPerFloor = Math.ceil(totalSeats / totalFloors);
+		const seatsPerFloorCount = Math.ceil(totalSeats / totalFloors);
 
-		for (let floor = 1; floor <= totalFloors; floor++) {
-			const seatsOnThisFloor =
-				floor === totalFloors
-					? totalSeats - seatsPerFloor * (floor - 1)
-					: seatsPerFloor;
+		// Build rowsPerFloorConfig if not provided: derive from seatsPerFloor and totalColumns
+		const effectiveRowsPerFloor: number[] = rowsPerFloorConfig && rowsPerFloorConfig.length >= totalFloors
+			? rowsPerFloorConfig.slice(0, totalFloors)
+			: Array.from({ length: totalFloors }, (_, floorIdx) => {
+					const seatsOnFloor = floorIdx === totalFloors - 1
+						? totalSeats - seatsPerFloorCount * floorIdx
+						: seatsPerFloorCount;
+					return Math.ceil(seatsOnFloor / totalColumns);
+			  });
 
-			for (let seatNum = 1; seatNum <= seatsOnThisFloor; seatNum++) {
-				const row = Math.ceil(seatNum / totalColumns);
-				const column = ((seatNum - 1) % totalColumns) + 1;
-				const seatLabel = `${String.fromCharCode(64 + row)}${column}`;
-				const floorPrefix = totalFloors > 1 ? `F${floor}-` : "";
+		for (let floorIdx = 0; floorIdx < totalFloors; floorIdx++) {
+			const floor = floorIdx + 1;
+			const seatsOnThisFloor = floorIdx === totalFloors - 1
+				? totalSeats - seatsPerFloorCount * floorIdx
+				: seatsPerFloorCount;
 
-				const seatData: any = {
-					number: `${floorPrefix}${seatLabel}`,
-					row,
-					column,
-					status: SeatStatus.AVAILABLE,
-					reservedBy: null,
-					reservedUntil: null,
-					tripId,
-				};
+			const rowsForThisFloor = effectiveRowsPerFloor[floorIdx] || Math.ceil(seatsOnThisFloor / totalColumns);
+			const columnsForThisFloor = Math.ceil(seatsOnThisFloor / rowsForThisFloor);
 
-				if (totalFloors > 1) {
-					seatData.floor = floor;
+			let placed = 0;
+			for (let rowIdx = 0; rowIdx < rowsForThisFloor && placed < seatsOnThisFloor; rowIdx++) {
+				const row = rowIdx + 1;
+				for (let col = 1; col <= columnsForThisFloor && placed < seatsOnThisFloor; col++) {
+					const seatLabel = `${String.fromCharCode(64 + row)}${col}`;
+					const floorPrefix = totalFloors > 1 ? `F${floor}-` : "";
+
+					const seatData: {
+						number: string;
+						row: number;
+						column: number;
+						floor?: number;
+						status: SeatStatus;
+						reservedBy: null;
+						reservedUntil: null;
+						tripId: number;
+					} = {
+						number: `${floorPrefix}${seatLabel}`,
+						row,
+						column: col,
+						status: SeatStatus.AVAILABLE,
+						reservedBy: null,
+						reservedUntil: null,
+						tripId,
+					};
+
+					if (totalFloors > 1) {
+						seatData.floor = floor;
+					}
+
+					seats.push(seatData);
+					placed++;
 				}
-
-				seats.push(seatData);
 			}
 		}
 	}
@@ -238,7 +294,6 @@ export const searchTrip = async (
 	count: number;
 }> => {
 	const {
-		keywords = "",
 		orderBy = "createdAt",
 		sortOrder = "DESC",
 		page,

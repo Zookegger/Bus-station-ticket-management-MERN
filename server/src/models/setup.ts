@@ -1,7 +1,6 @@
 import { createTempConnection, sequelize } from "@config/database";
 import { QueryTypes } from "sequelize";
 import logger from "@utils/logger";
-import { generateDefaultAdminAccount } from "@services/userServices";
 
 const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
 
@@ -69,8 +68,6 @@ export const connectToDatabase = async (): Promise<void> => {
 			force: IS_DEVELOPMENT ? true : false,
 		});
 		logger.info("Models synchronized to Database");
-
-		generateDefaultAdminAccount();
 	} catch (err) {
 		logger.error(err);
 	}

@@ -21,6 +21,11 @@ import { Ticket } from "@models/ticket";
 import { TripDriverAssignment } from "@models/tripDriverAssignment";
 import { Notification } from "./notification";
 import { defineAssociations } from "./associations";
+import { Coupon } from "./coupon";
+import { Payment } from "./payment";
+import { PaymentMethod } from "./paymentMethod";
+import { CouponUsage } from "./couponUsage";
+import { Setting } from "./setting";
 
 /**
  * Centralized model registry and database connection.
@@ -30,6 +35,7 @@ import { defineAssociations } from "./associations";
  */
 const db: {
 	sequelize: Sequelize;
+	setting: typeof Setting;
 	user: typeof User;
 	notification: typeof Notification;
 	driver: typeof Driver;
@@ -42,8 +48,13 @@ const db: {
 	seat: typeof Seat;
 	ticket: typeof Ticket;
 	tripDriverAssignment: typeof TripDriverAssignment;
+	coupon: typeof Coupon;
+	couponUsage: typeof CouponUsage;
+	payment: typeof Payment;
+	paymentMethod: typeof PaymentMethod;
 } = {
 	sequelize,
+	setting: Setting,
 	user: User,
 	notification: Notification,
 	driver: Driver,
@@ -56,9 +67,14 @@ const db: {
 	seat: Seat,
 	ticket: Ticket,
 	tripDriverAssignment: TripDriverAssignment,
+	coupon: Coupon,
+	couponUsage: CouponUsage,
+	payment: Payment,
+	paymentMethod: PaymentMethod,
 };
 
 // Initialize models with Sequelize instance
+Setting.initModel(sequelize);
 User.initModel(sequelize);
 Notification.initModel(sequelize);
 Driver.initModel(sequelize);
@@ -71,6 +87,10 @@ Trip.initModel(sequelize);
 Seat.initModel(sequelize);
 Ticket.initModel(sequelize);
 TripDriverAssignment.initModel(sequelize);
+Coupon.initModel(sequelize);
+CouponUsage.initModel(sequelize);
+Payment.initModel(sequelize);
+PaymentMethod.initModel(sequelize);
 
 defineAssociations();
 

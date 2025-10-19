@@ -11,11 +11,6 @@ import cors from "cors";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import apiRouter from "./routes/api";
-import {
-	doubleCsrfProtection,
-	generateCsrfToken,
-	getCsrfToken,
-} from "./middlewares/csrf";
 
 /**
  * Configured Express application instance.
@@ -28,7 +23,13 @@ export const app: Application = express();
 // Configure CORS to allow requests from the frontend development server
 app.use(
 	cors({
-		origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
+		origin: [
+			"http://localhost:5173",
+			"http://127.0.0.1:5173",
+			"http://localhost:3000",
+			"http://127.0.0.1:3000",
+		],
+		methods: ['GET', 'POST', 'PUT', 'DELETE'],
 		credentials: true,
 	})
 );
@@ -55,7 +56,6 @@ app.use(express.json());
 // Parse cookies from incoming requests
 app.use(cookieParser());
 
-
 // Mount API routes under the /api prefix
 app.use("/api", apiRouter);
 
@@ -68,7 +68,7 @@ app.use("/api", apiRouter);
  * @route GET /
  * @returns {Object} JSON response with server status
  */
-app.get("/", (req: Request, res: Response): void => {
+app.get("/", (_req: Request, res: Response): void => {
 	res.status(200).json({
 		status: "ok",
 		message: "Server is running",

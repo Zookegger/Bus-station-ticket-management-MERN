@@ -7,8 +7,7 @@
  */
 
 import { Router } from "express";
-import { isAdmin } from "@middlewares/auth";
-import { csrfProtectionRoute } from "@middlewares/csrf";
+import { csrfAdminProtectionRoute } from "@middlewares/csrf";
 import { errorHandler } from "@middlewares/errorHandler";
 import { handleValidationResult } from "@middlewares/validateRequest";
 import * as vehicleController from "@controllers/vehicleController";
@@ -37,12 +36,12 @@ vehicleRoutes.get("/search", vehicleController.SearchVehicle, errorHandler);
 vehicleRoutes.get("/:id", vehicleValidator.validateIdParam, handleValidationResult, vehicleController.GetVehicleById, errorHandler);
 
 // POST /vehicles - Create new vehicle
-vehicleRoutes.post("/", csrfProtectionRoute, vehicleValidator.validateCreateVehicle, handleValidationResult, vehicleController.AddVehicle, errorHandler);
+vehicleRoutes.post("/", csrfAdminProtectionRoute, vehicleValidator.validateCreateVehicle, handleValidationResult, vehicleController.AddVehicle, errorHandler);
 
 // PUT /vehicles/:id - Update vehicle by ID
-vehicleRoutes.put("/:id", csrfProtectionRoute, vehicleValidator.validateIdParam, vehicleValidator.validateUpdateVehicle, handleValidationResult, vehicleController.UpdateVehicle, errorHandler);
+vehicleRoutes.put("/:id", csrfAdminProtectionRoute, vehicleValidator.validateIdParam, vehicleValidator.validateUpdateVehicle, handleValidationResult, vehicleController.UpdateVehicle, errorHandler);
 
 // DELETE /vehicles/:id - Delete vehicle by ID
-vehicleRoutes.delete("/:id", csrfProtectionRoute, vehicleValidator.validateIdParam, handleValidationResult, vehicleController.RemoveVehicle, errorHandler);
+vehicleRoutes.delete("/:id", csrfAdminProtectionRoute, vehicleValidator.validateIdParam, handleValidationResult, vehicleController.RemoveVehicle, errorHandler);
 
 export default vehicleRoutes;

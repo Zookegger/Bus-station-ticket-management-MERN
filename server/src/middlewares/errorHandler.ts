@@ -5,7 +5,7 @@
  * logs them appropriately, and sends standardized error responses to clients.
  */
 
-import { Request, Response, NextFunction } from "express";
+import { NextFunction, Request, Response } from "express";
 import { format } from "date-fns";
 import logger from "@utils/logger";
 
@@ -18,19 +18,32 @@ import logger from "@utils/logger";
  * @param {any} err - The error object thrown during request processing
  * @param {Request} req - Express request object
  * @param {Response} res - Express response object
- * @param {NextFunction} next - Express next function (not used in error handlers)
  */
 export const errorHandler = (
 	err: any,
 	req: Request,
 	res: Response,
-	next: NextFunction
+    _next: NextFunction
 ) => {
-	logger.debug(err);
+	logger.debug({
+        err,
+        method: req.method,
+        path: req.originalUrl,
+        ip: req.ip,
+        userAgent: req.headers["user-agent"],
+    });
+
 	const time = Date.now();
     const status = err.status || 500;
-	res.status(status).json({
-		message: err.message || "Internal Server Error",
+
+	const payload: Record<string, any> = {
+        message: err.message || "Internal Server Error",
         time: format(time, "dd/MM/yyyy"),
-    });
+    };
+
+	if (process.env.NODE_ENV !== "production" && err.stack) {
+        payload.stack = err.stack;
+    }
+
+	res.status(status).json(payload);
 };

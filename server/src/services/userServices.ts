@@ -2,12 +2,11 @@ import db from "@models/index";
 import bcrypt from "bcrypt";
 import { UpdateProfileDTO } from "@my_types/user";
 import { role, User, UserAttributes } from "@models/user";
+import { CONFIG } from "@constants/config";
 
 /**
  * Service layer encapsulating business logic for user management.
  */
-
-const BCRYPT_SALT_ROUNDS = 12;
 
 /**
  * Retrieves a user by their ID.
@@ -125,7 +124,7 @@ export const generateDefaultAdminAccount = async (): Promise<User | null> => {
 		return null;
 	}
 
-	const passwordHash = await bcrypt.hash("123456789", BCRYPT_SALT_ROUNDS);
+	const passwordHash = await bcrypt.hash("123456789", CONFIG.BCRYPT_SALT_ROUNDS);
 
 	return await db.user.create({
 		email: "admin@example.com",

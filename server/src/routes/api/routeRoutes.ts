@@ -7,8 +7,7 @@
  */
 
 import { Router } from "express";
-import { isAdmin } from "@middlewares/auth";
-import { csrfProtectionRoute } from "@middlewares/csrf";
+import { csrfAdminProtectionRoute } from "@middlewares/csrf";
 import { errorHandler } from "@middlewares/errorHandler";
 import { handleValidationResult } from "@middlewares/validateRequest";
 import * as routeController from "@controllers/routeController";
@@ -45,7 +44,7 @@ routeRoutes.get(
 // POST /routes - Create new route
 routeRoutes.post(
 	"/",
-	csrfProtectionRoute,
+	csrfAdminProtectionRoute,
 	routeValidator.validateCreateRoute,
 	handleValidationResult,
 	routeController.AddRoute,
@@ -55,7 +54,7 @@ routeRoutes.post(
 // PUT /routes/:id - Update route by ID
 routeRoutes.put(
 	"/:id",
-	csrfProtectionRoute,
+	csrfAdminProtectionRoute,
 	routeValidator.validateIdParam,
 	routeValidator.validateUpdateRoute,
 	handleValidationResult,
@@ -66,7 +65,7 @@ routeRoutes.put(
 // DELETE /routes/:id - Delete route by ID
 routeRoutes.delete(
 	"/:id",
-	csrfProtectionRoute,
+	csrfAdminProtectionRoute,
 	routeValidator.validateIdParam,
 	handleValidationResult,
 	routeController.DeleteRoute,

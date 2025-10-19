@@ -8,7 +8,12 @@
 			"type": "node",
 			"request": "launch",
 			"name": "Debug Server (ts-node)",
-			"runtimeArgs": ["-r", "ts-node/register/transpile-only"],
+			"runtimeArgs": [
+				"-r",
+				"ts-node/register/transpile-only",
+				"-r",
+				"tsconfig-paths/register"
+			],
 			"args": ["${workspaceFolder}/server/src/server.ts"],
 			"cwd": "${workspaceFolder}/server",
 			"skipFiles": ["<node_internals>/**"],

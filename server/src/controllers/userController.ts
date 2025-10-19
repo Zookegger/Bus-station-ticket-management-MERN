@@ -53,7 +53,7 @@ export const updateProfile = async (
  * @access Admin
  */
 export const getAllUsers = async (
-	req: Request,
+	_req: Request,
 	res: Response,
 	next: NextFunction
 ): Promise<void> => {

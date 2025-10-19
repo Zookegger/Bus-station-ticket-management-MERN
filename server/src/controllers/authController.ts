@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import * as authServices from "@services/authServices";
 import * as verificationServices from "@services/verificationServices";
-import logger from "@utils/logger";
 import { ResetPasswordDTO } from "@my_types/user";
 import { getCsrfToken, isValidCsrfToken } from "@middlewares/csrf";
 

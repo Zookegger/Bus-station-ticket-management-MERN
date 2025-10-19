@@ -16,7 +16,7 @@ export interface NotificationAttributes {
 	updatedAt?: Date;
 }
 
-export interface NotificationCreationAttributes extends Omit<NotificationAttributes, "id" | "createdAt" | "updatedAt"> {}
+export interface NotificationCreationAttributes extends Optional<Omit<NotificationAttributes, "id" | "createdAt" | "updatedAt">, "metadata" | "readAt"> {}
 
 export class Notification
 	extends Model<NotificationAttributes, NotificationCreationAttributes>

@@ -9,10 +9,9 @@
 import { Router } from "express";
 import * as userController from "@controllers/userController";
 import { errorHandler } from "@middlewares/errorHandler";
-import { userInfoValidation, updateProfileValidation, validateUserIdParam } from "@middlewares/validators/userValidator";
-import { loginValidation, registerValidation } from "@middlewares/validators/authValidator";
+import { updateProfileValidation, validateUserIdParam } from "@middlewares/validators/userValidator";
 import { handleValidationResult } from "@middlewares/validateRequest";
-import { csrfProtectionRoute } from "@middlewares/csrf";
+import { csrfAdminProtectionRoute } from "@middlewares/csrf";
 
 /**
  * User management router instance.
@@ -25,12 +24,12 @@ const userRoutes = Router();
 userRoutes.post("/update-profile", updateProfileValidation, handleValidationResult, userController.updateProfile, errorHandler);
 
 // GET /users - Get all users (Admin only)
-userRoutes.get("/", csrfProtectionRoute, userController.getAllUsers, errorHandler);
+userRoutes.get("/", csrfAdminProtectionRoute, userController.getAllUsers, errorHandler);
 
 // PUT /users/:id - Update user by ID (Admin only)
-userRoutes.put("/:id", csrfProtectionRoute, validateUserIdParam, handleValidationResult, userController.updateUser, errorHandler);
+userRoutes.put("/:id", csrfAdminProtectionRoute, validateUserIdParam, handleValidationResult, userController.updateUser, errorHandler);
 
 // DELETE /users/:id - Delete user by ID (Admin only)
-userRoutes.delete("/:id", csrfProtectionRoute, validateUserIdParam, handleValidationResult, userController.deleteUser, errorHandler);
+userRoutes.delete("/:id", csrfAdminProtectionRoute, validateUserIdParam, handleValidationResult, userController.deleteUser, errorHandler);
 
 export default userRoutes;

@@ -7,14 +7,14 @@
  * authentication flows.
  */
 
-import { Request, Response, Router } from "express";
+import { Router } from "express";
 import { errorHandler } from "@middlewares/errorHandler";
 import * as authValidator from "@middlewares/validators/authValidator";
 import * as authController from "@controllers/authController";
 import { handleValidationResult } from "@middlewares/validateRequest";
-import { getCsrfToken, isValidCsrfToken } from "@middlewares/csrf";
 import { authenticateJwt } from "@middlewares/auth";
 import rateLimit from "express-rate-limit";
+import { CONFIG } from "@constants";
 
 /**
  * Authentication router instance.
@@ -27,7 +27,7 @@ const authRoutes = Router();
 // Rate limiter for login
 const loginRateLimiter = rateLimit({
 	windowMs: 5 * 60 * 1000, // 15 minutes
-	limit: 5,
+	limit: CONFIG.MAX_LOGIN_ATTEMPTS,
 	message: "Too many login attempts, please try again later."
 });
 

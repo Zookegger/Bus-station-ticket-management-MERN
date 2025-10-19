@@ -112,6 +112,16 @@ export const listVehicles = async (
 		];
 	}
 
+	if (vehicleTypeId !== undefined) {
+		where.vehicleTypeId = vehicleTypeId;
+	}
+	if (manufacturer) {
+		where.manufacturer = { [Op.like]: `%${manufacturer}%` };
+	}
+	if (model) {
+		where.model = { [Op.like]: `%${model}%` };
+	}
+
 	const queryOptions: any = {
 		where: Object.keys(where).length > 0 ? where : undefined,
 		order: [[orderBy, sortOrder]],

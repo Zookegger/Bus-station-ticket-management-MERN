@@ -7,8 +7,7 @@
  */
 
 import { Router } from "express";
-import { isAdmin } from "@middlewares/auth";
-import { csrfProtectionRoute } from "@middlewares/csrf";
+import { csrfAdminProtectionRoute } from "@middlewares/csrf";
 import { errorHandler } from "@middlewares/errorHandler";
 import { handleValidationResult } from "@middlewares/validateRequest";
 import * as tripController from "@controllers/tripController";
@@ -45,7 +44,7 @@ tripRoutes.get(
 // POST /trips - Create new trip
 tripRoutes.post(
 	"/",
-	csrfProtectionRoute,
+	csrfAdminProtectionRoute,
 	tripValidator.validateCreateTrip,
 	handleValidationResult,
 	tripController.AddTrip,
@@ -55,7 +54,7 @@ tripRoutes.post(
 // PUT /trips/:id - Update trip by ID
 tripRoutes.put(
 	"/:id",
-	csrfProtectionRoute,
+	csrfAdminProtectionRoute,
 	tripValidator.validateIdParam,
 	tripValidator.validateUpdateTrip,
 	handleValidationResult,
@@ -66,7 +65,7 @@ tripRoutes.put(
 // DELETE /trips/:id - Delete trip by ID
 tripRoutes.delete(
 	"/:id",
-	csrfProtectionRoute,
+	csrfAdminProtectionRoute,
 	tripValidator.validateIdParam,
 	handleValidationResult,
 	tripController.DeleteTrip,

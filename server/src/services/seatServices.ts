@@ -7,9 +7,8 @@
  * automatically during trip creation and are prohibited for data integrity.
  */
 
-import { Op } from "sequelize";
 import db from "@models/index";
-import { Seat, SeatAttributes } from "@models/seat";
+import { Seat } from "@models/seat";
 import { UpdateSeatDTO, SeatFilterDTO, SeatStatus } from "@my_types/seat";
 
 /**

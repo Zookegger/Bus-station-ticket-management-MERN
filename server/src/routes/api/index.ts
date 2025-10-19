@@ -16,7 +16,7 @@ import locationRoutes from "./locationRoutes";
 import routeRoutes from "./routeRoutes";
 import tripRoutes from "./tripRoutes";
 import seatRoutes from "./seatRoutes";
-import { format } from "date-fns";
+import settingsRouter from "./settingRoutes";
 
 /**
  * Main API router instance.
@@ -48,7 +48,7 @@ const formatUptime = (seconds: number) => {
     return parts.join(' ');
 }
 
-apiRouter.get('/health', (req: Request, res: Response) => {
+apiRouter.get('/health', (_req: Request, res: Response) => {
     res.json({
         status: 'active',
         timestamp: new Date().toISOString(),
@@ -83,5 +83,8 @@ apiRouter.use("/trips", tripRoutes);
 
 // Mount seat routes under /seats prefix
 apiRouter.use("/seats", seatRoutes);
+
+// Mount server settings routes under /settings prefix
+apiRouter.use("/settings", settingsRouter);
 
 export default apiRouter;

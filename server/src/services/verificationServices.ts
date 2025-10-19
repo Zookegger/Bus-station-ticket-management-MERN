@@ -12,9 +12,8 @@ import db from "@models/index";
 import { emailQueue } from "@utils/queues/emailQueue";
 import { generateVerificationEmailHTML } from "./emailService";
 import logger from "@utils/logger";
+import { COMPUTED, TOKEN_CONFIG } from "@constants";
 
-// Default verification token expiry time (24 hours in seconds)
-const VERIFICATION_TOKEN_EXPIRY = process.env.VERIFICATION_TOKEN_EXPIRY || 24 * 60 * 60;
 
 /**
  * Generates a cryptographically secure verification token.
@@ -25,7 +24,7 @@ const VERIFICATION_TOKEN_EXPIRY = process.env.VERIFICATION_TOKEN_EXPIRY || 24 * 
  * @returns Random hexadecimal string token
  */
 export const generateVerificationToken = (): string => {
-	return crypto.randomBytes(32).toString("hex");
+	return crypto.randomBytes(TOKEN_CONFIG.VERIFICATION_TOKEN_BYTES).toString("hex");
 };
 
 /**
@@ -49,7 +48,7 @@ export const sendVerificationEmail = async (
 	try {
 		const token = generateVerificationToken();
 		const key = `email_verification:${token}`;
-		await redis.setex(key, VERIFICATION_TOKEN_EXPIRY, userId);
+		await redis.setex(key, COMPUTED.VERIFICATION_TOKEN_EXPIRY_SECONDS, userId);
 
 		const baseUrl = process.env.CLIENT_URL + ":" + process.env.CLIENT_PORT || "http://localhost:3000";
 		const verificationLink = `${baseUrl}/verify-email?token=${token}`;
