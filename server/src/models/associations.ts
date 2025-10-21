@@ -9,11 +9,11 @@ import { Trip } from "@models/trip";
 import { Seat } from "@models/seat";
 import { Ticket } from "@models/ticket";
 import { TripDriverAssignment } from "@models/tripDriverAssignment";
-import { Notification } from "./notification";
-import { Payment } from "./payment";
-import { PaymentMethod } from "./paymentMethod";
-import { Coupon } from "./coupon";
-import { CouponUsage } from "./couponUsage";
+import { Notification } from "@models/notification";
+import { Payment } from "@models/payment";
+import { PaymentMethod } from "@models/paymentMethod";
+import { Coupon } from "@models/coupon";
+import { CouponUsage } from "@models/couponUsage";
 
 /**
  * Defines all model associations/relationships.

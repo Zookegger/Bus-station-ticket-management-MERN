@@ -19,13 +19,13 @@ import { Trip } from "@models/trip";
 import { Seat } from "@models/seat";
 import { Ticket } from "@models/ticket";
 import { TripDriverAssignment } from "@models/tripDriverAssignment";
-import { Notification } from "./notification";
-import { defineAssociations } from "./associations";
-import { Coupon } from "./coupon";
-import { Payment } from "./payment";
-import { PaymentMethod } from "./paymentMethod";
-import { CouponUsage } from "./couponUsage";
-import { Setting } from "./setting";
+import { Notification } from "@models/notification";
+import { defineAssociations } from "@models/associations";
+import { Coupon } from "@models/coupon";
+import { Payment } from "@models/payment";
+import { PaymentMethod } from "@models/paymentMethod";
+import { CouponUsage } from "@models/couponUsage";
+import { Setting } from "@models/setting";
 
 /**
  * Centralized model registry and database connection.
@@ -95,4 +95,4 @@ PaymentMethod.initModel(sequelize);
 defineAssociations();
 
 export default db;
-export { connectToDatabase } from './setup';
+export { connectToDatabase } from '@models/setup';

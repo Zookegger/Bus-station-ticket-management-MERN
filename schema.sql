@@ -1,7 +1,7 @@
 /*M!999999\- enable the sandbox mode */ 
 -- MariaDB dump 10.19  Distrib 10.6.22-MariaDB, for debian-linux-gnu (x86_64)
 --
--- Host: 127.0.0.1    Database: bus_station_db
+-- Host: localhost    Database: bus_station_db
 -- ------------------------------------------------------
 -- Server version	10.6.22-MariaDB-0ubuntu0.22.04.1
 
@@ -255,6 +255,23 @@ CREATE TABLE `seats` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `settings`
+--
+
+DROP TABLE IF EXISTS `settings`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `settings` (
+  `key` varchar(255) NOT NULL COMMENT 'The unique identifier for the setting.',
+  `value` text NOT NULL COMMENT 'The value of the setting, stored as a string.',
+  `description` varchar(255) DEFAULT NULL COMMENT 'A human-readable description for the admin UI.',
+  `createdAt` datetime NOT NULL,
+  `updatedAt` datetime NOT NULL,
+  PRIMARY KEY (`key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `tickets`
 --
 
@@ -415,4 +432,4 @@ CREATE TABLE `vehicles` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-10-18 18:33:50
+-- Dump completed on 2025-10-20 17:32:26
