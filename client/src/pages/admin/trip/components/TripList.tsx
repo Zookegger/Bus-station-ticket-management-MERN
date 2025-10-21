@@ -17,7 +17,7 @@ import {
 } from "@mui/material";
 import { Add as AddIcon, MoreVert as MoreIcon } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
-import trips from "@data/popularTrips.json";
+import trips from "@data/menuItems.json";
 
 type TripItem = {
   id: number;
@@ -41,7 +41,7 @@ const TripList: React.FC<TripListProps> = ({ onOpenDetails }) => {
   // For demo purposes, alternate status between "Completed" and "Standby"
   const demoStatuses: TripItem["status"][] = ["Completed", "Standby"];
   const data: TripItem[] = useMemo(() => {
-    return (trips as TripItem[]).map((t, idx) => ({
+    return (trips as unknown as TripItem[]).map((t, idx) => ({
       ...t,
       status: demoStatuses[idx % demoStatuses.length],
     }));

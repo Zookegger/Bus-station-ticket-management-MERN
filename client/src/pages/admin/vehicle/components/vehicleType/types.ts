@@ -28,3 +28,10 @@ export interface UpdateVehicleTypeDTO {
   totalColumn?: number;
   description?: string;
 }
+
+export interface Route {
+  id: number;
+  departure: string;
+  destination: string;
+  price: string;
+}
