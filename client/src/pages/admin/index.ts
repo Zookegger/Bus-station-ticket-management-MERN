@@ -7,7 +7,7 @@ export * from "./home";
 export * from "./vehicle";
 
 // Trip
-export * from "./trip";
+export * from "./trip/cartrip/Trip";
 
 // User
 export * from "./user";

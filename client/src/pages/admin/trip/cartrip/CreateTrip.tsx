@@ -77,7 +77,7 @@ const CreateTrip: React.FC = () => {
               <Button
                 variant="outlined"
                 sx={{ textTransform: "none" }}
-                onClick={() => navigate("../trip")}
+                onClick={() => navigate("../trip/cartrip")}
               >
                 Back to List
               </Button>
