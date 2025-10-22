@@ -63,11 +63,11 @@ const RouteList: React.FC = () => {
   };
 
   const handleAddNewRoute = () => {
-    navigate("/dashboard/trip/createR");
+    navigate("/dashboard/trip/createRoute");
   };
 
   const handleEditRoute = (route: Route) => {
-    navigate("/dashboard/trip/editR", { state: { route } });
+    navigate("/dashboard/trip/editRoute", { state: { route } });
   };
 
   return (
