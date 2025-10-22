@@ -7,9 +7,6 @@
  */
 
 import { Sequelize } from "sequelize";
-import dotenv from "dotenv";
-
-dotenv.config();
 
 const DB_HOST: string = process.env.DB_HOST || "127.0.0.1";
 const DB_PORT: number = Number(process.env.DB_PORT) || 3306;

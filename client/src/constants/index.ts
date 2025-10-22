@@ -4,7 +4,7 @@ import type {
 	StorageKeys,
 	Pagination,
 	ValidationRules,
-} from "../types/types";
+} from "@my-types/types";
 
 /**
  * Application configuration object containing static and environment-based settings.

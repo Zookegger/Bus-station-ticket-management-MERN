@@ -77,6 +77,7 @@
 import { doubleCsrf } from "csrf-csrf";
 import { Request, Response } from "express";
 import { authenticateJwt, isAdmin } from "./auth";
+import { CSRF_CONFIG } from "@constants/security";
 
 /**
  * Configuration object for Double CSRF protection
@@ -136,9 +137,7 @@ import { authenticateJwt, isAdmin } from "./auth";
  */
 export const doubleCsrfUtilities = doubleCsrf({
 	getSecret: (req) =>
-		req?.secret ||
-		process.env.CSRF_SECRET ||
-		"default-secret-change-in-production",
+		req?.secret || CSRF_CONFIG.SECRET,
 	getSessionIdentifier: (req) =>
 		(req as any).user?.id || req.ip || "anonymous", // Identifies the session (use user ID if authenticated, fallback to IP)
 	// Use the __Host- prefix only in production where Secure cookies are expected.
@@ -146,9 +145,7 @@ export const doubleCsrfUtilities = doubleCsrf({
 	// development (HTTP) the cookie would be ignored by the browser which
 	// causes CSRF validation to fail because the cookie is never sent back.
 	cookieName:
-		process.env.NODE_ENV === "production"
-			? "__Host-psifi.x-csrf-token"
-			: "psifi.x-csrf-token",
+		CSRF_CONFIG.COOKIE_NAME,
 	cookieOptions: {
 		httpOnly: true,
 		secure: process.env.NODE_ENV === "production",
@@ -157,7 +154,7 @@ export const doubleCsrfUtilities = doubleCsrf({
 	},
 	size: 64, // The size of the generated tokens in bits
 	ignoredMethods: ["GET", "HEAD", "OPTIONS"], // A list of request methods that will not be protected.
-	getCsrfTokenFromRequest: (req) => req.headers["x-csrf-token"], // A function that returns the token from the request
+	getCsrfTokenFromRequest: (req) => req.headers[CSRF_CONFIG.HEADER_NAME], // A function that returns the token from the request
 });
 
 /**
@@ -185,7 +182,24 @@ export const { doubleCsrfProtection, generateCsrfToken, validateRequest } =
  *
  * @returns {Function[]} Array containing [isAdmin, doubleCsrfProtection] middleware
  */
-export const csrfProtectionRoute = [authenticateJwt, isAdmin, doubleCsrfProtection];
+export const csrfAdminProtectionRoute = [authenticateJwt, isAdmin, doubleCsrfProtection];
+
+/**
+ * Pre-configured CSRF protection route middleware
+ *
+ * Combines authentication with CSRF protection for secure routes.
+ * Use this middleware array for routes that require authentication and
+ * CSRF protection but not necessarily admin privileges.
+ *
+ * @constant {Function[]} csrfProtectionRoute
+ *
+ * @example
+ * // Apply to authenticated routes:
+ * app.post('/api/bookings', csrfProtectionRoute, createBooking);
+ *
+ * @returns {Function[]} Array containing [authenticateJwt, doubleCsrfProtection] middleware
+ */
+export const csrfProtectionRoute = [authenticateJwt, doubleCsrfProtection];
 
 /**
  * Generates and returns a CSRF token

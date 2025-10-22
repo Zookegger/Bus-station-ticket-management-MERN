@@ -8,7 +8,7 @@
 
 import { Op } from "sequelize";
 import db from "@models/index";
-import { Route, RouteAttributes } from "@models/route";
+import { Route } from "@models/route";
 import { CreateRouteDTO, UpdateRouteDTO } from "@my_types/route";
 
 /**
@@ -103,6 +103,13 @@ export const searchRoute = async (
 	} = options;
 
 	const where: any = {};
+
+	if (keywords) {
+		where[Op.or] = [
+			{ "$StartLocation.name$": { [Op.like]: `%${keywords}%` } },
+			{ "$DestinationLocation.name$": { [Op.like]: `%${keywords}%` } },
+		];
+	}
 
 	// Filter by starting location
 	if (startId !== undefined) {

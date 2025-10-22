@@ -7,10 +7,7 @@
  */
 
 import { Redis } from "ioredis";
-import dotenv from "dotenv";
 import logger from "@utils/logger";
-
-dotenv.config();
 
 // Define Redis connection settings from environment variables (with defaults)
 // - REDIS_HOST: The hostname or IP of the Redis server (default: localhost)

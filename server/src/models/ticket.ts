@@ -32,7 +32,7 @@ export enum RefundPolicy {
  * @property {number | null} [seatId] - Foreign key referencing the reserved seat (nullable if not assigned).
  * @property {number} basePrice - Base ticket price before any adjustments.
  * @property {number} finalPrice - Final ticket price after all adjustments (discounts, taxes, etc.).
- * @property {number | null} [paymentId] - Reference to the associated payment record (nullable).
+ * @property {string | null} [paymentId] - Reference to the associated payment record (nullable).
  * @property {TicketStatus} status - Current state of the ticket lifecycle.
  * @property {Date} [createdAt] - Timestamp when the ticket was created.
  * @property {Date} [updatedAt] - Timestamp when the ticket was last updated.
@@ -43,7 +43,7 @@ export interface TicketAttributes {
 	seatId?: number | null;
 	basePrice: number;
 	finalPrice: number;
-	paymentId?: number | null;
+	paymentId?: string | null;
 	status: TicketStatus;
 
 	// Guest fields (nullable)
@@ -93,7 +93,7 @@ export interface TicketCreationAttributes
  * @property {number | null} [seatId] - Foreign key referencing the reserved seat (nullable if not assigned).
  * @property {number} basePrice - Base ticket price before any adjustments.
  * @property {number} finalPrice - Final ticket price after all adjustments (discounts, taxes, etc.).
- * @property {number | null} [paymentId] - Reference to the associated payment record (nullable).
+ * @property {string | null} [paymentId] - Reference to the associated payment record (nullable).
  * @property {TicketStatus} status - Current state of the ticket lifecycle.
  * @property {Date} createdAt - Timestamp when the ticket was created (readonly).
  * @property {Date} updatedAt - Timestamp when the ticket was last updated (readonly).
@@ -109,7 +109,7 @@ export class Ticket
 	public seatId?: number | null;
 	public basePrice!: number;
 	public finalPrice!: number;
-	public paymentId?: number | null;
+	public paymentId?: string | null;
 	public status!: TicketStatus;
 
 	public readonly createdAt!: Date;
@@ -141,7 +141,7 @@ export class Ticket
 					allowNull: false,
 				},
 				paymentId: {
-					type: DataTypes.INTEGER.UNSIGNED,
+					type: DataTypes.UUID,
 					allowNull: true,
 				},
 				status: {

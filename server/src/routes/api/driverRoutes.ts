@@ -8,7 +8,7 @@
 
 import { Router } from "express";
 import { isAdmin } from "@middlewares/auth";
-import { csrfProtectionRoute } from "@middlewares/csrf";
+import { csrfAdminProtectionRoute } from "@middlewares/csrf";
 import * as driverController from "@controllers/driverController";
 import { errorHandler } from "@middlewares/errorHandler";
 import { handleValidationResult } from "@middlewares/validateRequest";
@@ -37,12 +37,12 @@ driverRoutes.get("/search", isAdmin, driverController.SearchDriver, errorHandler
 driverRoutes.get("/:id", isAdmin, validateDriverIdParam, handleValidationResult, driverController.GetDriverById, errorHandler);
 
 // POST /drivers - Create new driver
-driverRoutes.post("/", csrfProtectionRoute, createDriverValidation, handleValidationResult, driverController.AddDriver, errorHandler);
+driverRoutes.post("/", csrfAdminProtectionRoute, createDriverValidation, handleValidationResult, driverController.AddDriver, errorHandler);
 
 // PUT /drivers/:id - Update driver by ID
-driverRoutes.put("/:id", csrfProtectionRoute, validateDriverIdParam, updateDriverValidation, handleValidationResult, driverController.UpdateDriver, errorHandler);
+driverRoutes.put("/:id", csrfAdminProtectionRoute, validateDriverIdParam, updateDriverValidation, handleValidationResult, driverController.UpdateDriver, errorHandler);
 
 // DELETE /drivers/:id - Delete driver by ID
-driverRoutes.delete("/:id", csrfProtectionRoute, validateDriverIdParam, handleValidationResult, driverController.DeleteDriver, errorHandler);
+driverRoutes.delete("/:id", csrfAdminProtectionRoute, validateDriverIdParam, handleValidationResult, driverController.DeleteDriver, errorHandler);
 
 export default driverRoutes;

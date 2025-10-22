@@ -1,9 +1,10 @@
 import db from "@models/index";
 import { Ticket, TicketStatus } from "@models/ticket";
-import { CreateTicketDTO } from "@my_types/ticket";
+import { BookTicketDTO } from "@my_types/ticket";
 import { SeatStatus } from "@my_types/seat";
+import { COMPUTED } from "@constants";
 
-export const CreateTicket = async (dto: CreateTicketDTO): Promise<Ticket> => {
+export const bookTicket = async (dto: BookTicketDTO): Promise<Ticket> => {
 	// Start a transaction for atomicity
 	const transaction = await db.sequelize.transaction();
 
@@ -20,7 +21,10 @@ export const CreateTicket = async (dto: CreateTicketDTO): Promise<Ticket> => {
 			throw { status: 500, message: "Failed to get seat data" };
 
 		// Check seat availability via status
-		if (seat.status === SeatStatus.DISABLED || seat.status === SeatStatus.MAINTENANCE)
+		if (
+			seat.status === SeatStatus.DISABLED ||
+			seat.status === SeatStatus.MAINTENANCE
+		)
 			throw { status: 409, message: "Seat is inactive" };
 		if (seat.status !== SeatStatus.AVAILABLE)
 			throw { status: 409, message: "Seat is already taken or reserved" };
@@ -55,6 +59,7 @@ export const CreateTicket = async (dto: CreateTicketDTO): Promise<Ticket> => {
 				...dto,
 				basePrice: base_price,
 				finalPrice: final_price,
+				paymentId: null,
 				status: TicketStatus.PENDING,
 			},
 			{ transaction }
@@ -63,9 +68,16 @@ export const CreateTicket = async (dto: CreateTicketDTO): Promise<Ticket> => {
 		if (!new_ticket)
 			throw { status: 500, message: "Failed to create new ticket" };
 
-	// Mark seat as reserved
-	const reservedUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
-	await seat.update({ status: SeatStatus.RESERVED, reservedBy: dto.userId, reservedUntil }, { transaction });
+		// Mark seat as reserved
+		const reservedUntil = new Date(Date.now() + COMPUTED.TICKET_RESERVATION_MILLISECONDS);
+		await seat.update(
+			{
+				status: SeatStatus.RESERVED,
+				reservedBy: dto.userId,
+				reservedUntil,
+			},
+			{ transaction }
+		);
 
 		// Commit transaction
 		await transaction.commit();
@@ -105,12 +117,16 @@ export const cancelTicket = async (
 
 		if (ticket.seatId) {
 			await db.seat.update(
-				{ status: SeatStatus.AVAILABLE, reservedBy: null, reservedUntil: null },
+				{
+					status: SeatStatus.AVAILABLE,
+					reservedBy: null,
+					reservedUntil: null,
+				},
 				{ where: { id: ticket.seatId }, transaction }
 			);
 		}
 
-        // TODO: Add refund processing, notifications, etc.
+		// TODO: Add refund processing, notifications, etc.
 
 		await transaction.commit();
 		return updated_ticket;
@@ -121,3 +137,8 @@ export const cancelTicket = async (
 };
 
 // export const refundTicket = async (): Promise<> => {};
+
+
+export const cleanUpTicket = async () => {
+	
+}

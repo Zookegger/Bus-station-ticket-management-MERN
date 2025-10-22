@@ -147,7 +147,6 @@ const isSuspendedValidator = body("isSuspended")
  * Requires id, validates optional driver information fields.
  */
 export const createDriverValidation = [
-	driverIdValidator,
 	fullnameValidator,
 	phoneValidator,
 	avatarValidator,

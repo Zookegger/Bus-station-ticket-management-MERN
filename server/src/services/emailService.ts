@@ -9,13 +9,7 @@
 import nodemailer from "nodemailer";
 import { EmailJobData } from "@utils/queues/emailQueue";
 import logger from "@utils/logger";
-
-// SMTP configuration from environment variables with defaults
-const SMTP_HOST: string = process.env.SMTP_HOST || "smtp.gmail.com";
-const SMTP_PORT: number = Number(process.env.SMTP_PORT) || 587;
-const SMTP_USER: string = process.env.SMTP_USER ?? "";
-const SMTP_PASS: string = process.env.SMTP_PASS ?? "";
-const FROM_EMAIL: string = process.env.FROM_EMAIL || SMTP_USER;
+import { SMTP_CONFIG } from "@constants/email";
 
 /**
  * Nodemailer transporter instance.
@@ -24,12 +18,12 @@ const FROM_EMAIL: string = process.env.FROM_EMAIL || SMTP_USER;
  * Supports both secure (465) and non-secure (587) SMTP connections.
  */
 const transporter = nodemailer.createTransport({
-	host: SMTP_HOST,
-	port: SMTP_PORT,
-	secure: SMTP_PORT === 465,
+	host: SMTP_CONFIG.HOST,
+	port: SMTP_CONFIG.PORT,
+	secure: SMTP_CONFIG.PORT === 465,
 	auth: {
-		user: SMTP_USER,
-		pass: SMTP_PASS,
+		user: SMTP_CONFIG.AUTH.USER,
+		pass: SMTP_CONFIG.AUTH.PASS,
 	},
 });
 
@@ -44,6 +38,8 @@ const transporter = nodemailer.createTransport({
  * @throws {Error} When email sending fails due to SMTP errors or invalid data
  */
 export const sendEmail = async (data: EmailJobData): Promise<void> => {
+    const FROM_EMAIL: string = process.env.FROM_EMAIL || SMTP_CONFIG.AUTH.USER;
+
 	const result = await transporter.sendMail({
 		from: FROM_EMAIL,
 		to: data.to,

@@ -1,0 +1,58 @@
+{
+	"PAYMENT_WINDOW_MINUTES": {
+		"value": 10,
+		"description": "The time in minutes a user has to complete payment before their ticket is cancelled."
+	},
+	"MAX_TICKET_CLEANUP_BATCH_SIZE": {
+		"value": 200,
+		"description": "Maximum number of expired tickets to process in a single cleanup job."
+	},
+	"ENABLE_EMAIL_NOTIFICATIONS": {
+		"value": true,
+		"description": "Whether to send email notifications for ticket updates."
+	},
+	"DEFAULT_CURRENCY": {
+		"value": "VND",
+		"description": "The default currency for payments."
+	},
+	"MAX_LOGIN_ATTEMPTS": {
+		"value": 5,
+		"description": "Maximum failed login attempts before account lockout."
+	},
+	"SESSION_TIMEOUT_MINUTES": {
+		"value": 60,
+		"description": "Session timeout in minutes for inactive users."
+	},
+	"ENABLE_GUEST_BOOKING": {
+		"value": true,
+		"description": "Whether to allow guest users to book tickets without registration."
+	},
+	"TICKET_RESERVATION_MINUTES": {
+		"value": 15,
+		"description": "Time in minutes a seat is reserved after selection before expiry."
+	},
+	"CHANGE_PASSWORD_EXPIRY_HOURS": {
+		"value": 24,
+		"description": "Hours before a password reset link expires."
+	},
+	"VERIFICATION_TOKEN_EXPIRY_HOURS": {
+		"value": 24,
+		"description": "Hours before an email verification token expires."
+	},
+	"BCRYPT_SALT_ROUNDS": {
+		"value": 12,
+		"description": "Number of salt rounds for bcrypt password hashing."
+	},
+	"CLEANUP_CRON_EXPRESSION": {
+		"value": "*/5 * * * *",
+		"description": "Cron expression for recurring ticket cleanup jobs (every 5 minutes)."
+	},
+	"JWT_EXPIRY_HOURS": {
+		"value": 72,
+		"description": "Hours before JWT access tokens expire."
+	},
+	"REFRESH_TOKEN_EXPIRY_HOURS": {
+		"value": 720,
+		"description": "Hours before refresh tokens expire (30 days = 720 hours)."
+	}
+}

@@ -1,7 +1,7 @@
 import db from "@models/index";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import crypto, { verify } from "crypto";
+import crypto from "crypto";
 import { add, addDays } from "date-fns";
 import * as DTO from "@my_types/user";
 import ms from "ms";
@@ -13,19 +13,9 @@ import { emailQueue } from "@utils/queues/emailQueue";
 import redis from "@config/redis";
 import { generateResetPasswordHTML } from "./emailService";
 import logger from "@utils/logger";
-
-/**
- * Service layer encapsulating business logic for authentication.
- */
-
-const BCRYPT_SALT_ROUNDS = 12;
+import { CONFIG, COMPUTED, TOKEN_CONFIG } from "@constants";
 
 const JWT_SECRET: jwt.Secret = process.env.JWT_SECRET || "yoursupersecret";
-const JWT_EXPIRY = (process.env.JWT_EXPIRES_IN as ms.StringValue) || "3d";
-const REFRESH_TOKEN_EXPIRY =
-	Number(ms(process.env.REFRESH_TOKEN_EXPIRES_IN as ms.StringValue) / 1000) ||
-	2592000; // 30 days
-const CHANGE_PASSWORD_EXPIRY = (process.env.CHANGE_PASSWORD_EXPIRES_IN as ms.StringValue) || "1h";
 
 interface AuthJwtPayload {
 	id: string;
@@ -40,7 +30,7 @@ interface ResetPasswordJwtPayload {
  * Keep access tokens short-lived (15m–1h) to limit risk if stolen.
  */
 const generateAccessToken = (payload: AuthJwtPayload): string => {
-	return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRY });
+	return jwt.sign(payload, JWT_SECRET, { expiresIn: COMPUTED.JWT_EXPIRY });
 };
 
 /**
@@ -48,7 +38,7 @@ const generateAccessToken = (payload: AuthJwtPayload): string => {
  * In production, you should store a hash (e.g., SHA-256) instead of the raw token in DB.
  */
 const generateRefreshTokenValue = (): { value: string; hashed: string } => {
-	const token = crypto.randomBytes(64).toString("hex");
+	const token = crypto.randomBytes(TOKEN_CONFIG.REFRESH_TOKEN_BYTES).toString("hex");
 	const hashed = crypto.createHash("sha256").update(token).digest("hex");
 
 	return { value: token, hashed: hashed };
@@ -80,7 +70,7 @@ export const register = async (
 	const existing = await db.user.findOne({ where: { email: dto.email } });
 	if (existing) throw { status: 400, message: "Email already in use" };
  
-	const passwordHash = await bcrypt.hash(dto.password, BCRYPT_SALT_ROUNDS);
+	const passwordHash = await bcrypt.hash(dto.password, CONFIG.BCRYPT_SALT_ROUNDS);
 	const user = await db.user.create({
 		userName: dto.username,
 		email: dto.email,
@@ -91,7 +81,7 @@ export const register = async (
 	await verificationServices.sendVerificationEmail(user.id, user.email, user.userName);
 
 	const refreshToken = generateRefreshTokenValue();
-	const expiresAt = add(new Date(), { seconds: REFRESH_TOKEN_EXPIRY });
+	const expiresAt = add(new Date(), { seconds: COMPUTED.REFRESH_TOKEN_EXPIRY_SECONDS });
 
 	await db.refreshToken.create({
 		token: refreshToken.hashed,
@@ -145,7 +135,7 @@ export const login = async (
 
 	const accessToken = generateAccessToken({ id: user.id, role: user.role });
 	const refreshToken = generateRefreshTokenValue();
-	const expiresAt = add(new Date(), { seconds: REFRESH_TOKEN_EXPIRY });
+	const expiresAt = add(new Date(), { seconds: COMPUTED.REFRESH_TOKEN_EXPIRY_SECONDS });
 
 	await db.refreshToken.create({
 		token: refreshToken.hashed,
@@ -218,7 +208,7 @@ export const refreshAccessToken = async (
 		await db.refreshToken.create({
 			token: newRefreshToken.hashed,
 			userId: user.id,
-			expiresAt: issueExpiryDate(REFRESH_TOKEN_EXPIRY),
+			expiresAt: issueExpiryDate(COMPUTED.REFRESH_TOKEN_EXPIRY_SECONDS),
 		});
 	});
 
@@ -269,7 +259,7 @@ export const changePassword = async (dto: DTO.ChangePasswordDTO): Promise<void> 
 
 	const newPasswordHash = await bcrypt.hash(
 		dto.newPassword,
-		BCRYPT_SALT_ROUNDS
+		CONFIG.BCRYPT_SALT_ROUNDS
 	);
 
 	await user.update({ passwordHash: newPasswordHash });
@@ -281,17 +271,15 @@ export const changePassword = async (dto: DTO.ChangePasswordDTO): Promise<void> 
 export const resetPassword = async (dto: DTO.ResetPasswordDTO): Promise<void> => {
 	const decoded = verifyResetPasswordToken(dto.token) as ResetPasswordJwtPayload;
     
-    const user = await getUserById(decoded.userId);
+	const user = await getUserById(decoded.userId);
     if (!user) throw { status: 404, message: "User not found" };
 
 	const newPasswordHash = await bcrypt.hash(
 		dto.newPassword,
-		BCRYPT_SALT_ROUNDS
+		CONFIG.BCRYPT_SALT_ROUNDS
 	);
 
-	await user.update({ passwordHash: newPasswordHash });
-
-	// Revoke all sessions after password change
+	await user.update({ passwordHash: newPasswordHash });	// Revoke all sessions after password change
 	await db.refreshToken.destroy({ where: { userId: user.id } });
 };
 
@@ -326,6 +314,8 @@ export const getMe = async (userId: string): Promise<DTO.GetMeDTO> => {
  * Keep change password tokens short-lived (15m–1h) to limit risk if stolen.
  */
 const generateResetPasswordToken = (payload: ResetPasswordJwtPayload): string => {
+	const CHANGE_PASSWORD_EXPIRY = ms(`${CONFIG.CHANGE_PASSWORD_EXPIRY_HOURS}h`);
+	
 	return jwt.sign(payload, JWT_SECRET, { expiresIn: CHANGE_PASSWORD_EXPIRY });
 };
 
@@ -338,16 +328,17 @@ export const sendResetPasswordEmail = async (
 	username: string,
 	email: string,
 ): Promise<void> => {
+	const CHANGE_PASSWORD_EXPIRY = ms(`${CONFIG.CHANGE_PASSWORD_EXPIRY_HOURS}h`);
 	try {
 		// Generate token for change password
 		const payload: ResetPasswordJwtPayload = { userId: userId };
 
-		const token = generateResetPasswordToken(payload);
-		const key = `forgot_password:${token}`;
+		const reset_token = generateResetPasswordToken(payload);
+		const key = `forgot_password:${reset_token}`;
 		await redis.setex(key, CHANGE_PASSWORD_EXPIRY, userId);
 
 		const baseUrl = `${process.env.CLIENT_URL || "http://localhost"}:${process.env.CLIENT_PORT || "3000"}`;		
-		const resetLink = `${baseUrl}/reset-passwordtoken=${token}`;
+		const resetLink = `${baseUrl}/reset-passwordtoken=${reset_token}`;
 
 		await emailQueue.add("password-reset-email", {
 			to: email,

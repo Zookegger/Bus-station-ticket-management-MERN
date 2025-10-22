@@ -10,6 +10,10 @@ import { Seat } from "@models/seat";
 import { Ticket } from "@models/ticket";
 import { TripDriverAssignment } from "@models/tripDriverAssignment";
 import { Notification } from "./notification";
+import { Payment } from "./payment";
+import { PaymentMethod } from "./paymentMethod";
+import { Coupon } from "./coupon";
+import { CouponUsage } from "./couponUsage";
 
 /**
  * Defines all model associations/relationships.
@@ -160,5 +164,45 @@ export const defineAssociations = () => {
 	Driver.hasMany(TripDriverAssignment, {
 		foreignKey: "driverId",
 		as: "tripAssignments",
+	});
+
+	// ==========================================
+	// PAYMENT & TICKET ASSOCIATIONS
+	// ==========================================
+
+	Payment.hasOne(Ticket, {
+		foreignKey: "paymentId",
+		as: "ticket",
+	});
+
+	Ticket.belongsTo(Payment, {
+		foreignKey: "paymentId",
+		as: "payment",
+	});
+
+	PaymentMethod.hasMany(Payment, {
+		foreignKey: "paymentMethodId",
+		as: "payments",
+	});
+
+	Payment.belongsTo(PaymentMethod, {
+		foreignKey: "paymentMethodId",
+		as: "paymentMethod",
+	});
+
+	// ==========================================
+	// COUPON & TICKET ASSOCIATIONS
+	// ==========================================
+	
+	Ticket.belongsToMany(Coupon, {
+		through: CouponUsage,
+		foreignKey: "ticketId",
+		otherKey: "couponId"
+	});
+	
+	Coupon.belongsToMany(Ticket, {
+		through: CouponUsage,
+		foreignKey: "couponId",
+		otherKey: "ticketId"
 	});
 };
