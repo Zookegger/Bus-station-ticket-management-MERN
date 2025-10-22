@@ -42,7 +42,7 @@ services:
       dockerfile: Dockerfile
     container_name: easyride_api
     env_file:
-      - .env
+      - .env.docker
     ports:
       - "5000:5000"
     depends_on:
@@ -63,7 +63,7 @@ services:
       dockerfile: Dockerfile
     container_name: easyride_frontend
     env_file:
-      - .env
+      - .env.docker
     ports:
       - "3000:3000"
     environment:
