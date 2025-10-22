@@ -19,13 +19,7 @@ interface RouteType {
   description: string;
 }
 
-interface Route {
-  id: number;
-  routeType: string;
-  departure: string;
-  destination: string;
-  price: string;
-}
+import type { Route } from "@pages/admin/vehicle/components/vehicleType/types";
 
 // Dummy route types
 const routeTypes: RouteType[] = [
