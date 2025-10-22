@@ -21,7 +21,7 @@ services:
     image: mysql:8.0
     container_name: easyride_mysql
     env_file:
-      - .env
+      - .env.docker
     ports:
       - "3307:3306"
     volumes:
