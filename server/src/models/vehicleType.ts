@@ -11,8 +11,8 @@ import { Vehicle } from "./vehicle";
  * @property {number | null} [totalFloors] - Total number of floors (for multi-level buses).
  * @property {number | null} [totalColumns] - Total number of seat columns per floor.
  * @property {number | null} [totalSeats] - Total seat count across all floors.
- * @property {string | null} [rowsPerFloor] - JSON or serialized layout data representing seat rows per floor.
- * @property {string | null} [seatsPerFloor] - JSON or serialized layout data representing seat details per floor.
+ * @property {number | null} [rowsPerFloor] - JSON or serialized layout data representing seat rows per floor.
+ * @property {number | null} [seatsPerFloor] - JSON or serialized layout data representing seat details per floor.
  * @property {Date} [createdAt] - Timestamp when the vehicle type record was created.
  * @property {Date} [updatedAt] - Timestamp when the vehicle type record was last updated.
  */
@@ -65,8 +65,8 @@ export interface VehicleTypeCreationAttributes
  * @property {number | null} [totalFloors] - Total number of floors.
  * @property {number | null} [totalColumns] - Total number of columns.
  * @property {number | null} [totalSeats] - Total number of seats across floors.
- * @property {string | null} [rowsPerFloor] - Serialized seat row data per floor.
- * @property {string | null} [seatsPerFloor] - Serialized seat data per floor.
+ * @property {number | null} [rowsPerFloor] - Serialized seat row data per floor.
+ * @property {number | null} [seatsPerFloor] - Serialized seat data per floor.
  * @property {Date} [createdAt] - Creation timestamp.
  * @property {Date} [updatedAt] - Last update timestamp.
  */
@@ -122,12 +122,14 @@ export class VehicleType
 					allowNull: true,
 				},
 				rowsPerFloor: {
-					type: DataTypes.TEXT,
+					type: DataTypes.TEXT("long"),
 					allowNull: true,
+					comment: "JSON string representing rows per floor (e.g., [10,8])",
 				},
 				seatsPerFloor: {
-					type: DataTypes.TEXT,
+					type: DataTypes.TEXT("long"),
 					allowNull: true,
+					comment: "JSON string representing seat layout matrix per floor",
 				},
 			},
 			{
