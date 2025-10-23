@@ -393,8 +393,8 @@ CREATE TABLE `vehicle_types` (
   `totalFloors` int(10) unsigned DEFAULT NULL,
   `totalColumns` int(10) unsigned DEFAULT NULL,
   `totalSeats` int(10) unsigned DEFAULT NULL,
-  `rowsPerFloor` text DEFAULT NULL,
-  `seatsPerFloor` text DEFAULT NULL,
+  `rowsPerFloor` longtext DEFAULT NULL COMMENT 'JSON string representing rows per floor (e.g., [10,8])',
+  `seatsPerFloor` longtext DEFAULT NULL COMMENT 'JSON string representing seat layout matrix per floor',
   `createdAt` datetime NOT NULL,
   `updatedAt` datetime NOT NULL,
   PRIMARY KEY (`id`)
@@ -432,4 +432,4 @@ CREATE TABLE `vehicles` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-10-20 17:32:26
+-- Dump completed on 2025-10-23 23:19:56
