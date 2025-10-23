@@ -121,7 +121,7 @@ export const router = createBrowserRouter([
             path: "create",
             lazy: async () => {
               const { default: CreateTrip } = await import(
-                "@pages/admin/trip/CreateTrip"
+                "@pages/admin/trip/cartrip/CreateTrip"
               );
               return { Component: CreateTrip };
             },
@@ -130,7 +130,7 @@ export const router = createBrowserRouter([
             path: "edit/:id",
             lazy: async () => {
               const { default: EditTrip } = await import(
-                "@pages/admin/trip/EditTrip"
+                "@pages/admin/trip/cartrip/EditTrip"
               );
               return { Component: EditTrip };
             },
@@ -139,9 +139,27 @@ export const router = createBrowserRouter([
             path: "delete/:id",
             lazy: async () => {
               const { default: DeleteTrip } = await import(
-                "@pages/admin/trip/DeleteTrip"
+                "@pages/admin/trip/cartrip/DeleteTrip"
               );
               return { Component: DeleteTrip };
+            },
+          },
+          {
+            path: "createRoute",
+            lazy: async () => {
+              const { default: CreateRouteFrom } = await import(
+                "@pages/admin/trip/route/CreateRoute"
+              );
+              return { Component: CreateRouteFrom };
+            },
+          },
+          {
+            path: "editRoute",
+            lazy: async () => {
+              const { default: EditRoutePage } = await import(
+                "@pages/admin/trip/route/EditRoutePage"
+              );
+              return { Component: EditRoutePage };
             },
           },
         ],

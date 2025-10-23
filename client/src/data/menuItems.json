@@ -15,7 +15,7 @@
   },
   {
     "id": 3,
-    "label": "Trip",
+    "label": "Trip Management",
     "icon": "map-pin",
     "path": "/dashboard/trip",
     "active": false
