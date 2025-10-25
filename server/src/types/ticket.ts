@@ -1,4 +1,5 @@
 import { TicketStatus } from "@models/ticket";
+import { PaymentAdditionalData, PaymentInitResponse, PaymentMethod } from "@my_types/payments";
 
 /**
  * DTO for creating a new Ticket record.
@@ -10,21 +11,31 @@ export interface BookTicketDTO {
 	/** User ID who is booking the ticket */
 	userId: string;
 
-    status: TicketStatus;
-
 	/** Seat ID assigned to this ticket (optional during booking) */
-	seatId?: number | null;
+	seatIds?: number | number[] | null;
 
-	/** Base ticket price before any adjustments */
-	basePrice: number;
+	couponIds?: string | null;
 
-	/** Final ticket price after all adjustments (discounts, taxes, etc.) */
-	finalPrice: number;
-
-	/** Payment ID (optional if payment not yet completed) */
-	paymentId?: number | null;
+  	/** Selected payment gateway code */
+	paymentMethodCode: PaymentMethod;
+	
+	/** Optional gateway-specific data (e.g., ipAddress, orderInfo, locale) */
+	additionalData?: PaymentAdditionalData;
 }
 
+/**
+ * Response returned by the booking flow to the client.
+ */
+export interface BookTicketResult {
+  /** Persisted ticket IDs (status = PENDING until payment completes) */
+  ticketIds: number[];
+
+  /** Redirect URL to the selected payment gateway (if applicable) */
+  paymentUrl?: string;
+
+  /** Compact payment summary */
+  payment?: PaymentInitResponse;
+}
 
 /**
  * DTO for filtering or searching Tickets in GET requests.
@@ -53,7 +64,4 @@ export interface GetTicketQueryDTO {
 
 	/** Maximum final price filter */
 	maxFinalPrice?: number;
-
-	/** Filter by payment status (true = has paymentId, false = null) */
-	isPaid?: boolean;
 }

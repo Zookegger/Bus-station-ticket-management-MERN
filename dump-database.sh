@@ -1,0 +1,1 @@
+mysqldump -h localhost -u root -P 3306 -p --no-data bus_station_db > schema.sql

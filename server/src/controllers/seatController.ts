@@ -7,7 +7,7 @@
  */
 
 import { NextFunction, Request, Response } from "express";
-import { getParamsId } from "@utils/request";
+import { getParamNumericId } from "@utils/request";
 import { UpdateSeatDTO, SeatFilterDTO } from "@my_types/seat";
 import * as seatServices from "@services/seatServices";
 
@@ -93,7 +93,7 @@ export const UpdateSeat = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
-		const id = getParamsId(req);
+		const id = getParamNumericId(req);
 
 		const updated_seat: UpdateSeatDTO = req.body;
 
@@ -136,7 +136,7 @@ export const GetSeatById = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
-		const id = getParamsId(req);
+		const id = getParamNumericId(req);
 
 		const seat = await seatServices.getSeatById(id);
 

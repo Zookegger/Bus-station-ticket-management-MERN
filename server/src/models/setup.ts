@@ -70,5 +70,6 @@ export const connectToDatabase = async (): Promise<void> => {
 		logger.info("Models synchronized to Database");
 	} catch (err) {
 		logger.error(err);
+		throw err;
 	}
 };

@@ -1,4 +1,5 @@
 import { Request } from "express";
+import { isStringObject } from "util/types";
 
 /**
  * Extracts and validates ID parameter from request URL
@@ -9,12 +10,34 @@ import { Request } from "express";
  *
  * @example
  * // In controller:
- * const id = getParamsId(req);
+ * const id = getParamNumericId(req);
  * const vehicle = await getVehicleTypeById(id);
  */
-export const getParamsId = (req: Request): number => {
+export const getParamNumericId = (req: Request): number => {
 	const id: number = Number.parseInt(req.params.id as string);
+
 	if (isNaN(id)) {
+		throw { status: 400, message: "Invalid ID parameter" };
+	}
+	return id;
+};
+
+/**
+ * Extracts and validates ID parameter from request URL
+ *
+ * @param req - Express request object
+ * @returns Validated numeric ID
+ * @throws {Object} Error object with status and message if ID is invalid
+ *
+ * @example
+ * // In controller:
+ * const id = getParamNumericId(req);
+ * const vehicle = await getVehicleTypeById(id);
+ */
+export const getParamStringId = (req: Request): string => {
+	const id: string = req.params.id as string;
+
+	if (isStringObject(id)) {
 		throw { status: 400, message: "Invalid ID parameter" };
 	}
 	return id;
@@ -29,6 +52,7 @@ export const getParamsId = (req: Request): number => {
  */
 export const getBodyId = (req: Request): number => {
 	const id: number = Number.parseInt(req.body.id as string);
+
 	if (isNaN(id)) {
 		throw { status: 400, message: "Invalid ID in request body" };
 	}
@@ -45,11 +69,9 @@ export const getBodyId = (req: Request): number => {
  */
 export const getQueryId = (req: Request, paramName: string = "id"): number => {
 	const id: number = Number.parseInt(req.query[paramName] as string);
+	
 	if (isNaN(id)) {
-		throw {
-			status: 400,
-			message: `Invalid ${paramName} in query parameters`,
-		};
+		throw { status: 400, message: `Invalid ${paramName} in query parameters`, };
 	}
 	return id;
 };

@@ -17,6 +17,7 @@ import routeRoutes from "./routeRoutes";
 import tripRoutes from "./tripRoutes";
 import seatRoutes from "./seatRoutes";
 import settingsRouter from "./settingRoutes";
+import paymentMethodRoute from "./paymentMethodRoutes";
 
 /**
  * Main API router instance.
@@ -83,6 +84,9 @@ apiRouter.use("/trips", tripRoutes);
 
 // Mount seat routes under /seats prefix
 apiRouter.use("/seats", seatRoutes);
+
+// Mount payment method routes under /payment-methods prefix
+apiRouter.use("/payment-methods", paymentMethodRoute);
 
 // Mount server settings routes under /settings prefix
 apiRouter.use("/settings", settingsRouter);

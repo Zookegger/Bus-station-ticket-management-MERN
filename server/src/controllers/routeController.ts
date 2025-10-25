@@ -7,7 +7,7 @@
  */
 
 import { NextFunction, Request, Response } from "express";
-import { getParamsId } from "@utils/request";
+import { getParamNumericId } from "@utils/request";
 import { CreateRouteDTO, UpdateRouteDTO } from "@my_types/route";
 import * as routeServices from "@services/routeServices";
 
@@ -137,7 +137,7 @@ export const UpdateRoute = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
-		const id = getParamsId(req);
+		const id = getParamNumericId(req);
 
 		const updated_route: UpdateRouteDTO = req.body;
 
@@ -181,7 +181,7 @@ export const DeleteRoute = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
-		const id = getParamsId(req);
+		const id = getParamNumericId(req);
 
 		await routeServices.deleteRoute(id);
 
@@ -215,7 +215,7 @@ export const GetRouteById = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
-		const id = getParamsId(req);
+		const id = getParamNumericId(req);
 
 		const route = await routeServices.getRouteById(id);
 

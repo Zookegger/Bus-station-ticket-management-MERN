@@ -4,8 +4,13 @@ import {
 	Optional,
 	DataTypes,
 	BelongsToGetAssociationMixin,
+	BelongsToManyGetAssociationsMixin,
+	HasManyGetAssociationsMixin,
 } from "sequelize";
 import { PaymentMethod } from "./paymentMethod";
+import { decrypt, encrypt } from "@utils/encryption";
+import { Ticket } from "./ticket";
+import { PaymentTicket } from "./paymentTicket";
 
 export interface PaymentAttributes {
 	id: string;
@@ -49,6 +54,12 @@ export class Payment
 	public getPaymentMethod!: BelongsToGetAssociationMixin<PaymentMethod>;
 	public readonly paymentMethod?: PaymentMethod;
 
+	public getTickets!: BelongsToManyGetAssociationsMixin<Ticket>;
+	public readonly tickets?: Ticket[];
+
+	public getPaymentTickets!: HasManyGetAssociationsMixin<PaymentTicket>;
+	public readonly paymentTickets?: PaymentTicket[];
+
 	static initModel(sequelize: any) {
 		Payment.init(
 			{
@@ -66,10 +77,6 @@ export class Payment
 					type: DataTypes.UUID,
 					allowNull: false,
 					field: "payment_method_id",
-					references: {
-						model: "payment_methods",
-						key: "id",
-					},
 				},
 				paymentStatus: {
 					type: DataTypes.ENUM(
@@ -98,6 +105,24 @@ export class Payment
 					type: DataTypes.JSON,
 					allowNull: true,
 					field: "gateway_response_data",
+					get() {
+						const rawValue = this.getDataValue("gatewayResponseData" as any);
+						if (!rawValue) return null;
+
+						const decrypted = decrypt(rawValue);
+						try {
+							return decrypted ? JSON.parse(decrypted) : null;
+						} catch {
+							return { error: "Failed to parse decrypted data." };
+						}
+					},
+					set(value: any) {
+						if (value) {
+							this.setDataValue("gatewayResponseData" as any, encrypt(value));
+						} else {
+							this.setDataValue("gatewayResponseData" as any, null);
+						}
+					},
 				},
 				createdAt: {
 					type: DataTypes.DATE,
@@ -134,17 +159,5 @@ export class Payment
 				],
 			}
 		);
-	}
-
-	static associate(models: any) {
-		Payment.belongsTo(models.PaymentMethod, {
-			foreignKey: "payment_method_id",
-			as: "paymentMethod",
-		});
-
-		Payment.hasOne(models.Ticket, {
-			foreignKey: "payment_id",
-			as: "ticket",
-		});
 	}
 }

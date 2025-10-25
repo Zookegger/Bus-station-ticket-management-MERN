@@ -1,4 +1,6 @@
 // models/PaymentMethod.ts
+import { decrypt, encrypt } from "@utils/encryption";
+import logger from "@utils/logger";
 import { Model, Optional, DataTypes } from "sequelize";
 export interface PaymentMethodAttributes {
 	id: string;
@@ -13,7 +15,7 @@ export interface PaymentMethodAttributes {
 export interface PaymentMethodCreationAttributes
 	extends Optional<
 		PaymentMethodAttributes,
-		"id" | "createdAt" | "updatedAt" | "isActive"
+		"id" | "configJson" | "createdAt" | "updatedAt" | "isActive"
 	> {}
 
 export class PaymentMethod
@@ -51,8 +53,46 @@ export class PaymentMethod
 					field: "is_active",
 				},
 				configJson: {
-					type: DataTypes.JSON,
+					type: DataTypes.TEXT("long"),
 					field: "config_json",
+					get() {
+						const rawValue = this.getDataValue("configJson" as any);
+						if (!rawValue) return null;
+
+						// If it's already an object, Sequelize already parsed it
+						if (
+							typeof rawValue === "object" &&
+							!Buffer.isBuffer(rawValue)
+						) {
+							return rawValue;
+						}
+
+						// If it's a string, it's encrypted - decrypt it
+						const decrypted = decrypt(rawValue);
+						try {
+							return decrypted ? JSON.parse(decrypted) : null;
+						} catch (error) {
+							logger.error(
+								"Failed to parse decrypted configJson:",
+								error
+							);
+							return { error: "Failed to parse decrypted data." };
+						}
+					},
+					set(value: any) {
+						if (value === null || value === undefined) {
+							this.setDataValue("configJson" as any, null);
+							return;
+						}
+
+						const jsonString =
+							typeof value === "string"
+								? value
+								: JSON.stringify(value);
+						const encrypted = encrypt(jsonString);
+						// Store as raw string, Sequelize will handle JSON serialization
+						this.setDataValue("configJson" as any, encrypted);
+					},
 				},
 				createdAt: {
 					type: DataTypes.DATE,

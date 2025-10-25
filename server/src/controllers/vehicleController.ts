@@ -7,7 +7,7 @@
  */
 
 import { NextFunction, Request, Response } from "express";
-import { getParamsId } from "@utils/request";
+import { getParamNumericId } from "@utils/request";
 import { CreateVehicleDTO, UpdateVehicleDTO } from "@my_types/vehicle";
 import * as vehicleServices from "@services/vehicleServices";
 
@@ -134,7 +134,7 @@ export const UpdateVehicle = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
-		const id = getParamsId(req);
+		const id = getParamNumericId(req);
 
 		const updated_vehicle: UpdateVehicleDTO = req.body;
 
@@ -178,7 +178,7 @@ export const RemoveVehicle = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
-		const id = getParamsId(req);
+		const id = getParamNumericId(req);
 
 		await vehicleServices.removeVehicle(id);
 
@@ -212,7 +212,7 @@ export const GetVehicleById = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
-		const id = getParamsId(req);
+		const id = getParamNumericId(req);
 
 		const vehicle = await vehicleServices.getVehicleById(id);
 

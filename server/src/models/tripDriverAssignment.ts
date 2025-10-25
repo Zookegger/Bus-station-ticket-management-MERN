@@ -1,4 +1,4 @@
-import { Model, DataTypes, Optional, Sequelize } from "sequelize";
+import { Model, DataTypes, Optional, Sequelize, BelongsToGetAssociationMixin } from "sequelize";
 import { Trip } from "./trip";
 import { Driver } from "./driver";
 
@@ -31,6 +31,9 @@ export class TripDriverAssignment
 
 	public readonly createdAt!: Date;
 	public readonly updatedAt!: Date;
+
+    public getTrip!: BelongsToGetAssociationMixin<Trip>;
+    public getDriver!: BelongsToGetAssociationMixin<Driver>;
 
 	// Association properties
 	public trip?: Trip;

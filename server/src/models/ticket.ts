@@ -1,6 +1,15 @@
-import { Model, DataTypes, Optional, Sequelize } from "sequelize";
+import {
+	Model,
+	DataTypes,
+	Optional,
+	Sequelize,
+	BelongsToManyGetAssociationsMixin,
+	HasManyGetAssociationsMixin,
+} from "sequelize";
 import { Seat } from "./seat";
 import { User } from "./user";
+import { Payment } from "./payment";
+import { PaymentTicket } from "./paymentTicket";
 
 export type GuestUser = {
 	guestEmail?: string;
@@ -8,13 +17,27 @@ export type GuestUser = {
 	guestPhone?: string;
 };
 
+/**
+ * Represents the lifecycle status of a ticket.
+ */
 export enum TicketStatus {
-	PENDING = "PENDING",
-	BOOKED = "BOOKED",
-	CANCELLED = "CANCELLED",
-	COMPLETED = "COMPLETED",
-	REFUNDED = "REFUNDED",
-	INVALID = "INVALID",
+    /** Ticket reserved but not paid (e.g., in cart) */
+    PENDING = "PENDING",
+
+    /** Ticket confirmed and paid */
+    BOOKED = "BOOKED",
+
+    /** Ticket cancelled by user or admin */
+    CANCELLED = "CANCELLED",
+
+    /** The trip associated with the ticket has been completed */
+    COMPLETED = "COMPLETED",
+
+    /** The ticket has been successfully refunded */
+    REFUNDED = "REFUNDED",
+
+    /** The ticket is invalid (e.g., expired, voided) */
+    INVALID = "INVALID",
 }
 
 export enum RefundPolicy {
@@ -32,7 +55,6 @@ export enum RefundPolicy {
  * @property {number | null} [seatId] - Foreign key referencing the reserved seat (nullable if not assigned).
  * @property {number} basePrice - Base ticket price before any adjustments.
  * @property {number} finalPrice - Final ticket price after all adjustments (discounts, taxes, etc.).
- * @property {string | null} [paymentId] - Reference to the associated payment record (nullable).
  * @property {TicketStatus} status - Current state of the ticket lifecycle.
  * @property {Date} [createdAt] - Timestamp when the ticket was created.
  * @property {Date} [updatedAt] - Timestamp when the ticket was last updated.
@@ -43,7 +65,6 @@ export interface TicketAttributes {
 	seatId?: number | null;
 	basePrice: number;
 	finalPrice: number;
-	paymentId?: string | null;
 	status: TicketStatus;
 
 	// Guest fields (nullable)
@@ -59,7 +80,7 @@ export interface TicketAttributes {
 /**
  * Attributes required for creating a new Ticket.
  * Some fields are optional because they are auto-generated
- * (e.g., id, timestamps) or may be added later (e.g., seatId, paymentId).
+ * (e.g., id, timestamps) or may be added later (e.g., seatId).
  *
  * @interface TicketCreationAttributes
  */
@@ -68,7 +89,6 @@ export interface TicketCreationAttributes
 		TicketAttributes,
 		| "id"
 		| "seatId"
-		| "paymentId"
 		| "status"
 		| "cancelledAt"
 		| "createdAt"
@@ -93,7 +113,6 @@ export interface TicketCreationAttributes
  * @property {number | null} [seatId] - Foreign key referencing the reserved seat (nullable if not assigned).
  * @property {number} basePrice - Base ticket price before any adjustments.
  * @property {number} finalPrice - Final ticket price after all adjustments (discounts, taxes, etc.).
- * @property {string | null} [paymentId] - Reference to the associated payment record (nullable).
  * @property {TicketStatus} status - Current state of the ticket lifecycle.
  * @property {Date} createdAt - Timestamp when the ticket was created (readonly).
  * @property {Date} updatedAt - Timestamp when the ticket was last updated (readonly).
@@ -109,7 +128,6 @@ export class Ticket
 	public seatId?: number | null;
 	public basePrice!: number;
 	public finalPrice!: number;
-	public paymentId?: string | null;
 	public status!: TicketStatus;
 
 	public readonly createdAt!: Date;
@@ -118,6 +136,12 @@ export class Ticket
 	// Association properties
 	public seat?: Seat;
 	public user?: User;
+
+	public getPayments!: BelongsToManyGetAssociationsMixin<Payment>;
+	public readonly payments?: Payment[];
+
+	public getPaymentTickets!: HasManyGetAssociationsMixin<PaymentTicket>;
+	public readonly paymentTickets?: PaymentTicket[];
 
 	/**
 	 * Initializes the Sequelize model definition for Ticket.
@@ -139,10 +163,6 @@ export class Ticket
 				finalPrice: {
 					type: DataTypes.DECIMAL(10, 2),
 					allowNull: false,
-				},
-				paymentId: {
-					type: DataTypes.UUID,
-					allowNull: true,
 				},
 				status: {
 					type: DataTypes.ENUM(...Object.values(TicketStatus)),

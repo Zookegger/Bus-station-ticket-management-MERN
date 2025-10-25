@@ -12,6 +12,7 @@ import { TripDriverAssignment } from "@models/tripDriverAssignment";
 import { Notification } from "@models/notification";
 import { Payment } from "@models/payment";
 import { PaymentMethod } from "@models/paymentMethod";
+import { PaymentTicket } from "@models/paymentTicket";
 import { Coupon } from "@models/coupon";
 import { CouponUsage } from "@models/couponUsage";
 
@@ -170,16 +171,43 @@ export const defineAssociations = () => {
 	// PAYMENT & TICKET ASSOCIATIONS
 	// ==========================================
 
-	Payment.hasOne(Ticket, {
+	// Many-to-Many: Payment <-> Ticket through PaymentTicket
+	Payment.belongsToMany(Ticket, {
+		through: PaymentTicket,
 		foreignKey: "paymentId",
-		as: "ticket",
+		otherKey: "ticketId",
+		as: "tickets",
 	});
 
-	Ticket.belongsTo(Payment, {
+	Ticket.belongsToMany(Payment, {
+		through: PaymentTicket,
+		foreignKey: "ticketId",
+		otherKey: "paymentId",
+		as: "payments",
+	});
+
+	// Direct associations for the junction table
+	PaymentTicket.belongsTo(Payment, {
 		foreignKey: "paymentId",
 		as: "payment",
 	});
 
+	PaymentTicket.belongsTo(Ticket, {
+		foreignKey: "ticketId",
+		as: "ticket",
+	});
+
+	Payment.hasMany(PaymentTicket, {
+		foreignKey: "paymentId",
+		as: "paymentTickets",
+	});
+
+	Ticket.hasMany(PaymentTicket, {
+		foreignKey: "ticketId",
+		as: "paymentTickets",
+	});
+
+	// Payment Method associations
 	PaymentMethod.hasMany(Payment, {
 		foreignKey: "paymentMethodId",
 		as: "payments",

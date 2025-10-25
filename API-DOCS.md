@@ -118,7 +118,7 @@ Optional debug route (dev only): the server includes a temporary debug endpoint 
 
 ## Key Endpoints
 
-### Authentication
+### Authentication Endpoints
 
 - `POST /api/auth/login` - User login
 - `POST /api/auth/register` - User registration

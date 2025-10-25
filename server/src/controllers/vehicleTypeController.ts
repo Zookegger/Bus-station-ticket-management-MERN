@@ -12,7 +12,7 @@ import {
 	CreateVehicleTypeDTO,
 	UpdateVehicleTypeDTO,
 } from "@my_types/vehicleType";
-import { getParamsId } from "@utils/request";
+import { getParamNumericId } from "@utils/request";
 
 /**
  * Retrieves all vehicle types with comprehensive filtering, sorting, and pagination.
@@ -154,7 +154,7 @@ export const UpdateVehicleType = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
-		const id = getParamsId(req);
+		const id = getParamNumericId(req);
 		const updated_vehicle_type: UpdateVehicleTypeDTO = req.body;
 
 		const vehicle_type = await vehicleTypeServices.updateVehicleType(
@@ -200,7 +200,7 @@ export const RemoveVehicleType = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
-		const id = getParamsId(req);
+		const id = getParamNumericId(req);
 
 		await vehicleTypeServices.removeVehicleType(id);
 
@@ -234,7 +234,7 @@ export const GetVehicleTypeById = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
-		const id = getParamsId(req);
+		const id = getParamNumericId(req);
 
 		const vehicle_type = await vehicleTypeServices.getVehicleTypeById(id);
 

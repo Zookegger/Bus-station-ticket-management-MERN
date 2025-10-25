@@ -16,8 +16,8 @@ This guide covers various deployment options for the Bus Station Ticket Manageme
     ```
 
 3. **Access the application:**
-    - Frontend: http://localhost:80
-    - Backend API: http://localhost:5000
+    - Frontend: <http://localhost:80>
+    - Backend API: <http://localhost:5000>
 
 ## Cloud Deployment Options
 
@@ -27,23 +27,24 @@ This guide covers various deployment options for the Bus Station Ticket Manageme
 2. **Create Heroku apps:**
 
     ```bash
-    heroku create your-app-name-frontend
-    heroku create your-app-name-backend
+    heroku create bus-station-frontend
+    heroku create bus-station-backend
     ```
 
 3. **Deploy backend:**
 
     ```bash
     cd server
-    heroku git:remote -a your-app-name-backend
+    heroku git:remote -a bus-station-backend
     git push heroku main
     ```
 
 4. **Deploy frontend:**
+
     ```bash
     cd client
     npm run build
-    heroku git:remote -a your-app-name-frontend
+    heroku git:remote -a bus-station-frontend
     git push heroku main
     ```
 
@@ -82,11 +83,11 @@ This guide covers various deployment options for the Bus Station Ticket Manageme
     This will start both the backend and frontend in development mode concurrently.
 
 4. **Access the application:**
-    - Frontend: http://localhost:5173 (Vite dev server)
-    - Backend: http://localhost:5000
+    - Frontend: <http://localhost:5173> (Vite dev server)
+    - Backend: <http://localhost:5000>
 
 **Note:** The project includes npm scripts for convenience:
 
--   `npm run setup` - Install all dependencies
--   `npm run dev` - Start development servers
--   `npm start` - Start production servers (if configured)
+- `npm run setup` - Install all dependencies
+- `npm run dev` - Start development servers
+- `npm start` - Start production servers (if configured)

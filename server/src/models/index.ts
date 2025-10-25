@@ -26,6 +26,7 @@ import { Payment } from "@models/payment";
 import { PaymentMethod } from "@models/paymentMethod";
 import { CouponUsage } from "@models/couponUsage";
 import { Setting } from "@models/setting";
+import { PaymentTicket } from "./paymentTicket";
 
 /**
  * Centralized model registry and database connection.
@@ -52,6 +53,7 @@ const db: {
 	couponUsage: typeof CouponUsage;
 	payment: typeof Payment;
 	paymentMethod: typeof PaymentMethod;
+	paymentTicket: typeof PaymentTicket;
 } = {
 	sequelize,
 	setting: Setting,
@@ -71,6 +73,7 @@ const db: {
 	couponUsage: CouponUsage,
 	payment: Payment,
 	paymentMethod: PaymentMethod,
+	paymentTicket: PaymentTicket
 };
 
 // Initialize models with Sequelize instance
@@ -91,6 +94,7 @@ Coupon.initModel(sequelize);
 CouponUsage.initModel(sequelize);
 Payment.initModel(sequelize);
 PaymentMethod.initModel(sequelize);
+PaymentTicket.initModel(sequelize);
 
 defineAssociations();
 

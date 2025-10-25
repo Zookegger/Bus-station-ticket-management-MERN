@@ -1,51 +1,60 @@
 import db from "@models/index";
 import { Ticket, TicketStatus } from "@models/ticket";
-import { BookTicketDTO } from "@my_types/ticket";
+import { BookTicketDTO, BookTicketResult } from "@my_types/ticket";
 import { SeatStatus } from "@my_types/seat";
 import { COMPUTED } from "@constants";
+import { Op } from "sequelize";
+import { Seat } from "@models/seat";
+import { Trip } from "@models/trip";
 
-export const bookTicket = async (dto: BookTicketDTO): Promise<Ticket> => {
+/*
+export const bookTicket = async (
+	dto: BookTicketDTO
+): Promise<BookTicketResult> => {
+	// Normalize seatIds to an array, meaning turn single ticket to an array
+	const requestedSeatIds: number[] =
+		dto.seatIds == null
+			? []
+			: Array.isArray(dto.seatIds)
+			? dto.seatIds
+			: [dto.seatIds];
+
+	if (requestedSeatIds.length === 0)
+		throw { status: 400, message: "At least one seatId is required" };
+
 	// Start a transaction for atomicity
 	const transaction = await db.sequelize.transaction();
 
 	try {
 		// Lock the seat row to prevent race conditions
-		const seat = await db.seat.findByPk(dto.seatId!, {
-			include: [{ model: db.trip, as: "trip" }],
+		const seats: Seat[] = await db.seat.findAll({
+			where: { id: requestedSeatIds },
+			include: [{ model: Trip, as: "trip" }],
 			lock: transaction.LOCK.UPDATE,
 			transaction,
 		});
 
-		// Validate seat exists and has trip data
-		if (!seat || !seat.trip)
-			throw { status: 500, message: "Failed to get seat data" };
+		if (seats.length !== requestedSeatIds.length)
+			throw { status: 404, message: "Some seats not found" };
 
-		// Check seat availability via status
-		if (
-			seat.status === SeatStatus.DISABLED ||
-			seat.status === SeatStatus.MAINTENANCE
-		)
-			throw { status: 409, message: "Seat is inactive" };
-		if (seat.status !== SeatStatus.AVAILABLE)
-			throw { status: 409, message: "Seat is already taken or reserved" };
-
-		// Validate trip price
-		if (!seat.trip.price || seat.trip.price <= 0)
-			throw { status: 500, message: "Invalid trip price" };
+		// Validate availability and pricing
+		for (const s of seats) {
+			if (!s.trip?.price || s.trip.price <= 0) throw { status: 500, message: `Invalid trip price for seat ${s.id}`, };
+			if (s.status !== SeatStatus.AVAILABLE) throw { status: 409, message: `Seat ${s.id} is not available` };
+		}
 
 		const existing_ticket = await db.ticket.findOne({
 			where: {
-				seatId: dto.seatId!,
-				userId: dto.userId!,
+				userId: dto.userId,
+				seatId: requestedSeatIds,
+				status: TicketStatus.BOOKED,
 			},
 			transaction,
 		});
 
-		if (existing_ticket)
-			throw {
-				status: 409,
-				message: "You already have a ticket for this seat",
-			};
+		if (existing_ticket) throw { status: 409, message: "You already have a ticket for this seat", };
+
+	
 
 		let base_price: number = seat.trip?.price;
 		let final_price = base_price;
@@ -59,7 +68,6 @@ export const bookTicket = async (dto: BookTicketDTO): Promise<Ticket> => {
 				...dto,
 				basePrice: base_price,
 				finalPrice: final_price,
-				paymentId: null,
 				status: TicketStatus.PENDING,
 			},
 			{ transaction }
@@ -69,7 +77,9 @@ export const bookTicket = async (dto: BookTicketDTO): Promise<Ticket> => {
 			throw { status: 500, message: "Failed to create new ticket" };
 
 		// Mark seat as reserved
-		const reservedUntil = new Date(Date.now() + COMPUTED.TICKET_RESERVATION_MILLISECONDS);
+		const reservedUntil = new Date(
+			Date.now() + COMPUTED.TICKET_RESERVATION_MILLISECONDS
+		);
 		await seat.update(
 			{
 				status: SeatStatus.RESERVED,
@@ -89,6 +99,7 @@ export const bookTicket = async (dto: BookTicketDTO): Promise<Ticket> => {
 		throw err;
 	}
 };
+*/
 
 // User and Admin can do this, so implement authorization later
 export const cancelTicket = async (
@@ -136,9 +147,29 @@ export const cancelTicket = async (
 	}
 };
 
-// export const refundTicket = async (): Promise<> => {};
+export const refundTicket = async () => {};
 
+export const cleanUpExpiredTickets = async () => {};
 
-export const cleanUpTicket = async () => {
-	
-}
+export const getTicketsByIds = async (
+	id: string | string[],
+	options: any = {}
+): Promise<{ rows: Ticket[] | null; count: number }> => {
+	const finalOptions = {
+		...options,
+		where: {
+			...options.where,
+			id: id,
+		},
+	};
+
+	return await Ticket.findAndCountAll(finalOptions);
+};
+
+export const searchTicket = async () => {};
+
+export const getTicketsByTrip = async () => {};
+
+export const getUserTickets = async () => {};
+
+export const confirmTicket = async () => {};

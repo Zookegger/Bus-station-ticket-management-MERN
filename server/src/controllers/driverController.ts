@@ -8,7 +8,7 @@
 
 import { NextFunction, Request, Response } from "express";
 import * as driverServices from "@services/driverServices";
-import { getParamsId } from "@utils/request";
+import { getParamNumericId } from "@utils/request";
 import { CreateDriverDTO, UpdateDriverDTO } from "@my_types/driver";
 
 /**
@@ -71,7 +71,7 @@ export const UpdateDriver = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
-		const id = getParamsId(req);
+		const id = getParamNumericId(req);
 
 		const updated_driver: UpdateDriverDTO = req.body;
 
@@ -130,7 +130,7 @@ export const DeleteDriver = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
-		const id = getParamsId(req);
+		const id = getParamNumericId(req);
 
 		await driverServices.deleteDriver(id);
 
@@ -230,7 +230,7 @@ export const GetDriverById = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
-		const id = getParamsId(req);
+		const id = getParamNumericId(req);
 
 		const driver = await driverServices.getDriverById(id);
 
