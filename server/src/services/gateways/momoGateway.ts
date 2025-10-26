@@ -3,13 +3,8 @@ import axios from "axios";
 import { Payment } from "@models/payment";
 import { Ticket } from "@models/ticket";
 import logger from "@utils/logger";
-import type {
-    GatewayRefundOptions,
-    IPaymentGateway,
-    PaymentRefundResult,
-    PaymentVerificationResult,
-} from "@services/paymentServices";
-import { PaymentStatus } from "@my_types/payments";
+import type { IPaymentGateway } from "@services/paymentServices";
+import { GatewayRefundOptions, PaymentRefundResult, PaymentStatus, PaymentVerificationResult } from "@my_types/payments";
 
 /**
  * Configuration values supplied by the merchant for MoMo integration.

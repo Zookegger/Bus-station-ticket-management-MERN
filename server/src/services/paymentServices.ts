@@ -505,5 +505,5 @@ export const processRefund = async (
 	dto: PaymentRefundDTO,
 	transaction: Transaction
 ): Promise<PaymentRefundResult> => {
-	throw new Error("Not implemented")
+	throw new Error("Not Implemented");
 };
