@@ -20,8 +20,8 @@ import { csrfAdminProtectionRoute, csrfProtectionRoute } from "@middlewares/csrf
  */
 const userRoutes = Router();
 
-// POST /users/update-profile - Update authenticated user's profile
-userRoutes.post("/update-profile/:id", csrfProtectionRoute, updateProfileValidation, handleValidationResult, userController.UpdateProfile, errorHandler);
+// PUT /users/profile - Update authenticated user's profile
+userRoutes.put("/profile/:id", csrfProtectionRoute, updateProfileValidation, handleValidationResult, userController.UpdateProfile, errorHandler);
 
 // GET /users/profile - Get user profile
 userRoutes.get("/profile/:id", csrfProtectionRoute, userController.GetProfile, errorHandler);
