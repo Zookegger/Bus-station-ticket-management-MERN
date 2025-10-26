@@ -144,3 +144,4 @@ tests/
 
 Summarization/*
 .github/copilot-instructions.md
+.github/prompts/*
