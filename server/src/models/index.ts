@@ -20,13 +20,62 @@ import { Seat } from "@models/seat";
 import { Ticket } from "@models/ticket";
 import { TripDriverAssignment } from "@models/tripDriverAssignment";
 import { Notification } from "@models/notification";
-import { defineAssociations } from "@models/associations";
 import { Coupon } from "@models/coupon";
 import { Payment } from "@models/payment";
 import { PaymentMethod } from "@models/paymentMethod";
 import { CouponUsage } from "@models/couponUsage";
 import { Setting } from "@models/setting";
-import { PaymentTicket } from "./paymentTicket";
+import { Order } from "@models/orders";
+import { PaymentTicket } from "@models/paymentTicket";
+
+/**
+ * Interface describing the shape of the 'db' object, which
+ * holds all Sequelize models.
+ */
+export interface DbModels {
+    sequelize: Sequelize;
+    Setting: typeof Setting;
+    User: typeof User;
+    Notification: typeof Notification;
+    Driver: typeof Driver;
+    Location: typeof Location;
+    Route: typeof Route;
+    RefreshToken: typeof RefreshToken;
+    Vehicle: typeof Vehicle;
+    VehicleType: typeof VehicleType;
+    Trip: typeof Trip;
+    Seat: typeof Seat;
+    Ticket: typeof Ticket;
+    TripDriverAssignment: typeof TripDriverAssignment;
+    Coupon: typeof Coupon;
+    CouponUsage: typeof CouponUsage;
+    Payment: typeof Payment;
+    PaymentMethod: typeof PaymentMethod;
+    PaymentTicket: typeof PaymentTicket;
+    Order: typeof Order;
+}
+
+const models = {
+	Setting,
+	User,
+	Notification,
+	Driver,
+	Location,
+	Route,
+	RefreshToken,
+	Vehicle,
+	VehicleType,
+	Trip,
+	Seat,
+	Ticket,
+	TripDriverAssignment,
+	Coupon,
+	CouponUsage,
+	Payment,
+	PaymentMethod,
+	PaymentTicket,
+	Order,
+};
 
 /**
  * Centralized model registry and database connection.
@@ -34,69 +83,20 @@ import { PaymentTicket } from "./paymentTicket";
  * This object contains all initialized models and the Sequelize instance,
  * providing a single import point for database operations across the application.
  */
-const db: {
-	sequelize: Sequelize;
-	setting: typeof Setting;
-	user: typeof User;
-	notification: typeof Notification;
-	driver: typeof Driver;
-	location: typeof Location;
-	route: typeof Route;
-	refreshToken: typeof RefreshToken;
-	vehicle: typeof Vehicle;
-	vehicleType: typeof VehicleType;
-	trip: typeof Trip;
-	seat: typeof Seat;
-	ticket: typeof Ticket;
-	tripDriverAssignment: typeof TripDriverAssignment;
-	coupon: typeof Coupon;
-	couponUsage: typeof CouponUsage;
-	payment: typeof Payment;
-	paymentMethod: typeof PaymentMethod;
-	paymentTicket: typeof PaymentTicket;
-} = {
+const db: DbModels = {
 	sequelize,
-	setting: Setting,
-	user: User,
-	notification: Notification,
-	driver: Driver,
-	location: Location,
-	route: Route,
-	refreshToken: RefreshToken,
-	vehicle: Vehicle,
-	vehicleType: VehicleType,
-	trip: Trip,
-	seat: Seat,
-	ticket: Ticket,
-	tripDriverAssignment: TripDriverAssignment,
-	coupon: Coupon,
-	couponUsage: CouponUsage,
-	payment: Payment,
-	paymentMethod: PaymentMethod,
-	paymentTicket: PaymentTicket
+	...models,
 };
 
-// Initialize models with Sequelize instance
-Setting.initModel(sequelize);
-User.initModel(sequelize);
-Notification.initModel(sequelize);
-Driver.initModel(sequelize);
-Location.initModel(sequelize);
-Route.initModel(sequelize);
-RefreshToken.initModel(sequelize);
-Vehicle.initModel(sequelize);
-VehicleType.initModel(sequelize);
-Trip.initModel(sequelize);
-Seat.initModel(sequelize);
-Ticket.initModel(sequelize);
-TripDriverAssignment.initModel(sequelize);
-Coupon.initModel(sequelize);
-CouponUsage.initModel(sequelize);
-Payment.initModel(sequelize);
-PaymentMethod.initModel(sequelize);
-PaymentTicket.initModel(sequelize);
+// Initialize models
+Object.values(models).forEach((model) => model.initModel(sequelize));
 
-defineAssociations();
+// Apply associations
+Object.values(models).forEach((model) => {
+	if (typeof model.associate === "function") {
+		model.associate(db);
+	}
+});
 
 export default db;
 export { connectToDatabase } from '@models/setup';

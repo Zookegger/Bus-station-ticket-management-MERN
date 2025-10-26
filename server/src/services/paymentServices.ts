@@ -1,40 +1,25 @@
 import { COMPUTED } from "@constants/config";
 import { Payment, PaymentAttributes } from "@models/payment";
-import { PaymentTicket } from "@models/paymentTicket";
 import { Ticket, TicketStatus } from "@models/ticket";
 import { Trip } from "@models/trip";
 import { Seat } from "@models/seat";
 import { PaymentMethod } from "@models/paymentMethod";
-import { InitiatePaymentDTO, PaymentCallbackDTO, PaymentResponseDTO, PaymentStatus} from "@my_types/payments";
+import {
+	GatewayRefundOptions,
+	InitiatePaymentDTO,
+	PaymentCallbackDTO,
+	PaymentRefundDTO,
+	PaymentRefundResult,
+	PaymentResponseDTO,
+	PaymentStatus,
+	PaymentVerificationResult,
+} from "@my_types/payments";
 import * as paymentMethodServices from "@services/paymentMethodServices";
-import * as ticketServices from "@services/ticketServices";
 import logger from "@utils/logger";
 import { SeatStatus } from "@my_types/seat";
-
-/**
- * Payment verification result from gateway callbacks
- */
-export interface PaymentVerificationResult {
-	isValid: boolean;
-	status: PaymentStatus;
-	gatewayTransactionNo?: string;
-	merchantOrderRef: string;
-	message?: string;
-	gatewayResponseData?: any;
-}
-
-export interface GatewayRefundOptions {
-	amount: number;
-	reason?: string;
-	ipAddress?: string;
-	performedBy?: string;
-}
-
-export interface PaymentRefundResult {
-	isSuccess: boolean;
-	message?: string;
-	gatewayResponseData?: any;
-}
+import { Order, OrderStatus } from "@models/orders";
+import db from "@models/index";
+import { Transaction } from "sequelize";
 
 /**
  * Payment gateway interface - all gateways must implement this
@@ -85,39 +70,69 @@ const gatewayRegistry = new PaymentGatewayRegistry();
  * Creates a payment record and initiates payment with the selected gateway
  */
 export const initiatePayment = async (
-	data: InitiatePaymentDTO
-): Promise<{ paymentUrl?: string; payment: PaymentResponseDTO }> => {
-	const { ticketIds, paymentMethodCode, additionalData } = data;
+	data: InitiatePaymentDTO,
+	transaction: Transaction
+): Promise<{ paymentUrl: string; payment: PaymentResponseDTO }> => {
+	const { orderId, paymentMethodCode, additionalData } = data;
 
-	if (!ticketIds) {
-		throw new Error("No ticket Id(s) provided");
+	if (!orderId) {
+		throw new Error("No order Id provided");
 	}
 
-	const tickets = await ticketServices.getTicketsByIds(ticketIds, {
+	const order = await db.Order.findByPk(orderId, {
 		include: [
 			{
-				model: Seat,
-				as: "seat",
-				include: [{ model: Trip, as: "trip" }],
+				model: db.Ticket,
+				as: "tickets",
+				include: [
+					{
+						model: db.Seat,
+						as: "seat",
+						include: [{ model: db.Trip, as: "trip" }],
+					},
+				],
 			},
 		],
+		transaction,
 	});
 
-	if (tickets.count !== ticketIds.length || tickets.rows === null) {
-		throw new Error("One or more tickets not found");
+	if (!order) {
+		throw new Error("Order not found");
 	}
 
-	const paidTickets = tickets.rows.filter(
+	// Check if the order already has a different paymentId
+	if (order.paymentId) {
+		const payment = await db.Payment.findByPk(order.paymentId);
+		if (
+			payment &&
+			(payment.paymentStatus === PaymentStatus.COMPLETED ||
+				payment.paymentStatus === PaymentStatus.PROCESSING)
+		) {
+			throw {
+				status: 409,
+				message: "This order already has a payment associated with it.",
+			};
+		}
+	}
+
+	if (order.status !== OrderStatus.PENDING) {
+		throw new Error("Order is not in pending state");
+	}
+
+	if (!order.tickets || order.tickets.length === 0) {
+		throw new Error("No tickets found for this order");
+	}
+
+	const paidTickets = order.tickets.filter(
 		(t) => t.status === TicketStatus.BOOKED
 	);
 	if (paidTickets.length > 0) {
-		throw new Error("One or more tickets are already paid");
+		throw new Error(
+			"One or more tickets are already paid for in this order"
+		);
 	}
 
-	const totalAmount = tickets.rows.reduce(
-		(sum, ticket) => sum + Number(ticket.finalPrice),
-		0
-	);
+	const totalAmount = Number(order.totalFinalPrice);
 
 	// Get payment method configuration
 	const payment_method = await paymentMethodServices.getPaymentMethodByCode(
@@ -140,53 +155,65 @@ export const initiatePayment = async (
 
 	const merchant_order_ref = generateMerchantOrderRef();
 
-	const payment = await Payment.create({
-		totalAmount,
-		paymentMethodId: payment_method.id,
-		paymentStatus: PaymentStatus.PENDING,
-		merchantOrderRef: merchant_order_ref,
-		expiredAt: new Date(
-			Date.now() + COMPUTED.TICKET_RESERVATION_MILLISECONDS
-		),
-	});
+	try {
+		const payment = await Payment.create(
+			{
+				totalAmount,
+				orderId: order.id,
+				paymentMethodId: payment_method.id,
+				paymentStatus: PaymentStatus.PENDING,
+				merchantOrderRef: merchant_order_ref,
+				expiredAt: new Date(
+					Date.now() + COMPUTED.TICKET_RESERVATION_MILLISECONDS
+				),
+			},
+			{ transaction }
+		);
 
-	await PaymentTicket.bulkCreate(
-		tickets.rows.map((ticket) => ({
-			paymentId: payment.id,
-			ticketId: ticket.id,
-			amount: Number(ticket.finalPrice),
-		}))
-	);
+		// Link payment to order
+		await order.update({ paymentId: payment.id }, { transaction });
 
-	await Ticket.update(
-		{ status: TicketStatus.PENDING },
-		{ where: { id: ticketIds } }
-	);
+		await Ticket.update(
+			{ status: TicketStatus.PENDING },
+			{ where: { id: order.tickets.map((t) => t.id) }, transaction }
+		);
 
-    try {
-        const payment_url = await gateway.createPaymentUrl(payment, tickets.rows, payment_method.configJson, additionalData);
-    
-        if (!payment_url) {
-            throw new Error("Failed to generate payment url");
-        }
+		const payment_url = await gateway.createPaymentUrl(
+			payment,
+			order.tickets,
+			payment_method.configJson,
+			additionalData
+		);
 
-        const completePayment = await getPaymentById(payment.id);
-        
-        if (!completePayment) {
-            throw new Error("Failed to retrieve created payment");
-        }
+		if (!payment_url) {
+			throw new Error("Failed to generate payment url");
+		}
 
-        return {
-            paymentUrl: payment_url,
-            payment: completePayment,
-        }
-    } catch (error) {
-        // Rollback on error
-        await payment.destroy();
-        await PaymentTicket.destroy({ where: { paymentId: payment.id } });
-        await Ticket.update({ status: TicketStatus.INVALID }, { where: { id: ticketIds } });
-        throw error;
-    }
+		const completePayment = await getPaymentById(payment.id);
+
+		if (!completePayment) {
+			throw new Error("Failed to retrieve created payment");
+		}
+
+		return {
+			paymentUrl: payment_url,
+			payment: completePayment,
+		};
+	} catch (error) {
+		// Rollback on error
+		if (!transaction) {
+			await Payment.destroy();
+			await Order.update({ paymentId: null }, { where: { id: orderId } });
+			await Ticket.update(
+				{ status: TicketStatus.INVALID },
+				{ where: { id: order.tickets.map((t) => t.id) } }
+			);
+		} else {
+			await transaction.rollback();
+		}
+
+		throw error;
+	}
 };
 
 // ============================================
@@ -310,7 +337,8 @@ export const verifyPayment = async (
 export const handlePaymentCallback = async (
 	verificationResult: PaymentVerificationResult
 ): Promise<Payment | null> => {
-	const transaction = await require("@models/index").default.sequelize.transaction();
+	const transaction =
+		await require("@models/index").default.sequelize.transaction();
 
 	try {
 		// Find payment by merchant order ref
@@ -318,12 +346,18 @@ export const handlePaymentCallback = async (
 			where: { merchantOrderRef: verificationResult.merchantOrderRef },
 			include: [
 				{
-					model: Ticket,
-					as: "tickets",
+					model: Order,
+					as: "order",
 					include: [
 						{
-							model: Seat,
-							as: "seat",
+							model: Ticket,
+							as: "tickets",
+							include: [
+								{
+									model: Seat,
+									as: "seat",
+								},
+							],
 						},
 					],
 				},
@@ -336,6 +370,13 @@ export const handlePaymentCallback = async (
 			logger.error(
 				`Payment not found for merchant order ref: ${verificationResult.merchantOrderRef}`
 			);
+			return null;
+		}
+
+		const order = payment.order;
+		if (!order) {
+			await transaction.rollback();
+			logger.error(`Order not found for payment id: ${payment.id}`);
 			return null;
 		}
 
@@ -354,7 +395,11 @@ export const handlePaymentCallback = async (
 
 		// If payment is successful, update tickets and seats
 		if (verificationResult.status === PaymentStatus.COMPLETED) {
-			const ticketIds = payment.tickets?.map((t) => t.id) || [];
+			await order.update(
+				{ status: OrderStatus.CONFIRMED },
+				{ transaction }
+			);
+			const ticketIds = order.tickets?.map((t) => t.id) || [];
 
 			await Ticket.update(
 				{ status: TicketStatus.BOOKED },
@@ -363,12 +408,12 @@ export const handlePaymentCallback = async (
 
 			// Update seats status to booked
 			const seatIds =
-				payment.tickets
+				order.tickets
 					?.map((t) => t.seatId)
 					.filter((id) => id !== null) || [];
 
 			if (seatIds.length > 0) {
-				await require("@models/index").default.seat.update(
+				await require("@models/index").default.Seat.update(
 					{
 						status: require("@my_types/seat").SeatStatus.BOOKED,
 						reservedBy: null,
@@ -382,8 +427,12 @@ export const handlePaymentCallback = async (
 			verificationResult.status === PaymentStatus.CANCELLED ||
 			verificationResult.status === PaymentStatus.EXPIRED
 		) {
+			await order.update(
+				{ status: OrderStatus.CANCELLED },
+				{ transaction }
+			);
 			// If payment failed, release tickets and seats
-			const ticketIds = payment.tickets?.map((t) => t.id) || [];
+			const ticketIds = order.tickets?.map((t) => t.id) || [];
 
 			await Ticket.update(
 				{ status: TicketStatus.INVALID },
@@ -392,12 +441,12 @@ export const handlePaymentCallback = async (
 
 			// Release seats
 			const seatIds =
-				payment.tickets
+				order.tickets
 					?.map((t) => t.seatId)
 					.filter((id) => id !== null) || [];
 
 			if (seatIds.length > 0) {
-				await require("@models/index").default.seat.update(
+				await require("@models/index").default.Seat.update(
 					{
 						status: SeatStatus.AVAILABLE,
 						reservedBy: null,
@@ -432,16 +481,29 @@ export const getPaymentByMerchantOrderRef = async (
 				attributes: ["id", "name", "code"],
 			},
 			{
-				model: Ticket,
-				as: "tickets",
+				model: Order,
+				as: "order",
 				include: [
 					{
-						model: Seat,
-						as: "seat",
-						include: [{ model: Trip, as: "trip" }],
+						model: Ticket,
+						as: "tickets",
+						include: [
+							{
+								model: Seat,
+								as: "seat",
+								include: [{ model: Trip, as: "trip" }],
+							},
+						],
 					},
 				],
 			},
 		],
 	});
+};
+
+export const processRefund = async (
+	dto: PaymentRefundDTO,
+	transaction: Transaction
+): Promise<PaymentRefundResult> => {
+	throw new Error("Not implemented")
 };

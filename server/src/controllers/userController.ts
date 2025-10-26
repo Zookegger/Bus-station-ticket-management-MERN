@@ -25,14 +25,26 @@ import { UpdateProfileDTO } from "@my_types/user";
  *
  * @throws {Error} When profile update fails or validation errors occur
  */
-export const updateProfile = async (
+export const UpdateProfile = async (
 	req: Request,
 	res: Response,
 	next: NextFunction
 ): Promise<void> => {
 	try {
 		const userId: string = (req as any).user.userId;
+		const id: string = (req.params as any).id;
+
+		if (userId !== id)  {
+			throw { status: 405, message: "Unauthorized access" }
+		}
+
 		const newProfile: UpdateProfileDTO = req.body;
+
+		const profile = await userServices.getUserById(userId);
+
+		if (profile) {
+			throw { status: 404, message: "User profile not found" }
+		}
 
 		await userServices.updateUserProfile(userId, newProfile);
 
@@ -41,6 +53,50 @@ export const updateProfile = async (
 		next(err);
 	}
 };
+
+/**
+ * Updates the authenticated user's profile information.
+ *
+ * Processes profile update requests, validates input data, and updates
+ * user information in the database. Requires authentication middleware
+ * to extract user ID from JWT token.
+ *
+ * @param req - Express request object containing user profile update data
+ * @param res - Express response object
+ * @param next - Express next function for error handling
+ *
+ * @route PUT /users/update-profile
+ * @access Private (requires authentication)
+ *
+ * @throws {Error} When profile update fails or validation errors occur
+ */
+export const GetProfile = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+): Promise<void> => {
+	try {
+		const userId: string = (req as any).user.userId;
+		const id: string = (req.params as any).id;
+
+		if (userId !== id)  {
+			throw { status: 405, message: "Unauthorized access" }
+		}
+
+		const profile = await userServices.getUserById(userId);
+
+		if (profile) {
+			throw { status: 404, message: "User profile not found" }
+		}
+
+		res.status(200).json({ profile });
+	} catch (err) {
+		next(err);
+	}
+}
+
+
+
 
 /**
  * Retrieves all users (Admin only).
@@ -52,7 +108,7 @@ export const updateProfile = async (
  * @route GET /users
  * @access Admin
  */
-export const getAllUsers = async (
+export const GetAllUsers = async (
 	_req: Request,
 	res: Response,
 	next: NextFunction
@@ -75,7 +131,7 @@ export const getAllUsers = async (
  * @route PUT /users/:id
  * @access Admin
  */
-export const updateUser = async (
+export const UpdateUser = async (
 	req: Request,
 	res: Response,
 	next: NextFunction
@@ -104,7 +160,7 @@ export const updateUser = async (
  * @route DELETE /users/:id
  * @access Admin
  */
-export const deleteUser = async (
+export const DeleteUser = async (
 	req: Request,
 	res: Response,
 	next: NextFunction

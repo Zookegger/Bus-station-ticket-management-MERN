@@ -1,4 +1,12 @@
-import { Model, DataTypes, Optional, Sequelize } from "sequelize";
+import {
+	Model,
+	DataTypes,
+	Optional,
+	Sequelize,
+	BelongsToGetAssociationMixin,
+} from "sequelize";
+import { User } from "./user";
+import { DbModels } from "@models";;
 
 /**
  * ==============================================================
@@ -95,19 +103,48 @@ export interface RefreshTokenCreationAttributes
  * @property {string} [ipAddress] - The IP address from which the token was issued (optional).
  * @property {Date} expiresAt - Expiration date/time for this refresh token.
  * @property {Date} createdAt - Timestamp when this record was created.
+ * @property {User} [user] - Associated User instance.
  */
 export class RefreshToken
 	extends Model<RefreshTokenAttributes, RefreshTokenCreationAttributes>
 	implements RefreshTokenAttributes
 {
+	/**
+	 * @property {number} id - Auto-incrementing primary key.
+	 */
 	public id!: number;
+	/**
+	 * @property {string} token - The raw (or hashed) refresh token string.
+	 */
 	public token!: string;
+	/**
+	 * @property {string} userId - UUID of the user who owns this refresh token.
+	 */
 	public userId!: string;
+	/**
+	 * @property {string} userAgent - The device’s User-Agent string (optional).
+	 */
 	public userAgent?: string;
+	/**
+	 * @property {string} ipAddress - The IP address from which the token was issued (optional).
+	 */
 	public ipAddress?: string;
+	/**
+	 * @property {Date} expiresAt - Expiration date/time for this refresh token.
+	 */
 	public expiresAt!: Date;
 
+	/**
+	 * @property {Date} createdAt - Timestamp when this record was created.
+	 */
 	public readonly createdAt!: Date;
+
+	// Associations
+	public getUser!: BelongsToGetAssociationMixin<User>;
+	/**
+	 * @property {User} [user] - Associated User instance.
+	 */
+	public readonly user?: User;
 
 	/**
 	 * Initializes the Sequelize model definition for RefreshToken.
@@ -131,18 +168,22 @@ export class RefreshToken
 				userAgent: {
 					type: DataTypes.STRING(256),
 					allowNull: true,
+					field: 'userAgent'
 				},
 				ipAddress: {
 					type: DataTypes.STRING(45), // Accounted for IPv6
 					allowNull: true,
+					field: 'ipAddress'
 				},
 				userId: {
 					type: DataTypes.UUID,
 					allowNull: false,
+					field: 'userId'
 				},
 				expiresAt: {
 					type: DataTypes.DATE,
 					allowNull: false,
+					field: 'expiresAt'
 				},
 			},
 			// Options
@@ -151,11 +192,25 @@ export class RefreshToken
 				tableName: "refresh_tokens",
 				timestamps: true,
 				updatedAt: false, // we treat refresh tokens as immutable rows
+				underscored: false,
 				indexes: [
 					{ fields: ["userId"] },
 					{ unique: true, fields: ["token"] },
 				],
 			}
 		);
+	}
+
+	/**
+	 * Defines associations between the RefreshToken model and other models.
+	 *
+	 * @param {DbModels} models - The collection of all Sequelize models.
+	 * @returns {void}
+	 */
+	static associate(models: DbModels) {
+		RefreshToken.belongsTo(models.User, {
+			foreignKey: "userId",
+			as: "user",
+		});
 	}
 }

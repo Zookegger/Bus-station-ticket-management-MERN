@@ -57,7 +57,7 @@ export const getVehicleTypeById = async (
 	id: number,
 	...attributes: (keyof VehicleTypeAttributes)[]
 ): Promise<VehicleType | null> => {
-	return (attributes && attributes.length > 0) ? await db.vehicleType.findByPk(id, { attributes }) : await db.vehicleType.findByPk(id);
+	return (attributes && attributes.length > 0) ? await db.VehicleType.findByPk(id, { attributes }) : await db.VehicleType.findByPk(id);
 };
 
 /**
@@ -155,7 +155,7 @@ export const listVehicleTypes = async (options: ListOptions = {}
         queryOptions.limit = limit;
     }
 
-	return await db.vehicleType.findAndCountAll(queryOptions);
+	return await db.VehicleType.findAndCountAll(queryOptions);
 };
 
 /**
@@ -171,7 +171,7 @@ export const listVehicleTypes = async (options: ListOptions = {}
 export const addVehicleType = async (
 	dto: CreateVehicleTypeDTO
 ): Promise<VehicleType | null> => {
-	const existing_vehicle_type = await db.vehicleType.findOne({
+	const existing_vehicle_type = await db.VehicleType.findOne({
 		where: {
 			name: dto.name,
 		},
@@ -180,7 +180,7 @@ export const addVehicleType = async (
 	if (existing_vehicle_type)
 		throw { status: 409, message: "Vehicle type already exist." };
 
-	const vehicle_type = await db.vehicleType.create(dto);
+	const vehicle_type = await db.VehicleType.create(dto);
 	return vehicle_type;
 };
 

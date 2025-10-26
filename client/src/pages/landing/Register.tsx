@@ -40,7 +40,7 @@ const Register: React.FC = () => {
 		email: "",
 		password: "",
 		confirmPassword: "",
-		phone: "",
+		phoneNumber: "",
 		address: "",
 		gender: "male" as Gender,
 		dateOfBirth: "",
@@ -79,6 +79,7 @@ const Register: React.FC = () => {
 		const register_payload: RegisterDTO = {
 			email: formData.email,
 			username: formData.email,
+			phoneNumber: formData.phoneNumber,
 			password: formData.password,
 			confirmPassword: formData.confirmPassword,
 		};
@@ -271,8 +272,8 @@ const Register: React.FC = () => {
 										<TextField
 											fullWidth
 											label="Phone Number"
-											name="phone"
-											value={formData.phone}
+											name="phoneNumber"
+											value={formData.phoneNumber}
 											onChange={handleChange}
 										/>
 									</Grid>

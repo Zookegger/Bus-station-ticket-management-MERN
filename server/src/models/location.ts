@@ -1,5 +1,12 @@
-import { DataTypes, Model, Optional, Sequelize } from "sequelize"
-import { Route } from "./route"
+import {
+	DataTypes,
+	Model,
+	Optional,
+	Sequelize,
+	HasManyGetAssociationsMixin,
+} from "sequelize";
+import { Route } from "./route";
+import { DbModels } from "@models";;
 
 /**
  * Sequelize model for Location entity.
@@ -54,19 +61,51 @@ export interface LocationCreationAttributes extends Optional<LocationAttributes,
  * @property {number | null} longitude - Longitude coordinate.
  * @property {Date} createdAt - Creation timestamp.
  * @property {Date} updatedAt - Last update timestamp.
+ * @property {Route[]} [routesStartingHere] - Associated Route instances starting from this location.
+ * @property {Route[]} [routesEndingHere] - Associated Route instances ending at this location.
  */
 export class Location extends Model<LocationAttributes, LocationCreationAttributes> implements LocationAttributes {
+    /**
+     * @property {number} id - Unique identifier of the location.
+     */
     public id!: number
+    /**
+     * @property {string} name - Name of the location.
+     */
     public name!: string
+    /**
+     * @property {string | null} address - Physical address.
+     */
     public address!: string | null
+    /**
+     * @property {number | null} latitude - Latitude coordinate.
+     */
     public latitude?: number | null
+    /**
+     * @property {number | null} longitude - Longitude coordinate.
+     */
     public longitude?: number | null
+    /**
+     * @property {Date} createdAt - Creation timestamp.
+     */
     public readonly createdAt!: Date
+    /**
+     * @property {Date} updatedAt - Last update timestamp.
+     */
     public readonly updatedAt!: Date
 
     // Association properties
-    public routesStartingHere?: Route[];
-    public routesEndingHere?: Route[];
+    public getRoutesStartingHere!: HasManyGetAssociationsMixin<Route>;
+    /**
+     * @property {Route[]} [routesStartingHere] - Associated Route instances starting from this location.
+     */
+    public readonly routesStartingHere?: Route[];
+
+    public getRoutesEndingHere!: HasManyGetAssociationsMixin<Route>;
+    /**
+     * @property {Route[]} [routesEndingHere] - Associated Route instances ending at this location.
+     */
+    public readonly routesEndingHere?: Route[];
 
     /**
 	 * Initializes the Sequelize model definition for Location.
@@ -86,7 +125,25 @@ export class Location extends Model<LocationAttributes, LocationCreationAttribut
                 sequelize,
                 tableName: 'locations',
                 timestamps: true,
+				underscored: false
             }
         );
-    };
+	}
+
+	/**
+	 * Defines associations between the Location model and other models.
+	 *
+	 * @param {DbModels} models - The collection of all Sequelize models.
+	 * @returns {void}
+	 */
+	static associate(models: DbModels) {
+		Location.hasMany(models.Route, {
+			as: "routesStartingHere",
+			foreignKey: "startId",
+		});
+		Location.hasMany(models.Route, {
+			as: "routesEndingHere",
+			foreignKey: "destinationId",
+		});
+	}
 }

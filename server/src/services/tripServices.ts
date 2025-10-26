@@ -202,7 +202,7 @@ async function generateSeatsForTrip(
 
 	// Bulk create seats
 	if (seats.length > 0) {
-		await db.seat.bulkCreate(seats);
+		await db.Seat.bulkCreate(seats);
 	}
 }
 
@@ -247,7 +247,7 @@ interface ListOptions {
  * @returns Promise resolving to the trip or null if not found
  */
 export const getTripById = async (id: number): Promise<Trip | null> => {
-	return await db.trip.findByPk(id);
+	return await db.Trip.findByPk(id);
 };
 
 /**
@@ -357,7 +357,7 @@ export const searchTrip = async (
 		queryOptions.limit = limit;
 	}
 
-	return await db.trip.findAndCountAll(queryOptions);
+	return await db.Trip.findAndCountAll(queryOptions);
 };
 
 /**
@@ -373,7 +373,7 @@ export const searchTrip = async (
  */
 export const addTrip = async (dto: CreateTripDTO): Promise<Trip | null> => {
 	// Validate that route exists
-	const route = await db.route.findByPk(dto.routeId);
+	const route = await db.Route.findByPk(dto.routeId);
 	if (!route) {
 		throw {
 			status: 400,
@@ -402,10 +402,10 @@ export const addTrip = async (dto: CreateTripDTO): Promise<Trip | null> => {
 	}
 
 	// Validate that vehicle exists and has vehicle type with seat layout
-	const vehicle = await db.vehicle.findByPk(dto.vehicleId, {
+	const vehicle = await db.Vehicle.findByPk(dto.vehicleId, {
 		include: [
 			{
-				model: db.vehicleType,
+				model: db.VehicleType,
 				as: "vehicleType",
 			},
 		],
@@ -444,7 +444,7 @@ export const addTrip = async (dto: CreateTripDTO): Promise<Trip | null> => {
 	createData.price = total_price;
 
 	// Create trip
-	const trip = await db.trip.create(createData);
+	const trip = await db.Trip.create(createData);
 
 	// Generate seats based on vehicle type configuration
 	await generateSeatsForTrip(trip.id, vehicle.vehicleType);
@@ -477,7 +477,7 @@ export const updateTrip = async (
 
 	// Validate vehicle exists if being updated
 	if (dto.vehicleId !== undefined) {
-		const vehicle = await db.vehicle.findByPk(dto.vehicleId);
+		const vehicle = await db.Vehicle.findByPk(dto.vehicleId);
 		if (!vehicle) {
 			throw {
 				status: 400,
@@ -488,7 +488,7 @@ export const updateTrip = async (
 
 	// Validate route exists if being updated
 	if (dto.routeId !== undefined) {
-		const route = await db.route.findByPk(dto.routeId);
+		const route = await db.Route.findByPk(dto.routeId);
 		if (!route) {
 			throw {
 				status: 400,
@@ -549,7 +549,7 @@ export const deleteTrip = async (id: number): Promise<void> => {
 
 	// Release all seats associated with this trip
 	// Set tripId to null and mark seats available
-	await db.seat.update(
+	await db.Seat.update(
 		{
 			tripId: null,
 			status: SeatStatus.AVAILABLE,

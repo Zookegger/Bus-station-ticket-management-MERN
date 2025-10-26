@@ -53,8 +53,8 @@ export const getDriverById = async (
 	...attributes: (keyof DriverAttributes)[]
 ): Promise<Driver | null> => {
 	return attributes && attributes.length > 0
-		? await db.driver.findByPk(id, { attributes })
-		: await db.driver.findByPk(id);
+		? await db.Driver.findByPk(id, { attributes })
+		: await db.Driver.findByPk(id);
 };
 
 /**
@@ -154,7 +154,7 @@ export const listDrivers = async (
 		queryOptions.limit = limit;
 	}
 
-	return await db.driver.findAndCountAll(queryOptions);
+	return await db.Driver.findAndCountAll(queryOptions);
 };
 
 /**
@@ -171,7 +171,7 @@ export const listDrivers = async (
 export const addDriver = async (
 	dto: CreateDriverDTO
 ): Promise<Driver | null> => {
-	const existing_driver = await db.driver.findOne({
+	const existing_driver = await db.Driver.findOne({
 		where: {
 			[Op.or]: [
 				{ fullname: dto.fullname },
@@ -183,7 +183,7 @@ export const addDriver = async (
 
 	if (existing_driver) throw { status: 409, message: "Driver already exist." };
 	
-    const driver = await db.driver.create(dto);
+    const driver = await db.Driver.create(dto);
     return driver;
 };
 

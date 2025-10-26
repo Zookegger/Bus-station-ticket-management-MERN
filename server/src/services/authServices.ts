@@ -5,7 +5,7 @@ import crypto from "crypto";
 import { add, addDays } from "date-fns";
 import * as DTO from "@my_types/user";
 import ms from "ms";
-import { role } from "@models/user";
+import { Role } from "@models/user";
 import { Op } from "sequelize";
 import * as verificationServices from "@services/verificationServices";
 import { getUserByEmail, getUserById } from "./userServices";
@@ -19,7 +19,7 @@ const JWT_SECRET: jwt.Secret = process.env.JWT_SECRET || "yoursupersecret";
 
 interface AuthJwtPayload {
 	id: string;
-	role: role;
+	role: Role;
 }
 interface ResetPasswordJwtPayload {
 	userId: string;
@@ -64,17 +64,19 @@ export const register = async (
 ): Promise<{
 	accessToken: string;
 	refreshToken: string;
-	user: { id: string; username: string; email: string; role: role };
+	user: { id: string; username: string; email: string; role: Role };
 	message: string;
 }> => {
-	const existing = await db.user.findOne({ where: { email: dto.email } });
+	const existing = await db.User.findOne({ where: { email: dto.email } });
 	if (existing) throw { status: 400, message: "Email already in use" };
  
 	const passwordHash = await bcrypt.hash(dto.password, CONFIG.BCRYPT_SALT_ROUNDS);
-	const user = await db.user.create({
+	const user = await db.User.create({
 		userName: dto.username,
 		email: dto.email,
-		role: role.User,
+		phoneNumber: dto.phoneNumber,
+		emailConfirmed: false,
+		role: Role.USER,
 		passwordHash,
 	});
 
@@ -83,7 +85,7 @@ export const register = async (
 	const refreshToken = generateRefreshTokenValue();
 	const expiresAt = add(new Date(), { seconds: COMPUTED.REFRESH_TOKEN_EXPIRY_SECONDS });
 
-	await db.refreshToken.create({
+	await db.RefreshToken.create({
 		token: refreshToken.hashed,
 		userId: user.id,
 		expiresAt,
@@ -120,10 +122,10 @@ export const login = async (
 ): Promise<{
 	accessToken: string;
 	refreshToken: string;
-	user: { id: string; username: string; email: string; role: role };
+	user: { id: string; username: string; email: string; role: Role };
 	message: string;
 }> => {
-	const user = await db.user.findOne({
+	const user = await db.User.findOne({
 		where: {
 			[Op.or]: [{ email: dto.username }, { userName: dto.username }],
 		},
@@ -137,7 +139,7 @@ export const login = async (
 	const refreshToken = generateRefreshTokenValue();
 	const expiresAt = add(new Date(), { seconds: COMPUTED.REFRESH_TOKEN_EXPIRY_SECONDS });
 
-	await db.refreshToken.create({
+	await db.RefreshToken.create({
 		token: refreshToken.hashed,
 		userId: user.id,
 		expiresAt: expiresAt,
@@ -172,9 +174,9 @@ export const refreshAccessToken = async (
 	accessToken: string;
 	refreshToken: { value: string; hashed: string };
 }> => {
-	const dbToken = await db.refreshToken.findOne({
+	const dbToken = await db.RefreshToken.findOne({
 		where: { token: refreshTokenValue },
-		include: [{ model: db.user, as: "user" }],
+		include: [{ model: db.User, as: "user" }],
 	});
 
 	if (!dbToken) throw { status: 401, message: "Invalid refresh token" };
@@ -187,7 +189,7 @@ export const refreshAccessToken = async (
 		};
 	}
 
-	const user = await db.user.findByPk(dbToken.userId, {
+	const user = await db.User.findByPk(dbToken.userId, {
 		attributes: ["id", "role"],
 	});
 
@@ -201,11 +203,11 @@ export const refreshAccessToken = async (
 	const newRefreshToken = generateRefreshTokenValue();
 
 	await db.sequelize.transaction(async (t) => {
-		await db.refreshToken.destroy({
+		await db.RefreshToken.destroy({
 			where: { id: dbToken.id },
 			transaction: t,
 		});
-		await db.refreshToken.create({
+		await db.RefreshToken.create({
 			token: newRefreshToken.hashed,
 			userId: user.id,
 			expiresAt: issueExpiryDate(COMPUTED.REFRESH_TOKEN_EXPIRY_SECONDS),
@@ -227,7 +229,7 @@ export const refreshAccessToken = async (
 export const revokeRefreshToken = async (
 	refreshTokenValue: string
 ): Promise<number> => {
-	return await db.refreshToken.destroy({
+	return await db.RefreshToken.destroy({
 		where: { token: refreshTokenValue },
 	});
 };
@@ -243,7 +245,7 @@ export const revokeRefreshToken = async (
  * @throws {Object} Error with status 404 if user not found or password incorrect
  */
 export const changePassword = async (dto: DTO.ChangePasswordDTO): Promise<void> => {
-	const user = await db.user.findByPk(dto.userId, {
+	const user = await db.User.findByPk(dto.userId, {
 		attributes: ["id", "passwordHash"],
 	});
 
@@ -265,7 +267,7 @@ export const changePassword = async (dto: DTO.ChangePasswordDTO): Promise<void> 
 	await user.update({ passwordHash: newPasswordHash });
 
 	// Revoke all sessions after password change
-	await db.refreshToken.destroy({ where: { userId: user.id } });
+	await db.RefreshToken.destroy({ where: { userId: user.id } });
 };
 
 export const resetPassword = async (dto: DTO.ResetPasswordDTO): Promise<void> => {
@@ -280,7 +282,7 @@ export const resetPassword = async (dto: DTO.ResetPasswordDTO): Promise<void> =>
 	);
 
 	await user.update({ passwordHash: newPasswordHash });	// Revoke all sessions after password change
-	await db.refreshToken.destroy({ where: { userId: user.id } });
+	await db.RefreshToken.destroy({ where: { userId: user.id } });
 };
 
 /**
@@ -301,7 +303,7 @@ export const getMe = async (userId: string): Promise<DTO.GetMeDTO> => {
 			id: user.id,
 			username: user.userName,
 			email: user.email,
-			emailConfirmed: user.emailConfirmed,
+			emailConfirmed: user.emailConfirmed ?? false,
 			role: user.role,
 			...(user.avatar !== undefined && {avatar: user.avatar}),
 		},

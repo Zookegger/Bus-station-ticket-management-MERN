@@ -109,7 +109,7 @@ export const cancelTicket = async (
 	const transaction = await db.sequelize.transaction();
 
 	try {
-		const ticket = await db.ticket.findOne({
+		const ticket = await db.Ticket.findOne({
 			where: { id, userId },
 			transaction,
 		});
@@ -127,7 +127,7 @@ export const cancelTicket = async (
 		);
 
 		if (ticket.seatId) {
-			await db.seat.update(
+			await db.Seat.update(
 				{
 					status: SeatStatus.AVAILABLE,
 					reservedBy: null,

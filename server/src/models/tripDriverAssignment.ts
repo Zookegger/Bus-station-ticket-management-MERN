@@ -1,8 +1,20 @@
-import { Model, DataTypes, Optional, Sequelize, BelongsToGetAssociationMixin } from "sequelize";
-import { Trip } from "./trip";
-import { Driver } from "./driver";
+import {
+	DataTypes,
+	Model,
+	Sequelize,
+} from "sequelize";
+import { DbModels } from "@models";
 
-interface TripDriverAssignmentAttributes {
+/**
+ * Interface for the attributes of a TripDriverAssignment.
+ * This is a junction table between Trip and Driver.
+ * @interface TripDriverAssignmentAttributes
+ * @property {number} tripId - The ID of the trip.
+ * @property {string} driverId - The ID of the driver.
+ * @property {Date} [createdAt] - The date and time the assignment was created.
+ * @property {Date} [updatedAt] - The date and time the assignment was last updated.
+ */
+export interface TripDriverAssignmentAttributes {
 	id: number;
 	tripId: number;
 	driverId: number;
@@ -11,12 +23,26 @@ interface TripDriverAssignmentAttributes {
 	updatedAt?: Date;
 }
 
-interface TripDriverAssignmentCreationAttributes
-	extends Optional<
-		TripDriverAssignmentAttributes,
-		"id" | "assignedAt" | "createdAt" | "updatedAt"
-	> {}
+/**
+ * Interface for the creation attributes of a TripDriverAssignment.
+ * @interface TripDriverAssignmentCreationAttributes
+ * @extends {TripDriverAssignmentAttributes}
+ */
+export interface TripDriverAssignmentCreationAttributes
+	extends TripDriverAssignmentAttributes {}
 
+/**
+ * Sequelize model for the TripDriverAssignment.
+ * @class TripDriverAssignment
+ * @extends {Model<TripDriverAssignmentAttributes, TripDriverAssignmentCreationAttributes>}
+ * @implements {TripDriverAssignmentAttributes}
+ * @property {number} id - The unique identifier for the assignment.
+ * @property {number} tripId - The ID of the trip.
+ * @property {number} driverId - The ID of the driver.
+ * @property {Date} [assignedAt] - The date and time the assignment was made.
+ * @property {Date} [createdAt] - The date and time the record was created.
+ * @property {Date} [updatedAt] - The date and time the record was last updated.
+ */
 export class TripDriverAssignment
 	extends Model<
 		TripDriverAssignmentAttributes,
@@ -24,22 +50,38 @@ export class TripDriverAssignment
 	>
 	implements TripDriverAssignmentAttributes
 {
+	/**
+	 * @property {number} id - The unique identifier for the assignment.
+	 */
 	public id!: number;
+	/**
+	 * @property {number} tripId - The ID of the trip.
+	 */
 	public tripId!: number;
+	/**
+	 * @property {number} driverId - The ID of the driver.
+	 */
 	public driverId!: number;
+	/**
+	 * @property {Date} assignedAt - The date and time the assignment was made.
+	 */
 	public assignedAt?: Date;
 
+	/**
+	 * @property {Date} createdAt - The date and time the record was created.
+	 */
 	public readonly createdAt!: Date;
-	public readonly updatedAt!: Date;
+	/**
+	 * @property {Date} updatedAt - The date and time the record was last updated.
+	 */
+	public readonly updatedAt?: Date;
 
-    public getTrip!: BelongsToGetAssociationMixin<Trip>;
-    public getDriver!: BelongsToGetAssociationMixin<Driver>;
-
-	// Association properties
-	public trip?: Trip;
-	public driver?: Driver;
-
-	static initModel(sequelize: Sequelize) {
+	/**
+	 * Initializes the TripDriverAssignment model.
+	 * @param {Sequelize} sequelize - The Sequelize instance.
+	 * @returns {void}
+	 */
+	static initModel(sequelize: Sequelize): void {
 		TripDriverAssignment.init(
 			{
 				id: {
@@ -47,18 +89,37 @@ export class TripDriverAssignment
 					primaryKey: true,
 					autoIncrement: true,
 				},
-				tripId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+				tripId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, field: 'tripId' },
 				driverId: {
 					type: DataTypes.INTEGER.UNSIGNED,
 					allowNull: false,
+					field: 'driverId'
 				},
-				assignedAt: { type: DataTypes.DATE, allowNull: true },
+				assignedAt: { type: DataTypes.DATE, allowNull: true, field: 'assignedAt' },
 			},
 			{
 				sequelize,
 				tableName: "trip_driver_assignments",
 				timestamps: true,
+				underscored: false
 			}
 		);
+	}
+
+	/**
+	 * Defines associations between the TripDriverAssignment model and other models.
+	 *
+	 * @param {DbModels} models - The collection of all Sequelize models.
+	 * @returns {void}
+	 */
+	static associate(models: DbModels): void {
+		TripDriverAssignment.belongsTo(models.Trip, {
+			foreignKey: "tripId",
+			as: "trip",
+		});
+		TripDriverAssignment.belongsTo(models.Driver, {
+			foreignKey: "driverId",
+			as: "driver",
+		});
 	}
 }

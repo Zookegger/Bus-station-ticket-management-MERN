@@ -2,6 +2,7 @@
 import { decrypt, encrypt } from "@utils/encryption";
 import logger from "@utils/logger";
 import { Model, Optional, DataTypes } from "sequelize";
+import { DbModels } from "@models";;
 export interface PaymentMethodAttributes {
 	id: string;
 	name: string;
@@ -18,18 +19,59 @@ export interface PaymentMethodCreationAttributes
 		"id" | "configJson" | "createdAt" | "updatedAt" | "isActive"
 	> {}
 
+/**
+ * Sequelize model representing a PaymentMethod entity.
+ *
+ * @class PaymentMethod
+ * @extends {Model<PaymentMethodAttributes, PaymentMethodCreationAttributes>}
+ * @implements {PaymentMethodAttributes}
+ * @property {string} id - The unique identifier for the payment method.
+ * @property {string} name - The name of the payment method.
+ * @property {string} code - The code of the payment method.
+ * @property {boolean} isActive - Whether the payment method is active.
+ * @property {any} configJson - The configuration for the payment method.
+ * @property {Date} createdAt - The date and time the record was created.
+ * @property {Date} updatedAt - The date and time the record was last updated.
+ */
 export class PaymentMethod
 	extends Model<PaymentMethodAttributes, PaymentMethodCreationAttributes>
 	implements PaymentMethodAttributes
 {
+	/**
+	 * @property {string} id - The unique identifier for the payment method.
+	 */
 	public id!: string;
+	/**
+	 * @property {string} name - The name of the payment method.
+	 */
 	public name!: string;
+	/**
+	 * @property {string} code - The code of the payment method.
+	 */
 	public code!: string;
+	/**
+	 * @property {boolean} isActive - Whether the payment method is active.
+	 */
 	public isActive!: boolean;
+	/**
+	 * @property {any} configJson - The configuration for the payment method.
+	 */
 	public configJson!: any;
+	/**
+	 * @property {Date} createdAt - The date and time the record was created.
+	 */
 	public createdAt!: Date;
+	/**
+	 * @property {Date} updatedAt - The date and time the record was last updated.
+	 */
 	public updatedAt!: Date;
 
+	/**
+	 * Initializes the Sequelize model definition for PaymentMethod.
+	 *
+	 * @param {any} sequelize - The Sequelize instance.
+	 * @returns {void}
+	 */
 	static initModel(sequelize: any) {
 		PaymentMethod.init(
 			{
@@ -50,11 +92,11 @@ export class PaymentMethod
 				isActive: {
 					type: DataTypes.BOOLEAN,
 					defaultValue: true,
-					field: "is_active",
+					field: "isActive",
 				},
 				configJson: {
 					type: DataTypes.TEXT("long"),
-					field: "config_json",
+					field: "configJson",
 					get() {
 						const rawValue = this.getDataValue("configJson" as any);
 						if (!rawValue) return null;
@@ -97,12 +139,12 @@ export class PaymentMethod
 				createdAt: {
 					type: DataTypes.DATE,
 					defaultValue: DataTypes.NOW,
-					field: "created_at",
+					field: "createdAt",
 				},
 				updatedAt: {
 					type: DataTypes.DATE,
 					defaultValue: DataTypes.NOW,
-					field: "updated_at",
+					field: "updatedAt",
 				},
 			},
 			{
@@ -110,8 +152,18 @@ export class PaymentMethod
 				modelName: "PaymentMethod",
 				tableName: "payment_methods",
 				timestamps: true,
-				underscored: true,
+				underscored: false,
 			}
 		);
+	}
+
+	/**
+	 * Defines associations between the PaymentMethod model and other models.
+	 *
+	 * @param {DbModels} models - The collection of all Sequelize models.
+	 * @returns {void}
+	 */
+	static associate(models: DbModels) {
+		// No direct associations from PaymentMethod in this schema
 	}
 }

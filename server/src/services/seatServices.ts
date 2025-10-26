@@ -36,32 +36,32 @@ interface ListOptions {
  * @returns Promise resolving to the seat or null if not found
  */
 export const getSeatById = async (id: number): Promise<Seat | null> => {
-	return await db.seat.findByPk(id, {
+	return await db.Seat.findByPk(id, {
 		include: [
 			{
-				model: db.trip,
+				model: db.Trip,
 				as: "trip",
 				include: [
 					{
-						model: db.vehicle,
+						model: db.Vehicle,
 						as: "vehicle",
 						include: [
 							{
-								model: db.vehicleType,
+								model: db.VehicleType,
 								as: "vehicleType",
 							},
 						],
 					},
 					{
-						model: db.route,
+						model: db.Route,
 						as: "route",
 						include: [
 							{
-								model: db.location,
+								model: db.Location,
 								as: "startLocation",
 							},
 							{
-								model: db.location,
+								model: db.Location,
 								as: "destinationLocation",
 							},
 						],
@@ -105,7 +105,7 @@ export const searchSeats = async (
 		order: [[orderBy, sortOrder]],
 		include: [
 			{
-				model: db.trip,
+				model: db.Trip,
 				as: "trip",
 				where:
 					filters.vehicleId !== undefined
@@ -114,25 +114,25 @@ export const searchSeats = async (
 				required: filters.vehicleId !== undefined, // INNER JOIN when filtering by vehicleId
 				include: [
 					{
-						model: db.vehicle,
+						model: db.Vehicle,
 						as: "vehicle",
 						include: [
 							{
-								model: db.vehicleType,
+								model: db.VehicleType,
 								as: "vehicleType",
 							},
 						],
 					},
 					{
-						model: db.route,
+						model: db.Route,
 						as: "route",
 						include: [
 							{
-								model: db.location,
+								model: db.Location,
 								as: "startLocation",
 							},
 							{
-								model: db.location,
+								model: db.Location,
 								as: "destinationLocation",
 							},
 						],
@@ -148,7 +148,7 @@ export const searchSeats = async (
 		queryOptions.limit = limit;
 	}
 
-	return await db.seat.findAndCountAll(queryOptions);
+	return await db.Seat.findAndCountAll(queryOptions);
 };
 
 /**
@@ -176,7 +176,7 @@ export const updateSeat = async (
 
 	// If assigning to a trip, validate that the trip exists
 	if (dto.tripId !== undefined && dto.tripId !== null) {
-		const trip = await db.trip.findByPk(dto.tripId);
+		const trip = await db.Trip.findByPk(dto.tripId);
 		if (!trip) {
 			throw { status: 400, message: `Invalid trip ID: ${dto.tripId}` };
 		}

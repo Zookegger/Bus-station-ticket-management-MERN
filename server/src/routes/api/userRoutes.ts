@@ -11,7 +11,7 @@ import * as userController from "@controllers/userController";
 import { errorHandler } from "@middlewares/errorHandler";
 import { updateProfileValidation, validateUserIdParam } from "@middlewares/validators/userValidator";
 import { handleValidationResult } from "@middlewares/validateRequest";
-import { csrfAdminProtectionRoute } from "@middlewares/csrf";
+import { csrfAdminProtectionRoute, csrfProtectionRoute } from "@middlewares/csrf";
 
 /**
  * User management router instance.
@@ -21,15 +21,18 @@ import { csrfAdminProtectionRoute } from "@middlewares/csrf";
 const userRoutes = Router();
 
 // POST /users/update-profile - Update authenticated user's profile
-userRoutes.post("/update-profile", updateProfileValidation, handleValidationResult, userController.updateProfile, errorHandler);
+userRoutes.post("/update-profile/:id", csrfProtectionRoute, updateProfileValidation, handleValidationResult, userController.UpdateProfile, errorHandler);
+
+// GET /users/profile - Get user profile
+userRoutes.get("/profile/:id", csrfProtectionRoute, userController.GetProfile, errorHandler);
 
 // GET /users - Get all users (Admin only)
-userRoutes.get("/", csrfAdminProtectionRoute, userController.getAllUsers, errorHandler);
+userRoutes.get("/", csrfAdminProtectionRoute, userController.GetAllUsers, errorHandler);
 
-// PUT /users/:id - Update user by ID (Admin only)
-userRoutes.put("/:id", csrfAdminProtectionRoute, validateUserIdParam, handleValidationResult, userController.updateUser, errorHandler);
+// PUT /users/:id - Update user by ID
+userRoutes.put("/:id", csrfAdminProtectionRoute, validateUserIdParam, handleValidationResult, userController.UpdateUser, errorHandler);
 
 // DELETE /users/:id - Delete user by ID (Admin only)
-userRoutes.delete("/:id", csrfAdminProtectionRoute, validateUserIdParam, handleValidationResult, userController.deleteUser, errorHandler);
+userRoutes.delete("/:id", csrfAdminProtectionRoute, validateUserIdParam, handleValidationResult, userController.DeleteUser, errorHandler);
 
 export default userRoutes;

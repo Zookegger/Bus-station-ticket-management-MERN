@@ -25,10 +25,11 @@ export const Register = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
-		const { username, email, password, confirmPassword } = req.body;
+		const { username, email, phoneNumber, password, confirmPassword } = req.body;
 		const result = await authServices.register({
 			username,
 			email,
+			phoneNumber,
 			password,
 			confirmPassword,
 		});

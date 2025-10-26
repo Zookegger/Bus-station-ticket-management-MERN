@@ -48,7 +48,7 @@ interface ListOptions {
 export const getRouteById = async (
 	id: number
 ): Promise<Route | null> => {
-	return await db.route.findByPk(id);
+	return await db.Route.findByPk(id);
 };
 
 /**
@@ -143,7 +143,7 @@ export const searchRoute = async (
 		queryOptions.limit = limit;
 	}
 
-	return await db.route.findAndCountAll(queryOptions);
+	return await db.Route.findAndCountAll(queryOptions);
 };
 
 /**
@@ -169,7 +169,7 @@ export const addRoute = async (
 	}
 
 	// Check if route already exists
-	const existing_route = await db.route.findOne({
+	const existing_route = await db.Route.findOne({
 		where: {
 			startId: dto.startId,
 			destinationId: dto.destinationId,
@@ -183,7 +183,7 @@ export const addRoute = async (
 		};
 	}
 
-	const route = await db.route.create(dto);
+	const route = await db.Route.create(dto);
 	return route;
 };
 
