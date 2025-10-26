@@ -44,6 +44,12 @@ const generateRefreshTokenValue = (): { value: string; hashed: string } => {
 	return { value: token, hashed: hashed };
 };
 
+/**
+ * Calculates the expiry date for tokens based on the given number of days.
+ *
+ * @param value - Number of days until expiry.
+ * @returns Date object representing the expiry date.
+ */
 const issueExpiryDate = (value: number): Date => {
 	return addDays(new Date(), value);
 };
@@ -270,6 +276,16 @@ export const changePassword = async (dto: DTO.ChangePasswordDTO): Promise<void> 
 	await db.RefreshToken.destroy({ where: { userId: user.id } });
 };
 
+/**
+ * Resets a user's password using a valid reset token.
+ *
+ * Verifies the reset token, hashes the new password, updates the user record,
+ * and revokes all refresh tokens to invalidate existing sessions.
+ *
+ * @param dto - Data transfer object containing the reset token and new password.
+ * @returns Promise resolving when password reset is complete.
+ * @throws {Object} Error with status 404 if user not found or token invalid.
+ */
 export const resetPassword = async (dto: DTO.ResetPasswordDTO): Promise<void> => {
 	const decoded = verifyResetPasswordToken(dto.token) as ResetPasswordJwtPayload;
     
@@ -321,10 +337,28 @@ const generateResetPasswordToken = (payload: ResetPasswordJwtPayload): string =>
 	return jwt.sign(payload, JWT_SECRET, { expiresIn: CHANGE_PASSWORD_EXPIRY });
 };
 
+/**
+ * Verifies and decodes a reset password JWT token.
+ *
+ * @param token - The JWT token to verify.
+ * @returns The decoded payload containing the user ID.
+ * @throws Error if token is invalid or expired.
+ */
 const verifyResetPasswordToken = (token: string): ResetPasswordJwtPayload => {
 	return jwt.verify(token, JWT_SECRET) as ResetPasswordJwtPayload;
 }
 
+/**
+ * Sends a password reset email to the user.
+ *
+ * Generates a reset token, stores it in Redis, creates the reset link,
+ * and queues an email with the reset instructions.
+ *
+ * @param userId - The ID of the user requesting password reset.
+ * @param username - The username of the user.
+ * @param email - The email address to send the reset email to.
+ * @returns Promise resolving when the email is queued.
+ */
 export const sendResetPasswordEmail = async (
 	userId: string,
 	username: string,
@@ -355,11 +389,15 @@ export const sendResetPasswordEmail = async (
 };
 
 /**
- * Checks if a user exists with the given email address.
- * @param {string} email - The email address to check.
- * @returns {Promise<boolean>} True if a user with the email exists, false otherwise.
+ * Initiates password reset for a user by email.
+ *
+ * Checks if a user exists with the given email address and sends a password reset email if found.
+ * Does not reveal whether the email exists for security reasons.
+ *
+ * @param email - The email address to send the password reset request to.
+ * @returns Promise resolving when the request is processed.
  * @example
- * const exists = await forgotPassword('user@example.com');
+ * await forgotPassword('user@example.com');
  */
 export const forgotPassword = async (email: string): Promise<void> => {
 	try {

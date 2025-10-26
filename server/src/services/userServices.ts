@@ -35,7 +35,7 @@ export const getUserByEmail = async (
 	email: string,
 	...attributes: (keyof UserAttributes)[]
 ): Promise<User | null> => {
-	return await db.User.findOne({where: {email}, attributes});
+	return await db.User.findOne({ where: { email }, attributes });
 };
 
 /**
@@ -108,8 +108,7 @@ export const changeRole = async (
  * const adminCount = await countTotalAdmin();
  */
 export const countTotalAdmin = async (): Promise<number> => {
-	return (await db.User.findAndCountAll({ where: { role: Role.ADMIN } }))
-		.count;
+	return (await db.User.findAndCountAll({ where: { role: Role.ADMIN } })).count;
 };
 
 /**
@@ -124,7 +123,10 @@ export const generateDefaultAdminAccount = async (): Promise<User | null> => {
 		return null;
 	}
 
-	const passwordHash = await bcrypt.hash("123456789", CONFIG.BCRYPT_SALT_ROUNDS);
+	const passwordHash = await bcrypt.hash(
+		"123456789",
+		CONFIG.BCRYPT_SALT_ROUNDS
+	);
 
 	return await db.User.create({
 		email: "admin@example.com",
@@ -154,7 +156,9 @@ export const updateUser = async (
 
 	// Prevent email duplication
 	if (updateData.email && updateData.email !== user.email) {
-		const exist = await db.User.findOne({ where: { email: updateData.email } });
+		const exist = await db.User.findOne({
+			where: { email: updateData.email },
+		});
 		if (exist) throw { status: 400, message: "Email already in use" };
 	}
 

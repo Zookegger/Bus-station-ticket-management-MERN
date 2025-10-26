@@ -393,7 +393,7 @@ export class VNPayGateway implements IPaymentGateway {
 
 		return {
 			isSuccess,
-			message: data.vnp_Message || data.vnp_ResponseCode,
+			transactionId: response.data.transactionNo,
 			gatewayResponseData: data,
 		};
 	}

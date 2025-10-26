@@ -253,7 +253,7 @@ export class MoMoGateway implements IPaymentGateway {
 
         return {
             isSuccess,
-            message: data.message || data.localMessage,
+            transactionId: response.data.transId,
             gatewayResponseData: data,
         };
     }

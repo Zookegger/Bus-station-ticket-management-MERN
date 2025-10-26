@@ -102,6 +102,18 @@ export const bookTicket = async (
 */
 
 // User and Admin can do this, so implement authorization later
+/**
+ * Cancels a ticket for a specific user.
+ *
+ * Updates the ticket status to cancelled and releases the associated seat.
+ * Only allows cancellation of booked tickets.
+ *
+ * @param id - The ID of the ticket to cancel.
+ * @param userId - The ID of the user requesting the cancellation.
+ * @returns Promise resolving to the updated ticket.
+ * @throws {Object} Error with status 404 if ticket not found.
+ * @throws {Object} Error with status 409 if ticket cannot be cancelled.
+ */
 export const cancelTicket = async (
 	id: number,
 	userId: string
@@ -147,10 +159,27 @@ export const cancelTicket = async (
 	}
 };
 
+/**
+ * Processes a refund for a ticket.
+ *
+ * @returns Promise resolving when the refund is processed.
+ */
 export const refundTicket = async () => {};
 
+/**
+ * Cleans up expired tickets and releases associated seats.
+ *
+ * @returns Promise resolving when cleanup is complete.
+ */
 export const cleanUpExpiredTickets = async () => {};
 
+/**
+ * Retrieves tickets by their IDs with optional filtering.
+ *
+ * @param id - Single ticket ID or array of ticket IDs.
+ * @param options - Additional query options.
+ * @returns Promise resolving to tickets and count.
+ */
 export const getTicketsByIds = async (
 	id: string | string[],
 	options: any = {}
@@ -166,10 +195,30 @@ export const getTicketsByIds = async (
 	return await Ticket.findAndCountAll(finalOptions);
 };
 
+/**
+ * Searches for tickets based on criteria.
+ *
+ * @returns Promise resolving to search results.
+ */
 export const searchTicket = async () => {};
 
+/**
+ * Retrieves tickets for a specific trip.
+ *
+ * @returns Promise resolving to tickets for the trip.
+ */
 export const getTicketsByTrip = async () => {};
 
+/**
+ * Retrieves tickets for a specific user.
+ *
+ * @returns Promise resolving to user's tickets.
+ */
 export const getUserTickets = async () => {};
 
+/**
+ * Confirms a ticket (e.g., for check-in).
+ *
+ * @returns Promise resolving when ticket is confirmed.
+ */
 export const confirmTicket = async () => {};

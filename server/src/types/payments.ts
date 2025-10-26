@@ -231,42 +231,50 @@ export interface PaymentVerificationResult {
 }
 
 /**
- * Interface for gateway refund options.
- * @interface GatewayRefundOptions
- * @property {number} amount - The refund amount.
+ * Interface for payment refund DTO.
+ * @interface PaymentRefundDTO
+ * @property {string} paymentId - The ID of the payment to refund.
+ * @property {number} amount - The amount to refund.
  * @property {string} [reason] - The reason for the refund.
- * @property {string} [ipAddress] - The IP address.
- * @property {string} [performedBy] - Who performed the refund.
+ * @property {string} [performedBy] - Identifier for the user/system performing the refund.
+ * @property {string} [ipAddress] - IP address of the client initiating the refund.
  */
-export interface GatewayRefundOptions {
-	amount: number;
-	reason?: string;
-	ipAddress?: string;
-	performedBy?: string;
+export interface PaymentRefundDTO {
+    paymentId: string;
+    amount: number;
+    reason?: string;
+    performedBy?: string;
+    ipAddress?: string;
 }
 
 /**
  * Interface for payment refund result.
  * @interface PaymentRefundResult
  * @property {boolean} isSuccess - Whether the refund was successful.
- * @property {string} [message] - Optional message.
- * @property {any} [gatewayResponseData] - The gateway response data.
+ * @property {string} [transactionId] - The transaction ID from the payment gateway for the refund.
+ * @property {string} [reason] - The reason for the refund.
  */
 export interface PaymentRefundResult {
 	isSuccess: boolean;
-	message?: string;
+    transactionId?: string;
 	gatewayResponseData?: any;
 }
 
 /**
- * Interface for payment refund DTO.
- * @interface PaymentRefundDTO
- * @property {string} paymentId - The ID of the payment to refund.
- * @property {number} amount - The amount to refund.
+ * Interface for gateway refund options.
+ * @interface GatewayRefundOptions
+ * @property {number} amount - The refund amount.
  * @property {string} [reason] - The reason for the refund.
+ * @property {string} originalGatewayTxnId - The original transaction ID from the gateway.
+ * @property {string} [performedBy] - Identifier for the user/system performing the refund.
+ * @property {string} [ipAddress] - IP address of the client initiating the refund.
+ * @property {any} [key] - Allows for additional gateway-specific properties.
  */
-export interface PaymentRefundDTO {
-	paymentId: string;
-	amount: number;
-	reason?: string;
+export interface GatewayRefundOptions {
+    amount: number;
+    reason?: string;
+    originalGatewayTxnId: string;
+    performedBy?: string;
+    ipAddress?: string;
+    [key: string]: any; // Allow any other gateway-specific properties
 }

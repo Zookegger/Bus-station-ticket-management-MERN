@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import logger from "@utils/logger";
 import { UUID } from "crypto";
-import { role } from "@models/user";
+import { Role } from "@models/user";
 
 /**
  * JWT verification middleware.
@@ -59,4 +59,4 @@ export const authorizeRole = (requiredRole: string) => {
 	};
 };
 
-export const isAdmin = authorizeRole(role.Admin);
+export const isAdmin = authorizeRole(Role.ADMIN);

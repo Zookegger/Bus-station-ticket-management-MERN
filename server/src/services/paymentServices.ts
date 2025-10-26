@@ -501,9 +501,76 @@ export const getPaymentByMerchantOrderRef = async (
 	});
 };
 
+/**
+ * Processes a refund for a completed payment using the appropriate gateway.
+ *
+ * @param dto - The data transfer object containing refund details such as payment ID, amount, and optional reason.
+ * @param transaction - The Sequelize transaction to ensure atomicity of the refund operation.
+ *
+ * @returns Promise<PaymentRefundResult> - The result of the refund operation, including success status and gateway response.
+ */
 export const processRefund = async (
 	dto: PaymentRefundDTO,
 	transaction: Transaction
 ): Promise<PaymentRefundResult> => {
-	throw new Error("Not Implemented");
+	// 1. Find the original payment record
+	const payment = await db.Payment.findByPk(dto.paymentId, {
+		include: [
+			{ 
+				model: db.PaymentMethod, 
+				as: "paymentMethod" 
+			}
+		],
+		transaction
+	});
+
+	if (!payment) throw new Error(`Payment with ID ${dto.paymentId} is not found.`);
+
+	if (payment.paymentStatus !== PaymentStatus.COMPLETED) throw new Error("Cannot refund a payment that is not completed.");
+
+	if (!payment.paymentMethod) throw new Error(`Payment method details not found for payment ID ${dto.paymentId}.`);
+
+	// 2. Get corresponding payment gateway
+	const gateway = gatewayRegistry.get(payment.paymentMethod.code);
+	if (!gateway) throw new Error(`No gateway handler registered for ${payment.paymentMethod.code}.`);
+
+	if (typeof gateway.refundPayment !== "function") throw new Error(`The '${gateway.getName()}' gateway does not support refunds.`);
+
+	if (!payment.gatewayTransactionNo) throw new Error("Cannot process refund: Original gateway transaction number is missing.");
+
+	// 3. Build refund options - only include defined values
+	const refund_options: GatewayRefundOptions = {
+		amount: dto.amount,
+		originalGatewayTxnId: payment.gatewayTransactionNo,
+	}
+
+	// Conditionally add optional fields only if they exist
+    if (dto.reason !== undefined) {
+        refund_options.reason = dto.reason;
+    }
+    if (dto.ipAddress !== undefined) {
+        refund_options.ipAddress = dto.ipAddress;
+    }
+    if (dto.performedBy !== undefined) {
+        refund_options.performedBy = dto.performedBy;
+    }
+
+	// 4. Call the gateway's refund method
+    logger.info(`Initiating refund via ${gateway.getName()} for payment ${payment.id} of amount ${dto.amount}.`);
+
+	const refund_result = await gateway.refundPayment(
+		payment, 
+		payment.paymentMethod.configJson, 
+		refund_options
+	);
+
+	// 5. Handle the gateway's response
+	if (!refund_result.isSuccess) {
+		logger.error(`Gateway refund failed for payment ${payment.id}. Response:`, refund_result.gatewayResponseData);
+		throw new Error(`Gateway refund failed for payment ${payment.id}.`);
+	}
+
+	logger.info(`Successfully processed refund for payment ${payment.id}.\nGateway transaction ID: ${refund_result.transactionId}`);
+	
+	return refund_result;
 };

@@ -39,6 +39,12 @@ class ConfigService {
 		}
 	}
 
+	/**
+	 * Seeds default settings from the app.config.json file into the database.
+	 *
+	 * Reads the configuration file and creates database entries for any missing settings.
+	 * This ensures the database has all necessary default values on first run.
+	 */
 	private async seedDefaultsFromFile(): Promise<void> {
 		const configPath =
 			NODE_ENV === "development"
@@ -72,8 +78,10 @@ class ConfigService {
 
 	/**
 	 * Retrieves a setting value from the cache.
-	 * @param key The key of the setting to retrieve.
-	 * @param defaultValue A default value to return if the key is not found.
+	 *
+	 * @param key - The key of the setting to retrieve.
+	 * @param defaultValue - A default value to return if the key is not found.
+	 * @returns The setting value parsed to its original type, or the default value.
 	 */
 	public get<T>(key: string, defaultValue: T): T {
 		if (!this.isInitialized) {
@@ -97,8 +105,10 @@ class ConfigService {
 
 	/**
 	 * Updates a setting in the database and refreshes the cache.
-	 * @param key The key of the setting to update.
-	 * @param value The new value for the setting.
+	 *
+	 * @param key - The key of the setting to update.
+	 * @param value - The new value for the setting.
+	 * @returns Promise resolving to the updated or created setting record.
 	 */
 	public async set(key: string, value: any): Promise<Setting> {
 		const stringValue = JSON.stringify(value);
@@ -113,6 +123,11 @@ class ConfigService {
 		return setting;
 	}
 
+	/**
+	 * Retrieves all settings as a plain object.
+	 *
+	 * @returns Object containing all cached settings with their keys and values.
+	 */
 	public getAll() {
 		return Object.fromEntries(this.settingCache);
 	}
