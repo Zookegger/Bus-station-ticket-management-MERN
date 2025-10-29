@@ -50,7 +50,7 @@ const createLog = (level: LogLevel) => {
 					}
 					return String(arg);
 				})
-				.join("");
+				.join(' ');
 		};
 		
 		const formattedArgs = formatArgs(args);
