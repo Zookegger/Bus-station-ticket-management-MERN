@@ -1,82 +1,74 @@
 /**
- * CSRF Protection Configuration and Utilities
+ * CSRF Protection Configuration using Signed Double-Submit Cookie Pattern
  *
- * Provides Double Submit Cookie pattern CSRF protection for Express.js applications.
- * This implementation follows the OWASP recommended pattern where a token is stored
- * in both a cookie (automatically sent by browser) and a custom header (manually
- * added by frontend), and the server validates that both tokens match.
+ * Implements the HMAC Based Token Pattern for CSRF protection in Express.js.
+ * This is a more secure version of the Double Submit Cookie pattern.
  *
  * @module csrfMiddleware
- * @see {@link https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html#double-submit-cookie} OWASP Double Submit Cookie
+ * @see {@link https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html#hmac-based-token-pattern} OWASP Signed Double-Submit Cookie
  *
- * == CSRF PROTECTION FLOW ==
+ * == SECURE CSRF PROTECTION FLOW ==
  *
- * 1. USER AUTHENTICATION (JWT):
- *    - Client sends POST /api/auth/login with credentials
- *    - Server validates and returns JWT token
- *    - Client stores JWT in localStorage/cookies
+ * 1. USER AUTHENTICATION (HTTP-Only Cookies):
+ *    - Client sends POST /api/auth/login with credentials.
+ *    - Server validates, sets secure `httpOnly` cookies for `accessToken` and `refreshToken`.
+ *    - Server's response includes user data and a `csrfToken` in the JSON body.
+ *    - The `double-csrf` library automatically sets a separate, secure, `httpOnly` cookie
+ *      containing the CSRF **secret** (the signature).
  *
- * 2. CSRF TOKEN GENERATION:
- *    - Client calls GET /api/auth/csrf-token (requires JWT auth)
- *    - Server generates CSRF token and:
- *      - Sets HTTP-only cookie: "__Host-psifi.x-csrf-token" (auto-sent by browser)
- *      - Returns token in JSON for manual header inclusion
- *    - Token is tied to authenticated user session via req.user.id
+ * 2. CLIENT-SIDE TOKEN HANDLING:
+ *    - The client receives the `csrfToken` from the login response body.
+ *    - It MUST store this token (e.g., in memory, like in a Redux/Context store).
+ *    - The browser automatically handles the `httpOnly` auth and CSRF secret cookies.
  *
- * 3. ADMIN OPERATIONS (State-Changing Requests):
- *    - Client sends POST/PUT/DELETE to admin routes with BOTH:
- *      - Authorization: Bearer <jwt> (authentication)
- *      - X-CSRF-Token: <csrf-token> (manual header)
- *    - Server validates:
- *      - JWT is valid + user has admin role (isAdmin middleware)
- *      - CSRF token in header matches cookie token (doubleCsrfProtection)
- *    - If both pass, request proceeds
+ * 3. PROTECTED OPERATIONS (State-Changing Requests):
+ *    - Client sends a POST/PUT/DELETE request.
+ *    - The browser automatically attaches the `httpOnly` cookies.
+ *    - The client's code MUST manually add the `X-CSRF-Token` header, using the
+ *      public token it received and stored from the login response.
  *
- * 4. SECURITY FEATURES:
- *    - Double Submit: Token must be in both cookie (automatic) and header (manual)
- *    - Session-Tied: Tokens linked to authenticated user (req.user.id)
- *    - Secure Cookie: __Host- prefix ensures host-only, secure transmission
- *    - SameSite: "strict" prevents cross-site requests
- *    - HttpOnly: Prevents client-side JavaScript access
+ * 4. SERVER-SIDE VERIFICATION:
+ *    - The `authenticateJwt` middleware validates the `accessToken` from the cookie.
+ *    - The `doubleCsrfProtection` middleware then:
+ *      a. Reads the public token from the `X-CSRF-Token` header.
+ *      b. Reads the secret from the `httpOnly` CSRF cookie.
+ *      c. Verifies that the public token is validly signed by the secret.
+ *    - If both checks pass, the request proceeds.
  *
- * 5. FRONTEND IMPLEMENTATION EXAMPLE:
+ * 5. SECURITY FEATURES:
+ *    - Signed Double-Submit: An attacker cannot forge a token because they cannot access
+ *      the `httpOnly` secret cookie needed to create a valid signature.
+ *    - Session-Tied: Tokens are linked to the authenticated user's session.
+ *    - Secure Cookie Prefixes: `__Host-` prefix ensures cookies are sent only from the origin server over HTTPS.
+ *    - `httpOnly`: The most critical cookies (auth tokens, CSRF secret) are inaccessible to client-side scripts.
+ *
+ * 6. FRONTEND IMPLEMENTATION EXAMPLE:
  *    ```javascript
- *    // After login, store JWT
- *    const jwt = loginResponse.data.token;
- *    localStorage.setItem('jwt', jwt);
+ *    // After login, store the csrfToken from the response body
+ *    const loginResponse = await fetch('/api/auth/login', { method: 'POST', body: ... });
+ *    const { csrfToken } = await loginResponse.json();
+ *    // Store csrfToken in memory (e.g., a global variable or state management)
+ *    window.csrfToken = csrfToken;
  *
- *    // Get CSRF token
- *    const csrfResponse = await fetch('/api/auth/csrf-token', {
- *      headers: { 'Authorization': `Bearer ${jwt}` }
- *    });
- *    const { csrfToken } = await csrfResponse.json();
- *
- *    // Use both for admin requests
- *    await fetch('/api/locations', {
+ *    // For subsequent state-changing requests:
+ *    await fetch('/api/orders', {
  *      method: 'POST',
  *      headers: {
- *        'Authorization': `Bearer ${jwt}`,
- *        'X-CSRF-Token': csrfToken,
+ *        'X-CSRF-Token': window.csrfToken, // Manually attach the token
  *        'Content-Type': 'application/json'
  *      },
- *      body: JSON.stringify(locationData)
+ *      body: JSON.stringify(orderData)
  *    });
  *    ```
  *
- * 6. MIDDLEWARE ORDER:
- *    - csrfProtectionRoute = [isAdmin, doubleCsrfProtection]
- *    - isAdmin runs first: verifies JWT → sets req.user
- *    - doubleCsrfProtection runs second: uses req.user.id for session identification
- *
  * 7. PROTECTION SCOPE:
- *    - Applied to: POST/PUT/DELETE admin routes (state-changing operations)
- *    - Not applied to: GET/HEAD/OPTIONS (safe methods), auth routes (public)
- *    - Global protection removed: CSRF applied per-route, not globally
+ *    - Applied to all state-changing routes (POST, PUT, DELETE, PATCH) that rely on cookie-based authentication.
+ *    - Not needed for unauthenticated GET requests.
  */
 
 import { doubleCsrf } from "csrf-csrf";
 import { Request, Response } from "express";
-import { authenticateJwt, isAdmin } from "./auth";
+import { authenticateJwt, isAdmin, optionalAuthenticateJwt } from "./auth";
 import { CSRF_CONFIG } from "@constants/security";
 
 /**
@@ -199,7 +191,25 @@ export const csrfAdminProtectionRoute = [authenticateJwt, isAdmin, doubleCsrfPro
  *
  * @returns {Function[]} Array containing [authenticateJwt, doubleCsrfProtection] middleware
  */
-export const csrfProtectionRoute = [authenticateJwt, doubleCsrfProtection];
+export const csrfUserProtectionRoute = [authenticateJwt, doubleCsrfProtection];
+
+/**
+ * Pre-configured CSRF protection route for both guests and authenticated users.
+ *
+ * Combines optional authentication with CSRF protection. This is ideal for
+ * routes like order creation where both logged-in users and guests can perform
+ * the action. The `getSessionIdentifier` will fall back to the user's IP if
+ * no user is authenticated, ensuring session integrity for all.
+ *
+ * @constant {Function[]} csrfGuestOrUserProtectionRoute
+ *
+ * @example
+ * // Apply to a public-facing POST route:
+ * orderRoutes.post('/', csrfGuestOrUserProtectionRoute, createOrder);
+ *
+ * @returns {Function[]} Array containing [optionalAuthenticateJwt, doubleCsrfProtection] middleware
+ */
+export const csrfGuestOrUserProtectionRoute = [optionalAuthenticateJwt, doubleCsrfProtection];
 
 /**
  * Generates and returns a CSRF token

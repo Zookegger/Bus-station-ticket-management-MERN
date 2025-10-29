@@ -116,5 +116,60 @@ export const logoutValidation = [
 		.isString()
 		.withMessage("Refresh token must be a valid string")
 		.isLength({ min: 10 })
-		.withMessage("Refresh token appears to be invalid")
-]
+		.withMessage("Refresh token appears to be invalid"),
+];
+
+export const changePasswordValidation = [
+	param("id")
+		.trim()
+		.notEmpty()
+		.withMessage("User ID is required")
+		.isUUID(4)
+		.withMessage("User ID must be a valid UUID"),
+
+	body("userId")
+		.optional()
+		.isUUID(4)
+		.withMessage("userId must be a valid UUID"),
+
+	body("currentPassword")
+		.notEmpty()
+		.withMessage("Current password is required")
+		.trim(),
+
+	body("newPassword")
+		.notEmpty()
+		.withMessage("New password is required")
+		.isLength({ min: 8 })
+		.withMessage("Password must be at least 8 characters")
+		.matches(/\d/)
+		.withMessage("Password must contain a number")
+		.matches(/[a-zA-Z]/)
+		.withMessage("Password must contain a letter")
+		.isStrongPassword()
+		.withMessage("Password is not strong enough")
+		.custom((value, { req }) => {
+			if (value === req.body.currentPassword) {
+				throw new Error(
+					"New password must be different from the current password"
+				);
+			}
+			return true;
+		})
+		.trim(),
+
+	body("confirmNewPassword")
+		.notEmpty()
+		.withMessage("Please confirm your new password")
+		.custom((value, { req }) => {
+			if (value !== req.body.newPassword) {
+				throw new Error("Passwords do not match");
+			}
+			return true;
+		})
+		.trim(),
+];
+
+export const getCsrfTokenValidator = [
+	body("accessToken").isEmpty().withMessage("Access Token is required"),
+];

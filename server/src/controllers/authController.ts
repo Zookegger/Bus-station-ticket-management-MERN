@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import * as authServices from "@services/authServices";
 import * as verificationServices from "@services/verificationServices";
-import { ResetPasswordDTO } from "@my_types/user";
+import { ChangePasswordDTO, ResetPasswordDTO } from "@my_types/user";
 import { getCsrfToken, isValidCsrfToken } from "@middlewares/csrf";
+import { CONFIG, COMPUTED } from "@constants";
 
 /**
  * Registers a new user account.
@@ -25,7 +26,8 @@ export const Register = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
-		const { username, email, phoneNumber, password, confirmPassword } = req.body;
+		const { username, email, phoneNumber, password, confirmPassword } =
+			req.body;
 		const result = await authServices.register({
 			username,
 			email,
@@ -38,7 +40,28 @@ export const Register = async (
 			throw new Error("Something went wrong while creating new account");
 		}
 
-		res.status(200).json(result);
+		// Set tokens as httpOnly cookies and return minimal user info
+		const cookieOptions = {
+			httpOnly: true,
+			secure: process.env.NODE_ENV === "production",
+			sameSite: "lax" as const,
+			path: "/",
+		};
+
+		// Access token lifetime (ms)
+		const accessMaxAge = (CONFIG.JWT_EXPIRY_HOURS || 1) * 60 * 60 * 1000;
+		res.cookie("accessToken", result.accessToken, {
+			...cookieOptions,
+			maxAge: accessMaxAge,
+		});
+
+		// Refresh token expiry from computed config
+		res.cookie("refreshToken", result.refreshToken, {
+			...cookieOptions,
+			maxAge: COMPUTED.REFRESH_TOKEN_EXPIRY_SECONDS * 1000,
+		});
+
+		res.status(200).json({ user: result.user, message: result.message });
 	} catch (err) {
 		next(err);
 	}
@@ -75,7 +98,35 @@ export const Login = async (
 			throw new Error("An error has occured while trying to log you in");
 		}
 
-		res.json(result);
+		// Set httpOnly cookies and return user info only
+		const cookieOptions = {
+			httpOnly: true,
+			secure: process.env.NODE_ENV === "production",
+			sameSite: "lax" as const,
+			path: "/",
+		};
+
+		const accessMaxAge = (CONFIG.JWT_EXPIRY_HOURS || 1) * 60 * 60 * 1000;
+		res.cookie("accessToken", result.accessToken, {
+			...cookieOptions,
+			maxAge: accessMaxAge,
+		});
+
+		res.cookie("refreshToken", result.refreshToken, {
+			...cookieOptions,
+			maxAge: COMPUTED.REFRESH_TOKEN_EXPIRY_SECONDS * 1000,
+		});
+
+		const csrfToken = getCsrfToken(req, res);
+
+		res.cookie("csrfToken", csrfToken, {
+			httpOnly: false,
+			secure: process.env.NODE_ENV === "production",
+			sameSite: "lax",
+			path: "/",
+		});
+
+		res.status(200).json({ user: result.user, message: result.message });
 	} catch (err) {
 		next(err);
 	}
@@ -102,15 +153,21 @@ export const Refresh = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
-		const { refreshToken } = req.body;
-		const result = await authServices.refreshAccessToken(refreshToken);
+		// Prefer token from cookie, fallback to body
+		const incomingRefresh =
+			(req as any).cookies?.refreshToken || req.body.refreshToken;
+		if (!incomingRefresh)
+			throw { status: 400, message: "Refresh token is required" };
+		const result = await authServices.refreshAccessToken(incomingRefresh);
 		if (!result) {
 			throw new Error(
 				"Something went wrong while refreshing access token"
 			);
 		}
 
-		res.json(result);
+		setCookieTokens(res, result.accessToken, result.refreshToken.value);
+
+		res.status(200).json({ accessToken: true });
 	} catch (err) {
 		next(err);
 	}
@@ -137,17 +194,29 @@ export const Logout = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
-		const { refreshToken } = req.body;
-		if (!refreshToken) {
+		// Prefer refresh token from cookie; fallback to body
+		const incomingRefresh =
+			(req as any).cookies?.refreshToken || req.body.refreshToken;
+		if (!incomingRefresh) {
 			throw { status: 400, message: "Refresh token is required" };
 		}
-		const result = await authServices.revokeRefreshToken(refreshToken);
+		const result = await authServices.revokeRefreshToken(incomingRefresh);
 		if (result === 0) {
 			throw {
 				status: 400,
 				message: "Invalid or already revoked refresh token",
 			};
 		}
+
+		// Clear cookies client-side
+		const cookieOptions = {
+			httpOnly: true,
+			secure: process.env.NODE_ENV === "production",
+			sameSite: "lax" as const,
+			path: "/",
+		};
+		res.clearCookie("accessToken", cookieOptions as any);
+		res.clearCookie("refreshToken", cookieOptions as any);
 
 		res.status(200).json({ message: "Logged out successfully" });
 	} catch (err) {
@@ -312,4 +381,80 @@ export const VerifyCsrfToken = (
 	} catch (err) {
 		next(err);
 	}
+};
+
+export const ChangePassword = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+): Promise<void> => {
+	try {
+		const { id } = req.params;
+		const dto: ChangePasswordDTO = req.body;
+
+		if (id !== dto.userId) throw { status: 403, message: "Unauthorized" };
+
+		if (!dto) throw { status: 400, message: "" };
+
+		await authServices.changePassword(dto);
+
+		res.status(200).json({
+			message: "Successfully changed your password.",
+		});
+	} catch (err) {
+		next(err);
+	}
+};
+
+export const RefreshToken = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+) => {
+	try {
+		const incomingRefresh =
+			(req as any).cookie.refreshToken || req.body.refreshToken;
+
+		if (!incomingRefresh)
+			throw { status: 400, message: "Refresh token is required" };
+
+		const result = await authServices.refreshAccessToken(incomingRefresh);
+		if (!result) throw { status: 500, message: "" };
+
+		setCookieTokens(res, result.accessToken, result.refreshToken.value);
+	} catch (err) {
+		next(err);
+	}
+};
+
+const setCookieTokens = (res: Response, accessToken: string, refreshToken: string) => {
+	// result.refreshToken may be an object (value/hashed) when rotating
+	const newRefreshValue = (refreshToken as any).value || refreshToken;
+
+	if (newRefreshValue) {
+		throw { status: 500, message: "Refresh token was not provided"};
+	}
+	
+	if (accessToken) {
+		throw { status: 500, message: "Access token was not provided"};
+	}
+
+	// Set tokens as httpOnly cookies and return minimal user info
+	const cookieOptions = {
+		httpOnly: true,
+		secure: process.env.NODE_ENV === "production",
+		sameSite: "lax" as const,
+		path: "/",
+	};
+
+	const accessMaxAge = (CONFIG.JWT_EXPIRY_HOURS || 1) * 60 * 60 * 1000;
+	res.cookie("accessToken", accessToken, {
+		...cookieOptions,
+		maxAge: accessMaxAge,
+	});
+
+	res.cookie("refreshToken", newRefreshValue, {
+		...cookieOptions,
+		maxAge: COMPUTED.REFRESH_TOKEN_EXPIRY_SECONDS * 1000,
+	});
 };

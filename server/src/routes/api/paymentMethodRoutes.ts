@@ -5,14 +5,14 @@ import { Router } from "express";
 import * as controllers from "@controllers/paymentMethodController";
 import {
 	csrfAdminProtectionRoute,
-	csrfProtectionRoute,
+	csrfGuestOrUserProtectionRoute,
 } from "@middlewares/csrf";
 
 const paymentMethodRoute = Router();
 
 paymentMethodRoute.get(
 	"/code/:code",
-	csrfProtectionRoute,
+	csrfGuestOrUserProtectionRoute,
 	validators.validatePaymentMethodCodeParam,
 	handleValidationResult,
 	controllers.GetPaymentMethodByCode,
@@ -28,7 +28,7 @@ paymentMethodRoute.get(
 
 paymentMethodRoute.get(
 	"/active",
-	csrfProtectionRoute,
+	csrfGuestOrUserProtectionRoute,
 	controllers.ListActivePaymentMethods,
 	errorHandler
 );

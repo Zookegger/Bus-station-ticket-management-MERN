@@ -116,7 +116,7 @@ export class CouponUsage
 				},
 				userId: {
 					type: DataTypes.UUID,
-					allowNull: false,
+					allowNull: true, // Changed to true to allow NULL
 					onUpdate: "CASCADE",
 					onDelete: "SET NULL",
 					field: 'userId'

@@ -168,6 +168,7 @@ export class Driver
 			{
 				id: {
 					type: DataTypes.INTEGER.UNSIGNED,
+					autoIncrement: true,
 					primaryKey: true,
 				},
 				fullname: {

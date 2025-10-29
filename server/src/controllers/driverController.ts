@@ -35,7 +35,7 @@ export const AddDriver = async (
 		const new_driver: CreateDriverDTO = req.body;
 
 		const driver = await driverServices.addDriver(new_driver);
-		if (driver)
+		if (!driver)
 			throw {
 				status: 500,
 				message: "No driver added, Something went wrong.",
@@ -77,7 +77,7 @@ export const UpdateDriver = async (
 
 		const driver = await driverServices.updateDriver(id, updated_driver);
 
-		if (driver)
+		if (!driver)
 			throw {
 				status: 500,
 				message: "No driver information updated, Something went wrong.",

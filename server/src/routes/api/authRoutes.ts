@@ -15,6 +15,7 @@ import { handleValidationResult } from "@middlewares/validateRequest";
 import { authenticateJwt } from "@middlewares/auth";
 import rateLimit from "express-rate-limit";
 import { CONFIG } from "@constants";
+import { csrfUserProtectionRoute } from "@middlewares/csrf";
 
 /**
  * Authentication router instance.
@@ -75,10 +76,23 @@ const resetPasswordLimiter = rateLimit({
     legacyHeaders: false,
 });
 
-// CSRF token endpoint
-authRoutes.get("/csrf-token", authenticateJwt, authController.GetCsrfToken, errorHandler);
+const changePasswordLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 3, // limit each IP to 3 requests per 15 minutes
+	message: {
+        status: 429,
+        error: "Too many request. Please try again later.",
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
-authRoutes.post("/csrf-token",  authenticateJwt, authController.VerifyCsrfToken, errorHandler);
+// CSRF token endpoint
+authRoutes.get("/csrf-token", csrfUserProtectionRoute, authValidator.getCsrfTokenValidator, authController.GetCsrfToken, errorHandler);
+
+authRoutes.post("/csrf-token",  csrfUserProtectionRoute, authController.VerifyCsrfToken, errorHandler);
+
+authRoutes.post("/refresh",  csrfUserProtectionRoute, authController.RefreshToken, errorHandler);
 
 /**
  * POST /auth/login
@@ -96,19 +110,25 @@ authRoutes.post("/register", authValidator.registerValidation, handleValidationR
  * POST /auth/logout
  * Revokes the refresh token to log out the current session.
  */
-authRoutes.post("/logout", authValidator.logoutValidation, handleValidationResult, authController.Logout, errorHandler);
+authRoutes.post("/logout", csrfUserProtectionRoute, authValidator.logoutValidation, handleValidationResult, authController.Logout, errorHandler);
 
 /**
  * GET /auth/me
  * Retrieves the authenticated user's profile information.
  */
-authRoutes.get("/me", authMeLimiter, authenticateJwt, authController.GetMe, errorHandler);
+authRoutes.get("/me", csrfUserProtectionRoute, authMeLimiter, authenticateJwt, authController.GetMe, errorHandler);
 
 /**
  * POST /auth/verify-email
  * Verifies the user's email address using a token.
+*/
+authRoutes.post("/verify-email", csrfUserProtectionRoute, verifyEmailLimiter, authController.VerifyEmail, errorHandler);
+
+/**
+ * POST /auth/change-password
+ * Changes the user's password inside their profile.
  */
-authRoutes.post("/verify-email", verifyEmailLimiter, authController.VerifyEmail, errorHandler);
+authRoutes.post("/change-password/:id", csrfUserProtectionRoute, changePasswordLimiter, authValidator.changePasswordValidation, authController.ChangePassword, errorHandler);
 
 /**
  * POST /auth/forgot-password

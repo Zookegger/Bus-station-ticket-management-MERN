@@ -217,7 +217,7 @@ export const refreshAccessToken = async (
 			token: newRefreshToken.hashed,
 			userId: user.id,
 			expiresAt: issueExpiryDate(COMPUTED.REFRESH_TOKEN_EXPIRY_SECONDS),
-		});
+		}, { transaction: t });
 	});
 
 	return { accessToken, refreshToken: newRefreshToken };

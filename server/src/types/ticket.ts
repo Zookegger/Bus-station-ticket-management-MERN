@@ -81,3 +81,60 @@ export interface GetTicketQueryDTO {
 	/** Maximum final price filter */
 	maxFinalPrice?: number;
 }
+
+
+/**
+ * Options for querying tickets with filtering, sorting, and pagination.
+ * Used by ticket service functions like getUserTickets.
+ * @interface TicketQueryOptions
+ * @property {TicketStatus} [status] - Filter by ticket status.
+ * @property {string} [orderId] - Filter by order ID.
+ * @property {number} [seatId] - Filter by seat ID.
+ * @property {Date} [dateFrom] - Filter by creation date from.
+ * @property {Date} [dateTo] - Filter by creation date to.
+ * @property {Date} [updatedFrom] - Filter by last updated date from.
+ * @property {Date} [updatedTo] - Filter by last updated date to.
+ * @property {number} [minBasePrice] - Filter by minimum base price.
+ * @property {number} [maxBasePrice] - Filter by maximum base price.
+ * @property {number} [minFinalPrice] - Filter by minimum final price.
+ * @property {number} [maxFinalPrice] - Filter by maximum final price.
+ * @property {number} [limit] - Limit the number of results.
+ * @property {number} [offset] - Offset for pagination.
+ * @property {'id' | 'basePrice' | 'finalPrice' | 'status' | 'createdAt' | 'updatedAt'} [sortBy] - Sort by field.
+ * @property {"ASC" | "DESC"} [sortOrder] - Sort order.
+ * @property {("user" | "seat" | "order" | "payments")[]} [include] - Optional associations to include.
+ */
+export interface TicketQueryOptions {
+	/** Filter by ticket status. */
+	status?: TicketStatus;
+	/** Filter by order ID. */
+	orderId?: string;
+	/** Filter by seat ID. */
+	seatId?: number;
+	/** Filter by creation date from. */
+	dateFrom?: Date;
+	/** Filter by creation date to. */
+	dateTo?: Date;
+	/** Filter by last updated date from. */
+	updatedFrom?: Date;
+	/** Filter by last updated date to. */
+	updatedTo?: Date;
+	/** Filter by minimum base price. */
+	minBasePrice?: number;
+	/** Filter by maximum base price. */
+	maxBasePrice?: number;
+	/** Filter by minimum final price. */
+	minFinalPrice?: number;
+	/** Filter by maximum final price. */
+	maxFinalPrice?: number;
+	/** Limit the number of results. */
+	limit?: number;
+	/** Offset for pagination. */
+	offset?: number;
+	/** Sort by field. */
+	sortBy?: 'id' | 'basePrice' | 'finalPrice' | 'status' | 'createdAt' | 'updatedAt';
+	/** Sort order. */
+	sortOrder?: "ASC" | "DESC";
+	/** Optional associations to include. */
+	include?: ("user" | "seat" | "order" | "payments")[];
+} 

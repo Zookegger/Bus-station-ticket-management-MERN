@@ -9,51 +9,7 @@ import { Vehicle } from "./vehicle";
 import { Seat } from "./seat";
 import { Driver } from "./driver";
 import { DbModels } from "@models";
-
-/**
- * Enum for the status of a trip.
- * @enum {string}
- * @property {string} SCHEDULED - The trip is scheduled but not yet started.
- * @property {string} ONGOING - The trip is currently in progress.
- * @property {string} COMPLETED - The trip has been completed.
- * @property {string} CANCELLED - The trip has been cancelled.
- * @property {string} DELAYED - The trip is delayed.
- */
-export enum TripStatus {
-	/**
-	 * The trip is being created or drafted.
-	 * It is not yet visible to the public or open for booking.
-	 * This is typically the default state.
-	 */
-	PENDING = "PENDING",
-
-	/**
-	 * The trip is published, visible to users, and open for booking.
-	 * This is the main "active" state for a trip.
-	 */
-	SCHEDULED = "SCHEDULED",
-
-	/**
-	 * The trip has already started and is currently in progress.
-	 * Bookings should be closed at this point.
-	 */
-	DEPARTED = "DEPARTED",
-
-	/**
-	 * The trip has finished successfully.
-	 * This is a final state, useful for historical records and reviews.
-	 */
-	COMPLETED = "COMPLETED",
-
-	/**
-	 * The trip has been cancelled before or during its run.
-	 * This state should trigger notifications and refunds for any
-	 * passengers who had booked seats.
-	 */
-	CANCELLED = "CANCELLED",
-
-	DELAYED = "DELAYED",
-}
+import { TripStatus } from "@my_types/trip";
 
 /**
  * Interface for the attributes of a Trip.

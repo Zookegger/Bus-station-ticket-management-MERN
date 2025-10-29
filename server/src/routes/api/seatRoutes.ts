@@ -8,7 +8,7 @@
  */
 
 import { Router } from "express";
-import { csrfProtectionRoute } from "@middlewares/csrf";
+import { csrfAdminProtectionRoute } from "@middlewares/csrf";
 import { errorHandler } from "@middlewares/errorHandler";
 import { handleValidationResult } from "@middlewares/validateRequest";
 import * as seatController from "@controllers/seatController";
@@ -40,7 +40,7 @@ seatRoutes.get(
 // PUT /seats/:id - Update seat state by ID
 seatRoutes.put(
 	"/:id",
-	csrfProtectionRoute,
+	csrfAdminProtectionRoute,
 	routeValidator.validateIdParam, // Reuse existing ID validation
 	seatValidator.validateUpdateSeat,
 	handleValidationResult,

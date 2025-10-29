@@ -11,7 +11,7 @@ import * as userController from "@controllers/userController";
 import { errorHandler } from "@middlewares/errorHandler";
 import { updateProfileValidation, validateUserIdParam } from "@middlewares/validators/userValidator";
 import { handleValidationResult } from "@middlewares/validateRequest";
-import { csrfAdminProtectionRoute, csrfProtectionRoute } from "@middlewares/csrf";
+import { csrfAdminProtectionRoute, csrfUserProtectionRoute } from "@middlewares/csrf";
 
 /**
  * User management router instance.
@@ -21,10 +21,10 @@ import { csrfAdminProtectionRoute, csrfProtectionRoute } from "@middlewares/csrf
 const userRoutes = Router();
 
 // PUT /users/profile - Update authenticated user's profile
-userRoutes.put("/profile/:id", csrfProtectionRoute, updateProfileValidation, handleValidationResult, userController.UpdateProfile, errorHandler);
+userRoutes.put("/profile/:id", csrfUserProtectionRoute, updateProfileValidation, handleValidationResult, userController.UpdateProfile, errorHandler);
 
 // GET /users/profile - Get user profile
-userRoutes.get("/profile/:id", csrfProtectionRoute, userController.GetProfile, errorHandler);
+userRoutes.get("/profile/:id", csrfUserProtectionRoute, userController.GetProfile, errorHandler);
 
 // GET /users - Get all users (Admin only)
 userRoutes.get("/", csrfAdminProtectionRoute, userController.GetAllUsers, errorHandler);

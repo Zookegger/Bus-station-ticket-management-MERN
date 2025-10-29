@@ -1,7 +1,7 @@
 import { Coupon } from "@models/coupon";
 import { CouponUsage } from "@models/couponUsage";
 import db from "@models/index";
-import { Order, OrderStatus } from "@models/orders";
+import { Order, OrderAttributes, OrderStatus } from "@models/orders";
 import { Seat } from "@models/seat";
 import { Ticket, TicketStatus } from "@models/ticket";
 import { Trip } from "@models/trip";
@@ -9,11 +9,17 @@ import { CouponTypes } from "@my_types/coupon";
 import {
 	CreateOrderDTO,
 	CreateOrderResult,
+	OrderQueryOptions,
 	RefundTicketDTO,
 } from "@my_types/order";
 import { SeatStatus } from "@my_types/seat";
 import logger from "@utils/logger";
-import { initiatePayment, processRefund } from "@services/paymentServices";
+import * as paymentServices from "@services/paymentServices";
+import * as userServices from "@services/userServices";
+import { FindOptions, Op, OrderItem, WhereOptions } from "sequelize";
+import { PaymentStatus } from "@my_types/payments";
+import { TripStatus } from "@my_types/trip";
+import * as ticketServices from "@services/ticketServices";
 
 /**
  * Creates an order, reserves seats, applies coupons, and initiates payment.
@@ -204,7 +210,7 @@ export const createOrder = async (
 					paymentMethodCode: dto.paymentMethodCode,
 			  };
 
-		const { paymentUrl } = await initiatePayment(
+		const { paymentUrl } = await paymentServices.initiatePayment(
 			paymentRequest,
 			transaction
 		);
@@ -295,7 +301,7 @@ export const refundTickets = async (dto: RefundTicketDTO): Promise<Order> => {
 			0
 		);
 		if (totalRefundAmount > 0 && order.payment) {
-			await processRefund(
+			await paymentServices.processRefund(
 				{
 					paymentId: order.payment.id,
 					amount: totalRefundAmount,
@@ -314,7 +320,7 @@ export const refundTickets = async (dto: RefundTicketDTO): Promise<Order> => {
 			{
 				where: {
 					id: ticketIdsToUpdate,
-					status: TicketStatus.COMPLETED,
+					status: TicketStatus.BOOKED,
 				},
 				transaction,
 			}
@@ -363,4 +369,311 @@ export const refundTickets = async (dto: RefundTicketDTO): Promise<Order> => {
 		logger.error(`Refund for order ${dto.orderId} failed: `, err);
 		throw err;
 	}
+};
+
+/**
+ * Handles a user's request to cancel one or more tickets within an order.
+ *
+ * This service orchestrates the cancellation process. It determines if a
+ * refund is applicable based on the order's payment status and then calls
+ * either the refund service or a simple void service.
+ *
+ * @param dto - The data transfer object containing order and ticket IDs.
+ * @returns The updated order object.
+ */
+export const cancelTickets = async (dto: RefundTicketDTO): Promise<Order> => {
+	// Step 1: Fetch the order and all related data needed for validation.
+	// This includes the payment status, and the full path from tickets to seats to the trip,
+	// which is required to check if the trip has been completed.
+	const order = await Order.findByPk(dto.orderId, {
+		include: [
+			{ model: db.Payment, as: "payment" },
+			{
+				model: db.Ticket,
+				as: "tickets",
+				include: [
+					{
+						model: db.Seat,
+						as: "seat",
+						include: [{ model: db.Trip, as: "trip" }],
+					},
+				],
+			},
+		],
+	});
+
+	// Business Logic: Decide if this is a financial refund or a simple void.
+	// If the order has a completed payment, it's a refund.
+	if (!order) throw { status: 404, message: "Order not found" };
+
+	// Step 2: Find the specific tickets to be cancelled from the order.
+	// First, filter the order's tickets to get only the ones specified in the DTO.
+	const ticketsToCancel =
+		order.tickets?.filter((ticket) => dto.ticketIds.includes(ticket.id)) ??
+		[];
+
+	// Ensure that all tickets requested for cancellation were actually found in the order.
+	// This prevents trying to cancel tickets that don't belong to this order.
+	if (ticketsToCancel.length !== dto.ticketIds.length)
+		throw {
+			status: 404,
+			message: "One or more tickets do not belong to this order.",
+		};
+
+	// Step 3: Enforce critical business rules.
+	// Loop through each ticket and check if its associated trip has already been completed.
+	// This prevents users from cancelling tickets for a service that has already been rendered.
+	for (const ticket of ticketsToCancel) {
+		if (ticket.seat?.trip?.status === TripStatus.COMPLETED) {
+			throw {
+				status: 409,
+				message: `Cannot cancel ticket ${ticket.id} for a trip that has already been completed.`,
+			};
+		}
+	}
+
+	// Step 4: Orchestrate the cancellation based on payment status.
+	// This is the core logic of the orchestrator.
+	if (
+		order.payment &&
+		order.payment.paymentStatus === PaymentStatus.COMPLETED
+	) {
+		// If the order has a completed payment, delegate to the `refundTickets` service.
+		// This handles the financial transaction of returning money to the customer.
+		return refundTickets(dto);
+	} else {
+		// If there's no completed payment, perform a non-financial "void" operation.
+		// This simply marks the tickets as cancelled and makes the seats available again.
+		const transaction = await db.sequelize.transaction();
+		try {
+			for (const ticketId of dto.ticketIds) {
+				// Call the low-level utility service to void each ticket.
+				await ticketServices.voidTicket(ticketId, transaction);
+			}
+
+			await transaction.commit();
+
+			// Re-fetch the order to return its updated state to the caller.
+			const new_order = await db.Order.findByPk(dto.orderId, {
+				include: [{ model: db.Ticket, as: "tickets" }],
+			});
+
+			// Defensive check to ensure the order still exists after the transaction.
+			if (!new_order)
+				throw {
+					status: 500,
+					message: `Failed to refetch order ${dto.orderId} after cancellation.`,
+				};
+
+			return new_order;
+		} catch (err) {
+			await transaction.rollback();
+			throw err;
+		}
+	}
+};
+
+// Admin-Only
+export const listAllOrders = async (
+	options: OrderQueryOptions,
+	...attributes: (keyof OrderAttributes)[]
+): Promise<Order[] | null> => {
+	const queryOptions = buildOrderQueryOptions(options, {}, attributes);
+	return await db.Order.findAll(queryOptions);
+};
+
+export const getOrderById = async (
+	orderId: string,
+	options: OrderQueryOptions,
+	...attributes: (keyof OrderAttributes)[]
+): Promise<Order | null> => {
+	if (!orderId) throw { status: 400, message: "No ID was provided" };
+
+	const queryOptions = buildOrderQueryOptions(
+		options,
+		{ id: orderId },
+		attributes
+	);
+	return await db.Order.findOne(queryOptions);
+};
+
+/**
+ * Retrieves orders for a specific user with optional filtering and pagination.
+ * Supports filtering by status, date ranges, and sorting.
+ *
+ * @param userId - The UUID of the user.
+ * @param options - Optional query options for filtering, sorting, and pagination.
+ * @param attributes - Optional list of attributes to select.
+ * @returns A list of orders matching the criteria, or null if user not found.
+ * @throws {status: 400} If userId is invalid or options are malformed.
+ * @throws {status: 404} If user not found.
+ */
+export const getUserOrders = async (
+	userId: string,
+	options: OrderQueryOptions,
+	...attributes: (keyof OrderAttributes)[]
+): Promise<Order[] | null> => {
+	if (!userId) throw { status: 400, message: "No ID was provided" };
+
+	const user = await userServices.getUserById(userId, "id");
+	if (!user) throw { status: 404, message: "No user found with this ID" };
+
+	const queryOptions = buildOrderQueryOptions(
+		options,
+		{ userId: user.id },
+		attributes
+	);
+	return await db.Order.findAll(queryOptions);
+};
+
+/**
+ * Retrieves orders for a guest user by email or phone number with optional filtering and pagination.
+ * Supports filtering by status, date ranges, and sorting.
+ *
+ * @param guestPurchaserEmail - The email of the guest purchaser.
+ * @param guestPurchaserPhone - The phone of the guest purchaser.
+ * @param options - Optional query options for filtering, sorting, and pagination.
+ * @param attributes - Optional list of attributes to select.
+ * @returns A list of orders matching the criteria.
+ * @throws {status: 400} If guestEmail is invalid or options are malformed.
+ */
+export const getGuestOrders = async (
+	guestPurchaserEmail: string,
+	guestPurchaserPhone: string,
+	options: OrderQueryOptions,
+	...attributes: (keyof OrderAttributes)[]
+): Promise<Order[] | null> => {
+	if (!guestPurchaserEmail && !guestPurchaserPhone)
+		throw {
+			status: 400,
+			message: "Must provide either an Email or Phone number.",
+		};
+
+	const initialWhere: any = {};
+	if (guestPurchaserEmail)
+		initialWhere.guestPurchaserEmail = guestPurchaserEmail;
+	if (guestPurchaserPhone)
+		initialWhere.guestPurchaserPhone = guestPurchaserPhone;
+
+	const queryOptions = buildOrderQueryOptions(
+		options,
+		initialWhere,
+		attributes
+	);
+	return await db.Order.findAll(queryOptions);
+};
+
+export const checkInTicketsByOrder = async (
+	orderId: string
+): Promise<Order> => {
+	// Step 1: Fetch the order and its tickets to identify which ones to check in.
+	const order = await db.Order.findByPk(orderId, {
+		include: [
+			{
+				model: db.Ticket,
+				required: true,
+				as: "tickets",
+			},
+		],
+	});
+
+	if (!order) throw { status: 404, message: "Order not found." };
+
+	// Step 2: Filter for tickets that are in 'BOOKED' status.
+	// This creates an array of IDs, which can have one or many items.
+	const bookedTicketIds =
+		order.tickets
+			?.filter((ticket) => ticket.status === TicketStatus.BOOKED)
+			.map((ticket) => ticket.id) ?? [];
+
+	if (bookedTicketIds.length === 0)
+		throw {
+			status: 400,
+			message: "This order has no tickets eligible for check-in.",
+		};
+
+	// Step 3: ALWAYS delegate to the batch confirmation service.
+	// It handles arrays of any size (1 or more) safely and efficiently.
+	await ticketServices.confirmTickets(bookedTicketIds);
+
+	// Step 4: Re-fetch the order with all nested data to return the final result.
+	const updatedOrder = await getOrderById(orderId, {
+		include: ["tickets", "payment"],
+	});
+
+	if (!updatedOrder) throw { status: 500, message: "Failed to retrieve updated order after check-in.", };
+    
+	return updatedOrder;
+};
+
+/**
+ * Builds a Sequelize query options object from the provided OrderQueryOptions.
+ * This centralizes the logic for filtering, sorting, pagination, and including associations.
+ *
+ * @param options - The query options DTO.
+ * @param initialWhere - An optional base where clause to build upon.
+ * @param attributes - An optional array of attributes to select.
+ * @returns A complete FindOptions object for Sequelize.
+ */
+const buildOrderQueryOptions = (
+	options: OrderQueryOptions,
+	initialWhere: any = {},
+	attributes?: (keyof OrderAttributes)[]
+): any => {
+	const whereClause: any = { ...initialWhere };
+
+	// Dynamically build the where clause from options
+	if (options.status) whereClause.status = options.status;
+	if (options.dateFrom || options.dateTo) {
+		whereClause.createdAt = {};
+		if (options.dateFrom) whereClause.createdAt[Op.gte] = options.dateFrom;
+		if (options.dateTo) whereClause.createdAt[Op.lte] = options.dateTo;
+	}
+	if (options.updatedFrom || options.updatedTo) {
+		whereClause.updatedAt = {};
+		if (options.updatedFrom)
+			whereClause.updatedAt[Op.gte] = options.updatedFrom;
+		if (options.updatedTo)
+			whereClause.updatedAt[Op.lte] = options.updatedTo;
+	}
+
+	// Build the include clause for associations
+	const includeClause = options.include
+		?.map((assoc) => {
+			if (assoc === "tickets") return { model: db.Ticket, as: "tickets" };
+			if (assoc === "payment")
+				return { model: db.Payment, as: "payment" };
+			if (assoc === "couponUsage") {
+				return {
+					model: db.CouponUsage,
+					as: "couponUsage",
+					include: [{ model: db.Coupon, as: "coupon" }],
+				};
+			}
+			return null;
+		})
+		.filter((item): item is NonNullable<typeof item> => item !== null);
+
+	// Build the order clause for sorting
+	const orderClause: any = options.sortBy
+		? [[options.sortBy, options.sortOrder || "DESC"]]
+		: [["createdAt", "DESC"]];
+
+	const queryOptions: any = {
+		where: whereClause,
+		order: orderClause,
+	};
+
+	if (options.limit) queryOptions.limit = options.limit;
+	if (options.offset) queryOptions.offset = options.offset;
+
+	if (includeClause && includeClause.length > 0) {
+		queryOptions.include = includeClause;
+	}
+
+	if (attributes && attributes.length > 0) {
+		queryOptions.attributes = attributes;
+	}
+
+	return queryOptions;
 };

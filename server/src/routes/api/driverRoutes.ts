@@ -28,13 +28,13 @@ import { createDriverValidation, updateDriverValidation, validateDriverIdParam }
 const driverRoutes = Router();
 
 // GET /drivers - Advanced search with filtering and pagination
-driverRoutes.get("/", isAdmin, driverController.SearchDriver, errorHandler);
+driverRoutes.get("/", csrfAdminProtectionRoute, driverController.SearchDriver, errorHandler);
 
 // GET /drivers/search - Alternative search endpoint
-driverRoutes.get("/search", isAdmin, driverController.SearchDriver, errorHandler);
+driverRoutes.get("/search", csrfAdminProtectionRoute, driverController.SearchDriver, errorHandler);
 
 // GET /drivers/:id - Get driver by ID
-driverRoutes.get("/:id", isAdmin, validateDriverIdParam, handleValidationResult, driverController.GetDriverById, errorHandler);
+driverRoutes.get("/:id", csrfAdminProtectionRoute, validateDriverIdParam, handleValidationResult, driverController.GetDriverById, errorHandler);
 
 // POST /drivers - Create new driver
 driverRoutes.post("/", csrfAdminProtectionRoute, createDriverValidation, handleValidationResult, driverController.AddDriver, errorHandler);
