@@ -4,6 +4,8 @@ import * as verificationServices from "@services/verificationServices";
 import { ChangePasswordDTO, ResetPasswordDTO } from "@my_types/user";
 import { getCsrfToken, isValidCsrfToken } from "@middlewares/csrf";
 import { CONFIG, COMPUTED } from "@constants";
+import logger from "@utils/logger";
+import { encryptToken } from "@utils/encryption";
 
 /**
  * Helper function to set access and refresh tokens in secure, httpOnly cookies.
@@ -28,12 +30,16 @@ const setCookieTokens = (
 	};
 
 	const accessMaxAge = (CONFIG.JWT_EXPIRY_HOURS || 1) * 60 * 60 * 1000;
-	res.cookie("accessToken", accessToken, {
+	const encryptedSecret = process.env.COOKIE_ENCRYPTION_KEY || "cookie_encryption_key";
+	const encryptedAccessToken = encryptToken(accessToken, encryptedSecret);
+	
+	res.cookie("accessToken", encryptedAccessToken, {
 		...cookieOptions,
 		maxAge: accessMaxAge,
 	});
-
-	res.cookie("refreshToken", refreshToken, {
+	
+	const encryptedRefreshToken = encryptToken(refreshToken, encryptedSecret);
+	res.cookie("refreshToken", encryptedRefreshToken, {
 		...cookieOptions,
 		maxAge: COMPUTED.REFRESH_TOKEN_EXPIRY_SECONDS * 1000,
 	});
@@ -223,7 +229,7 @@ export const Logout = async (
 		if (result === 0) {
 			// This can happen if the token is already revoked, which is not a critical error.
 			// Proceed to clear cookies anyway.
-			console.warn("Logout attempt with an invalid or already revoked token.");
+			logger.warn("Logout attempt with an invalid or already revoked token.");
 		}
 
 		// Clear cookies client-side

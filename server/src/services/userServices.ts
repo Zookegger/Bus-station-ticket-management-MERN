@@ -116,7 +116,7 @@ export const countTotalAdmin = async (): Promise<number> => {
  * @returns {Promise<User | null>} The created admin user or null if an admin already exists.
  * @example
  * const admin = await generateDefaultAdminAccount();
- * if (admin) console.log('Default admin created');
+ * if (admin) logger.info('Default admin created');
  */
 export const generateDefaultAdminAccount = async (): Promise<User | null> => {
 	if ((await countTotalAdmin()) !== 0) {

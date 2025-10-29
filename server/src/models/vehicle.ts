@@ -3,8 +3,6 @@ import {
 	Model,
 	Optional,
 	Sequelize,
-	BelongsToGetAssociationMixin,
-	HasManyGetAssociationsMixin,
 } from "sequelize";
 import { VehicleType } from "./vehicleType";
 import { Trip } from "./trip";

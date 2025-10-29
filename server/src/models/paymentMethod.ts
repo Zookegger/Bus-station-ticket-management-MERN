@@ -1,5 +1,5 @@
 // models/PaymentMethod.ts
-import { decrypt, encrypt } from "@utils/encryption";
+import { decryptDB, encryptDB } from "@utils/encryption";
 import logger from "@utils/logger";
 import { Model, Optional, DataTypes } from "sequelize";
 import { DbModels } from "@models";;
@@ -110,7 +110,7 @@ export class PaymentMethod
 						}
 
 						// If it's a string, it's encrypted - decrypt it
-						const decrypted = decrypt(rawValue);
+						const decrypted = decryptDB(rawValue);
 						try {
 							return decrypted ? JSON.parse(decrypted) : null;
 						} catch (error) {
@@ -131,7 +131,7 @@ export class PaymentMethod
 							typeof value === "string"
 								? value
 								: JSON.stringify(value);
-						const encrypted = encrypt(jsonString);
+						const encrypted = encryptDB(jsonString);
 						// Store as raw string, Sequelize will handle JSON serialization
 						this.setDataValue("configJson" as any, encrypted);
 					},
@@ -163,7 +163,7 @@ export class PaymentMethod
 	 * @param {DbModels} models - The collection of all Sequelize models.
 	 * @returns {void}
 	 */
-	static associate(models: DbModels) {
+	static associate(_models: DbModels) {
 		// No direct associations from PaymentMethod in this schema
 	}
 }

@@ -9,6 +9,7 @@ import passport from "passport";
 import { JwtPayload } from "@my_types/auth";
 import { User } from "@models/user";
 import { getUserById } from "@services/userServices";
+import { decryptToken } from "@utils/encryption";
 
 /**
  * Extracts the JWT from an httpOnly cookie named 'accessToken'.
@@ -18,8 +19,10 @@ import { getUserById } from "@services/userServices";
  */
 const cookieExtractor = (req: Request): string | null => {
 	let token = null;
-	if (req && req.cookies) {
-		token = req.cookies["accessToken"];
+	if (req && req.cookies && req.cookies.accessToken) {
+		const encryptedToken = req.cookies["accessToken"];
+		const secret = process.env.COOKIE_ENCRYPTION_KEY || "cookie_encryption_key";
+		token = decryptToken(encryptedToken, secret);
 	}
 	return token;
 };

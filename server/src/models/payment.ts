@@ -8,11 +8,12 @@ import {
 	Sequelize,
 } from "sequelize";
 import { PaymentMethod } from "./paymentMethod";
-import { decrypt, encrypt } from "@utils/encryption";
+import { decryptDB, encryptDB } from "@utils/encryption";
 import { Ticket } from "./ticket";
 import { PaymentTicket } from "./paymentTicket";
 import { Order } from "./orders";
-import { DbModels } from "@models";;
+import { DbModels } from "@models";import logger from "@utils/logger";
+;
 
 /**
  * Enum for the status of a payment.
@@ -218,13 +219,13 @@ export class Payment
 						);
 						if (!rawValue) return null;
 						try {
-							const decrypted = decrypt(rawValue);
+							const decrypted = decryptDB(rawValue);
 							if (decrypted) {
 								return JSON.parse(decrypted);
 							}
 							return null;
 						} catch (e) {
-							// console.error("Failed to decrypt or parse gatewayResponseData", e);
+							logger.error("Failed to decrypt or parse gatewayResponseData", e);
 							return null; // Or return a specific error object
 						}
 					},
@@ -238,7 +239,7 @@ export class Payment
 							const stringified = JSON.stringify(value);
 							this.setDataValue(
 								"gatewayResponseData" as keyof PaymentAttributes,
-								encrypt(stringified)
+								encryptDB(stringified)
 							);
 						}
 					},

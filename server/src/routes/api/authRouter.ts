@@ -27,6 +27,7 @@ const authRouter = Router();
 // CSRF token endpoint
 authRouter.get(
 	"/csrf-token",
+	authRateLimiter,
 	csrfUserProtectionRoute,
 	authValidator.getCsrfTokenValidator,
 	authController.GetCsrfToken,
