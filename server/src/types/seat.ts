@@ -1,11 +1,22 @@
+/**
+ * Represents the current status of a single seat.
+ */
 export enum SeatStatus {
-	AVAILABLE = "available", // Seat is available for booking
-	RESERVED = "reserved", // Seat is temporarily reserved (payment in progress)
-	BOOKED = "booked", // Seat is confirmed and paid for
-	MAINTENANCE = "maintenance", // Seat is under maintenance/damaged
-	DISABLED = "disabled", // Seat is permanently disabled
-}
+    /** Seat is available for booking */
+    AVAILABLE = "available",
 
+    /** Seat is temporarily reserved (e.g., payment in progress) */
+    RESERVED = "reserved",
+
+    /** Seat is confirmed and paid for */
+    BOOKED = "booked",
+
+    /** Seat is temporarily unavailable (e.g., under maintenance, damaged) */
+    MAINTENANCE = "maintenance",
+
+    /** Seat is permanently disabled and not for sale */
+    DISABLED = "disabled",
+}
 /**
  * Data Transfer Object for updating an existing Seat.
  *

@@ -141,3 +141,7 @@ vite.config.ts.timestamp-*
 
 # Test
 tests/
+
+Summarization/*
+.github/copilot-instructions.md
+.github/prompts/*

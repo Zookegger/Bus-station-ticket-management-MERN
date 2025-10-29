@@ -1,106 +1,103 @@
-import {
-	useEffect,
-	useState,
-	type ReactNode,
-} from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import axios from "axios";
 import type { User } from "@my-types/auth";
 import { AuthContext } from "./AuthContext.context";
+import { ROUTES } from "@constants";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+axios.defaults.baseURL = API_BASE_URL;
+axios.defaults.withCredentials = true;
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	const [user, setUser] = useState<User | null>(null);
 	const [isLoading, setIsLoading] = useState<boolean>(true);
+	const [csrfToken, setCsrfToken] = useState<string | null>(null);
 
-	// Helper function to refresh the access token
-	const refreshAccessToken = async (): Promise<string | null> => {
-		const refreshToken = localStorage.getItem("refreshToken");
-		if (!refreshToken) return null;
-
-		try {
-			const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-				refreshToken,
-			});
-			const { accessToken, refreshToken: newRefreshToken } = response.data;
-
-			// Store new tokens
-			localStorage.setItem("accessToken", accessToken);
-			localStorage.setItem("refreshToken", newRefreshToken);
-			axios.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
-
-			return accessToken;
-		} catch (error) {
-			// Refresh token is invalid or expired
-			localStorage.removeItem("accessToken");
-			localStorage.removeItem("refreshToken");
-			delete axios.defaults.headers.common["Authorization"];
-			console.error("Something went wrong while refreshing access token: ", error);
-            return null;
-		}
-	};
-
+	// This interceptor automatically adds the CSRF token to state-changing requests.
 	useEffect(() => {
-		const initAuth = async () => {
-			const token = localStorage.getItem("accessToken");
-
-			if (token) {
-				axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
-				try {
-					const res = await axios.get(`${API_BASE_URL}/auth/me`);
-					setUser(res.data.user);
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				} catch (error: any) {
-					// If 401, try to refresh the token
-					if (error.response?.status === 401) {
-						const newToken = await refreshAccessToken();
-
-						if (newToken) {
-							// Retry /auth/me with new token
-							try {
-								const res = await axios.get(`${API_BASE_URL}/auth/me`);
-								setUser(res.data.user);
-							} catch (retryError) {
-								// Even with new token, couldn't get user
-								localStorage.removeItem("accessToken");
-								localStorage.removeItem("refreshToken");
-
-                                console.error("Something went wrong:", retryError);
-							}
-						}
-					} else {
-						// Other errors (network, server)
-						localStorage.removeItem("accessToken");
-						localStorage.removeItem("refreshToken");
-					}
-				} finally {
-					setIsLoading(false);
+		/* --- Axios Request Interceptor for CSRF Token --- */
+		const requestInterceptor = axios.interceptors.request.use(
+			(config) => {
+				const methodRequiringCsrf = ["POST", "PUT", "PATCH", "DELETE"];
+				if (
+					csrfToken &&
+					methodRequiringCsrf.includes(
+						config.method?.toLowerCase() ?? ""
+					)
+				) {
+					config.headers["X-CSRF-Token"] = csrfToken;
 				}
-			} else {
+				return config;
+			},
+			(error) => Promise.reject(error)
+		);
+
+		const responseInterceptor = axios.interceptors.response.use(
+			(response) => response, // Pass through successful responses
+			async (err) => {
+				const originalRequest = err.config;
+				// Check if the error is 401, the request was not for refreshing, and we haven't retried yet
+                if (err.response?.status === 401 && !originalRequest._retry) {
+					originalRequest._retry = true; // Mark that we've retried this request
+					try {
+						await axios.post("/auth/refresh");
+						return axios(originalRequest);
+					} catch (refreshErr) {
+						setUser(null);
+						setCsrfToken(null);
+						console.error("Session expired. Please log in again.");
+						window.location.href = ROUTES.LOGIN;
+						return Promise.reject(refreshErr);
+					}
+				}
+				return Promise.reject(err);
+			}
+		);
+
+		// Clean up the interceptor when the component unmounts
+		return () => {
+			axios.interceptors.request.eject(requestInterceptor);
+			axios.interceptors.response.eject(responseInterceptor);
+		};
+	}, [csrfToken]); // Re-attach if csrfToken ever changes
+
+	// --- Initial Authentication Check ---
+	// On component mount, check if the user has a valid session cookie.
+	useEffect(() => {
+		const verifyUserSession = async () => {
+			try {
+				const response = await axios.get("/auth/me");
+				if (response)
+
+				setUser(response.data.user);
+				const csrfResponse = await axios.get("/auth/csrf-token");
+				setCsrfToken(csrfResponse.data.csrfToken);
+			} catch (err) {
+				// A 401 error here means the user is not logged in.
+                // No need to do anything, user state is already null.
+                console.log("No active session found.");
+			} finally {
 				setIsLoading(false);
 			}
-		};
+		}
 
-		initAuth();
-	}, []);
+		verifyUserSession();
+	}, [])
 
-	const login = (tokens: {
-		user: User;
-		accessToken: string;
-		refreshToken: string;
-	}): void => {
-		localStorage.setItem("accessToken", tokens.accessToken);
-		localStorage.setItem("refreshToken", tokens.refreshToken);
-		axios.defaults.headers.common["Authorization"] = `Bearer ${tokens.accessToken}`;
-		setUser(tokens.user);
+	const login = (data: {user: User, csrfToken: string}): void => {
+		setUser(data.user);
+		setCsrfToken(data.csrfToken);
 	};
 
-	const logout = (): void => {
-		localStorage.removeItem("accessToken");
-		localStorage.removeItem("refreshToken");
-		delete axios.defaults.headers.common["Authorization"];
-		setUser(null);
+	const logout = async (): Promise<void> => {
+		try {
+			await axios.post("/auth/logout");
+		} catch (err) {
+			console.error("Logout failed:", err);
+		} finally {
+			setUser(null);
+			setCsrfToken(null);
+		}
 	};
 
 	return (

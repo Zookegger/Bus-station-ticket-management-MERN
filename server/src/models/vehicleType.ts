@@ -1,5 +1,12 @@
-import { DataTypes, Model, Optional, Sequelize } from "sequelize";
+import {
+	DataTypes,
+	Model,
+	Optional,
+	Sequelize,
+	HasManyGetAssociationsMixin,
+} from "sequelize";
 import { Vehicle } from "./vehicle";
+import { DbModels } from "@models";;
 
 /**
  * Attributes representing a Vehicle Type in the system.
@@ -35,6 +42,7 @@ export interface VehicleTypeAttributes {
  * can be filled in later (e.g., seat layout details, timestamps).
  *
  * @interface VehicleTypeCreationAttributes
+ * @extends {Optional<VehicleTypeAttributes, "id" | "price" | "totalFloors" | "totalColumns" | "totalSeats" | "rowsPerFloor" | "seatsPerFloor" | "createdAt" | "updatedAt">}
  */
 export interface VehicleTypeCreationAttributes
 	extends Optional<
@@ -58,17 +66,19 @@ export interface VehicleTypeCreationAttributes
  * type of vehicle (e.g., seating layout, number of floors, and pricing).
  *
  * @class VehicleType
+ * @extends {Model<VehicleTypeAttributes, VehicleTypeCreationAttributes>}
  * @implements {VehicleTypeAttributes}
  * @property {number} id - Primary key of the vehicle type.
- * @property {string} name - Name of the vehicle type.
- * @property {number | null} [price] - Price associated with the vehicle type.
+ * @property {string} name - The display name of the vehicle type.
+ * @property {number | null} [price] - Base price associated with this vehicle type.
  * @property {number | null} [totalFloors] - Total number of floors.
- * @property {number | null} [totalColumns] - Total number of columns.
- * @property {number | null} [totalSeats] - Total number of seats across floors.
- * @property {string | null} [rowsPerFloor] - Serialized seat row data per floor.
- * @property {string | null} [seatsPerFloor] - Serialized seat data per floor.
- * @property {Date} [createdAt] - Creation timestamp.
- * @property {Date} [updatedAt] - Last update timestamp.
+ * @property {number | null} [totalColumns] - Total number of seat columns per floor.
+ * @property {number | null} [totalSeats] - Total seat count across all floors.
+ * @property {string | null} [rowsPerFloor] - JSON layout data for rows per floor.
+ * @property {string | null} [seatsPerFloor] - JSON layout data for seats per floor.
+ * @property {Date} [createdAt] - Timestamp when the record was created.
+ * @property {Date} [updatedAt] - Timestamp when the record was last updated.
+ * @property {Vehicle[]} [vehicles] - Associated Vehicle instances.
  */
 export class VehicleType
 	extends Model<VehicleTypeAttributes, VehicleTypeCreationAttributes>
@@ -86,14 +96,19 @@ export class VehicleType
 	public readonly updatedAt?: Date;
 
 	// Association properties
-	public vehicles?: Vehicle[];
+	public getVehicles!: HasManyGetAssociationsMixin<Vehicle>;
+	/**
+	 * @property {Vehicle[]} [vehicles] - Associated Vehicle instances.
+	 */
+	public readonly vehicles?: Vehicle[];
 
 	/**
 	 * Initializes the Sequelize model definition for VehicleType.
 	 *
 	 * @param {Sequelize} sequelize - The Sequelize instance.
+	 * @returns {void}
 	 */
-	static initModel(sequelize: Sequelize) {
+	static initModel(sequelize: Sequelize): void {
 		VehicleType.init(
 			{
 				id: {
@@ -112,29 +127,51 @@ export class VehicleType
 				totalFloors: {
 					type: DataTypes.INTEGER.UNSIGNED,
 					allowNull: true,
+					field: 'totalFloors'
 				},
 				totalColumns: {
 					type: DataTypes.INTEGER.UNSIGNED,
 					allowNull: true,
+					field: 'totalColumns'
 				},
 				totalSeats: {
 					type: DataTypes.INTEGER.UNSIGNED,
 					allowNull: true,
+					field: 'totalSeats'
 				},
 				rowsPerFloor: {
-					type: DataTypes.TEXT,
+					type: DataTypes.TEXT("long"),
 					allowNull: true,
+					comment: "JSON string representing rows per floor (e.g., [10,8])",
+					field: 'rowsPerFloor'
 				},
 				seatsPerFloor: {
-					type: DataTypes.TEXT,
+					type: DataTypes.TEXT("long"),
 					allowNull: true,
+					comment: "JSON string representing seat layout matrix per floor",
+					field: 'seatsPerFloor'
 				},
 			},
 			{
 				sequelize,
 				tableName: "vehicle_types",
 				timestamps: true,
+				underscored: false
 			}
 		);
+	}
+
+	/**
+	 * Defines associations between the VehicleType model and other models.
+	 *
+	 * @param {DbModels} models - The collection of all Sequelize models.
+	 * @returns {void}
+	 */
+	static associate(models: DbModels): void {
+		VehicleType.hasMany(models.Vehicle, {
+			foreignKey: "vehicleTypeId",
+			as: "vehicles",
+			onDelete: "SET NULL",
+		});
 	}
 }

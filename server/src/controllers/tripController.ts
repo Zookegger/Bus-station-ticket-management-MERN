@@ -7,7 +7,7 @@
  */
 
 import { NextFunction, Request, Response } from "express";
-import { getParamsId } from "@utils/request";
+import { getParamNumericId } from "@utils/request";
 import { CreateTripDTO, UpdateTripDTO } from "@my_types/trip";
 import * as tripServices from "@services/tripServices";
 
@@ -148,7 +148,7 @@ export const UpdateTrip = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
-		const id = getParamsId(req);
+		const id = getParamNumericId(req);
 
 		const updated_trip: UpdateTripDTO = req.body;
 
@@ -191,7 +191,7 @@ export const DeleteTrip = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
-		const id = getParamsId(req);
+		const id = getParamNumericId(req);
 
 		await tripServices.deleteTrip(id);
 
@@ -225,7 +225,7 @@ export const GetTripById = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
-		const id = getParamsId(req);
+		const id = getParamNumericId(req);
 
 		const trip = await tripServices.getTripById(id);
 

@@ -1,3 +1,2 @@
 // User pages exports
-
-// Add user-specific pages here when created
+export { default as Profile } from "./Profile";

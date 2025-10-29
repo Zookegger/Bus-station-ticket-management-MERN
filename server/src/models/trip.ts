@@ -1,30 +1,28 @@
-import { Model, DataTypes, Optional, Sequelize } from "sequelize";
-import { Vehicle } from "./vehicle";
+import {
+	DataTypes,
+	Model,
+	Optional,
+	Sequelize,
+} from "sequelize";
 import { Route } from "./route";
+import { Vehicle } from "./vehicle";
 import { Seat } from "./seat";
-import { TripDriverAssignment } from "./tripDriverAssignment";
+import { Driver } from "./driver";
+import { DbModels } from "@models";
+import { TripStatus } from "@my_types/trip";
 
 /**
- * Sequelize model for Trip entity.
- *
- * Represents scheduled bus trips based on a specific route and vehicle.
- * Each trip defines a start time, optional end time, ticket price, and current status.
- * Used for managing bus operations and tracking trip progress in the ticket management system.
- */
-
-/**
- * Attributes representing a Trip in the system.
- *
+ * Interface for the attributes of a Trip.
  * @interface TripAttributes
- * @property {number} id - Unique identifier of the trip (primary key).
- * @property {number} vehicleId - Foreign key referencing the assigned vehicle.
- * @property {number} routeId - Foreign key referencing the route for this trip.
- * @property {Date} startTime - Scheduled departure time for the trip.
- * @property {Date | null} endTime - Actual or estimated arrival time (nullable).
- * @property {number | null} price - Ticket price for this specific trip.
- * @property {"Scheduled" | "Departed" | "Completed" | "Cancelled" | string} status - Current status of the trip.
- * @property {Date} createdAt - Timestamp when the trip record was created.
- * @property {Date} updatedAt - Timestamp when the trip record was last updated.
+ * @property {number} id - The unique identifier for the trip.
+ * @property {number} routeId - The ID of the route for this trip.
+ * @property {number} vehicleId - The ID of the vehicle for this trip.
+ * @property {Date} departureTime - The departure time of the trip.
+ * @property {Date} arrivalTime - The arrival time of the trip.
+ * @property {TripStatus} status - The current status of the trip.
+ * @property {number} basePrice - The base price for the trip.
+ * @property {Date} [createdAt] - The date and time the trip was created.
+ * @property {Date} [updatedAt] - The date and time the trip was last updated.
  */
 export interface TripAttributes {
 	id: number;
@@ -39,36 +37,31 @@ export interface TripAttributes {
 }
 
 /**
- * Attributes required for creating a new Trip.
- * Some fields are optional because they are automatically generated or can be updated later.
- * (e.g., id, endTime, status, timestamps)
- *
+ * Interface for the creation attributes of a Trip.
  * @interface TripCreationAttributes
+ * @extends {Optional<TripAttributes, "id" | "createdAt" | "updatedAt">}
  */
 export interface TripCreationAttributes
-	extends Optional<
-		TripAttributes,
-		"id" | "endTime" | "price" | "status" | "createdAt" | "updatedAt"
-	> {}
+	extends Optional<TripAttributes, "id" | "createdAt" | "updatedAt"> {}
 
 /**
- * Sequelize model representing a Trip.
- *
- * Maps the `trips` table and enforces schema via Sequelize.
- * Each trip links a vehicle and a route, with scheduling and pricing details.
- *
+ * Sequelize model for the Trip.
  * @class Trip
- * @extends Model
+ * @extends {Model<TripAttributes, TripCreationAttributes>}
  * @implements {TripAttributes}
- * @property {number} id - Unique identifier of the trip.
- * @property {number} vehicleId - Vehicle assigned to the trip.
- * @property {number} routeId - Route associated with the trip.
- * @property {Date} startTime - Planned departure time.
- * @property {Date | null} endTime - Actual or estimated arrival time.
- * @property {number | null} price - Ticket price for the trip.
- * @property {string} status - Current trip status (e.g., Scheduled, Departed).
- * @property {Date} createdAt - Creation timestamp.
- * @property {Date} updatedAt - Last update timestamp.
+ * @property {number} id - The unique identifier for the trip.
+ * @property {number} vehicleId - The ID of the vehicle for this trip.
+ * @property {number} routeId - The ID of the route for this trip.
+ * @property {Date} startTime - The scheduled departure time for the trip.
+ * @property {Date | null} [endTime] - The actual or estimated arrival time.
+ * @property {number} [price] - The ticket price for this specific trip.
+ * @property {string} [status] - The current status of the trip.
+ * @property {Date} [createdAt] - The date and time the trip was created.
+ * @property {Date} [updatedAt] - The date and time the trip was last updated.
+ * @property {Route} [route] - Associated Route instance.
+ * @property {Vehicle} [vehicle] - Associated Vehicle instance.
+ * @property {Seat[]} [seats] - Associated Seat instances.
+ * @property {Driver[]} [drivers] - Associated Driver instances.
  */
 export class Trip
 	extends Model<TripAttributes, TripCreationAttributes>
@@ -90,7 +83,7 @@ export class Trip
 	public endTime?: Date | null;
 
 	/** Ticket price for this specific trip */
-	public price?: number | null;
+	public price!: number;
 
 	/** Current status of the trip (Scheduled, Departed, Completed, Cancelled) */
 	public status?: string;
@@ -101,22 +94,26 @@ export class Trip
 	/** Timestamp when the trip record was last updated */
 	public readonly updatedAt!: Date;
 
-	// Association properties
-	/** Vehicle assigned to the trip */
-	public vehicle?: Vehicle;
-
-	/** Route associated with the trip */
-	public route?: Route;
-
-	/** Seats assigned to this trip */
-	public seats?: Seat[];
-
-	/** Driver assignments for this trip */
-	public driverAssignments?: TripDriverAssignment[];
+	// Associations
+	/**
+	 * @property {Route} [route] - Associated Route instance.
+	 */
+	public readonly route?: Route;
+	/**
+	 * @property {Vehicle} [vehicle] - Associated Vehicle instance.
+	 */
+	public readonly vehicle?: Vehicle;
+	/**
+	 * @property {Seat[]} [seats] - Associated Seat instances.
+	 */
+	public readonly seats?: Seat[];
+	/**
+	 * @property {Driver[]} [drivers] - Associated Driver instances.
+	 */
+	public readonly drivers?: Driver[];
 
 	/**
-	 * Initializes the Sequelize model definition for Trip.
-	 *
+	 * Initializes the Trip model.
 	 * @param {Sequelize} sequelize - The Sequelize instance.
 	 * @returns {void}
 	 */
@@ -131,34 +128,64 @@ export class Trip
 				vehicleId: {
 					type: DataTypes.INTEGER.UNSIGNED,
 					allowNull: false,
+					field: 'vehicleId'
 				},
 				routeId: {
 					type: DataTypes.INTEGER.UNSIGNED,
 					allowNull: false,
+					field: 'routeId'
 				},
 				startTime: {
 					type: DataTypes.DATE,
 					allowNull: false,
+					field: 'startTime'
 				},
 				endTime: {
 					type: DataTypes.DATE,
 					allowNull: true,
+					field: 'endTime'
 				},
 				price: {
 					type: DataTypes.DECIMAL(10, 2),
-					allowNull: true,
+					allowNull: false,
 				},
 				status: {
-					type: DataTypes.STRING,
-					allowNull: true,
-					defaultValue: "Scheduled",
+					type: DataTypes.ENUM(...Object.values(TripStatus)),
+					allowNull: false,
+					defaultValue: TripStatus.PENDING,
 				},
 			},
 			{
 				sequelize,
 				tableName: "trips",
 				timestamps: true,
+				underscored: false
 			}
 		);
+	}
+
+	/**
+	 * Defines associations between the Trip model and other models.
+	 *
+	 * @param {DbModels} models - The collection of all Sequelize models.
+	 * @returns {void}
+	 */
+	static associate(models: DbModels): void {
+		Trip.belongsTo(models.Route, {
+			foreignKey: "routeId",
+			as: "route",
+		});
+		Trip.belongsTo(models.Vehicle, {
+			foreignKey: "vehicleId",
+			as: "vehicle",
+		});
+		Trip.hasMany(models.Seat, {
+			foreignKey: "tripId",
+			as: "seats",
+		});
+		Trip.hasMany(models.Driver, {
+			foreignKey: "tripId",
+			as: "drivers",
+		});
 	}
 }

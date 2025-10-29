@@ -20,6 +20,7 @@ import logger from "@utils/logger";
 import { configService } from "@services/settingServices";
 import { connectToDatabase } from "@models";
 import { generateDefaultAdminAccount } from "@services/userServices";
+import { initializePaymentGateways } from "@services/gateways";
 
 // Server port configuration with fallback to 5000
 const PORT = process.env.PORT || 5000;
@@ -49,6 +50,8 @@ const startServer = async (): Promise<void> => {
 		// Start email worker		
 		await emailWorker.waitUntilReady();
 		
+		initializePaymentGateways();
+
 		// Create HTTP server with Express app
 		const server = http.createServer(app);
 

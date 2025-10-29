@@ -1,7 +1,7 @@
 /*M!999999\- enable the sandbox mode */ 
 -- MariaDB dump 10.19  Distrib 10.6.22-MariaDB, for debian-linux-gnu (x86_64)
 --
--- Host: 127.0.0.1    Database: bus_station_db
+-- Host: localhost    Database: bus_station_db
 -- ------------------------------------------------------
 -- Server version	10.6.22-MariaDB-0ubuntu0.22.04.1
 
@@ -146,11 +146,34 @@ CREATE TABLE `payment_methods` (
   `name` varchar(100) NOT NULL,
   `code` varchar(50) NOT NULL,
   `is_active` tinyint(1) DEFAULT 1,
-  `config_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`config_json`)),
+  `config_json` longtext DEFAULT NULL,
   `created_at` datetime DEFAULT NULL,
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `code` (`code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `payment_tickets`
+--
+
+DROP TABLE IF EXISTS `payment_tickets`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `payment_tickets` (
+  `paymentId` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `ticketId` int(10) unsigned NOT NULL,
+  `amount` decimal(10,2) NOT NULL COMMENT 'Amount allocated to this specific ticket',
+  `createdAt` datetime NOT NULL,
+  `updatedAt` datetime NOT NULL,
+  PRIMARY KEY (`paymentId`,`ticketId`),
+  UNIQUE KEY `payment_tickets_ticketId_paymentId_unique` (`paymentId`,`ticketId`),
+  UNIQUE KEY `payment_tickets_payment_id_ticket_id` (`paymentId`,`ticketId`),
+  KEY `payment_tickets_payment_id` (`paymentId`),
+  KEY `payment_tickets_ticket_id` (`ticketId`),
+  CONSTRAINT `payment_tickets_ibfk_1` FOREIGN KEY (`paymentId`) REFERENCES `payments` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `payment_tickets_ibfk_2` FOREIGN KEY (`ticketId`) REFERENCES `tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -255,6 +278,23 @@ CREATE TABLE `seats` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `settings`
+--
+
+DROP TABLE IF EXISTS `settings`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `settings` (
+  `key` varchar(255) NOT NULL COMMENT 'The unique identifier for the setting.',
+  `value` text NOT NULL COMMENT 'The value of the setting, stored as a string.',
+  `description` varchar(255) DEFAULT NULL COMMENT 'A human-readable description for the admin UI.',
+  `createdAt` datetime NOT NULL,
+  `updatedAt` datetime NOT NULL,
+  PRIMARY KEY (`key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `tickets`
 --
 
@@ -267,7 +307,6 @@ CREATE TABLE `tickets` (
   `seatId` int(10) unsigned DEFAULT NULL,
   `basePrice` decimal(10,2) NOT NULL,
   `finalPrice` decimal(10,2) NOT NULL,
-  `paymentId` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
   `status` enum('PENDING','BOOKED','CANCELLED','COMPLETED','REFUNDED','INVALID') NOT NULL DEFAULT 'BOOKED',
   `guestEmail` varchar(255) DEFAULT NULL,
   `guestName` varchar(255) DEFAULT NULL,
@@ -277,10 +316,8 @@ CREATE TABLE `tickets` (
   PRIMARY KEY (`id`),
   KEY `userId` (`userId`),
   KEY `seatId` (`seatId`),
-  KEY `paymentId` (`paymentId`),
   CONSTRAINT `tickets_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `tickets_ibfk_2` FOREIGN KEY (`seatId`) REFERENCES `seats` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `tickets_ibfk_3` FOREIGN KEY (`paymentId`) REFERENCES `payments` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+  CONSTRAINT `tickets_ibfk_2` FOREIGN KEY (`seatId`) REFERENCES `seats` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -376,8 +413,8 @@ CREATE TABLE `vehicle_types` (
   `totalFloors` int(10) unsigned DEFAULT NULL,
   `totalColumns` int(10) unsigned DEFAULT NULL,
   `totalSeats` int(10) unsigned DEFAULT NULL,
-  `rowsPerFloor` text DEFAULT NULL,
-  `seatsPerFloor` text DEFAULT NULL,
+  `rowsPerFloor` longtext DEFAULT NULL COMMENT 'JSON string representing rows per floor (e.g., [10,8])',
+  `seatsPerFloor` longtext DEFAULT NULL COMMENT 'JSON string representing seat layout matrix per floor',
   `createdAt` datetime NOT NULL,
   `updatedAt` datetime NOT NULL,
   PRIMARY KEY (`id`)
@@ -415,4 +452,4 @@ CREATE TABLE `vehicles` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-10-18 18:33:50
+-- Dump completed on 2025-10-25 17:09:16

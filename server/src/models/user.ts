@@ -1,134 +1,163 @@
-import { Model, DataTypes, Optional, Sequelize } from "sequelize";
-
-export type UUID = string;
+import {
+	DataTypes,
+	Model,
+	Optional,
+	Sequelize,
+} from "sequelize";
+import bcrypt from "bcrypt";
+import { Ticket } from "./ticket";
+import { RefreshToken } from "./refreshToken";
+import { DbModels } from "@models";
 
 /**
  * Enum for user roles.
- *
  * @enum {string}
- */
-export enum role {
-	User = "User",
-	Admin = "Admin",
-	Operator = "Operator",
-}
-
-export enum gender {
-	male = "male",
-	female = "female",
-	other = "other"
+ * @property {string} User - Regular user.
+ * @property {string} Admin - Administrator.
+ * @property {string} Operator - Operator.
+*/
+export enum Role {
+	/**  
+	 * @property {string} User - Regular user.
+	*/
+	USER = "User",
+	/**  
+	 * @property {string} Admin - Administrator.
+	*/
+	ADMIN = "Admin",
 }
 
 /**
- * Attributes representing a User in the system.
- *
+ * Enum for user gender.
+ * @enum {string}
+ */
+export enum Gender {
+	MALE = "MALE",
+	FEMALE = "FEMALE",
+	OTHER = "OTHER"
+}
+
+/**
+ * Interface for the attributes of a User.
  * @interface UserAttributes
- * @property {string} id - UUID of the user (primary key).
- * @property {string} email - User's email address (unique, required).
- * @property {string} fullName - Full name of the user.
- * @property {string} userName - Username used for login (unique, required).
- * @property {string | null} [address] - Physical or mailing address of the user.
- * @property {string | null} [gender] - Gender of the user.
- * @property {string | null} [avatar] - URL or path to the user’s avatar image.
- * @property {Date | null} [dateOfBirth] - User’s date of birth.
+ * @property {string} id - The unique identifier for the user (UUID).
+ * @property {string} email - The user's email address.
+ * @property {string} passwordHash - The user's hashed password.
+ * @property {string} [firstName] - The user's first name.
+ * @property {string} [lastName] - The user's last name.
+ * @property {string} [fullName] - The user's full name.
+ * @property {string} [userName] - The user's username.
+ * @property {string} [address] - The user's address.
+ * @property {Gender} [gender] - The user's gender.
+ * @property {string} [avatar] - The user's avatar.
+ * @property {Date} [dateOfBirth] - The user's date of birth.
  * @property {boolean} [emailConfirmed] - Whether the user's email is confirmed.
- * @property {role} role - Role of the user (User, Admin, Operator).
- * @property {string | null} [passwordHash] - Hashed password string.
- * @property {string | null} [phoneNumber] - User's phone number.
- * @property {boolean} [phoneNumberConfirmed] - Whether the phone number is confirmed.
- * @property {Date} [createdAt] - Timestamp when the record was created.
- * @property {Date} [updatedAt] - Timestamp when the record was last updated.
+ * @property {string} [phoneNumber] - The user's phone number.
+ * @property {boolean} [phoneNumberConfirmed] - Whether the user's phone number is confirmed.
+ * @property {Role} role - The user's role.
+ * @property {Date} [createdAt] - The date and time the user was created.
+ * @property {Date} [updatedAt] - The date and time the user was last updated.
  */
 export interface UserAttributes {
 	id: string;
 	email: string;
-	fullName: string;
+	passwordHash: string;
+	firstName?: string;
+	lastName?: string;
+	fullName?: string;
 	userName: string;
 	address?: string | null;
-	gender?: gender | null;
+	gender?: Gender | null;
 	avatar?: string | null;
 	dateOfBirth?: Date | null;
 	emailConfirmed: boolean;
-	role: role;
-	passwordHash?: string | null;
-	phoneNumber?: string | null;
+	phoneNumber: string;
 	phoneNumberConfirmed?: boolean;
+	role: Role;
 	createdAt?: Date;
 	updatedAt?: Date;
 }
 
 /**
- * Attributes required for creating a new User.
- * Some fields are optional because they are generated automatically
- * or can be added later (e.g., avatar, address, timestamps).
- *
+ * Interface for the creation attributes of a User.
  * @interface UserCreationAttributes
+ * @extends {Optional<UserAttributes, "id" | "createdAt" | "updatedAt">}
  */
-interface UserCreationAttributes
+export interface UserCreationAttributes
 	extends Optional<
 		UserAttributes,
 		| "id"
-		| "avatar"
-		| "address"
-		| "phoneNumberConfirmed"
-		| "dateOfBirth"
-		| "gender"
+		| "passwordHash"
+		| "firstName"
+		| "lastName"
 		| "fullName"
-		| "emailConfirmed"
+		| "address"
+		| "gender"
+		| "avatar"
+		| "dateOfBirth"
+		| "phoneNumber"
 		| "createdAt"
 		| "updatedAt"
 	> {}
 
 /**
- * Sequelize model representing a User.
- *
- * Maps the `users` table and enforces schema via Sequelize.
- *
+ * Sequelize model for the User.
  * @class User
+ * @extends {Model<UserAttributes, UserCreationAttributes>}
  * @implements {UserAttributes}
- * @property {string} id - UUID primary key of the user.
- * @property {string} email - User’s unique email address.
- * @property {boolean} [emailConfirmed=false] - Whether the user has confirmed their email.
- * @property {string} userName - Chosen username, unique across the system.
- * @property {string} fullName - Full legal name of the user.
- * @property {string|null} [address] - Optional physical address.
- * @property {string|null} [avatar] - Optional avatar image URL.
- * @property {Date|null} [dateOfBirth] - Optional date of birth.
- * @property {gender|null} [gender] - Optional gender field.
- * @property {string|null} [phoneNumber] - Optional phone number.
- * @property {boolean} [phoneNumberConfirmed=false] - Whether the phone number has been verified.
- * @property {string|null} [passwordHash] - Hashed password for authentication.
- * @property {role} role - User’s role (`User`, `Admin`, or `Operator`).
- * @property {Date} [createdAt] - Timestamp when the user record was created.
- * @property {Date} [updatedAt] - Timestamp when the user record was last updated.
+ * @property {string} id - The unique identifier for the user (UUID).
+ * @property {string} email - The user's email address.
+ * @property {string} passwordHash - The user's hashed password.
+ * @property {string} [firstName] - The user's first name.
+ * @property {string} [lastName] - The user's last name.
+ * @property {string} [fullName] - The user's full name.
+ * @property {string} userName - The user's username.
+ * @property {string} [address] - The user's address.
+ * @property {Gender} [gender] - The user's gender.
+ * @property {string} [avatar] - The user's avatar.
+ * @property {Date} [dateOfBirth] - The user's date of birth.
+ * @property {boolean} [emailConfirmed] - Whether the user's email is confirmed.
+ * @property {string} [phoneNumber] - The user's phone number.
+ * @property {boolean} [phoneNumberConfirmed] - Whether the user's phone number is confirmed.
+ * @property {Role} role - The user's role.
+ * @property {Date} [createdAt] - The date and time the user was created.
+ * @property {Date} [updatedAt] - The date and time the user was last updated.
+ * @property {Ticket[]} [tickets] - Associated Ticket instances.
+ * @property {RefreshToken[]} [refreshTokens] - Associated RefreshToken instances.
  */
 export class User
 	extends Model<UserAttributes, UserCreationAttributes>
 	implements UserAttributes
 {
-	public id!: UUID;
+	public id!: string;
+	public email!: string;
+	public passwordHash!: string;
+	public firstName?: string;
+	public lastName?: string;
+	public fullName?: string;
+	public userName!: string;
 	public address?: string | null;
+	public gender?: Gender | null;
 	public avatar?: string | null;
 	public dateOfBirth?: Date | null;
-	public email!: string;
 	public emailConfirmed!: boolean;
-	public role!: role;
-	public passwordHash!: string;
-	public phoneNumber?: string | null;
-	public phoneNumberConfirmed!: boolean;
-	public userName!: string;
-	public fullName!: string;
-	public gender?: gender | null;
+	public phoneNumber!: string;
+	public phoneNumberConfirmed?: boolean;
+	public role!: Role;
 
 	public readonly createdAt?: Date;
 	public readonly updatedAt?: Date;
 
+	// Associations
+	public readonly tickets?: Ticket[];
+	public readonly refreshTokens?: RefreshToken[];
+
 	/**
-	 * Initializes the Sequelize model definition for User.
-	 *
+	 * Initializes the User model.
 	 * @param {Sequelize} sequelize - The Sequelize instance.
+	 * @returns {void}
 	 */
-	static initModel(sequelize: Sequelize) {
+	static initModel(sequelize: Sequelize): void {
 		User.init(
 			{
 				id: {
@@ -136,9 +165,40 @@ export class User
 					defaultValue: DataTypes.UUIDV4,
 					primaryKey: true,
 				},
+				email: {
+					type: DataTypes.STRING,
+					allowNull: false,
+					unique: true,
+				},
+				passwordHash: {
+					type: DataTypes.STRING,
+					allowNull: false,
+				},
+				firstName: {
+					type: DataTypes.STRING,
+					allowNull: true,
+				},
+				lastName: {
+					type: DataTypes.STRING,
+					allowNull: true,
+				},
+				fullName: {
+					type: DataTypes.STRING,
+					allowNull: true,
+				},
+				userName: {
+					type: DataTypes.STRING,
+					allowNull: false,
+					unique: true,
+				},
 				address: {
 					type: DataTypes.STRING,
 					allowNull: true,
+				},
+				gender: {
+					type: DataTypes.ENUM(...Object.values(Gender)),
+					allowNull: true,
+					defaultValue: Gender.OTHER
 				},
 				avatar: {
 					type: DataTypes.STRING,
@@ -148,24 +208,10 @@ export class User
 					type: DataTypes.DATE,
 					allowNull: true,
 				},
-				email: {
-					type: DataTypes.STRING,
-					allowNull: false,
-					unique: true,
-				},
 				emailConfirmed: {
 					type: DataTypes.BOOLEAN,
 					allowNull: false,
 					defaultValue: false,
-				},
-				role: {
-					type: DataTypes.ENUM(...Object.values(role)),
-					allowNull: false,
-					defaultValue: role.User,
-				},
-				passwordHash: {
-					type: DataTypes.STRING,
-					allowNull: true,
 				},
 				phoneNumber: {
 					type: DataTypes.STRING(16),
@@ -173,39 +219,67 @@ export class User
 				},
 				phoneNumberConfirmed: {
 					type: DataTypes.BOOLEAN,
+					allowNull: false,
 					defaultValue: false,
 				},
-				userName: {
-					type: DataTypes.STRING,
+				role: {
+					type: DataTypes.ENUM(...Object.values(Role)),
 					allowNull: false,
-					unique: true,
-				},
-				fullName: {
-					type: DataTypes.STRING,
-					allowNull: true,
-				},
-				gender: {
-					type: DataTypes.STRING,
-					allowNull: true,
+					defaultValue: Role.USER,
 				},
 				createdAt: {
 					type: DataTypes.DATE,
 					allowNull: true,
+					field: 'createdAt'
 				},
 				updatedAt: {
 					type: DataTypes.DATE,
 					allowNull: true,
+					field: 'updatedAt'
 				},
 			},
 			{
 				sequelize,
 				tableName: "users",
 				timestamps: true,
+				underscored: false,
+				hooks: {
+					beforeCreate: (user: User) => {
+						if (!user.userName) {
+							user.userName = user.email;
+						}
+					},
+				},
 				indexes: [
 					{ fields: ["email"], unique: true },
-					{ fields: ["username"] },
+					{ fields: ["userName"], unique: true },
 				],
 			}
 		);
+	}
+
+	/**
+	 * Defines the associations for the User model.
+	 * @param {DbModels} models - The database models.
+	 * @returns {void}
+	 */
+	static associate(models: DbModels): void {
+		User.hasMany(models.Ticket, {
+			foreignKey: "userId",
+			as: "tickets",
+		});
+		User.hasMany(models.RefreshToken, {
+			foreignKey: "userId",
+			as: "refreshTokens",
+		});
+	}
+
+	/**
+	 * Compares a candidate password with the user's hashed password.
+	 * @param {string} candidatePassword - The password to compare.
+	 * @returns {Promise<boolean>} - True if the passwords match, false otherwise.
+	 */
+	public async comparePassword(candidatePassword: string): Promise<boolean> {
+		return bcrypt.compare(candidatePassword, this.passwordHash);
 	}
 }

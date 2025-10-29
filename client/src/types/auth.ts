@@ -6,13 +6,12 @@ interface User {
 }
 interface LoginTokens {
 	user: User;
-	accessToken: string;
-	refreshToken: string;
+	csrfToken: string;
 }
 
 interface AuthContextType {
 	user: User | null;
-	login: (tokens: LoginTokens) => void;
+	login: (data: LoginTokens) => void;
 	logout: () => void;
 	isLoading: boolean;
 }

@@ -1,20 +1,18 @@
-import { gender, role } from "@models/user";
+import { Gender, Role } from "@models/user";
 // Data transfer object
 
 /**
- * Data Transfer Object for logging in.
- * @property {string} [username]
- * @property {string} [email]
- * @property {string} [password]
- * @property {string} [confirmPassword]
- *
- * @remarks
- * Validation (such as email format checking or password strength) should be performed
- * by the service layer or validators before persisting updates.
+ * @interface RegisterDTO
+ * @property {string} username - The user's username.
+ * @property {string} email - The user's email address.
+ * @property {string} phoneNumber - The user's phone number.
+ * @property {string} password - The user's password.
+ * @property {string} confirmPassword - Confirmation of the password.
  */
 export interface RegisterDTO {
 	username: string;
 	email: string;
+	phoneNumber: string;
 	password: string;
 	confirmPassword: string;
 }
@@ -27,6 +25,9 @@ export interface RegisterDTO {
  * @remarks
  * Validation (such as email format checking or password strength) should be performed
  * by the service layer or validators before persisting updates.
+ * @interface LoginDTO
+ * @property {string} username - The user's username or email.
+ * @property {string} password - The user's password.
  */
 export interface LoginDTO {
 	username: string;
@@ -41,17 +42,17 @@ export interface LoginDTO {
  * @interface UpdateProfileDTO
  *
  * @property {string} [fullName] - The user's full display name.
- * @property {string|null} [address] - The user's physical or mailing address.
- * @property {gender|null} [gender] - The user's gender.
- * @property {string|null} [avatar] - URL or data string (e.g., base64) for the user's avatar image.
- * @property {Date|null} [dateOfBirth] - The user's date of birth.
- * @property {string|null} [phoneNumber] - The user's phone number (include country code where applicable).
+ * @property {string | null} [address] - The user's physical or mailing address.
+ * @property {Gender | null} [gender] - The user's gender.
+ * @property {string | null} [avatar] - URL or data string (e.g., base64) for the user's avatar image.
+ * @property {Date | null} [dateOfBirth] - The user's date of birth.
+ * @property {string | null} [phoneNumber] - The user's phone number (include country code where applicable).
  */
 export interface UpdateProfileDTO {
 	email?: string;
 	fullName?: string;
 	address?: string | null;
-	gender?: gender | null;
+	gender?: Gender | null;
 	avatar?: string | null;
 	dateOfBirth?: Date | null;
 }
@@ -135,7 +136,7 @@ export interface ChangeEmailDTO {
  * @property {string} user.email - The user's email address
  * @property {boolean} user.emailConfirmed - Indicates if the user's email has been verified
  * @property {string} [user.avatar] - URL or path to the user's profile avatar image (optional)
- * @property {string} [user.role] - The user's role for authorization purposes 
+ * @property {string} [user.role] - The user's role for authorization purposes
  * @property {Object} [tokens] - Token metadata for frontend token management (optional)
  * @property {number} [tokens.expiresIn] - Time remaining until token expiration in seconds
  * @property {string} [tokens.tokenType] - Type of authentication token, typically "Bearer"
@@ -148,7 +149,7 @@ export interface GetMeDTO {
 		email: string;
 		emailConfirmed: boolean;
 		avatar?: string | null;
-		role: string;
+		role: Role;
 	};
 	tokens?: {
 		expiresIn?: number;

@@ -7,16 +7,20 @@
  */
 
 import { Request, Response, Router } from "express";
-import userRoutes from "./userRoutes";
-import authRoutes from "./authRoutes";
-import vehicleTypeRoutes from "./vehicleTypeRoutes";
-import vehicleRoutes from "./vehicleRoutes";
-import driverRoutes from "./driverRoutes";
-import locationRoutes from "./locationRoutes";
-import routeRoutes from "./routeRoutes";
-import tripRoutes from "./tripRoutes";
-import seatRoutes from "./seatRoutes";
-import settingsRouter from "./settingRoutes";
+import { apiRateLimiter } from "@middlewares/rateLimiter";
+import userRoutes from "@routes/api/userRouter";
+import authRoutes from "@routes/api/authRouter";
+import vehicleTypeRoutes from "@routes/api/vehicleTypeRouter";
+import vehicleRoutes from "@routes/api/vehicleRouter";
+import driverRoutes from "@routes/api/driverRouter";
+import locationRoutes from "@routes/api/locationRouter";
+import routeRoutes from "@routes/api/routeRouter";
+import tripRoutes from "@routes/api/tripRouter";
+import seatRoutes from "@routes/api/seatRouter";
+import settingsRouter from "@routes/api/settingRouter";
+import paymentMethodRoute from "@routes/api/paymentMethodRouter";
+import orderRouter from "@routes/api/orderRouter";
+import checkInRouter from "@routes/api/checkInRouter";
 
 /**
  * Main API router instance.
@@ -57,34 +61,21 @@ apiRouter.get('/health', (_req: Request, res: Response) => {
     });
 });
 
-// Mount user-related routes under /users prefix
-apiRouter.use("/users", userRoutes);
-
-// Mount authentication routes under /auth prefix
+// Mount authentication routes under /auth prefix. It has its own stricter rate limiter.
 apiRouter.use("/auth", authRoutes);
 
-// Mount vehicle type routes under /vehicle-type prefix
-apiRouter.use("/vehicle-types", vehicleTypeRoutes);
-
-// Mount vehicle routes under /vehicle prefix
-apiRouter.use("/vehicles", vehicleRoutes);
-
-// Mount driver routes under /drivers prefix
-apiRouter.use("/drivers", driverRoutes);
-
-// Mount location routes under /locations prefix
-apiRouter.use("/locations", locationRoutes);
-
-// Mount route routes under /routes prefix
-apiRouter.use("/routes", routeRoutes);
-
-// Mount trip routes under /trips prefix
-apiRouter.use("/trips", tripRoutes);
-
-// Mount seat routes under /seats prefix
-apiRouter.use("/seats", seatRoutes);
-
-// Mount server settings routes under /settings prefix
-apiRouter.use("/settings", settingsRouter);
+// Apply the general rate limiter to all other API routes.
+apiRouter.use("/users", apiRateLimiter, userRoutes);
+apiRouter.use("/vehicle-types", apiRateLimiter, vehicleTypeRoutes);
+apiRouter.use("/vehicles", apiRateLimiter, vehicleRoutes);
+apiRouter.use("/drivers", apiRateLimiter, driverRoutes);
+apiRouter.use("/locations", apiRateLimiter, locationRoutes);
+apiRouter.use("/routes", apiRateLimiter, routeRoutes);
+apiRouter.use("/trips", apiRateLimiter, tripRoutes);
+apiRouter.use("/seats", apiRateLimiter, seatRoutes);
+apiRouter.use("/payment-methods", apiRateLimiter, paymentMethodRoute);
+apiRouter.use("/settings", apiRateLimiter, settingsRouter);
+apiRouter.use("/order", apiRateLimiter, orderRouter);
+apiRouter.use("/check-in", checkInRouter);
 
 export default apiRouter;

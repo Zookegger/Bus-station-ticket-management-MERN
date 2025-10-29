@@ -25,24 +25,24 @@ import { createDriverValidation, updateDriverValidation, validateDriverIdParam }
  * - PUT /:id: Update existing driver
  * - DELETE /:id: Remove driver
  */
-const driverRoutes = Router();
+const driverRouter = Router();
 
 // GET /drivers - Advanced search with filtering and pagination
-driverRoutes.get("/", isAdmin, driverController.SearchDriver, errorHandler);
+driverRouter.get("/", isAdmin, driverController.SearchDriver, errorHandler);
 
 // GET /drivers/search - Alternative search endpoint
-driverRoutes.get("/search", isAdmin, driverController.SearchDriver, errorHandler);
+driverRouter.get("/search", isAdmin, driverController.SearchDriver, errorHandler);
 
 // GET /drivers/:id - Get driver by ID
-driverRoutes.get("/:id", isAdmin, validateDriverIdParam, handleValidationResult, driverController.GetDriverById, errorHandler);
+driverRouter.get("/:id", validateDriverIdParam, handleValidationResult, driverController.GetDriverById, errorHandler);
 
 // POST /drivers - Create new driver
-driverRoutes.post("/", csrfAdminProtectionRoute, createDriverValidation, handleValidationResult, driverController.AddDriver, errorHandler);
+driverRouter.post("/", csrfAdminProtectionRoute, createDriverValidation, handleValidationResult, driverController.AddDriver, errorHandler);
 
 // PUT /drivers/:id - Update driver by ID
-driverRoutes.put("/:id", csrfAdminProtectionRoute, validateDriverIdParam, updateDriverValidation, handleValidationResult, driverController.UpdateDriver, errorHandler);
+driverRouter.put("/:id", csrfAdminProtectionRoute, validateDriverIdParam, updateDriverValidation, handleValidationResult, driverController.UpdateDriver, errorHandler);
 
 // DELETE /drivers/:id - Delete driver by ID
-driverRoutes.delete("/:id", csrfAdminProtectionRoute, validateDriverIdParam, handleValidationResult, driverController.DeleteDriver, errorHandler);
+driverRouter.delete("/:id", csrfAdminProtectionRoute, validateDriverIdParam, handleValidationResult, driverController.DeleteDriver, errorHandler);
 
-export default driverRoutes;
+export default driverRouter;

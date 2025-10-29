@@ -10,7 +10,9 @@ import express, { Application, Request, Response } from "express";
 import cors from "cors";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
-import apiRouter from "./routes/api";
+import { applyPassportStrategy } from "@config/passport"
+import apiRouter from "@routes/api";
+import passport from "passport";
 
 /**
  * Configured Express application instance.
@@ -52,9 +54,16 @@ app.use(
 
 // Parse incoming JSON payloads
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Parse cookies from incoming requests
 app.use(cookieParser());
+
+// Initialize Passport
+app.use(passport.initialize());
+
+// Apply the JWT strategy configuration
+applyPassportStrategy();
 
 // Mount API routes under the /api prefix
 app.use("/api", apiRouter);

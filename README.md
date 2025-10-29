@@ -4,53 +4,53 @@ A full-stack MEN (MySQL, Express.js, React, Node.js) application for managing bu
 
 ## Features
 
--   **User Management**: Registration, authentication, and role-based access control (admin, user)
--   **Vehicle Management**: CRUD operations for vehicles and vehicle types with detailed specifications
--   **Trip Management**: Schedule and manage bus trips with driver assignments
--   **Ticket Booking**: Seat selection and booking system with real-time availability
--   **Location Management**: Manage bus stations and routes
--   **Admin Dashboard**: Comprehensive admin interface for system management
--   **Email Notifications**: Automated email confirmations and updates via queue system
--   **Real-time Updates**: WebSocket integration for live seat availability, trip status, and notifications (planned)
--   **Responsive Design**: Mobile-friendly UI built with Material-UI
+- **User Management**: Registration, authentication, and role-based access control (admin, user)
+- **Vehicle Management**: CRUD operations for vehicles and vehicle types with detailed specifications
+- **Trip Management**: Schedule and manage bus trips with driver assignments
+- **Ticket Booking**: Seat selection and booking system with real-time availability
+- **Location Management**: Manage bus stations and routes
+- **Admin Dashboard**: Comprehensive admin interface for system management
+- **Email Notifications**: Automated email confirmations and updates via queue system
+- **Real-time Updates**: WebSocket integration for live seat availability, trip status, and notifications (planned)
+- **Responsive Design**: Mobile-friendly UI built with Material-UI
 
 ## Tech Stack
 
 ### Frontend
 
--   **React 18** with TypeScript
--   **Vite** for build tooling
--   **Material-UI (MUI)** for UI components
--   **React Router** for navigation
--   **Axios** for API calls
+- **React 18** with TypeScript
+- **Vite** for build tooling
+- **Material-UI (MUI)** for UI components
+- **React Router** for navigation
+- **Axios** for API calls
 
 ### Backend
 
--   **Node.js** with Express.js
--   **TypeScript** for type safety
--   **MySQL** database with initialization scripts
--   **Redis** for caching and session management
--   **WebSocket** for real-time communication (planned)
--   **JWT** for authentication
--   **bcrypt** for password hashing
--   **Nodemailer** for email services
--   **Bull** queue for background jobs
+- **Node.js** with Express.js
+- **TypeScript** for type safety
+- **MySQL** database with initialization scripts
+- **Redis** for caching and session management
+- **WebSocket** for real-time communication (planned)
+- **JWT** for authentication
+- **bcrypt** for password hashing
+- **Nodemailer** for email services
+- **Bull** queue for background jobs
 
 ### DevOps
 
--   **Docker** and Docker Compose for containerization
--   **Nginx** for serving the frontend
--   **PM2** for process management (optional)
+- **Docker** and Docker Compose for containerization
+- **Nginx** for serving the frontend
+- **PM2** for process management (optional)
 
 ## Prerequisites
 
 Before running this application, make sure you have the following installed:
 
--   **Node.js** (v18 or higher)
--   **npm** or **yarn**
--   **Docker** and **Docker Compose**
--   **MySQL** (if running without Docker)
--   **Redis** (if running without Docker)
+- **Node.js** (v18 or higher)
+- **npm** or **yarn**
+- **Docker** and **Docker Compose**
+- **MySQL** (if running without Docker)
+- **Redis** (if running without Docker)
 
 ## Quick Start
 
@@ -62,22 +62,25 @@ Before running this application, make sure you have the following installed:
     ```
 
 2. **Install dependencies:**
+
     ```bash
     npm run setup
     ```
 
 3. **Run with Docker (Recommended):**
+
     ```bash
     docker compose up --build
     ```
 
 4. **Access the application:**
-    - Frontend: http://localhost:5173 (VITE)
-    - Frontend: http://localhost:3000 (Development)
-    - Backend API: http://localhost:5000
+    - Frontend: <http://localhost:5173> (VITE)
+    - Frontend: <http://localhost:3000> (Development)
+    - Backend API: <http://localhost:5000>
 
 ## Documentation
 
+- **[Developer Setup](DEV-SETUP.md)** - Step-by-step local and Docker setup for contributors
 - **[Deployment Guide](DEPLOYMENT.md)** - Detailed deployment instructions for various platforms
 - **[Environment Variables](ENVIRONMENT.md)** - Complete environment configuration guide
 - **[API Documentation](API-DOCS.md)** - API endpoints and usage guide
@@ -85,7 +88,7 @@ Before running this application, make sure you have the following installed:
 
 ## Project Structure
 
-```
+```text
 Bus-station-ticket-management-MERN/
 ├── client/                          # React frontend
 │   ├── public/                      # Static assets

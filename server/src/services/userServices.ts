@@ -1,7 +1,7 @@
 import db from "@models/index";
 import bcrypt from "bcrypt";
 import { UpdateProfileDTO } from "@my_types/user";
-import { role, User, UserAttributes } from "@models/user";
+import { Role, User, UserAttributes } from "@models/user";
 import { CONFIG } from "@constants/config";
 
 /**
@@ -20,7 +20,7 @@ export const getUserById = async (
 	id: string,
 	...attributes: (keyof UserAttributes)[]
 ): Promise<User | null> => {
-	return await db.user.findByPk(id, { attributes });
+	return await db.User.findByPk(id, { attributes });
 };
 
 /**
@@ -35,7 +35,7 @@ export const getUserByEmail = async (
 	email: string,
 	...attributes: (keyof UserAttributes)[]
 ): Promise<User | null> => {
-	return await db.user.findOne({where: {email}, attributes});
+	return await db.User.findOne({ where: { email }, attributes });
 };
 
 /**
@@ -48,7 +48,7 @@ export const getUserByEmail = async (
 export const listUsers = async (
 	...attributes: (keyof UserAttributes)[]
 ): Promise<{ rows: User[]; count: number }> => {
-	return await db.user.findAndCountAll(
+	return await db.User.findAndCountAll(
 		attributes.length > 0 ? { attributes } : {}
 	);
 };
@@ -65,12 +65,12 @@ export const updateUserProfile = async (
 	userId: string,
 	dto: UpdateProfileDTO
 ): Promise<void> => {
-	const user = await db.user.findByPk(userId);
+	const user = await db.User.findByPk(userId);
 	if (!user) throw { status: 404, message: "User not found" };
 
 	// Prevent email duplication
 	if (dto.email && dto.email !== user.email) {
-		const exist = await db.user.findOne({ where: { email: dto.email } });
+		const exist = await db.User.findOne({ where: { email: dto.email } });
 		if (exist) throw { status: 400, message: "Email already in use" };
 	}
 
@@ -80,7 +80,7 @@ export const updateUserProfile = async (
 /**
  * Changes the role of a user.
  * @param {string} userId - The ID of the user whose role is to be changed.
- * @param {role} newRole - The new role to assign.
+ * @param {Role} newRole - The new role to assign.
  * @returns {Promise<User>} The updated user object.
  * @throws {Object} Throws an error if the user is not found or the role is invalid.
  * @example
@@ -88,12 +88,12 @@ export const updateUserProfile = async (
  */
 export const changeRole = async (
 	userId: string,
-	newRole: role
+	newRole: Role
 ): Promise<User> => {
 	const user = await getUserById(userId);
 	if (!user) throw { status: 404, message: "User not found" };
 
-	if (!Object.values(role).includes(newRole))
+	if (!Object.values(Role).includes(newRole))
 		throw { status: 404, message: "Invalid role" };
 
 	user.role = newRole;
@@ -108,8 +108,7 @@ export const changeRole = async (
  * const adminCount = await countTotalAdmin();
  */
 export const countTotalAdmin = async (): Promise<number> => {
-	return (await db.user.findAndCountAll({ where: { role: role.Admin } }))
-		.count;
+	return (await db.User.findAndCountAll({ where: { role: Role.ADMIN } })).count;
 };
 
 /**
@@ -117,18 +116,23 @@ export const countTotalAdmin = async (): Promise<number> => {
  * @returns {Promise<User | null>} The created admin user or null if an admin already exists.
  * @example
  * const admin = await generateDefaultAdminAccount();
- * if (admin) console.log('Default admin created');
+ * if (admin) logger.info('Default admin created');
  */
 export const generateDefaultAdminAccount = async (): Promise<User | null> => {
 	if ((await countTotalAdmin()) !== 0) {
 		return null;
 	}
 
-	const passwordHash = await bcrypt.hash("123456789", CONFIG.BCRYPT_SALT_ROUNDS);
+	const passwordHash = await bcrypt.hash(
+		"123456789",
+		CONFIG.BCRYPT_SALT_ROUNDS
+	);
 
-	return await db.user.create({
+	return await db.User.create({
 		email: "admin@example.com",
-		role: role.Admin,
+		role: Role.ADMIN,
+		phoneNumber: "0902040312",
+		emailConfirmed: true,
 		userName: "admin",
 		fullName: "admin",
 		passwordHash,
@@ -147,12 +151,14 @@ export const updateUser = async (
 	userId: string,
 	updateData: Partial<UserAttributes>
 ): Promise<void> => {
-	const user = await db.user.findByPk(userId);
+	const user = await db.User.findByPk(userId);
 	if (!user) throw { status: 404, message: "User not found" };
 
 	// Prevent email duplication
 	if (updateData.email && updateData.email !== user.email) {
-		const exist = await db.user.findOne({ where: { email: updateData.email } });
+		const exist = await db.User.findOne({
+			where: { email: updateData.email },
+		});
 		if (exist) throw { status: 400, message: "Email already in use" };
 	}
 
@@ -167,7 +173,7 @@ export const updateUser = async (
  * await deleteUser('123');
  */
 export const deleteUser = async (userId: string): Promise<void> => {
-	const user = await db.user.findByPk(userId);
+	const user = await db.User.findByPk(userId);
 	if (!user) throw { status: 404, message: "User not found" };
 
 	await user.destroy();
@@ -180,5 +186,5 @@ export const deleteUser = async (userId: string): Promise<void> => {
  * const users = await getAllUsers();
  */
 export const getAllUsers = async (): Promise<User[]> => {
-	return await db.user.findAll();
+	return await db.User.findAll();
 };

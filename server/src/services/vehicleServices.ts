@@ -49,8 +49,8 @@ export const getVehicleById = async (
 	...attributes: (keyof VehicleAttributes)[]
 ): Promise<Vehicle | null> => {
 	return attributes && attributes.length > 0
-		? await db.vehicle.findByPk(id, { attributes })
-		: await db.vehicle.findByPk(id);
+		? await db.Vehicle.findByPk(id, { attributes })
+		: await db.Vehicle.findByPk(id);
 };
 
 /**
@@ -133,7 +133,7 @@ export const listVehicles = async (
 		queryOptions.limit = limit;
 	}
 
-	return await db.vehicle.findAndCountAll(queryOptions);
+	return await db.Vehicle.findAndCountAll(queryOptions);
 };
 
 /**
@@ -149,7 +149,7 @@ export const listVehicles = async (
 export const addVehicle = async (
 	dto: CreateVehicleDTO
 ): Promise<Vehicle | null> => {
-	const existing_vehicle = await db.vehicle.findOne({
+	const existing_vehicle = await db.Vehicle.findOne({
 		where: { numberPlate: dto.numberPlate },
 	});
 
@@ -159,7 +159,7 @@ export const addVehicle = async (
 			message: "Vehicle with this number plate already exist.",
 		};
 
-	const vehicle = await db.vehicle.create(dto);
+	const vehicle = await db.Vehicle.create(dto);
 	return vehicle;
 };
 

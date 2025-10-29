@@ -24,6 +24,7 @@ export type Gender = "male" | "female" | "other";
 export interface RegisterDTO {
 	username: string;
 	email: string;
+	phoneNumber: string;
 	password: string;
 	confirmPassword: string;
 }
@@ -61,4 +62,15 @@ export interface UpdateProfileDTO {
 	avatar?: string | null;
 	dateOfBirth?: Date | null;
 	phoneNumber?: string | null;
+}
+
+export interface UpdateAdminProfileDTO {
+  fullName?: string | null;
+  address?: string | null;
+  gender?: Gender | null;
+  avatar?: string | null;
+  dateOfBirth?: string | null;
+  phoneNumber?: string | null;
+  role?: string | null;
+  email?: string | null;
 }

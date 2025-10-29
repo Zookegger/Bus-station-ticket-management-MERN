@@ -24,24 +24,24 @@ import * as vehicleValidator from "@middlewares/validators/vehicleValidator";
  * - PUT /:id: Update existing vehicle
  * - DELETE /:id: Remove vehicle
  */
-const vehicleRoutes = Router();
+const vehicleRouter = Router();
 
 // GET /vehicles - Advanced search with filtering and pagination
-vehicleRoutes.get("/", vehicleController.SearchVehicle, errorHandler);
+vehicleRouter.get("/", vehicleController.SearchVehicle, errorHandler);
 
 // GET /vehicles/search - Alternative search endpoint
-vehicleRoutes.get("/search", vehicleController.SearchVehicle, errorHandler);
+vehicleRouter.get("/search", vehicleController.SearchVehicle, errorHandler);
 
 // GET /vehicles/:id - Get vehicle by ID
-vehicleRoutes.get("/:id", vehicleValidator.validateIdParam, handleValidationResult, vehicleController.GetVehicleById, errorHandler);
+vehicleRouter.get("/:id", vehicleValidator.validateIdParam, handleValidationResult, vehicleController.GetVehicleById, errorHandler);
 
 // POST /vehicles - Create new vehicle
-vehicleRoutes.post("/", csrfAdminProtectionRoute, vehicleValidator.validateCreateVehicle, handleValidationResult, vehicleController.AddVehicle, errorHandler);
+vehicleRouter.post("/", csrfAdminProtectionRoute, vehicleValidator.validateCreateVehicle, handleValidationResult, vehicleController.AddVehicle, errorHandler);
 
 // PUT /vehicles/:id - Update vehicle by ID
-vehicleRoutes.put("/:id", csrfAdminProtectionRoute, vehicleValidator.validateIdParam, vehicleValidator.validateUpdateVehicle, handleValidationResult, vehicleController.UpdateVehicle, errorHandler);
+vehicleRouter.put("/:id", csrfAdminProtectionRoute, vehicleValidator.validateIdParam, vehicleValidator.validateUpdateVehicle, handleValidationResult, vehicleController.UpdateVehicle, errorHandler);
 
 // DELETE /vehicles/:id - Delete vehicle by ID
-vehicleRoutes.delete("/:id", csrfAdminProtectionRoute, vehicleValidator.validateIdParam, handleValidationResult, vehicleController.RemoveVehicle, errorHandler);
+vehicleRouter.delete("/:id", csrfAdminProtectionRoute, vehicleValidator.validateIdParam, handleValidationResult, vehicleController.RemoveVehicle, errorHandler);
 
-export default vehicleRoutes;
+export default vehicleRouter;

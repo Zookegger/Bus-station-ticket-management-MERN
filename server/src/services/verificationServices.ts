@@ -88,7 +88,7 @@ export const verifyEmail = async (token: string): Promise<boolean> => {
 		};
 	}
 
-	const user = await db.user.findByPk(userId);
+	const user = await db.User.findByPk(userId);
 	if (!user) {
 		throw {
 			status: 404,
@@ -120,7 +120,7 @@ export const verifyEmail = async (token: string): Promise<boolean> => {
  * @throws {Object} Error with status code for user not found or already verified
  */
 export const resendVerificationEmail = async (userId: string) => {
-	const user = await db.user.findByPk(userId);
+	const user = await db.User.findByPk(userId);
 
 	if (!user) {
 		throw {

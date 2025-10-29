@@ -42,7 +42,19 @@ const createLog = (level: LogLevel) => {
 			}
 		};
 
-		const message = `${logType(level)} ${timestamp} - ${args.join(" ")}`;
+		const formatArgs = (args: unknown[]): string => {
+			return args
+				.map((arg) => {
+					if (typeof arg === "object") {
+						return JSON.stringify(arg);
+					}
+					return String(arg);
+				})
+				.join(' ');
+		};
+		
+		const formattedArgs = formatArgs(args);
+		const message = `${logType(level)} ${timestamp} - ${formattedArgs}`;
 
 		// Output with appropriate console method and color
 		switch (level) {

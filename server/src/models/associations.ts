@@ -9,11 +9,13 @@ import { Trip } from "@models/trip";
 import { Seat } from "@models/seat";
 import { Ticket } from "@models/ticket";
 import { TripDriverAssignment } from "@models/tripDriverAssignment";
-import { Notification } from "./notification";
-import { Payment } from "./payment";
-import { PaymentMethod } from "./paymentMethod";
-import { Coupon } from "./coupon";
-import { CouponUsage } from "./couponUsage";
+import { Notification } from "@models/notification";
+import { Payment } from "@models/payment";
+import { PaymentMethod } from "@models/paymentMethod";
+import { PaymentTicket } from "@models/paymentTicket";
+import { Coupon } from "@models/coupon";
+import { CouponUsage } from "@models/couponUsage";
+import { Order } from "./orders";
 
 /**
  * Defines all model associations/relationships.
@@ -45,164 +47,123 @@ export const defineAssociations = () => {
 		as: "user",
 	});
 
-	Notification.belongsTo(User, {
-		foreignKey: "userId",
-		as: "user",
-	});
-
-	Ticket.belongsTo(User, {
-		foreignKey: "userId",
-		as: "user",
-	});
+	// This is still useful for querying all tickets by a user directly
+	User.hasMany(Ticket, { foreignKey: "userId", as: "tickets" });
+	Ticket.belongsTo(User, { foreignKey: "userId", as: "user" });
 
 	// ==========================================
-	// VEHICLE & VEHICLE TYPE ASSOCIATIONS
+	// VEHICLE, ROUTE, TRIP, SEAT, DRIVER
 	// ==========================================
-
 	VehicleType.hasMany(Vehicle, {
 		foreignKey: "vehicleTypeId",
 		as: "vehicles",
 		onDelete: "SET NULL",
 	});
-
 	Vehicle.belongsTo(VehicleType, {
 		foreignKey: "vehicleTypeId",
 		as: "vehicleType",
 	});
 
-	Vehicle.hasMany(Trip, {
-		foreignKey: "vehicleId",
-		as: "trips",
-	});
+	Vehicle.hasMany(Trip, { foreignKey: "vehicleId", as: "trips" });
+	Trip.belongsTo(Vehicle, { foreignKey: "vehicleId", as: "vehicle" });
 
-	Trip.belongsTo(Vehicle, {
-		foreignKey: "vehicleId",
-		as: "vehicle",
-	});
-
-	// ==========================================
-	// LOCATION & ROUTE ASSOCIATIONS
-	// ==========================================
-
-	Route.belongsTo(Location, {
-		foreignKey: "startId",
-		as: "startLocation",
-	});
-
+	Route.belongsTo(Location, { foreignKey: "startId", as: "startLocation" });
 	Route.belongsTo(Location, {
 		foreignKey: "destinationId",
 		as: "destinationLocation",
 	});
-
 	Location.hasMany(Route, {
 		as: "routesStartingHere",
 		foreignKey: "startId",
 	});
-
 	Location.hasMany(Route, {
 		as: "routesEndingHere",
 		foreignKey: "destinationId",
 	});
 
-	Route.hasMany(Trip, {
-		foreignKey: "routeId",
-		as: "trips",
-	});
+	Route.hasMany(Trip, { foreignKey: "routeId", as: "trips" });
+	Trip.belongsTo(Route, { foreignKey: "routeId", as: "route" });
 
-	Trip.belongsTo(Route, {
-		foreignKey: "routeId",
-		as: "route",
-	});
+	Trip.hasMany(Seat, { foreignKey: "tripId", as: "seats" });
+	Seat.belongsTo(Trip, { foreignKey: "tripId", as: "trip" });
 
-	// ==========================================
-	// TRIP & SEAT ASSOCIATIONS
-	// ==========================================
+	Seat.hasOne(Ticket, { foreignKey: "seatId", as: "ticket" });
+	Ticket.belongsTo(Seat, { foreignKey: "seatId", as: "seat" });
 
-	Trip.hasMany(Seat, {
-		foreignKey: "tripId",
-		as: "seats",
-	});
-
-	Seat.belongsTo(Trip, {
-		foreignKey: "tripId",
-		as: "trip",
-	});
-
-	// ==========================================
-	// TICKET & SEAT ASSOCIATIONS
-	// ==========================================
-
-	Seat.hasOne(Ticket, {
-		foreignKey: "seatId",
-		as: "ticket",
-	});
-
-	Ticket.belongsTo(Seat, {
-		foreignKey: "seatId",
-		as: "seat",
-	});
-
-	// ==========================================
-	// DRIVER & TRIP ASSIGNMENT ASSOCIATIONS
-	// ==========================================
-
-	TripDriverAssignment.belongsTo(Trip, {
-		foreignKey: "tripId",
-		as: "trip",
-	});
-
+	TripDriverAssignment.belongsTo(Trip, { foreignKey: "tripId", as: "trip" });
 	TripDriverAssignment.belongsTo(Driver, {
 		foreignKey: "driverId",
 		as: "driver",
 	});
-
 	Trip.hasMany(TripDriverAssignment, {
 		foreignKey: "tripId",
 		as: "driverAssignments",
 	});
-
 	Driver.hasMany(TripDriverAssignment, {
 		foreignKey: "driverId",
 		as: "tripAssignments",
 	});
 
 	// ==========================================
-	// PAYMENT & TICKET ASSOCIATIONS
+	// ORDER-CENTRIC ASSOCIATIONS
 	// ==========================================
 
-	Payment.hasOne(Ticket, {
-		foreignKey: "paymentId",
-		as: "ticket",
-	});
+	// User <-> Order
+	User.hasMany(Order, { foreignKey: "userId", as: "orders" });
+	Order.belongsTo(User, { foreignKey: "userId", as: "user" });
 
-	Ticket.belongsTo(Payment, {
-		foreignKey: "paymentId",
-		as: "payment",
-	});
+	// Order <-> Ticket
+	Order.hasMany(Ticket, { foreignKey: "orderId", as: "tickets" });
+	Ticket.belongsTo(Order, { foreignKey: "orderId", as: "order" });
 
+	// Order <-> Payment
+	Order.hasOne(Payment, { foreignKey: "orderId", as: "payment" });
+	Payment.belongsTo(Order, { foreignKey: "orderId", as: "order" });
+
+	// Payment <-> PaymentMethod
 	PaymentMethod.hasMany(Payment, {
 		foreignKey: "paymentMethodId",
 		as: "payments",
 	});
-
 	Payment.belongsTo(PaymentMethod, {
 		foreignKey: "paymentMethodId",
 		as: "paymentMethod",
 	});
 
-	// ==========================================
-	// COUPON & TICKET ASSOCIATIONS
-	// ==========================================
-	
-	Ticket.belongsToMany(Coupon, {
-		through: CouponUsage,
+	// Many-to-Many: Payment <-> Ticket through PaymentTicket
+	// This can be useful for complex refund/partial payment scenarios
+	Payment.belongsToMany(Ticket, {
+		through: PaymentTicket,
+		foreignKey: "paymentId",
+		otherKey: "ticketId",
+		as: "tickets",
+	});
+
+	Ticket.belongsToMany(Payment, {
+		through: PaymentTicket,
 		foreignKey: "ticketId",
-		otherKey: "couponId"
+		otherKey: "paymentId",
+		as: "payments",
 	});
-	
-	Coupon.belongsToMany(Ticket, {
-		through: CouponUsage,
-		foreignKey: "couponId",
-		otherKey: "ticketId"
-	});
+
+	PaymentTicket.belongsTo(Payment, { foreignKey: "paymentId" });
+	PaymentTicket.belongsTo(Ticket, { foreignKey: "ticketId" });
+	Payment.hasMany(PaymentTicket, { foreignKey: "paymentId" });
+	Ticket.hasMany(PaymentTicket, { foreignKey: "ticketId" });
+
+	// ==========================================
+	// COUPON & USAGE ASSOCIATIONS
+	// ==========================================
+
+	// Coupon <-> CouponUsage
+	Coupon.hasMany(CouponUsage, { foreignKey: "couponId", as: "couponUsages" });
+	CouponUsage.belongsTo(Coupon, { foreignKey: "couponId", as: "coupon" });
+
+	// User <-> CouponUsage
+	User.hasMany(CouponUsage, { foreignKey: "userId", as: "couponUsages" });
+	CouponUsage.belongsTo(User, { foreignKey: "userId", as: "user" });
+
+	// Order <-> CouponUsage
+	Order.hasOne(CouponUsage, { foreignKey: "orderId", as: "couponUsage" });
+	CouponUsage.belongsTo(Order, { foreignKey: "orderId", as: "order" });
 };

@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { getParamsId } from "@utils/request";
+import { getParamNumericId } from "@utils/request";
 import * as locationServices from "@services/locationServices";
 import { CreateLocationDTO, UpdateLocationDTO } from "@my_types/location";
 
@@ -63,7 +63,7 @@ export const UpdateLocation = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const id = getParamsId(req);
+        const id = getParamNumericId(req);
 
         const updated_location: UpdateLocationDTO = req.body;
         const location = await locationServices.updateLocation(id, updated_location);
@@ -97,7 +97,7 @@ export const DeleteLocation = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const id = getParamsId(req);
+        const id = getParamNumericId(req);
 
         await locationServices.removeLocation(id);
 
@@ -131,7 +131,7 @@ export const GetLocationById = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const id = getParamsId(req);
+        const id = getParamNumericId(req);
         const location = await locationServices.getLocationById(id);
 
         if (!location) throw { status: 404, message: `No location found with Id ${id}` }

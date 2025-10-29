@@ -43,3 +43,9 @@ export const TOKEN_CONFIG = {
 	REFRESH_TOKEN_BYTES: 64,
 	VERIFICATION_TOKEN_BYTES: 32,
 } as const;
+
+export const ENCRYPTION = {
+	ALGORITHM: "aes-256-gcm",
+	IV_LENGTH: 16,
+	AUTH_TAG_LENGTH: 16,
+} as const;

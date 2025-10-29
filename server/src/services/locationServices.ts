@@ -53,7 +53,7 @@ interface ListOptions {
 export const addLocation = async (
 	dto: CreateLocationDTO
 ): Promise<Location | null> => {
-	const existing_location = await db.location.findOne({
+	const existing_location = await db.Location.findOne({
 		where: {
 			[Op.or]: [{ name: dto.name }, { address: dto.address }],
 			[Op.and]: [
@@ -66,7 +66,7 @@ export const addLocation = async (
 	if (existing_location)
 		throw { status: 409, message: "Location already exist." };
 
-	const location = await db.location.create(dto);
+	const location = await db.Location.create(dto);
 	return location;
 };
 
@@ -132,8 +132,8 @@ export const getLocationById = async (
 	...attributes: (keyof LocationAttributes)[]
 ): Promise<Location | null> => {
 	return attributes && attributes.length > 0
-		? await db.location.findByPk(id, { attributes })
-		: await db.location.findByPk(id);
+		? await db.Location.findByPk(id, { attributes })
+		: await db.Location.findByPk(id);
 };
 
 /**
@@ -150,7 +150,7 @@ export const getLocationByCoordinates = async (
 	x: number,
 	y: number
 ): Promise<{ rows: Location[]; count: number } | null> => {
-	const location = db.location.findAndCountAll({
+	const location = db.Location.findAndCountAll({
 		where: { [Op.and]: [{ longitude: x }, { latitude: y }] },
 	});
 
@@ -228,5 +228,5 @@ export const searchLocation = async (options: ListOptions): Promise<{rows: Locat
         queryOptions.limit = limit;
     }
 
-    return await db.location.findAndCountAll(queryOptions);
+    return await db.Location.findAndCountAll(queryOptions);
 };

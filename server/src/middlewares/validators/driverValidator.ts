@@ -189,7 +189,7 @@ export const updateDriverValidation = [
  */
 export const validateDriverIdParam = [
 	param("id")
-		.isInt({ min: 1 })
+		.isInt({ min: 0 })
 		.withMessage("Driver ID must be a positive integer")
 		.toInt(),
 ];

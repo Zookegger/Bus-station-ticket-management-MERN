@@ -1,55 +1,89 @@
 import { Request } from "express";
 
 /**
- * Extracts and validates ID parameter from request URL
+ * Extracts and validates a numeric ID from the request URL parameters.
  *
- * @param req - Express request object
- * @returns Validated numeric ID
- * @throws {Object} Error object with status and message if ID is invalid
- *
- * @example
- * // In controller:
- * const id = getParamsId(req);
- * const vehicle = await getVehicleTypeById(id);
+ * @param req - Express request object.
+ * @returns The validated numeric ID.
+ * @throws An error object if the ID is not a valid number.
  */
-export const getParamsId = (req: Request): number => {
-	const id: number = Number.parseInt(req.params.id as string);
-	if (isNaN(id)) {
-		throw { status: 400, message: "Invalid ID parameter" };
-	}
-	return id;
-};
+export const getParamNumericId = (req: Request): number => {
+	const { id } = req.params;
 
-/**
- * Extracts and validates ID from request body
- *
- * @param req - Express request object
- * @returns Validated numeric ID
- * @throws {Object} Error object with status and message if ID is invalid
- */
-export const getBodyId = (req: Request): number => {
-	const id: number = Number.parseInt(req.body.id as string);
-	if (isNaN(id)) {
-		throw { status: 400, message: "Invalid ID in request body" };
-	}
-	return id;
-};
+	if (!id) throw { status: 400, message: "Missing ID parameter." };
 
-/**
- * Extracts and validates ID from query parameters
- *
- * @param req - Express request object
- * @param paramName - Query parameter name (default: 'id')
- * @returns Validated numeric ID
- * @throws {Object} Error object with status and message if ID is invalid
- */
-export const getQueryId = (req: Request, paramName: string = "id"): number => {
-	const id: number = Number.parseInt(req.query[paramName] as string);
-	if (isNaN(id)) {
+	const numericId = Number.parseInt(id, 10);
+
+	if (isNaN(numericId)) {
 		throw {
 			status: 400,
-			message: `Invalid ${paramName} in query parameters`,
+			message: "Invalid ID parameter. Must be a number.",
 		};
 	}
+	return numericId;
+};
+
+/**
+ * Extracts and validates a string ID from the request URL parameters.
+ *
+ * @param req - Express request object.
+ * @returns The validated string ID.
+ * @throws An error object if the ID is missing or is not a valid string.
+ */
+export const getParamStringId = (req: Request): string => {
+	const { id } = req.params;
+
+	if (!id || typeof id !== "string" || id.trim() === "") {
+		throw { status: 400, message: "Invalid or missing ID parameter." };
+	}
 	return id;
+};
+
+/**
+ * Extracts and validates a numeric ID from the request body.
+ *
+ * @param req - Express request object.
+ * @returns The validated numeric ID.
+ * @throws An error object if the ID is not a valid number.
+ */
+export const getBodyId = (req: Request): number => {
+	const { id } = req.body;
+	const numericId = Number.parseInt(id, 10);
+
+	if (isNaN(numericId)) {
+		throw {
+			status: 400,
+			message: "Invalid ID in request body. Must be a number.",
+		};
+	}
+	return numericId;
+};
+
+/**
+ * Extracts and validates a numeric ID from the query string.
+ *
+ * @param req - Express request object.
+ * @param paramName - The name of the query parameter (defaults to 'id').
+ * @returns The validated numeric ID.
+ * @throws An error object if the ID is not a valid number.
+ */
+export const getQueryId = (req: Request, paramName: string = "id"): number => {
+	const idFromQuery = req.query[paramName];
+
+	if (typeof idFromQuery !== "string") {
+		throw {
+			status: 400,
+			message: `Invalid or missing '${paramName}' in query parameters.`,
+		};
+	}
+
+	const numericId = Number.parseInt(idFromQuery, 10);
+
+	if (isNaN(numericId)) {
+		throw {
+			status: 400,
+			message: `Invalid '${paramName}' in query parameters. Must be a number.`,
+		};
+	}
+	return numericId;
 };
