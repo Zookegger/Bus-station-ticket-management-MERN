@@ -16,7 +16,7 @@ import { SeatStatus } from "@my_types/seat";
 import logger from "@utils/logger";
 import * as paymentServices from "@services/paymentServices";
 import * as userServices from "@services/userServices";
-import { FindOptions, Op, OrderItem, WhereOptions } from "sequelize";
+import { Op } from "sequelize";
 import { PaymentStatus } from "@my_types/payments";
 import { TripStatus } from "@my_types/trip";
 import * as ticketServices from "@services/ticketServices";

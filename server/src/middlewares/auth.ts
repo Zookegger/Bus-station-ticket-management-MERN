@@ -1,7 +1,4 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
-import logger from "@utils/logger";
-import { UUID } from "crypto";
 import { Role } from "@models/user";
 import passport from "passport";
 
@@ -11,7 +8,7 @@ import passport from "passport";
  * - Verifies signature and expiry
  * - Attaches payload to req.user for downstream handlers
  */
-const JWT_SECRET = process.env.JWT_SECRET || "yourjwtsecret";
+// const JWT_SECRET = process.env.JWT_SECRET || "yourjwtsecret";
 
 // Legacy code
 // Authorize using the Authorization header from the payload
@@ -107,7 +104,7 @@ export const optionalAuthenticateJwt = (
 	passport.authenticate(
 		"jwt",
 		{ session: false },
-		(err: any, user: any, info: any) => {
+		(err: any, user: any, _info: any) => {
 			// On any error, pass it down the chain.
 			if (err) {
 				return next(err);

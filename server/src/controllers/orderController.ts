@@ -1,4 +1,4 @@
-import { CreateOrderDTO, CreateOrderResult, OrderQueryOptions } from "@my_types/order";
+import { CreateOrderDTO, CreateOrderResult, OrderQueryOptions, RefundTicketDTO } from "@my_types/order";
 import { NextFunction, Request, Response } from "express";
 import * as orderServices from "@services/orderServices";
 import { OrderAttributes, OrderStatus } from "@models/orders";
@@ -34,11 +34,15 @@ export const CreateOrder = async (
 ): Promise<void> => {
     try {
         const dto: CreateOrderDTO = req.body;
-        if (!dto) throw { status: 400, message: "" }
+        if (!dto || Object.keys(dto).length === 0) {
+            throw { status: 400, message: "Request body is missing or empty." };
+        }
         
         const order: CreateOrderResult = await orderServices.createOrder(dto);
-        if (!order) throw { status: 500, message: "" }
-        res.status(200).json(order);
+        if (!order) {
+            throw { status: 500, message: "Failed to create the order due to a server error." };
+        }
+        res.status(201).json(order); // Use 201 for resource creation
     } catch (err) {
         next(err);
     }
@@ -49,8 +53,22 @@ export const RefundTickets = async (
     res: Response, 
     next: NextFunction
 ): Promise<void> => {
-    const dto = req.body;
-    // TODO: Implement refund logic
+    try {
+        const dto: RefundTicketDTO = req.body;
+
+        if (!dto || !dto.orderId || !dto.ticketIds || dto.ticketIds.length === 0) {
+            throw { status: 400, message: "Invalid refund request. Please provide orderId and ticketIds." };
+        }
+        
+        const result = await orderServices.refundTickets(dto);
+        if (!result) {
+            throw { status: 404, message: "Order or tickets not found, or they are not in a refundable state." };
+        }
+        res.status(200).json({ message: "Tickets have been successfully refunded.", order: result });
+
+    } catch (err) {
+        next(err);
+    } 
 }
 
 export const ListAllOrders = async (
@@ -73,11 +91,16 @@ export const GetOrderById = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const orderId: string = (req.params as any).id;
+        const { id: orderId } = req.params;
+        if (!orderId) {
+            throw { status: 400, message: "Order ID is required." };
+        }
         const options = getOptions(req);
-        // TODO: Implement get order by ID logic
+        // TODO: Ensure user has permission to view this order (if not an admin).
         const order = await orderServices.getOrderById(orderId, options);
-        if (!order) throw { status: 404, message: "" }
+        if (!order) {
+            throw { status: 404, message: "Order not found with the provided ID." };
+        }
         
         res.status(200).json(order);
     } catch (err) {
@@ -91,9 +114,12 @@ export const GetUserOrders = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const userId: string = (req.params as any).id;
+        const { id: userId } = req.params;
+        if (!userId) {
+            throw { status: 400, message: "User ID is required." };
+        }
         const options = getOptions(req);
-        // TODO: Implement get user orders logic
+        // TODO: Ensure the authenticated user is either the user in question or an admin.
 
         const orders = await orderServices.getUserOrders(userId, options);
         res.status(200).json(orders);
@@ -108,13 +134,16 @@ export const GetGuestOrders = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const guestEmail: string = (req.params as any).email;
-        const guestPhone: string = (req.params as any).phone;
-        if (Number.parseInt(guestPhone)) throw { status: 400, message: "" }
-        if (guestPhone.length < 11 || guestPhone.length > 15) throw { status: 400, message: "" }
+        const guestEmail: string = req.query.email as string;
+        const guestPhone: string = req.query.phone as string;
+
+        if (!guestEmail || !guestPhone) {
+            throw { status: 400, message: "Guest email and phone are required." };
+        }
 
         const options = getOptions(req);
-        // TODO: Implement get guest orders logic
+        // This endpoint is for guests to find their orders.
+        // No authentication is required, but access is limited.
 
         const orders = await orderServices.getGuestOrders(guestEmail, guestPhone, options);
         res.status(200).json(orders);
