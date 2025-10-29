@@ -7,7 +7,10 @@
  */
 
 import { Router } from "express";
-import { csrfAdminProtectionRoute } from "@middlewares/csrf";
+import {
+	csrfAdminProtectionRoute,
+	csrfGuestOrUserProtectionRoute,
+} from "@middlewares/csrf";
 import { errorHandler } from "@middlewares/errorHandler";
 import { handleValidationResult } from "@middlewares/validateRequest";
 import * as tripController from "@controllers/tripController";
@@ -24,16 +27,24 @@ import * as tripValidator from "@middlewares/validators/tripValidator";
  * - PUT /:id: Update existing trip
  * - DELETE /:id: Remove trip
  */
-const tripRoutes = Router();
+const tripRouter = Router();
 
 // GET /trips - Advanced search with filtering and pagination
-tripRoutes.get("/", tripController.SearchTrip, errorHandler);
+tripRouter.get(
+	"/",
+	tripController.SearchTrip,
+	errorHandler
+);
 
 // GET /trips/search - Alternative search endpoint
-tripRoutes.get("/search", tripController.SearchTrip, errorHandler);
+tripRouter.get(
+	"/search",
+	tripController.SearchTrip,
+	errorHandler
+);
 
 // GET /trips/:id - Get trip by ID
-tripRoutes.get(
+tripRouter.get(
 	"/:id",
 	tripValidator.validateIdParam,
 	handleValidationResult,
@@ -42,7 +53,7 @@ tripRoutes.get(
 );
 
 // POST /trips - Create new trip
-tripRoutes.post(
+tripRouter.post(
 	"/",
 	csrfAdminProtectionRoute,
 	tripValidator.validateCreateTrip,
@@ -52,7 +63,7 @@ tripRoutes.post(
 );
 
 // PUT /trips/:id - Update trip by ID
-tripRoutes.put(
+tripRouter.put(
 	"/:id",
 	csrfAdminProtectionRoute,
 	tripValidator.validateIdParam,
@@ -63,7 +74,7 @@ tripRoutes.put(
 );
 
 // DELETE /trips/:id - Delete trip by ID
-tripRoutes.delete(
+tripRouter.delete(
 	"/:id",
 	csrfAdminProtectionRoute,
 	tripValidator.validateIdParam,
@@ -72,4 +83,4 @@ tripRoutes.delete(
 	errorHandler
 );
 
-export default tripRoutes;
+export default tripRouter;

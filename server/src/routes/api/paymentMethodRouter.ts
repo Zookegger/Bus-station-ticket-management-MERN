@@ -7,33 +7,32 @@ import {
 	csrfAdminProtectionRoute,
 	csrfGuestOrUserProtectionRoute,
 } from "@middlewares/csrf";
+import { isAdmin } from "@middlewares/auth";
 
-const paymentMethodRoute = Router();
+const paymentMethodRouter = Router();
 
-paymentMethodRoute.get(
+paymentMethodRouter.get(
 	"/code/:code",
-	csrfGuestOrUserProtectionRoute,
 	validators.validatePaymentMethodCodeParam,
 	handleValidationResult,
 	controllers.GetPaymentMethodByCode,
 	errorHandler
 );
 
-paymentMethodRoute.get(
+paymentMethodRouter.get(
 	"/all",
-	csrfAdminProtectionRoute,
+	isAdmin,
 	controllers.ListAllPaymentMethods,
 	errorHandler
 );
 
-paymentMethodRoute.get(
+paymentMethodRouter.get(
 	"/active",
-	csrfGuestOrUserProtectionRoute,
 	controllers.ListActivePaymentMethods,
 	errorHandler
 );
 
-paymentMethodRoute.post(
+paymentMethodRouter.post(
 	"/",
 	csrfAdminProtectionRoute,
 	handleValidationResult,
@@ -41,22 +40,22 @@ paymentMethodRoute.post(
 	errorHandler
 );
 
-paymentMethodRoute.put(
+paymentMethodRouter.put(
 	"/:id",
 	csrfAdminProtectionRoute,
-    validators.validateCreatePaymentMethod,
+	validators.validateCreatePaymentMethod,
 	handleValidationResult,
 	controllers.UpdatePaymentMethod,
 	errorHandler
 );
 
-paymentMethodRoute.delete(
+paymentMethodRouter.delete(
 	"/:id",
 	csrfAdminProtectionRoute,
-    validators.validateUpdatePaymentMethod,
+	validators.validateUpdatePaymentMethod,
 	handleValidationResult,
 	controllers.RemovePaymentMethod,
 	errorHandler
 );
 
-export default paymentMethodRoute;
+export default paymentMethodRouter;

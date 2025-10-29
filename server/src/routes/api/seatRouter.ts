@@ -23,13 +23,13 @@ import * as routeValidator from "@middlewares/validators/routeValidator"; // Reu
  * - GET /:id: Retrieve specific seat by ID
  * - PUT /:id: Update seat state (availability, active status, trip assignment)
  */
-const seatRoutes = Router();
+const seatRouter = Router();
 
 // GET /seats - Advanced search with filtering and pagination
-seatRoutes.get("/", seatController.SearchSeat, errorHandler);
+seatRouter.get("/", seatController.SearchSeat, errorHandler);
 
 // GET /seats/:id - Get seat by ID
-seatRoutes.get(
+seatRouter.get(
 	"/:id",
 	routeValidator.validateIdParam, // Reuse existing ID validation
 	handleValidationResult,
@@ -38,7 +38,7 @@ seatRoutes.get(
 );
 
 // PUT /seats/:id - Update seat state by ID
-seatRoutes.put(
+seatRouter.put(
 	"/:id",
 	csrfAdminProtectionRoute,
 	routeValidator.validateIdParam, // Reuse existing ID validation
@@ -48,4 +48,4 @@ seatRoutes.put(
 	errorHandler
 );
 
-export default seatRoutes;
+export default seatRouter;

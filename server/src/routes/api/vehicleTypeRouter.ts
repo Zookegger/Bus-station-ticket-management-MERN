@@ -24,24 +24,24 @@ import { csrfAdminProtectionRoute } from "@middlewares/csrf";
  * - PUT /:id: Update existing vehicle type
  * - DELETE /:id: Remove vehicle type
  */
-const vehicleTypeRoutes = Router();
+const vehicleTypeRouter = Router();
 
 // GET /vehicle-types - Advanced search with filtering and pagination
-vehicleTypeRoutes.get("/", SearchVehicleTypes, errorHandler);
+vehicleTypeRouter.get("/", SearchVehicleTypes, errorHandler);
 
 // GET /vehicle-types/search - Alternative search endpoint
-vehicleTypeRoutes.get("/search", SearchVehicleTypes, errorHandler);
+vehicleTypeRouter.get("/search", SearchVehicleTypes, errorHandler);
 
 // GET /vehicle-types/:id - Get vehicle type by ID
-vehicleTypeRoutes.get("/:id", validateIdParam, handleValidationResult, GetVehicleTypeById, errorHandler);
+vehicleTypeRouter.get("/:id", validateIdParam, handleValidationResult, GetVehicleTypeById, errorHandler);
 
 // POST /vehicle-types - Create new vehicle type
-vehicleTypeRoutes.post("/", csrfAdminProtectionRoute, validateCreateVehicleType, handleValidationResult, AddVehicleType, errorHandler);
+vehicleTypeRouter.post("/", csrfAdminProtectionRoute, validateCreateVehicleType, handleValidationResult, AddVehicleType, errorHandler);
 
 // PUT /vehicle-types/:id - Update vehicle type by ID
-vehicleTypeRoutes.put("/:id", csrfAdminProtectionRoute, validateIdParam, validateUpdateVehicleType, handleValidationResult, UpdateVehicleType, errorHandler);
+vehicleTypeRouter.put("/:id", csrfAdminProtectionRoute, validateIdParam, validateUpdateVehicleType, handleValidationResult, UpdateVehicleType, errorHandler);
 
 // DELETE /vehicle-types/:id - Delete vehicle type by ID
-vehicleTypeRoutes.delete("/:id", csrfAdminProtectionRoute, validateIdParam, handleValidationResult, RemoveVehicleType, errorHandler);
+vehicleTypeRouter.delete("/:id", csrfAdminProtectionRoute, validateIdParam, handleValidationResult, RemoveVehicleType, errorHandler);
 
-export default vehicleTypeRoutes;
+export default vehicleTypeRouter;

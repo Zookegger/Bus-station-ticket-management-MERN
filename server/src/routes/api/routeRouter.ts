@@ -24,16 +24,16 @@ import * as routeValidator from "@middlewares/validators/routeValidator";
  * - PUT /:id: Update existing route
  * - DELETE /:id: Remove route
  */
-const routeRoutes = Router();
+const routeRouter = Router();
 
 // GET /routes - Advanced search with filtering and pagination
-routeRoutes.get("/", routeController.SearchRoute, errorHandler);
+routeRouter.get("/", routeController.SearchRoute, errorHandler);
 
 // GET /routes/search - Alternative search endpoint
-routeRoutes.get("/search", routeController.SearchRoute, errorHandler);
+routeRouter.get("/search", routeController.SearchRoute, errorHandler);
 
 // GET /routes/:id - Get route by ID
-routeRoutes.get(
+routeRouter.get(
 	"/:id",
 	routeValidator.validateIdParam,
 	handleValidationResult,
@@ -42,7 +42,7 @@ routeRoutes.get(
 );
 
 // POST /routes - Create new route
-routeRoutes.post(
+routeRouter.post(
 	"/",
 	csrfAdminProtectionRoute,
 	routeValidator.validateCreateRoute,
@@ -52,7 +52,7 @@ routeRoutes.post(
 );
 
 // PUT /routes/:id - Update route by ID
-routeRoutes.put(
+routeRouter.put(
 	"/:id",
 	csrfAdminProtectionRoute,
 	routeValidator.validateIdParam,
@@ -63,7 +63,7 @@ routeRoutes.put(
 );
 
 // DELETE /routes/:id - Delete route by ID
-routeRoutes.delete(
+routeRouter.delete(
 	"/:id",
 	csrfAdminProtectionRoute,
 	routeValidator.validateIdParam,
@@ -72,4 +72,4 @@ routeRoutes.delete(
 	errorHandler
 );
 
-export default routeRoutes;
+export default routeRouter;

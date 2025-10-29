@@ -4,7 +4,7 @@ import { errorHandler } from "@middlewares/errorHandler";
 import { handleValidationResult } from "@middlewares/validateRequest";
 import { checkInValidators } from "@middlewares/validators/checkInValidator";
 
-const router = Router();
+const checkInRouter = Router();
 
 /**
  * @swagger
@@ -36,6 +36,6 @@ const router = Router();
  *       404:
  *         description: Order not found.
  */
-router.get("/:orderId", checkInValidators, handleValidationResult, checkInController.handleCheckIn, errorHandler);
+checkInRouter.get("/:orderId", checkInValidators, handleValidationResult, checkInController.handleCheckIn, errorHandler);
 
-export default router;
+export default checkInRouter;

@@ -7,41 +7,42 @@ import {
 import { errorHandler } from "@middlewares/errorHandler";
 import { Router } from "express";
 
-const orderRoutes = Router();
+const orderRouter = Router();
 
-orderRoutes.get(
+orderRouter.get(
 	"/",
 	csrfAdminProtectionRoute,
 	orderController.ListAllOrders,
 	errorHandler
 );
-orderRoutes.post(
+orderRouter.post(
 	"/",
 	csrfGuestOrUserProtectionRoute,
 	orderController.CreateOrder,
 	errorHandler
 );
-orderRoutes.post(
+orderRouter.post(
 	"/:id/refund",
 	csrfGuestOrUserProtectionRoute,
 	orderController.CreateOrder,
 	errorHandler
 );
-orderRoutes.get(
+orderRouter.get(
 	"/:id",
-	csrfGuestOrUserProtectionRoute,
 	orderController.GetOrderById,
 	errorHandler
 );
-orderRoutes.get(
+orderRouter.get(
 	"/user/:id",
 	csrfUserProtectionRoute,
 	orderController.GetUserOrders,
 	errorHandler
 );
-orderRoutes.get(
+orderRouter.get(
 	"/guest/:id",
 	csrfGuestOrUserProtectionRoute,
 	orderController.GetGuestOrders,
 	errorHandler
 );
+
+export default orderRouter;

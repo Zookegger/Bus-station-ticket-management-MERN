@@ -20,10 +20,10 @@ import { csrfAdminProtectionRoute } from "@middlewares/csrf";
  * Handles all location-related HTTP requests with proper validation,
  * authentication, and error handling middleware applied to each route.
  */
-const locationRoutes = Router();
+const locationRouter = Router();
 
 // GET /locations - Search locations with filtering and pagination
-locationRoutes.get(
+locationRouter.get(
 	"/",
 	locationValidators.searchLocationValidation,
 	handleValidationResult,
@@ -32,7 +32,7 @@ locationRoutes.get(
 );
 
 // GET /locations/search - Advanced location search with query parameters
-locationRoutes.get(
+locationRouter.get(
 	"/search",
 	locationValidators.searchLocationValidation,
 	handleValidationResult,
@@ -41,7 +41,7 @@ locationRoutes.get(
 );
 
 // GET /locations/:id - Retrieve a specific location by ID
-locationRoutes.get(
+locationRouter.get(
 	"/:id",
 	locationValidators.validateLocationIdParam,
 	handleValidationResult,
@@ -50,7 +50,7 @@ locationRoutes.get(
 );
 
 // GET /locations/:lat/:lon - Retrieve locations by coordinates
-locationRoutes.get(
+locationRouter.get(
 	"/:lat/:lon",
 	locationValidators.getLocationByCoordinatesValidation,
 	handleValidationResult,
@@ -59,7 +59,7 @@ locationRoutes.get(
 );
 
 // POST /locations - Create a new location (Admin only)
-locationRoutes.post(
+locationRouter.post(
 	"/",
 	csrfAdminProtectionRoute,
 	locationValidators.createLocationValidation,
@@ -69,7 +69,7 @@ locationRoutes.post(
 );
 
 // PUT /locations/:id - Update an existing location (Admin only)
-locationRoutes.put(
+locationRouter.put(
 	"/:id",
 	csrfAdminProtectionRoute,
 	locationValidators.validateLocationIdParam,
@@ -80,7 +80,7 @@ locationRoutes.put(
 );
 
 // DELETE /locations/:id - Delete a location by ID (Admin only)
-locationRoutes.delete(
+locationRouter.delete(
 	"/:id",
 	csrfAdminProtectionRoute,
 	locationValidators.validateLocationIdParam,
@@ -89,4 +89,4 @@ locationRoutes.delete(
 	errorHandler
 );
 
-export default locationRoutes;
+export default locationRouter;

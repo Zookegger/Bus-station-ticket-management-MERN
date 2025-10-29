@@ -18,21 +18,21 @@ import { csrfAdminProtectionRoute, csrfUserProtectionRoute } from "@middlewares/
  *
  * Handles user-related operations such as profile updates and user data retrieval.
  */
-const userRoutes = Router();
+const userRouter = Router();
 
 // PUT /users/profile - Update authenticated user's profile
-userRoutes.put("/profile/:id", csrfUserProtectionRoute, updateProfileValidation, handleValidationResult, userController.UpdateProfile, errorHandler);
+userRouter.put("/profile/:id", csrfUserProtectionRoute, updateProfileValidation, handleValidationResult, userController.UpdateProfile, errorHandler);
 
 // GET /users/profile - Get user profile
-userRoutes.get("/profile/:id", csrfUserProtectionRoute, userController.GetProfile, errorHandler);
+userRouter.get("/profile/:id", csrfUserProtectionRoute, userController.GetProfile, errorHandler);
 
 // GET /users - Get all users (Admin only)
-userRoutes.get("/", csrfAdminProtectionRoute, userController.GetAllUsers, errorHandler);
+userRouter.get("/", csrfAdminProtectionRoute, userController.GetAllUsers, errorHandler);
 
 // PUT /users/:id - Update user by ID
-userRoutes.put("/:id", csrfAdminProtectionRoute, validateUserIdParam, handleValidationResult, userController.UpdateUser, errorHandler);
+userRouter.put("/:id", csrfAdminProtectionRoute, validateUserIdParam, handleValidationResult, userController.UpdateUser, errorHandler);
 
 // DELETE /users/:id - Delete user by ID (Admin only)
-userRoutes.delete("/:id", csrfAdminProtectionRoute, validateUserIdParam, handleValidationResult, userController.DeleteUser, errorHandler);
+userRouter.delete("/:id", csrfAdminProtectionRoute, validateUserIdParam, handleValidationResult, userController.DeleteUser, errorHandler);
 
-export default userRoutes;
+export default userRouter;
