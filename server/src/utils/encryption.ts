@@ -10,7 +10,7 @@ if (!ENCRYPTION_KEY) {
 }
 
 if (Buffer.from(ENCRYPTION_KEY, "hex").length !== 32) {
-	logger.error("Invalid DB_ENCRYPTION_KEY length, needs to be 32 byte")
+	logger.error("Invalid DB_ENCRYPTION_KEY length, needs to be 32 bytes")
 	process.exit(1);
 }
 

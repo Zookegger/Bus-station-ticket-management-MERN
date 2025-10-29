@@ -8,7 +8,7 @@
 
 import { Router } from "express";
 import { isAdmin } from "@middlewares/auth";
-import { csrfAdminProtectionRoute, csrfGuestOrUserProtectionRoute } from "@middlewares/csrf";
+import { csrfAdminProtectionRoute } from "@middlewares/csrf";
 import * as driverController from "@controllers/driverController";
 import { errorHandler } from "@middlewares/errorHandler";
 import { handleValidationResult } from "@middlewares/validateRequest";

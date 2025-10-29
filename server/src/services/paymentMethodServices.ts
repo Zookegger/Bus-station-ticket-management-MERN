@@ -82,8 +82,8 @@ export const updatePaymentMethod = async (id: string, data: Partial<PaymentMetho
  */
 export const deletePaymentMethod = async (id: string): Promise<void> => {
     const method = await PaymentMethod.findByPk(id);
-    if (method) {
-        await method.destroy();
+    if (!method) {
+        throw { status: 404, message: `Cannot find payment method with id: ${id}`};
     }
-    throw { status: 404, message: `Cannot find payment method with id: ${id}`};
+    await method.destroy();
 }

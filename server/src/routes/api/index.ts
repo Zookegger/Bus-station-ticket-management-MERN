@@ -20,6 +20,7 @@ import seatRoutes from "@routes/api/seatRouter";
 import settingsRouter from "@routes/api/settingRouter";
 import paymentMethodRoute from "@routes/api/paymentMethodRouter";
 import orderRouter from "@routes/api/orderRouter";
+import checkInRouter from "@routes/api/checkInRouter";
 
 /**
  * Main API router instance.
@@ -75,5 +76,6 @@ apiRouter.use("/seats", apiRateLimiter, seatRoutes);
 apiRouter.use("/payment-methods", apiRateLimiter, paymentMethodRoute);
 apiRouter.use("/settings", apiRateLimiter, settingsRouter);
 apiRouter.use("/order", apiRateLimiter, orderRouter);
+apiRouter.use("/check-in", checkInRouter);
 
 export default apiRouter;

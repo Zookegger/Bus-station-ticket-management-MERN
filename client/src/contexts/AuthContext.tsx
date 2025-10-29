@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 						setUser(null);
 						setCsrfToken(null);
 						console.error("Session expired. Please log in again.");
-						window.location.href = ROUTES.LOGIN
+						window.location.href = ROUTES.LOGIN;
 						return Promise.reject(refreshErr);
 					}
 				}

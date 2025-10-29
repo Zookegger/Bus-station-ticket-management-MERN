@@ -3,10 +3,7 @@ import { handleValidationResult } from "@middlewares/validateRequest";
 import * as validators from "@middlewares/validators/paymentMethodValidator";
 import { Router } from "express";
 import * as controllers from "@controllers/paymentMethodController";
-import {
-	csrfAdminProtectionRoute,
-	csrfGuestOrUserProtectionRoute,
-} from "@middlewares/csrf";
+import { csrfAdminProtectionRoute } from "@middlewares/csrf";
 import { isAdmin } from "@middlewares/auth";
 
 const paymentMethodRouter = Router();

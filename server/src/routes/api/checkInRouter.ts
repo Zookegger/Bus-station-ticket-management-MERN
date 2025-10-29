@@ -3,8 +3,15 @@ import * as checkInController from "@controllers/checkInController";
 import { errorHandler } from "@middlewares/errorHandler";
 import { handleValidationResult } from "@middlewares/validateRequest";
 import { checkInValidators } from "@middlewares/validators/checkInValidator";
+import rateLimit from "express-rate-limit";
 
 const checkInRouter = Router();
+
+const checkInRateLimiter = rateLimit({
+	windowMs: 60 * 1000, // 1 minute
+	max: 10,
+	message: "Too many check-in attempts from this IP, please try again later.",
+});
 
 /**
  * @swagger
@@ -36,6 +43,13 @@ const checkInRouter = Router();
  *       404:
  *         description: Order not found.
  */
-checkInRouter.get("/:orderId", checkInValidators, handleValidationResult, checkInController.handleCheckIn, errorHandler);
+checkInRouter.get(
+	"/:orderId",
+    checkInRateLimiter,
+	checkInValidators,
+	handleValidationResult,
+	checkInController.handleCheckIn,
+	errorHandler
+);
 
 export default checkInRouter;

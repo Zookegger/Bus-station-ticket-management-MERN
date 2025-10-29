@@ -1,15 +1,8 @@
 import db from "@models/index";
 import { Ticket, TicketAttributes, TicketStatus } from "@models/ticket";
-import {
-	BookTicketDTO,
-	BookTicketResult,
-	TicketQueryOptions,
-} from "@my_types/ticket";
+import { TicketQueryOptions } from "@my_types/ticket";
 import { SeatStatus } from "@my_types/seat";
-import { COMPUTED } from "@constants";
 import { Op, Transaction } from "sequelize";
-import { Seat } from "@models/seat";
-import { Trip } from "@models/trip";
 import logger from "@utils/logger";
 import { TripStatus } from "@my_types/trip";
 
@@ -162,6 +155,7 @@ export const cleanUpExpiredTickets = async (): Promise<void> => {
 	const transaction = await db.sequelize.transaction();
 
 	try {
+		// TODO: Implement cleanup for expired tickets
 	} catch (err) {
 		await transaction.rollback();
 		logger.error(err);

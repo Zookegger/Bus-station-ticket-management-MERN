@@ -3,7 +3,6 @@ import {
 	Model,
 	Optional,
 	Sequelize,
-	HasManyGetAssociationsMixin,
 } from "sequelize";
 import bcrypt from "bcrypt";
 import { Ticket } from "./ticket";

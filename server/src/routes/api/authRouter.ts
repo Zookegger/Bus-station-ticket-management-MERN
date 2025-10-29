@@ -35,6 +35,7 @@ authRouter.get(
 
 authRouter.post(
 	"/csrf-token",
+	authRateLimiter,
 	csrfUserProtectionRoute,
 	authController.VerifyCsrfToken,
 	errorHandler,
@@ -80,6 +81,7 @@ authRouter.post(
  */
 authRouter.post(
 	"/logout",
+	authRateLimiter,
 	csrfUserProtectionRoute,
 	authValidator.logoutValidation,
 	handleValidationResult,
@@ -93,6 +95,7 @@ authRouter.post(
  */
 authRouter.get(
 	"/me",
+	authRateLimiter,
 	csrfUserProtectionRoute,
 	authenticateJwt,
 	authController.GetMe,

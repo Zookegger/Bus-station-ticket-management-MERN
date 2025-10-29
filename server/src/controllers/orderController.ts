@@ -2,6 +2,7 @@ import { CreateOrderDTO, CreateOrderResult, OrderQueryOptions, RefundTicketDTO }
 import { NextFunction, Request, Response } from "express";
 import * as orderServices from "@services/orderServices";
 import { OrderAttributes, OrderStatus } from "@models/orders";
+import { getParamStringId } from "@utils/request";
 
 // Valid sort fields for OrderAttributes
 const VALID_ORDER_SORT_FIELDS: (keyof OrderAttributes)[] = [
@@ -91,10 +92,7 @@ export const GetOrderById = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const { id: orderId } = req.params;
-        if (!orderId) {
-            throw { status: 400, message: "Order ID is required." };
-        }
+        const orderId = getParamStringId(req);
         const options = getOptions(req);
         // TODO: Ensure user has permission to view this order (if not an admin).
         const order = await orderServices.getOrderById(orderId, options);
@@ -114,10 +112,7 @@ export const GetUserOrders = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const { id: userId } = req.params;
-        if (!userId) {
-            throw { status: 400, message: "User ID is required." };
-        }
+        const userId = getParamStringId(req);
         const options = getOptions(req);
         // TODO: Ensure the authenticated user is either the user in question or an admin.
 
