@@ -3,13 +3,15 @@ import {
 	Model,
 	Optional,
 	Sequelize,
+	BelongsToGetAssociationMixin,
+	HasManyGetAssociationsMixin,
 } from "sequelize";
-import { Route } from "./route";
-import { Vehicle } from "./vehicle";
-import { Seat } from "./seat";
-import { Driver } from "./driver";
+import { Route } from "@models/route";
+import { Vehicle } from "@models/vehicle";
+import { Seat } from "@models/seat";
 import { DbModels } from "@models";
-import { TripStatus } from "@my_types/trip";
+import { TripRepeatFrequency, TripStatus } from "@my_types/trip";
+import { Driver } from "./driver";
 
 /**
  * Interface for the attributes of a Trip.
@@ -25,14 +27,31 @@ import { TripStatus } from "@my_types/trip";
  * @property {Date} [updatedAt] - The date and time the trip was last updated.
  */
 export interface TripAttributes {
+	/**The unique identifier for the trip. */
 	id: number;
-	vehicleId: number;
+	/**The ID of the route for this trip. */
 	routeId: number;
+	/**The ID of the vehicle for this trip. */
+	vehicleId: number;
+	/**The departure time of the trip. */
 	startTime: Date;
+	/**The arrival time of the trip. */
 	endTime?: Date | null;
-	price?: number | null;
-	status?: "Scheduled" | "Departed" | "Completed" | "Cancelled" | string;
+	/**The ticket price assigned to this trip. */
+	price: number;
+	/**The current status of the trip. */
+	status?: TripStatus;
+	/**Is this trip a template for repetition? */
+	isTemplate: boolean;
+	/**How often should this trip repeat? */
+	repeatFrequency?: TripRepeatFrequency | null;
+	/**The date on which this repetition schedule should end. */
+	repeatEndDate?: Date | null;
+	/**If this trip is an instance, this links to its template. */
+	templateTripId?: number | null;
+	/**The date and time the trip was created. */
 	createdAt?: Date;
+	/**The date and time the trip was last updated. */
 	updatedAt?: Date;
 }
 
@@ -42,7 +61,18 @@ export interface TripAttributes {
  * @extends {Optional<TripAttributes, "id" | "createdAt" | "updatedAt">}
  */
 export interface TripCreationAttributes
-	extends Optional<TripAttributes, "id" | "createdAt" | "updatedAt"> {}
+	extends Optional<
+		TripAttributes,
+		| "id"
+		| "endTime"
+		| "status"
+		| "isTemplate"
+		| "repeatFrequency"
+		| "repeatEndDate"
+		| "templateTripId"
+		| "createdAt"
+		| "updatedAt"
+	> {}
 
 /**
  * Sequelize model for the Trip.
@@ -67,56 +97,46 @@ export class Trip
 	extends Model<TripAttributes, TripCreationAttributes>
 	implements TripAttributes
 {
-	/** Unique identifier of the trip */
+	/**The unique identifier for the trip. */
 	public id!: number;
-
-	/** Foreign key referencing the assigned vehicle */
+	/**The ID of the vehicle for this trip. */
 	public vehicleId!: number;
-
-	/** Foreign key referencing the route for this trip */
+	/**The ID of the route for this trip. */
 	public routeId!: number;
-
-	/** Scheduled departure time for the trip */
+	/**The departure time of the trip. */
 	public startTime!: Date;
-
-	/** Actual or estimated arrival time */
+	/**The arrival time of the trip. */
 	public endTime?: Date | null;
-
-	/** Ticket price for this specific trip */
+	/**The ticket price assigned to this trip. */
 	public price!: number;
+	/**The current status of the trip. */
+	public status!: TripStatus;
+	/**Is this trip a template for repetition? */
+	public isTemplate!: boolean;
+	/**How often should this trip repeat? */
+	public repeatFrequency?: TripRepeatFrequency | null;
+	/**The date on which this repetition schedule should end. */
+	public repeatEndDate?: Date | null;
+	/**If this trip is an instance, this links to its template. */
+	public templateTripId?: number | null;
 
-	/** Current status of the trip (Scheduled, Departed, Completed, Cancelled) */
-	public status?: string;
-
-	/** Timestamp when the trip record was created */
+	/**The date and time the trip was created. */
 	public readonly createdAt!: Date;
-
-	/** Timestamp when the trip record was last updated */
+	/**The date and time the trip was last updated. */
 	public readonly updatedAt!: Date;
 
 	// Associations
-	/**
-	 * @property {Route} [route] - Associated Route instance.
-	 */
 	public readonly route?: Route;
-	/**
-	 * @property {Vehicle} [vehicle] - Associated Vehicle instance.
-	 */
 	public readonly vehicle?: Vehicle;
-	/**
-	 * @property {Seat[]} [seats] - Associated Seat instances.
-	 */
 	public readonly seats?: Seat[];
-	/**
-	 * @property {Driver[]} [drivers] - Associated Driver instances.
-	 */
 	public readonly drivers?: Driver[];
+	public readonly template?: Trip;
+	public readonly instances?: Trip[];
 
-	/**
-	 * Initializes the Trip model.
-	 * @param {Sequelize} sequelize - The Sequelize instance.
-	 * @returns {void}
-	 */
+	public getRoute!: BelongsToGetAssociationMixin<Route>;
+	public getVehicle!: BelongsToGetAssociationMixin<Vehicle>;
+	public getSeats!: HasManyGetAssociationsMixin<Seat>;
+
 	static initModel(sequelize: Sequelize): void {
 		Trip.init(
 			{
@@ -128,22 +148,22 @@ export class Trip
 				vehicleId: {
 					type: DataTypes.INTEGER.UNSIGNED,
 					allowNull: false,
-					field: 'vehicleId'
+					field: "vehicleId",
 				},
 				routeId: {
 					type: DataTypes.INTEGER.UNSIGNED,
 					allowNull: false,
-					field: 'routeId'
+					field: "routeId",
 				},
 				startTime: {
 					type: DataTypes.DATE,
 					allowNull: false,
-					field: 'startTime'
+					field: "startTime",
 				},
 				endTime: {
 					type: DataTypes.DATE,
 					allowNull: true,
-					field: 'endTime'
+					field: "endTime",
 				},
 				price: {
 					type: DataTypes.DECIMAL(10, 2),
@@ -154,12 +174,40 @@ export class Trip
 					allowNull: false,
 					defaultValue: TripStatus.PENDING,
 				},
+				isTemplate: {
+					type: DataTypes.BOOLEAN,
+					allowNull: false,
+					defaultValue: false,
+					field: "isTemplate",
+				},
+				repeatFrequency: {
+					type: DataTypes.ENUM(...Object.values(TripRepeatFrequency)),
+					allowNull: true, // Can be null if isTemplate is false
+					defaultValue: TripRepeatFrequency.NONE,
+					field: "repeatFrequency",
+				},
+				repeatEndDate: {
+					type: DataTypes.DATE,
+					allowNull: true,
+					field: "repeatEndDate",
+				},
+				templateTripId: {
+					type: DataTypes.INTEGER.UNSIGNED,
+					allowNull: true,
+					references: {
+						model: "trips", // Self-referencing
+						key: "id",
+					},
+					field: "templateTripId",
+					comment:
+						"Self-referencing key. If this trip is an 'instance' (e.g., the 10AM trip for Nov 1st), this ID points to the 'template' trip (e.g., the 'Daily 10AM' schedule). This prevents duplicate generation by background workers and links instances for management.",
+				},
 			},
 			{
 				sequelize,
 				tableName: "trips",
 				timestamps: true,
-				underscored: false
+				underscored: false,
 			}
 		);
 	}
@@ -183,9 +231,26 @@ export class Trip
 			foreignKey: "tripId",
 			as: "seats",
 		});
-		Trip.hasMany(models.Driver, {
+		// Direct access to assignment rows for auditing and scheduling UIs
+		Trip.hasMany(models.TripSchedule, {
 			foreignKey: "tripId",
+			as: "driverAssignments",
+		});
+		Trip.belongsToMany(models.Driver, {
+			through: models.TripSchedule,
+			foreignKey: "tripId",
+			otherKey: "driverId",
 			as: "drivers",
+		});
+
+		// Self-referencing association
+		Trip.belongsTo(models.Trip, {
+			foreignKey: "templateTripId",
+			as: "template",
+		});
+		Trip.hasMany(models.Trip, {
+			foreignKey: "templateTripId",
+			as: "instances",
 		});
 	}
 }

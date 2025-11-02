@@ -1,10 +1,13 @@
 import db from "@models/index";
-import { Ticket, TicketAttributes, TicketStatus } from "@models/ticket";
-import { TicketQueryOptions } from "@my_types/ticket";
+import { Ticket, TicketAttributes } from "@models/ticket";
+import { TicketQueryOptions, TicketStatus } from "@my_types/ticket";
 import { SeatStatus } from "@my_types/seat";
 import { Op, Transaction } from "sequelize";
 import logger from "@utils/logger";
 import { TripStatus } from "@my_types/trip";
+import { COMPUTED } from "@constants/config";
+import { OrderStatus } from "@models/orders";
+import { PaymentStatus } from "@my_types/payments";
 
 /*
 export const bookTicket = async (
@@ -155,7 +158,80 @@ export const cleanUpExpiredTickets = async (): Promise<void> => {
 	const transaction = await db.sequelize.transaction();
 
 	try {
-		// TODO: Implement cleanup for expired tickets
+		const expirationTime = new Date(
+			Date.now() - COMPUTED.TICKET_RESERVATION_MILLISECONDS + 2000
+		);
+
+		// Find expired pending orders
+		const expiredOrders = await db.Order.findAll({
+			where: {
+				status: OrderStatus.PENDING,
+				createdAt: { [Op.lte]: expirationTime },
+			},
+			include: [
+				{
+					model: db.Ticket,
+					as: "tickets",
+					required: true,
+					attributes: ["id", "seatId"],
+				},
+				{
+					model: db.Payment,
+					as: "payment",
+					required: true,
+					attributes: ["paymentStatus"],
+				},
+			],
+			transaction,
+		});
+
+		if (expiredOrders.length === 0) {
+			logger.info("No expired pending orders to clean up");
+			await transaction.commit();
+			return;
+		}
+
+		logger.info(`Found ${expiredOrders.length} expired orders to clean up`);
+
+		for (const order of expiredOrders) {
+			if (order.tickets && order.payment) {
+				if (
+					order.payment.paymentStatus === PaymentStatus.PENDING ||
+					order.payment.paymentStatus === PaymentStatus.EXPIRED ||
+					order.payment.paymentStatus === PaymentStatus.FAILED
+				) {
+					const ticketIds = order.tickets.map((t) => t.id);
+					const seatIds = order.tickets
+						.map((t) => t.seatId)
+						.filter((id) => id != null);
+
+					// 1. Update Order status to EXPIRED
+					await order.update(
+						{ status: OrderStatus.EXPIRED },
+						{ transaction }
+					);
+
+					// 2. Update associated Tickets to EXPIRED
+					if (ticketIds.length > 0) {
+						await db.Ticket.update(
+							{ status: TicketStatus.EXPIRED },
+							{ where: { id: ticketIds }, transaction }
+						);
+					}
+
+					// 3. Release associated Seats
+					if (seatIds.length > 0) {
+						await db.Seat.update(
+							{ status: SeatStatus.AVAILABLE, reservedBy: null, reservedUntil: null },
+							{ where: { id: seatIds }, transaction }
+						);
+					}
+				}
+			}
+		}
+
+		await transaction.commit();
+		logger.info(`Successfully cleaned up ${expiredOrders.length} expired orders.`);
 	} catch (err) {
 		await transaction.rollback();
 		logger.error(err);
@@ -256,7 +332,7 @@ export const searchTicket = async (
  */
 export const confirmTickets = async (
 	ticketIds: number[]
-// ): Promise<Ticket[]> => {
+	// ): Promise<Ticket[]> => {
 ): Promise<void> => {
 	if (!ticketIds || ticketIds.length === 0)
 		throw { status: 400, message: "An array of ticket IDs is required." };
@@ -271,11 +347,11 @@ export const confirmTickets = async (
 					required: true,
 					as: "seat",
 					include: [
-						{ 
-							model: db.Trip, 
-							required: true ,
-							as: "trip", 
-						}
+						{
+							model: db.Trip,
+							required: true,
+							as: "trip",
+						},
 					],
 				},
 			],
@@ -293,28 +369,36 @@ export const confirmTickets = async (
 
 		for (const ticket of tickets) {
 			if (ticket.status !== TicketStatus.BOOKED) {
-				throw { status: 400, message: `Ticket ${ticket.id} cannot be confirmed.` };
+				throw {
+					status: 400,
+					message: `Ticket ${ticket.id} cannot be confirmed.`,
+				};
 			}
 			if (ticket.seat!.trip!.status === TripStatus.CANCELLED) {
-				throw { status: 400, message: `Trip ${ticket.seat?.tripId} is cancelled.`};
+				throw {
+					status: 400,
+					message: `Trip ${ticket.seat?.tripId} is cancelled.`,
+				};
 			}
 			if (ticket.seat!.trip!.status === TripStatus.COMPLETED) {
-				throw { status: 400, message: `Cannot check-in ticket ${ticket.id} for a trip that has already completed.`};
+				throw {
+					status: 400,
+					message: `Cannot check-in ticket ${ticket.id} for a trip that has already completed.`,
+				};
 			}
-
 		}
-		
-        // Step 3: Perform a single, performant bulk update.
+
+		// Step 3: Perform a single, performant bulk update.
 		await db.Ticket.update(
 			{ status: TicketStatus.COMPLETED },
 			{ where: { id: ticketIds }, transaction }
 		);
-		
+
 		await transaction.commit();
 
 		// for (const ticket of tickets) {
-        //     ticket.status = TicketStatus.COMPLETED;
-        // }
+		//     ticket.status = TicketStatus.COMPLETED;
+		// }
 
 		// return tickets;
 	} catch (err) {

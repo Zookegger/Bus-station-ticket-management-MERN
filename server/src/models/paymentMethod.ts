@@ -164,6 +164,10 @@ export class PaymentMethod
 	 * @returns {void}
 	 */
 	static associate(_models: DbModels) {
-		// No direct associations from PaymentMethod in this schema
+		// A payment method can be used by many payments
+		_models.PaymentMethod.hasMany(_models.Payment, {
+			foreignKey: "paymentMethodId",
+			as: "payments",
+		});
 	}
 }

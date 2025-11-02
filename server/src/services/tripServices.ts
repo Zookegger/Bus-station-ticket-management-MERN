@@ -10,9 +10,15 @@ import { Op } from "sequelize";
 import logger from "@utils/logger";
 import db from "@models/index";
 import { Trip } from "@models/trip";
-import { CreateTripDTO, UpdateTripDTO } from "@my_types/trip";
+import {
+	CreateTripDTO,
+	UpdateTripDTO,
+	TripRepeatFrequency,
+} from "@my_types/trip";
 import { SeatStatus } from "@my_types/seat";
 import { VehicleType } from "@models/vehicleType";
+import { tripSchedulingQueue } from "@utils/queues/tripSchedulingQueue";
+import { SchedulingStrategies } from "@utils/schedulingStrategy";
 
 /**
  * Generates seats for a trip based on vehicle type configuration.
@@ -70,18 +76,22 @@ async function generateSeatsForTrip(
 			const parsed = JSON.parse(vehicleType.seatsPerFloor);
 			seatsPerFloorLayout = Array.isArray(parsed) ? parsed : null;
 		} catch (e) {
-			logger.warn(`Failed to parse seatsPerFloor for vehicle type ${vehicleType.name}`);
+			logger.warn(
+				`Failed to parse seatsPerFloor for vehicle type ${vehicleType.name}`
+			);
 		}
 	}
 
 	if (vehicleType.rowsPerFloor) {
 		try {
 			const parsed = JSON.parse(vehicleType.rowsPerFloor);
-			rowsPerFloorConfig = Array.isArray(parsed) 
+			rowsPerFloorConfig = Array.isArray(parsed)
 				? parsed.map((r: any) => Number(r) || 0)
 				: null;
 		} catch (e) {
-			logger.warn(`Failed to parse rowsPerFloor for vehicle type ${vehicleType.name}`);
+			logger.warn(
+				`Failed to parse rowsPerFloor for vehicle type ${vehicleType.name}`
+			);
 		}
 	}
 
@@ -92,14 +102,20 @@ async function generateSeatsForTrip(
 	if (seatsPerFloorLayout && Array.isArray(seatsPerFloorLayout)) {
 		// Validate rowsPerFloorConfig against detailed layout if provided
 		if (rowsPerFloorConfig && rowsPerFloorConfig.length > 0) {
-			for (let floorIndex = 0; floorIndex < seatsPerFloorLayout.length; floorIndex++) {
+			for (
+				let floorIndex = 0;
+				floorIndex < seatsPerFloorLayout.length;
+				floorIndex++
+			) {
 				const floorData = seatsPerFloorLayout[floorIndex];
 				if (Array.isArray(floorData)) {
 					const actualRows = floorData.length;
 					const expectedRows = rowsPerFloorConfig[floorIndex] || 0;
 					if (expectedRows && actualRows !== expectedRows) {
 						logger.warn(
-							`rowsPerFloor mismatch on floor ${floorIndex + 1}: expected ${expectedRows}, layout has ${actualRows}`
+							`rowsPerFloor mismatch on floor ${
+								floorIndex + 1
+							}: expected ${expectedRows}, layout has ${actualRows}`
 						);
 					}
 				}
@@ -107,24 +123,38 @@ async function generateSeatsForTrip(
 		}
 
 		// Use detailed layout data
-		for (let floorIndex = 0; floorIndex < seatsPerFloorLayout.length; floorIndex++) {
+		for (
+			let floorIndex = 0;
+			floorIndex < seatsPerFloorLayout.length;
+			floorIndex++
+		) {
 			const floorData = seatsPerFloorLayout[floorIndex];
 			const floor = floorIndex + 1;
 
 			if (Array.isArray(floorData)) {
 				// Floor data is an array of rows
-				for (let rowIndex = 0; rowIndex < floorData.length; rowIndex++) {
+				for (
+					let rowIndex = 0;
+					rowIndex < floorData.length;
+					rowIndex++
+				) {
 					const rowData = floorData[rowIndex];
 					const row = rowIndex + 1;
 
 					if (Array.isArray(rowData)) {
 						// Row data is an array of seat positions
-						for (let colIndex = 0; colIndex < rowData.length; colIndex++) {
+						for (
+							let colIndex = 0;
+							colIndex < rowData.length;
+							colIndex++
+						) {
 							const seatExists = rowData[colIndex];
 							if (seatExists) {
 								const column = colIndex + 1;
 								seats.push({
-									number: `${String.fromCharCode(64 + row)}${column}`,
+									number: `${String.fromCharCode(
+										64 + row
+									)}${column}`,
 									row,
 									column,
 									floor,
@@ -145,28 +175,43 @@ async function generateSeatsForTrip(
 		const seatsPerFloorCount = Math.ceil(totalSeats / totalFloors);
 
 		// Build rowsPerFloorConfig if not provided: derive from seatsPerFloor and totalColumns
-		const effectiveRowsPerFloor: number[] = rowsPerFloorConfig && rowsPerFloorConfig.length >= totalFloors
-			? rowsPerFloorConfig.slice(0, totalFloors)
-			: Array.from({ length: totalFloors }, (_, floorIdx) => {
-					const seatsOnFloor = floorIdx === totalFloors - 1
-						? totalSeats - seatsPerFloorCount * floorIdx
-						: seatsPerFloorCount;
-					return Math.ceil(seatsOnFloor / totalColumns);
-			  });
+		const effectiveRowsPerFloor: number[] =
+			rowsPerFloorConfig && rowsPerFloorConfig.length >= totalFloors
+				? rowsPerFloorConfig.slice(0, totalFloors)
+				: Array.from({ length: totalFloors }, (_, floorIdx) => {
+						const seatsOnFloor =
+							floorIdx === totalFloors - 1
+								? totalSeats - seatsPerFloorCount * floorIdx
+								: seatsPerFloorCount;
+						return Math.ceil(seatsOnFloor / totalColumns);
+				  });
 
 		for (let floorIdx = 0; floorIdx < totalFloors; floorIdx++) {
 			const floor = floorIdx + 1;
-			const seatsOnThisFloor = floorIdx === totalFloors - 1
-				? totalSeats - seatsPerFloorCount * floorIdx
-				: seatsPerFloorCount;
+			const seatsOnThisFloor =
+				floorIdx === totalFloors - 1
+					? totalSeats - seatsPerFloorCount * floorIdx
+					: seatsPerFloorCount;
 
-			const rowsForThisFloor = effectiveRowsPerFloor[floorIdx] || Math.ceil(seatsOnThisFloor / totalColumns);
-			const columnsForThisFloor = Math.ceil(seatsOnThisFloor / rowsForThisFloor);
+			const rowsForThisFloor =
+				effectiveRowsPerFloor[floorIdx] ||
+				Math.ceil(seatsOnThisFloor / totalColumns);
+			const columnsForThisFloor = Math.ceil(
+				seatsOnThisFloor / rowsForThisFloor
+			);
 
 			let placed = 0;
-			for (let rowIdx = 0; rowIdx < rowsForThisFloor && placed < seatsOnThisFloor; rowIdx++) {
+			for (
+				let rowIdx = 0;
+				rowIdx < rowsForThisFloor && placed < seatsOnThisFloor;
+				rowIdx++
+			) {
 				const row = rowIdx + 1;
-				for (let col = 1; col <= columnsForThisFloor && placed < seatsOnThisFloor; col++) {
+				for (
+					let col = 1;
+					col <= columnsForThisFloor && placed < seatsOnThisFloor;
+					col++
+				) {
 					const seatLabel = `${String.fromCharCode(64 + row)}${col}`;
 					const floorPrefix = totalFloors > 1 ? `F${floor}-` : "";
 
@@ -425,15 +470,14 @@ export const addTrip = async (dto: CreateTripDTO): Promise<Trip | null> => {
 		};
 	}
 
-
 	if (!route.price || !vehicle.vehicleType.price) {
 		throw {
 			status: 500,
-			message: 'Route or Vehicle type is null'
-		}
+			message: "Route or Vehicle type is null",
+		};
 	}
 
-	const total_price = route.price + vehicle.vehicleType.price; 
+	const total_price = route.price + vehicle.vehicleType.price;
 
 	// Convert date strings to Date objects for Sequelize
 	const createData: CreateTripDTO = { ...dto };
@@ -441,13 +485,38 @@ export const addTrip = async (dto: CreateTripDTO): Promise<Trip | null> => {
 	if (createData.endTime) {
 		createData.endTime = new Date(createData.endTime);
 	}
+	if (createData.repeatEndDate) {
+		createData.repeatEndDate = new Date(createData.repeatEndDate);
+	}
+	if (createData.isTemplate) {
+		createData.repeatFrequency =
+			createData.repeatFrequency || TripRepeatFrequency.NONE;
+	} else {
+		createData.repeatFrequency = TripRepeatFrequency.NONE;
+		delete createData.repeatEndDate;
+	}
 	createData.price = total_price;
 
 	// Create trip
 	const trip = await db.Trip.create(createData);
 
 	// Generate seats based on vehicle type configuration
-	await generateSeatsForTrip(trip.id, vehicle.vehicleType);
+	if (!trip.isTemplate) {
+		await generateSeatsForTrip(trip.id, vehicle.vehicleType);
+
+        // Fetch default assignment strategy from system settings
+		const strategy_setting = await db.Setting.findOne({
+			where: { key: "DEFAULT_ASSIGNMENT_STRATEGY" }
+		});
+
+		const strategy = strategy_setting?.value as (SchedulingStrategies) || SchedulingStrategies.AVAILABILITY;
+
+		// Queue auto-assignment job (runs in background)
+        await tripSchedulingQueue.add("assign-driver", {
+            tripId: trip.id,
+            strategy
+        });
+	}
 
 	return trip;
 };
@@ -521,6 +590,21 @@ export const updateTrip = async (
 	}
 	if (updateData.endTime) {
 		updateData.endTime = new Date(updateData.endTime);
+	}
+	if (updateData.repeatEndDate) {
+		updateData.repeatEndDate = new Date(updateData.repeatEndDate);
+	}
+	if (updateData.isTemplate !== undefined) {
+		if (updateData.isTemplate) {
+			updateData.repeatFrequency =
+				updateData.repeatFrequency || TripRepeatFrequency.NONE;
+		} else {
+			updateData.repeatFrequency = TripRepeatFrequency.NONE;
+			if (updateData.repeatEndDate !== undefined) {
+				delete updateData.repeatEndDate;
+			}
+			updateData.templateTripId = null;
+		}
 	}
 
 	await trip.update(updateData);

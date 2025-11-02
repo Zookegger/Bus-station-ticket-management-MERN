@@ -22,34 +22,26 @@ import { DbModels } from "@models";;
  * @property {string} CANCELLED - The order has been cancelled.
  * @property {string} PARTIALLY_REFUNDED - The order has been partially refunded.
  * @property {string} REFUNDED - The order has been fully refunded.
+ * @property {string} EXPIRED - The order has expired.
  */
 export enum OrderStatus {
-	/**
-	 * The order is pending and awaiting confirmation or payment.
-	 */
+	/** The order is pending and awaiting confirmation or payment. */
 	PENDING = "pending",
-	/**
-	 * The order has been confirmed.
-	 */
+	/** The order has been confirmed. */
 	CONFIRMED = "confirmed",
-	/**
-	 * The order has been cancelled.
-	 */
+	/** The order has been cancelled. */
 	CANCELLED = "cancelled",
-	/**
-	 * The order has been partially refunded.
-	 */
+	/** The order has been partially refunded. */
 	PARTIALLY_REFUNDED = "partially_refunded",
-	/**
-	 * The order has been fully refunded.
-	 */
+	/** The order has been fully refunded. */
 	REFUNDED = "refunded",
+	/** The order has expired. */
+	EXPIRED = "EXPIRED"
 }
 
 export interface OrderAttributes {
 	id: string; // UUID
 	userId: string | null; // UUID, Nullable for guests
-	paymentId: string | null; // UUID
 	totalBasePrice: number;
 	totalDiscount: number;
 	totalFinalPrice: number;
@@ -66,7 +58,6 @@ export interface OrderCreationAttributes
 		OrderAttributes,
 		| "id"
 		| "totalDiscount"
-		| "paymentId"
 		| "status"
 		| "guestPurchaserEmail"
 		| "guestPurchaserName"
@@ -211,11 +202,6 @@ export class Order
 					type: DataTypes.DECIMAL(10, 2),
 					allowNull: false,
 					field: 'totalFinalPrice'
-				},
-				paymentId: {
-					type: DataTypes.UUID,
-					allowNull: true,
-					field: 'paymentId'
 				},
 				guestPurchaserEmail: {
 					type: DataTypes.STRING,

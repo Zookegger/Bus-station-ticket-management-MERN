@@ -3,7 +3,7 @@ import logger from "@utils/logger";
 import { TicketCleanupJobData } from "@utils/queues/ticketQueue";
 import { Job, Worker } from "bullmq";
 
-export const ticketWorker = new Worker<TicketCleanupJobData>(
+const ticketWorker = new Worker<TicketCleanupJobData>(
 	"ticket",
 	async (job: Job<TicketCleanupJobData>): Promise<void> => {
         logger.debug(`Processing ticket cleanup job ${job.id}`);
@@ -35,3 +35,5 @@ ticketWorker.on("error", (err) => {
 ticketWorker.on("ready", () => {
 	logger.info("Ticket worker is ready and listening for jobs");
 });
+
+export default ticketWorker;

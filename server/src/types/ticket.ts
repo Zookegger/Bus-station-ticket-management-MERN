@@ -1,5 +1,32 @@
-import { TicketStatus } from "@models/ticket";
 import { PaymentAdditionalData, PaymentInitResponse, PaymentMethod } from "@my_types/payments";
+
+/**
+ * Represents the lifecycle status of a ticket.
+ * @enum {string}
+ * @property {string} PENDING - Ticket reserved but not paid (e.g., in cart).
+ * @property {string} BOOKED - Ticket confirmed and paid.
+ * @property {string} CANCELLED - Ticket cancelled by user or admin.
+ * @property {string} COMPLETED - The trip associated with the ticket has been completed.
+ * @property {string} REFUNDED - The ticket has been successfully refunded.
+ * @property {string} INVALID - The ticket is invalid (e.g., expired, voided).
+ * @property {string} EXPIRED - The ticket has expired.
+ */
+export enum TicketStatus {
+	/** Ticket reserved but not paid (e.g., in cart) */
+	PENDING = "PENDING",
+	/** Ticket confirmed and paid */
+	BOOKED = "BOOKED",
+	/** Ticket cancelled by user or admin */
+	CANCELLED = "CANCELLED",
+	/** The trip associated with the ticket has been completed */
+	COMPLETED = "COMPLETED",
+	/** The ticket has been successfully refunded */
+	REFUNDED = "REFUNDED",
+	/** The ticket is invalid (e.g., expired, voided) */
+	INVALID = "INVALID",
+	/** The ticket has expired. */
+	EXPIRED = "EXPIRED"
+}
 
 /**
  * DTO for creating a new Ticket record.
@@ -15,15 +42,12 @@ import { PaymentAdditionalData, PaymentInitResponse, PaymentMethod } from "@my_t
 export interface BookTicketDTO {
 	/** User ID who is booking the ticket */
 	userId: string;
-
 	/** Seat ID assigned to this ticket (optional during booking) */
 	seatIds?: number | number[] | null;
 
 	couponIds?: string | null;
-
   	/** Selected payment gateway code */
 	paymentMethodCode: PaymentMethod;
-	
 	/** Optional gateway-specific data (e.g., ipAddress, orderInfo, locale) */
 	additionalData?: PaymentAdditionalData;
 }
@@ -38,10 +62,8 @@ export interface BookTicketDTO {
 export interface BookTicketResult {
   /** Persisted ticket IDs (status = PENDING until payment completes) */
   ticketIds: number[];
-
   /** Redirect URL to the selected payment gateway (if applicable) */
   paymentUrl?: string;
-
   /** Compact payment summary */
   payment?: PaymentInitResponse;
 }
@@ -62,22 +84,16 @@ export interface BookTicketResult {
 export interface GetTicketQueryDTO {
 	/** Filter by user ID */
 	userId?: string;
-
 	/** Filter by trip ID */
 	tripId?: number;
-
 	/** Filter by ticket status */
 	status?: TicketStatus;
-
 	/** Minimum base price filter */
 	minBasePrice?: number;
-
 	/** Maximum base price filter */
 	maxBasePrice?: number;
-
 	/** Minimum final price filter */
 	minFinalPrice?: number;
-
 	/** Maximum final price filter */
 	maxFinalPrice?: number;
 }

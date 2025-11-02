@@ -18,7 +18,7 @@ import { Route } from "@models/route";
 import { Trip } from "@models/trip";
 import { Seat } from "@models/seat";
 import { Ticket } from "@models/ticket";
-import { TripDriverAssignment } from "@models/tripDriverAssignment";
+import { TripSchedule } from "@models/TripSchedule";
 import { Notification } from "@models/notification";
 import { Coupon } from "@models/coupon";
 import { Payment } from "@models/payment";
@@ -26,7 +26,6 @@ import { PaymentMethod } from "@models/paymentMethod";
 import { CouponUsage } from "@models/couponUsage";
 import { Setting } from "@models/setting";
 import { Order } from "@models/orders";
-import { PaymentTicket } from "@models/paymentTicket";
 
 /**
  * Interface describing the shape of the 'db' object, which
@@ -46,12 +45,11 @@ export interface DbModels {
     Trip: typeof Trip;
     Seat: typeof Seat;
     Ticket: typeof Ticket;
-    TripDriverAssignment: typeof TripDriverAssignment;
+    TripSchedule: typeof TripSchedule;
     Coupon: typeof Coupon;
     CouponUsage: typeof CouponUsage;
     Payment: typeof Payment;
     PaymentMethod: typeof PaymentMethod;
-    PaymentTicket: typeof PaymentTicket;
     Order: typeof Order;
 }
 
@@ -68,12 +66,11 @@ const models = {
 	Trip,
 	Seat,
 	Ticket,
-	TripDriverAssignment,
+	TripSchedule,
 	Coupon,
 	CouponUsage,
 	Payment,
 	PaymentMethod,
-	PaymentTicket,
 	Order,
 };
 

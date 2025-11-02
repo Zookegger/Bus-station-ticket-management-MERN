@@ -5,11 +5,12 @@
  * updating, and searching trip records. All operations include
  * proper error handling and validation.
  */
-
+import { User } from "@models/user";
 import { NextFunction, Request, Response } from "express";
 import { getParamNumericId } from "@utils/request";
 import { CreateTripDTO, UpdateTripDTO } from "@my_types/trip";
 import * as tripServices from "@services/tripServices";
+import * as tripSchedulingServices from "@services/tripSchedulingServices";
 
 /**
  * Retrieves all trips with comprehensive filtering, sorting, and pagination.
@@ -71,7 +72,8 @@ export const SearchTrip = async (
 		if (limit !== undefined) options.limit = parseInt(limit as string);
 		if (vehicleId !== undefined)
 			options.vehicleId = parseInt(vehicleId as string);
-		if (routeId !== undefined) options.routeId = parseInt(routeId as string);
+		if (routeId !== undefined)
+			options.routeId = parseInt(routeId as string);
 		if (status !== undefined) options.status = status as string;
 		if (startDate !== undefined) options.startDate = startDate as string;
 		if (endDate !== undefined) options.endDate = endDate as string;
@@ -156,7 +158,8 @@ export const UpdateTrip = async (
 		if (!trip) {
 			throw {
 				status: 500,
-				message: "No trip updated, Something went wrong or no new changes.",
+				message:
+					"No trip updated, Something went wrong or no new changes.",
 			};
 		}
 
@@ -234,6 +237,105 @@ export const GetTripById = async (
 		}
 
 		res.status(200).json(trip);
+	} catch (err) {
+		next(err);
+	}
+};
+
+/**
+ * Manually assign or reassign a driver to a trip.
+ * Validates driver availability and updates trip status to SCHEDULED.
+ *
+ * @param req - Express request object containing trip ID in URL and driver ID in body
+ * @param res - Express response object
+ * @param next - Express next function for error handling
+ *
+ * @route POST /trips/:id/assign-driver
+ * @access Admin
+ *
+ * @throws {Error} When assignment fails or validation errors occur
+ * @returns JSON response with assignment schedule data
+ */
+export const ManuallyAssignDriver = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+): Promise<void> => {
+	try {
+		const tripId = getParamNumericId(req);
+		const { driverId } = req.body;
+		const assignedBy: User = req.user as User;
+
+		if (!assignedBy)
+			throw { status: 401, success: false, message: "Unauthorized" };
+
+		const schedule = await tripSchedulingServices.manualAssignDriver(
+			tripId,
+			driverId,
+			assignedBy.id
+		);
+
+		res.status(200).json({ schedule });
+	} catch (err) {
+		next(err);
+	}
+};
+
+/**
+ * Trigger auto-assignment for a trip using the configured strategy.
+ * Automatically selects and assigns an available driver to the trip.
+ *
+ * @param req - Express request object containing trip ID in URL
+ * @param res - Express response object
+ * @param next - Express next function for error handling
+ *
+ * @route POST /trips/:id/auto-assign
+ * @access Admin
+ *
+ * @throws {Error} When auto-assignment fails or no driver is available
+ * @returns JSON response with assignment schedule data
+ */
+export const TriggerAutoAssignment = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+): Promise<void> => {
+	try {
+		const tripId = getParamNumericId(req);
+
+		const schedule = await tripSchedulingServices.autoAssignDriver(tripId);
+
+		res.status(200).json({ schedule });
+	} catch (err) {
+		next(err);
+	}
+};
+
+/**
+ * Unassign driver from a trip and reset trip status to PENDING.
+ * Removes the driver assignment and makes the trip available for reassignment.
+ *
+ * @param req - Express request object containing trip ID in URL
+ * @param res - Express response object
+ * @param next - Express next function for error handling
+ *
+ * @route DELETE /trips/:id/assign-driver
+ * @access Admin
+ *
+ * @throws {Error} When trip not found or unassignment fails
+ * @returns JSON response with success message
+ */
+export const UnassignDriver = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+): Promise<void> => {
+	try {
+		const tripId = getParamNumericId(req);
+
+		await tripSchedulingServices.unassignDriver(tripId);
+
+		res.status(200).json({ message: "Driver unassigned successfully" });
 	} catch (err) {
 		next(err);
 	}

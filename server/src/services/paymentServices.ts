@@ -1,6 +1,6 @@
 import { COMPUTED } from "@constants/config";
 import { Payment, PaymentAttributes } from "@models/payment";
-import { Ticket, TicketStatus } from "@models/ticket";
+import { Ticket } from "@models/ticket";
 import { Trip } from "@models/trip";
 import { Seat } from "@models/seat";
 import { PaymentMethod } from "@models/paymentMethod";
@@ -19,7 +19,8 @@ import logger from "@utils/logger";
 import { SeatStatus } from "@my_types/seat";
 import { Order, OrderStatus } from "@models/orders";
 import db from "@models/index";
-import { Transaction } from "sequelize";
+import { Op, Transaction } from "sequelize";
+import { TicketStatus } from "@my_types/ticket";
 
 /**
  * Payment gateway interface - all gateways must implement this
@@ -71,91 +72,72 @@ const gatewayRegistry = new PaymentGatewayRegistry();
  */
 export const initiatePayment = async (
 	data: InitiatePaymentDTO,
-	transaction: Transaction
+	external_tx: Transaction
 ): Promise<{ paymentUrl: string; payment: PaymentResponseDTO }> => {
 	const { orderId, paymentMethodCode, additionalData } = data;
+	if (!orderId) throw new Error("No order Id provided");
 
-	if (!orderId) {
-		throw new Error("No order Id provided");
-	}
-
-	const order = await db.Order.findByPk(orderId, {
-		include: [
-			{
-				model: db.Ticket,
-				as: "tickets",
-				include: [
-					{
-						model: db.Seat,
-						as: "seat",
-						include: [{ model: db.Trip, as: "trip" }],
-					},
-				],
-			},
-		],
-		transaction,
-	});
-
-	if (!order) {
-		throw new Error("Order not found");
-	}
-
-	// Check if the order already has a different paymentId
-	if (order.paymentId) {
-		const payment = await db.Payment.findByPk(order.paymentId);
-		if (
-			payment &&
-			(payment.paymentStatus === PaymentStatus.COMPLETED ||
-				payment.paymentStatus === PaymentStatus.PROCESSING)
-		) {
-			throw {
-				status: 409,
-				message: "This order already has a payment associated with it.",
-			};
-		}
-	}
-
-	if (order.status !== OrderStatus.PENDING) {
-		throw new Error("Order is not in pending state");
-	}
-
-	if (!order.tickets || order.tickets.length === 0) {
-		throw new Error("No tickets found for this order");
-	}
-
-	const paidTickets = order.tickets.filter(
-		(t) => t.status === TicketStatus.BOOKED
-	);
-	if (paidTickets.length > 0) {
-		throw new Error(
-			"One or more tickets are already paid for in this order"
-		);
-	}
-
-	const totalAmount = Number(order.totalFinalPrice);
-
-	// Get payment method configuration
-	const payment_method = await paymentMethodServices.getPaymentMethodByCode(
-		paymentMethodCode.toLowerCase()
-	);
-
-	if (!payment_method) {
-		throw new Error(
-			`Payment method ${paymentMethodCode} not found or inactive`
-		);
-	}
-
-	// Get gateway handler
-	const gateway = gatewayRegistry.get(paymentMethodCode);
-	if (!gateway) {
-		throw new Error(
-			`No gateway handler registered for ${paymentMethodCode}`
-		);
-	}
-
-	const merchant_order_ref = generateMerchantOrderRef();
+    // Use caller transaction if provided; otherwise create one we control
+	const transaction = external_tx ?? (await db.sequelize.transaction());
+	const owns_tx = external_tx == null; // True if we created the transaction
 
 	try {
+		const order = await db.Order.findByPk(orderId, {
+			include: [
+				{
+					model: db.Ticket,
+					as: "tickets",
+					include: [
+						{
+							model: db.Seat,
+							as: "seat",
+							include: [{ model: db.Trip, as: "trip" }],
+						},
+					],
+				},
+			],
+			transaction,
+			lock: transaction.LOCK.UPDATE, // prevent concurrent modifications of order/tickets
+		});
+
+		if (!order) throw new Error("Order not found");
+		if (order.status !== OrderStatus.PENDING) throw new Error("Order is not in pending state");
+		if (!order.tickets || order.tickets.length === 0) throw new Error("No tickets found for this order");
+
+		// Check if the order already has a different paymentId
+		const existing_active_payment = await db.Payment.findOne({
+			where: {
+				orderId: order.id,
+				paymentStatus: {
+					[Op.in]: [
+						PaymentStatus.COMPLETED,
+						PaymentStatus.PROCESSING,
+					],
+				},
+			},
+			transaction,
+			lock: transaction.LOCK.UPDATE,
+		});
+
+		if (existing_active_payment) throw { status: 409, message: "This order already has an active payment.",};
+
+		// Prevent paying already-booked tickets
+		const paid_tickets = order.tickets.filter((t) => t.status === TicketStatus.BOOKED);
+		if (paid_tickets.length > 0) throw new Error("One or more tickets are already paid for in this order");
+
+		const totalAmount = Number(order.totalFinalPrice);
+
+		// Get payment method configuration and gateway
+		const payment_method = await paymentMethodServices.getPaymentMethodByCode(paymentMethodCode.toLowerCase());
+		if (!payment_method) throw new Error(`Payment method ${paymentMethodCode} not found or inactive`);
+
+		// Get gateway handler
+		const gateway = gatewayRegistry.get(paymentMethodCode);
+		if (!gateway) throw new Error(`No gateway handler registered for ${paymentMethodCode}`);
+
+		const merchant_order_ref = generateMerchantOrderRef();
+
+		// Create payment linked to the order
 		const payment = await Payment.create(
 			{
 				totalAmount,
@@ -170,9 +152,7 @@ export const initiatePayment = async (
 			{ transaction }
 		);
 
-		// Link payment to order
-		await order.update({ paymentId: payment.id }, { transaction });
-
+		// Mark tickets pending until callback
 		await Ticket.update(
 			{ status: TicketStatus.PENDING },
 			{ where: { id: order.tickets.map((t) => t.id) }, transaction }
@@ -185,33 +165,21 @@ export const initiatePayment = async (
 			additionalData
 		);
 
-		if (!payment_url) {
-			throw new Error("Failed to generate payment url");
-		}
+		if (!payment_url) throw new Error("Failed to generate payment url");
 
 		const completePayment = await getPaymentById(payment.id);
+		if (!completePayment) throw new Error("Failed to retrieve created payment");
 
-		if (!completePayment) {
-			throw new Error("Failed to retrieve created payment");
-		}
+		// Commit only if we created the transaction
+		if (owns_tx) await transaction.commit();
 
 		return {
 			paymentUrl: payment_url,
 			payment: completePayment,
 		};
 	} catch (error) {
-		// Rollback on error
-		if (!transaction) {
-			await Payment.destroy();
-			await Order.update({ paymentId: null }, { where: { id: orderId } });
-			await Ticket.update(
-				{ status: TicketStatus.INVALID },
-				{ where: { id: order.tickets.map((t) => t.id) } }
-			);
-		} else {
-			await transaction.rollback();
-		}
-
+		// Roll back only if we created the transaction; otherwise let caller handle it
+		if (owns_tx) await transaction.rollback();
 		throw error;
 	}
 };

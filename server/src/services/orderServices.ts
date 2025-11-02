@@ -3,7 +3,7 @@ import { CouponUsage } from "@models/couponUsage";
 import db from "@models/index";
 import { Order, OrderAttributes, OrderStatus } from "@models/orders";
 import { Seat } from "@models/seat";
-import { Ticket, TicketStatus } from "@models/ticket";
+import { Ticket } from "@models/ticket";
 import { Trip } from "@models/trip";
 import { CouponTypes } from "@my_types/coupon";
 import {
@@ -20,6 +20,7 @@ import { Op } from "sequelize";
 import { PaymentStatus } from "@my_types/payments";
 import { TripStatus } from "@my_types/trip";
 import * as ticketServices from "@services/ticketServices";
+import { TicketStatus } from "@my_types/ticket";
 
 /**
  * Creates an order, reserves seats, applies coupons, and initiates payment.

@@ -15,12 +15,6 @@ export const authRateLimiter = rateLimit({
 		message:
 			"Too many requests from this IP, please try again after 15 minutes.",
 	},
-	// Use a custom key generator to ensure the real IP is used when behind a proxy
-	keyGenerator: (req) => {
-		// req.ip can be undefined. Fallback to an empty string, although this is unlikely
-		// if the server is correctly configured behind a proxy.
-		return req.ip ?? "";
-	},
 });
 
 /**
@@ -34,10 +28,5 @@ export const apiRateLimiter = rateLimit({
 	max: 100, // Limit each IP to 100 requests per window
 	message: {
 		message: "Too many requests from this IP, please try again later.",
-	},
-	keyGenerator: (req) => {
-		// req.ip can be undefined. Fallback to an empty string, although this is unlikely
-		// if the server is correctly configured behind a proxy.
-		return req.ip ?? "";
 	},
 });

@@ -43,12 +43,16 @@ const startServer = async (): Promise<void> => {
 		await configService.initialize();
 		
 		const { app } = await import("./app");
-        const { emailWorker } = await import("@utils/workers/emailWorker");
+        const emailWorker = await import("@utils/workers/emailWorker");
+		const ticketWorker = await import("@utils/workers/ticketWorker");
+		const tripSchedulingWorker = await import("@utils/workers/tripSchedulingWorker");
         const http = await import("http");
         const { Server } = await import("socket.io");
 
 		// Start email worker		
-		await emailWorker.waitUntilReady();
+		await emailWorker.default.waitUntilReady();
+		await ticketWorker.default.waitUntilReady();
+		await tripSchedulingWorker.default.waitUntilReady();
 		
 		initializePaymentGateways();
 
@@ -82,6 +86,7 @@ const startServer = async (): Promise<void> => {
 		server.listen(PORT, () => logger.info(`Server listening on ${PORT}`));
 	} catch (err) {
 		logger.error("Failed to start server:", err);
+		console.error(err);
 		process.exit(1);
 	}
 };

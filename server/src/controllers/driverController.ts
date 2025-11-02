@@ -10,6 +10,7 @@ import { NextFunction, Request, Response } from "express";
 import * as driverServices from "@services/driverServices";
 import { getParamNumericId } from "@utils/request";
 import { CreateDriverDTO, UpdateDriverDTO } from "@my_types/driver";
+import * as tripSchedulingServices from "@services/tripSchedulingServices";
 
 /**
  * Creates a new driver record.
@@ -239,6 +240,38 @@ export const GetDriverById = async (
 		}
 
 		res.status(200).json(driver);
+	} catch (err) {
+		next(err);
+	}
+};
+
+/**
+ * Get driver's schedule with all assigned trips.
+ * Retrieves comprehensive schedule information for a specific driver.
+ *
+ * @param req - Express request object containing driver ID in URL
+ * @param res - Express response object
+ * @param next - Express next function for error handling
+ *
+ * @route GET /drivers/:id/schedule
+ * @access Admin
+ *
+ * @throws {Error} When driver not found or query fails
+ * @returns JSON response with driver's schedule data
+ */
+export const GetDriverSchedule = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+): Promise<void> => {
+	try {
+		const driverId = getParamNumericId(req);
+
+		const schedule = await tripSchedulingServices.getDriverSchedule(
+			driverId
+		);
+
+		res.status(200).json({ schedule });
 	} catch (err) {
 		next(err);
 	}

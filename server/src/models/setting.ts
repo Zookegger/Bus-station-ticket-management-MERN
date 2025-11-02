@@ -90,7 +90,7 @@ export class Setting
      * @param {DbModels} models - The collection of all Sequelize models.
      * @returns {void}
      */
-    static associate(models: DbModels): void {
+    static associate(_models: DbModels): void {
         // No associations for Setting model
     }
 }

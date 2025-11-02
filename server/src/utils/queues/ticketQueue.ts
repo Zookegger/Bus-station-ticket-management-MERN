@@ -1,6 +1,6 @@
 import { COMPUTED } from "@constants";
 import redis from "@config/redis";
-import { Queue, JobsOptions, Job, RepeatOptions } from "bullmq";
+import { Queue, JobsOptions, Job } from "bullmq";
 
 export interface TicketCleanupJobData {
 	batchSize?: number;

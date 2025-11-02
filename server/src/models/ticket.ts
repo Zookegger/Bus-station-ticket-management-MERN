@@ -4,38 +4,15 @@ import {
 	Optional,
 	Sequelize,
 	BelongsToManyGetAssociationsMixin,
-	HasManyGetAssociationsMixin,
 	BelongsToGetAssociationMixin,
 } from "sequelize";
 import { Order } from "@models/orders";
 import { Seat } from "@models/seat";
 import { User } from "@models/user";
 import { Payment } from "@models/payment";
-import { PaymentTicket } from "@models/paymentTicket";
 import { DbModels } from "@models";
+import { TicketStatus } from "@my_types/ticket";
 
-/**
- * Represents the lifecycle status of a ticket.
- */
-export enum TicketStatus {
-	/** Ticket reserved but not paid (e.g., in cart) */
-	PENDING = "PENDING",
-
-	/** Ticket confirmed and paid */
-	BOOKED = "BOOKED",
-
-	/** Ticket cancelled by user or admin */
-	CANCELLED = "CANCELLED",
-
-	/** The trip associated with the ticket has been completed */
-	COMPLETED = "COMPLETED",
-
-	/** The ticket has been successfully refunded */
-	REFUNDED = "REFUNDED",
-
-	/** The ticket is invalid (e.g., expired, voided) */
-	INVALID = "INVALID",
-}
 
 export enum RefundPolicy {
 	FULL_REFUND = "FULL_REFUND",
@@ -181,12 +158,6 @@ implements TicketAttributes
 	 */
 	public readonly payments?: Payment[];
 
-	public getPaymentTickets!: HasManyGetAssociationsMixin<PaymentTicket>;
-	/**
-	 * @property {PaymentTicket[]} [paymentTickets] - Associated PaymentTicket instances.
-	 */
-	public readonly paymentTickets?: PaymentTicket[];
-
 	/**
 	 * Initializes the Sequelize model definition for Ticket.
 	 *
@@ -269,16 +240,6 @@ implements TicketAttributes
 		Ticket.belongsTo(models.Order, {
 			foreignKey: "orderId",
 			as: "order",
-		});
-		Ticket.belongsToMany(models.Payment, {
-			through: models.PaymentTicket,
-			foreignKey: "ticketId",
-			otherKey: "paymentId",
-			as: "payments",
-		});
-		Ticket.hasMany(models.PaymentTicket, {
-			foreignKey: "ticketId",
-			as: "paymentTickets",
 		});
 	}
 }
