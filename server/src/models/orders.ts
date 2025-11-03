@@ -77,7 +77,6 @@ export interface OrderCreationAttributes
  * @property {number} totalBasePrice - The total base price of the order.
  * @property {number} totalDiscount - The total discount applied to the order.
  * @property {number} totalFinalPrice - The final price of the order after discounts.
- * @property {string | null} paymentId - The ID of the payment associated with the order.
  * @property {string | null} [guestPurchaserEmail] - The email of the guest purchaser.
  * @property {string | null} [guestPurchaserName] - The name of the guest purchaser.
  * @property {string | null} [guestPurchaserPhone] - The phone number of the guest purchaser.
@@ -113,10 +112,6 @@ export class Order
 	 * @property {number} totalFinalPrice - The final price of the order after discounts.
 	 */
 	public totalFinalPrice!: number;
-	/**
-	 * @property {string | null} paymentId - The ID of the payment associated with the order.
-	 */
-	public paymentId!: string | null;
 	/**
 	 * @property {string | null} guestPurchaserEmail - The email of the guest purchaser.
 	 */
@@ -156,7 +151,7 @@ export class Order
 	 */
 	public readonly tickets?: Ticket[];
 
-	public getPayment!: BelongsToGetAssociationMixin<Payment>;
+	public getPayment!: HasManyGetAssociationsMixin<Payment>;
 	/**
 	 * @property {Payment} [payment] - Associated Payment instance.
 	 */
@@ -251,9 +246,11 @@ export class Order
 			foreignKey: "orderId",
 			as: "tickets",
 		});
-		Order.belongsTo(models.Payment, {
-			foreignKey: "paymentId",
+		Order.hasMany(models.Payment, {
+			foreignKey: "orderId",
 			as: "payment",
+            onDelete: "CASCADE", // Reconsider this
+            onUpdate: "CASCADE", // Reconsider this
 		});
 		Order.hasOne(models.CouponUsage, {
 			foreignKey: "orderId",

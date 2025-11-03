@@ -149,18 +149,17 @@ export class Payment
 				orderId: {
 					type: DataTypes.UUID,
 					allowNull: false,
-					unique: true, // Each order should have one primary payment record
 					field: "orderId",
-				},
-				totalAmount: {
-					type: DataTypes.DECIMAL(10, 2),
-					allowNull: false,
-					field: "totalAmount",
 				},
 				paymentMethodId: {
 					type: DataTypes.UUID,
 					allowNull: false,
 					field: "paymentMethodId",
+				},
+				totalAmount: {
+					type: DataTypes.DECIMAL(10, 2),
+					allowNull: false,
+					field: "totalAmount",
 				},
 				paymentStatus: {
 					type: DataTypes.ENUM(...Object.values(PaymentStatus)),

@@ -66,8 +66,7 @@ CREATE TABLE `coupons` (
   `createdAt` datetime NOT NULL,
   `updatedAt` datetime NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `code` (`code`),
-  UNIQUE KEY `code_2` (`code`)
+  UNIQUE KEY `code` (`code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -157,7 +156,6 @@ CREATE TABLE `orders` (
   `totalBasePrice` decimal(10,2) NOT NULL,
   `totalDiscount` decimal(10,2) NOT NULL DEFAULT 0.00,
   `totalFinalPrice` decimal(10,2) NOT NULL,
-  `paymentId` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
   `guestPurchaserEmail` varchar(255) DEFAULT NULL,
   `guestPurchaserName` varchar(255) DEFAULT NULL,
   `guestPurchaserPhone` varchar(255) DEFAULT NULL,
@@ -166,9 +164,7 @@ CREATE TABLE `orders` (
   `updatedAt` datetime NOT NULL,
   PRIMARY KEY (`id`),
   KEY `userId` (`userId`),
-  KEY `paymentId` (`paymentId`),
-  CONSTRAINT `orders_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `orders_ibfk_2` FOREIGN KEY (`paymentId`) REFERENCES `payments` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+  CONSTRAINT `orders_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -188,8 +184,7 @@ CREATE TABLE `payment_methods` (
   `createdAt` datetime DEFAULT NULL,
   `updatedAt` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `code` (`code`),
-  UNIQUE KEY `code_2` (`code`)
+  UNIQUE KEY `code` (`code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -203,8 +198,8 @@ DROP TABLE IF EXISTS `payments`;
 CREATE TABLE `payments` (
   `id` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   `orderId` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `totalAmount` decimal(10,2) NOT NULL,
   `paymentMethodId` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `totalAmount` decimal(10,2) NOT NULL,
   `paymentStatus` enum('PENDING','PROCESSING','COMPLETED','FAILED','CANCELLED','EXPIRED','REFUNDED','PARTIALLY_REFUNDED') DEFAULT 'PENDING',
   `merchantOrderRef` varchar(255) NOT NULL,
   `gatewayTransactionNo` varchar(255) DEFAULT NULL,
@@ -213,14 +208,12 @@ CREATE TABLE `payments` (
   `expiredAt` datetime NOT NULL,
   `updatedAt` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `orderId` (`orderId`),
   UNIQUE KEY `merchantOrderRef` (`merchantOrderRef`),
-  UNIQUE KEY `merchantOrderRef_2` (`merchantOrderRef`),
+  KEY `paymentMethodId` (`paymentMethodId`),
   KEY `payments_order_id` (`orderId`),
   KEY `payments_merchant_order_ref` (`merchantOrderRef`),
   KEY `payments_payment_status` (`paymentStatus`),
   KEY `payments_created_at` (`createdAt`),
-  KEY `paymentMethodId` (`paymentMethodId`),
   CONSTRAINT `payments_ibfk_1` FOREIGN KEY (`orderId`) REFERENCES `orders` (`id`) ON DELETE NO ACTION ON UPDATE CASCADE,
   CONSTRAINT `payments_ibfk_2` FOREIGN KEY (`paymentMethodId`) REFERENCES `payment_methods` (`id`) ON DELETE NO ACTION ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -244,7 +237,6 @@ CREATE TABLE `refresh_tokens` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `token` (`token`),
   UNIQUE KEY `refresh_tokens_token` (`token`),
-  UNIQUE KEY `token_2` (`token`),
   KEY `refresh_tokens_user_id` (`userId`),
   CONSTRAINT `refresh_tokens_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -430,9 +422,7 @@ CREATE TABLE `users` (
   UNIQUE KEY `email` (`email`),
   UNIQUE KEY `userName` (`userName`),
   UNIQUE KEY `users_email` (`email`),
-  UNIQUE KEY `users_user_name` (`userName`),
-  UNIQUE KEY `email_2` (`email`),
-  UNIQUE KEY `userName_2` (`userName`)
+  UNIQUE KEY `users_user_name` (`userName`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -475,7 +465,6 @@ CREATE TABLE `vehicles` (
   `updatedAt` datetime NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `numberPlate` (`numberPlate`),
-  UNIQUE KEY `numberPlate_2` (`numberPlate`),
   KEY `vehicleTypeId` (`vehicleTypeId`),
   CONSTRAINT `vehicles_ibfk_1` FOREIGN KEY (`vehicleTypeId`) REFERENCES `vehicle_types` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -490,4 +479,4 @@ CREATE TABLE `vehicles` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-11-02 16:30:42
+-- Dump completed on 2025-11-03 19:56:06
