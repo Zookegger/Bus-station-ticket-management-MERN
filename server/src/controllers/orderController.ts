@@ -6,7 +6,7 @@ import { getParamStringId } from "@utils/request";
 
 // Valid sort fields for OrderAttributes
 const VALID_ORDER_SORT_FIELDS: (keyof OrderAttributes)[] = [
-    'id', 'userId', 'paymentId', 'totalBasePrice', 'totalDiscount', 
+    'id', 'userId', 'totalBasePrice', 'totalDiscount', 
     'totalFinalPrice', 'guestPurchaserEmail', 'guestPurchaserName', 
     'guestPurchaserPhone', 'status', 'createdAt', 'updatedAt'
 ];
