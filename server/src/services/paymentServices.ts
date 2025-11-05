@@ -15,6 +15,7 @@ import {
 	PaymentVerificationResult,
 } from "@my_types/payments";
 import * as paymentMethodServices from "@services/paymentMethodServices";
+import * as couponServices from "@services/couponServices";
 import logger from "@utils/logger";
 import { SeatStatus } from "@my_types/seat";
 import { Order, OrderStatus } from "@models/orders";
@@ -77,7 +78,7 @@ export const initiatePayment = async (
 	const { orderId, paymentMethodCode, additionalData } = data;
 	if (!orderId) throw new Error("No order Id provided");
 
-    // Use caller transaction if provided; otherwise create one we control
+	// Use caller transaction if provided; otherwise create one we control
 	const transaction = external_tx ?? (await db.sequelize.transaction());
 	const owns_tx = external_tx == null; // True if we created the transaction
 
@@ -101,8 +102,10 @@ export const initiatePayment = async (
 		});
 
 		if (!order) throw new Error("Order not found");
-		if (order.status !== OrderStatus.PENDING) throw new Error("Order is not in pending state");
-		if (!order.tickets || order.tickets.length === 0) throw new Error("No tickets found for this order");
+		if (order.status !== OrderStatus.PENDING)
+			throw new Error("Order is not in pending state");
+		if (!order.tickets || order.tickets.length === 0)
+			throw new Error("No tickets found for this order");
 
 		// Check if the order already has a different paymentId
 		const existing_active_payment = await db.Payment.findOne({
@@ -119,21 +122,39 @@ export const initiatePayment = async (
 			lock: transaction.LOCK.UPDATE,
 		});
 
-		if (existing_active_payment) throw { status: 409, message: "This order already has an active payment.",};
+		if (existing_active_payment)
+			throw {
+				status: 409,
+				message: "This order already has an active payment.",
+			};
 
 		// Prevent paying already-booked tickets
-		const paid_tickets = order.tickets.filter((t) => t.status === TicketStatus.BOOKED);
-		if (paid_tickets.length > 0) throw new Error("One or more tickets are already paid for in this order");
+		const paid_tickets = order.tickets.filter(
+			(t) => t.status === TicketStatus.BOOKED
+		);
+		if (paid_tickets.length > 0)
+			throw new Error(
+				"One or more tickets are already paid for in this order"
+			);
 
 		const totalAmount = Number(order.totalFinalPrice);
 
 		// Get payment method configuration and gateway
-		const payment_method = await paymentMethodServices.getPaymentMethodByCode(paymentMethodCode.toLowerCase());
-		if (!payment_method) throw new Error(`Payment method ${paymentMethodCode} not found or inactive`);
+		const payment_method =
+			await paymentMethodServices.getPaymentMethodByCode(
+				paymentMethodCode.toLowerCase()
+			);
+		if (!payment_method)
+			throw new Error(
+				`Payment method ${paymentMethodCode} not found or inactive`
+			);
 
 		// Get gateway handler
 		const gateway = gatewayRegistry.get(paymentMethodCode);
-		if (!gateway) throw new Error(`No gateway handler registered for ${paymentMethodCode}`);
+		if (!gateway)
+			throw new Error(
+				`No gateway handler registered for ${paymentMethodCode}`
+			);
 
 		const merchant_order_ref = generateMerchantOrderRef();
 
@@ -168,7 +189,8 @@ export const initiatePayment = async (
 		if (!payment_url) throw new Error("Failed to generate payment url");
 
 		const completePayment = await getPaymentById(payment.id);
-		if (!completePayment) throw new Error("Failed to retrieve created payment");
+		if (!completePayment)
+			throw new Error("Failed to retrieve created payment");
 
 		// Commit only if we created the transaction
 		if (owns_tx) await transaction.commit();
@@ -423,6 +445,9 @@ export const handlePaymentCallback = async (
 					{ where: { id: seatIds }, transaction }
 				);
 			}
+
+			// Release coupon usage
+			await couponServices.releaseCouponUsage(order.id, transaction);
 		}
 
 		await transaction.commit();

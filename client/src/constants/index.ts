@@ -205,3 +205,12 @@ export const CHIP_COLORS = {
 	SUCCESS: "success",
 	WARNING: "warning",
 } as const;
+
+export const WEBSOCKET_CONNECTION_STATES = {
+    DISCONNECTED: 'disconnected',
+    CONNECTING: 'connecting',
+    CONNECTED: 'connected',
+    AUTHENTICATED: 'authenticated',
+    RECONNECTING: 'reconnecting',
+    ERROR: 'error'
+};

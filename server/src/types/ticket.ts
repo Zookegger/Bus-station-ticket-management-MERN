@@ -154,3 +154,12 @@ export interface TicketQueryOptions {
 	/** Optional associations to include. */
 	include?: ("user" | "seat" | "order" | "payments")[];
 } 
+
+/**
+ * DTO for admin ticket updates.
+ */
+export interface AdminUpdateTicketDTO {
+    status?: TicketStatus;
+    seatId?: number | null;
+    note?: string | null;
+}

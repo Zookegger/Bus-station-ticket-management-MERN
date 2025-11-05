@@ -1,6 +1,10 @@
 import db from "@models/index";
 import { Ticket, TicketAttributes } from "@models/ticket";
-import { TicketQueryOptions, TicketStatus } from "@my_types/ticket";
+import {
+	AdminUpdateTicketDTO,
+	TicketQueryOptions,
+	TicketStatus,
+} from "@my_types/ticket";
 import { SeatStatus } from "@my_types/seat";
 import { Op, Transaction } from "sequelize";
 import logger from "@utils/logger";
@@ -8,100 +12,153 @@ import { TripStatus } from "@my_types/trip";
 import { COMPUTED } from "@constants/config";
 import { OrderStatus } from "@models/orders";
 import { PaymentStatus } from "@my_types/payments";
+import * as couponServices from "@services/couponServices";
 
-/*
-export const bookTicket = async (
-	dto: BookTicketDTO
-): Promise<BookTicketResult> => {
-	// Normalize seatIds to an array, meaning turn single ticket to an array
-	const requestedSeatIds: number[] =
-		dto.seatIds == null
-			? []
-			: Array.isArray(dto.seatIds)
-			? dto.seatIds
-			: [dto.seatIds];
+export const updateTicketAdmin = async (
+	ticket_id: number,
+	dto: AdminUpdateTicketDTO
+): Promise<Ticket> => {
+	if (!dto || (dto.status == null && dto.seatId == null)) {
+		throw { status: 400, message: "Nothing to update." };
+	}
 
-	if (requestedSeatIds.length === 0)
-		throw { status: 400, message: "At least one seatId is required" };
-
-	// Start a transaction for atomicity
 	const transaction = await db.sequelize.transaction();
 
 	try {
-		// Lock the seat row to prevent race conditions
-		const seats: Seat[] = await db.seat.findAll({
-			where: { id: requestedSeatIds },
-			include: [{ model: Trip, as: "trip" }],
+		const ticket = await db.Ticket.findByPk(ticket_id, {
+			include: [
+				{
+					model: db.Seat,
+					as: "seat",
+					required: true,
+					include: [
+						{
+							model: db.Trip,
+							required: true,
+							as: "trip",
+						},
+					],
+				},
+			],
 			lock: transaction.LOCK.UPDATE,
 			transaction,
 		});
 
-		if (seats.length !== requestedSeatIds.length)
-			throw { status: 404, message: "Some seats not found" };
+		if (!ticket)
+			throw {
+				status: 404,
+				message: `Ticket with ID ${ticket_id} cannot be found`,
+			};
 
-		// Validate availability and pricing
-		for (const s of seats) {
-			if (!s.trip?.price || s.trip.price <= 0) throw { status: 500, message: `Invalid trip price for seat ${s.id}`, };
-			if (s.status !== SeatStatus.AVAILABLE) throw { status: 409, message: `Seat ${s.id} is not available` };
+		const current_status = ticket.status;
+
+		// Disallow edits after trip completed
+		if (ticket.seat?.trip?.status === TripStatus.COMPLETED)
+			throw {
+				status: 409,
+				message: "Cannot modify ticket after trip completion.",
+			};
+
+		// Validate status transition
+		if (dto.status && dto.status !== current_status) {
+			// Changable statuses based on current status
+			const allowed: Record<TicketStatus, TicketStatus[]> = {
+				PENDING: ["CANCELLED", "EXPIRED", "BOOKED"],
+				BOOKED: ["CANCELLED", "INVALID", "COMPLETED"],
+				CANCELLED: [],
+				EXPIRED: [],
+				INVALID: [],
+				COMPLETED: [],
+			} as any;
+
+			if (!(allowed[current_status] || []).includes(dto.status)) {
+				throw {
+					status: 400,
+					message: `Illegal status change ${current_status} -> ${dto.status}`,
+				};
+			}
+			ticket.status = dto.status;
 		}
 
-		const existing_ticket = await db.ticket.findOne({
-			where: {
-				userId: dto.userId,
-				seatId: requestedSeatIds,
-				status: TicketStatus.BOOKED,
-			},
-			transaction,
-		});
+		// Handle seat reassignment
+		if (dto.seatId != null && dto.seatId !== ticket.seatId) {
+			// Only allow reassignment for PENDING or BOOKED tickets
+			if (
+				![TicketStatus.PENDING, TicketStatus.BOOKED].includes(
+					ticket.status
+				)
+			) {
+				throw {
+					status: 409,
+					message:
+						"Seat can be changed only for PENDING or BOOKED tickets.",
+				};
+			}
 
-		if (existing_ticket) throw { status: 409, message: "You already have a ticket for this seat", };
+			// Lock target seat
+			const target_seat = await db.Seat.findByPk(dto.seatId, {
+				include: [{ model: db.Trip, as: "trip" }],
+				lock: transaction.LOCK.UPDATE,
+				transaction,
+			});
 
-	
+			// Require target seat available
+			if (!target_seat)
+				throw { status: 404, message: "Target seat not found" };
+			if (ticket.seat && target_seat.tripId !== ticket.seat.tripId)
+				throw {
+					status: 400,
+					message: "Seat must belong to the same trip.",
+				};
+			if (target_seat.status !== "available")
+				throw { status: 409, message: "Target seat is not available." };
 
-		let base_price: number = seat.trip?.price;
-		let final_price = base_price;
-		let coupon_usage_id = null;
+			// Release old seat
+			if (ticket.seatId) {
+				await db.Seat.update(
+					{
+						status: SeatStatus.AVAILABLE,
+						reservedUntil: null,
+						reservedBy: null,
+					},
+					{ where: { id: ticket.seatId }, transaction }
+				);
+			}
+			// Set target seat status consistent with the ticket status
+			const next_seat_status =
+				ticket.status === TicketStatus.BOOKED
+					? SeatStatus.BOOKED
+					: SeatStatus.RESERVED;
 
-		// TODO: Implement with coupon logic
+			// Assign new seat and reserve if ticket not completed
+			await target_seat.update(
+				{
+					status: next_seat_status,
+					reservedBy:
+						next_seat_status === SeatStatus.RESERVED
+							? (ticket as any).userId ?? null
+							: null,
+					reservedUntil:
+						next_seat_status === SeatStatus.RESERVED
+							? new Date(
+									Date.now() +
+										COMPUTED.TICKET_RESERVATION_MILLISECONDS
+							  )
+							: null,
+				},
+				{ transaction }
+			);
+			// Persist new seat on the ticket
+			await ticket.update({ seatId: target_seat.id }, { transaction });
+		}
 
-		// Create ticket
-		const new_ticket = await db.ticket.create(
-			{
-				...dto,
-				basePrice: base_price,
-				finalPrice: final_price,
-				status: TicketStatus.PENDING,
-			},
-			{ transaction }
-		);
-
-		if (!new_ticket)
-			throw { status: 500, message: "Failed to create new ticket" };
-
-		// Mark seat as reserved
-		const reservedUntil = new Date(
-			Date.now() + COMPUTED.TICKET_RESERVATION_MILLISECONDS
-		);
-		await seat.update(
-			{
-				status: SeatStatus.RESERVED,
-				reservedBy: dto.userId,
-				reservedUntil,
-			},
-			{ transaction }
-		);
-
-		// Commit transaction
 		await transaction.commit();
-
-		return new_ticket;
+		return ticket;
 	} catch (err) {
-		// Rollback on any error
 		await transaction.rollback();
 		throw err;
 	}
 };
-*/
 
 // User and Admin can do this, so implement authorization later
 /**
@@ -222,16 +279,28 @@ export const cleanUpExpiredTickets = async (): Promise<void> => {
 					// 3. Release associated Seats
 					if (seatIds.length > 0) {
 						await db.Seat.update(
-							{ status: SeatStatus.AVAILABLE, reservedBy: null, reservedUntil: null },
+							{
+								status: SeatStatus.AVAILABLE,
+								reservedBy: null,
+								reservedUntil: null,
+							},
 							{ where: { id: seatIds }, transaction }
 						);
 					}
+
+					// 4. Release coupon usage
+					await couponServices.releaseCouponUsage(
+						order.id,
+						transaction
+					);
 				}
 			}
 		}
 
 		await transaction.commit();
-		logger.info(`Successfully cleaned up ${expiredOrders.length} expired orders.`);
+		logger.info(
+			`Successfully cleaned up ${expiredOrders.length} expired orders.`
+		);
 	} catch (err) {
 		await transaction.rollback();
 		logger.error(err);
