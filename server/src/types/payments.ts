@@ -291,3 +291,31 @@ export interface GatewayRefundOptions {
     ipAddress?: string;
     [key: string]: any; // Allow any other gateway-specific properties
 }
+
+/**
+ * Configuration for payment cleanup operations.
+ * @interface CleanupConfig
+ * @property {number} expiryThresholdMinutes - How old (in minutes) a pending payment must be to be considered expired
+ * @property {number} batchSize - Number of records to process per batch
+ * @property {boolean} dryRun - If true, only log without actual deletion
+ */
+export interface CleanupConfig {
+    expiryThresholdMinutes?: number;
+    batchSize?: number;
+    dryRun?: boolean;
+}
+
+/**
+ * Result statistics from a cleanup operation.
+ * @interface CleanupResult
+ * @property {number} expiredPayments - Number of expired payments processed
+ * @property {number} cancelledOrders - Number of orders cancelled
+ * @property {number} releasedCoupons - Number of coupon usages released
+ * @property {number} errors - Number of errors encountered
+ */
+export interface CleanupResult {
+    expiredPayments: number;
+    cancelledOrders: number;
+    releasedCoupons: number;
+    errors: number;
+}

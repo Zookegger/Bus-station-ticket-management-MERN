@@ -51,4 +51,8 @@ tripSchedulingWorker.on("failed", (job, err) => {
 	logger.error(`Scheduling job ${job?.id} failed:`, err);
 });
 
+tripSchedulingWorker.on("error", (err) => {
+	logger.error("Email worker error:", err);
+});
+
 export default tripSchedulingWorker; 

@@ -42,7 +42,7 @@ export const AddDriver = async (
 				message: "No driver added, Something went wrong.",
 			};
 
-		res.status(200).json({
+		res.status(201).json({
 			driver,
 			message: "Driver added successfully.",
 		});

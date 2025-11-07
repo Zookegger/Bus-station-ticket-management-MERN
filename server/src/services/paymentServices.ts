@@ -5,6 +5,8 @@ import { Trip } from "@models/trip";
 import { Seat } from "@models/seat";
 import { PaymentMethod } from "@models/paymentMethod";
 import {
+	CleanupConfig,
+	CleanupResult,
 	GatewayRefundOptions,
 	InitiatePaymentDTO,
 	PaymentCallbackDTO,
@@ -22,6 +24,7 @@ import { Order, OrderStatus } from "@models/orders";
 import db from "@models/index";
 import { Op, Transaction } from "sequelize";
 import { TicketStatus } from "@my_types/ticket";
+import { voidTicket } from "./ticketServices";
 
 /**
  * Payment gateway interface - all gateways must implement this
@@ -589,4 +592,149 @@ export const processRefund = async (
 	);
 
 	return refund_result;
+};
+
+/**
+ * Cleans up expired and stale payment records.
+ * This function:
+ * 1. Finds payments that are PENDING/PROCESSING for too long
+ * 2. Marks them as EXPIRED
+ * 3. Cancels related orders
+ * 4. Releases reserved seats
+ * 5. Releases coupon usage
+ *
+ * @param {CleanupConfig} config - Cleanup configuration
+ * @returns {Promise<CleanupResult>} Statistics about the cleanup operation
+ */
+export const cleanupExpiredPayments = async (
+	config: CleanupConfig = {}
+): Promise<CleanupResult> => {
+	const {
+		expiryThresholdMinutes = 30,
+		batchSize = 100,
+		dryRun = false,
+	} = config;
+
+	const result: CleanupResult = {
+		expiredPayments: 0,
+		cancelledOrders: 0,
+		releasedCoupons: 0,
+		errors: 0,
+	};
+
+	const expiry_cutoff = new Date(
+		Date.now() - expiryThresholdMinutes * 60 * 1000
+	);
+
+	try {
+		// Find expired payments (PENDING/PROCESSING older than threshold)
+		const expired_payments = await db.Payment.findAll({
+			where: {
+				paymentStatus: {
+					[Op.in]: [PaymentStatus.PENDING, PaymentStatus.PROCESSING],
+				},
+				createdAt: {
+					[Op.lt]: expiry_cutoff,
+				},
+			},
+			include: [
+				{
+					model: db.Order,
+					as: "order",
+					where: {
+						status: {
+							[Op.in]: [OrderStatus.PENDING],
+						},
+					},
+				},
+			],
+			limit: batchSize,
+		});
+
+		logger.info(
+			`[Payment Cleanup] Found ${expired_payments.length} expired payments`
+		);
+
+		if (dryRun) {
+			logger.info(
+				`[Payment Cleanup] DRY RUN: Would expire ${expired_payments.length} payments`
+			);
+			result.expiredPayments = expired_payments.length;
+			return result;
+		}
+
+		// Process each expired payment
+		for (const payment of expired_payments) {
+			const transaction = await db.sequelize.transaction();
+
+			try {
+				// 1. Mark payment as expired
+				await payment.update(
+					{ paymentStatus: PaymentStatus.EXPIRED },
+					{ transaction }
+				);
+
+				// 2. Cancel the order
+				const order = await payment.getOrder();
+				if (order) {
+					await order.update(
+						{ status: OrderStatus.EXPIRED },
+						{ transaction }
+					);
+					result.cancelledOrders++;
+
+					// 3. Release tickets and seats
+					const tickets = await db.Ticket.findAll({
+						where: { orderId: order.id },
+						transaction,
+					});
+
+					// Void ticket and release seat
+					for (const ticket of tickets) {
+						const updated_ticket = await voidTicket(
+							ticket.id,
+							transaction
+						);
+						if (!updated_ticket) throw new Error("");
+					}
+
+					// 4. Releasing coupon usage if any
+
+					try {
+						await couponServices.releaseCouponUsage(
+							order.id,
+							transaction
+						);
+						result.releasedCoupons++;
+					} catch (err) {
+						// Coupon may not have been used, skip error
+						logger.warn(
+							`[Payment Cleanup] No coupon to release for order ${order.id}`
+						);
+					}
+				}
+
+				await transaction.commit();
+				logger.info(
+					`[Payment Cleanup] Expired payment ${payment.id} and cancelled order ${order?.id}`
+				);
+			} catch (err) {
+				await transaction.rollback();
+				result.errors++;
+				logger.error(
+					`[Payment Cleanup] Error processing payment ${payment.id}:`,
+					err
+				);
+			}
+		}
+
+		logger.info(
+			`[Payment Cleanup] Completed: ${result.expiredPayments} expired, ${result.cancelledOrders} orders cancelled, ${result.releasedCoupons} coupons released, ${result.errors} errors`
+		);
+
+		return result;
+	} catch (err) {
+		logger.error("[Payment Cleanup] Fatal error:", err);
+		throw err;
+	}
 };

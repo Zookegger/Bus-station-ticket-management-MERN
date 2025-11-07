@@ -84,7 +84,7 @@ export const createOrder = async (
 
 		if (dto.couponCode) {
 			// Delegate to couponServices for validation and discount calculation
-			const preview = await couponServices.previewCoupon(
+			const preview = await couponServices.applyCoupon(
 				{
 					code: dto.couponCode,
 					orderTotal: totalBasePrice,

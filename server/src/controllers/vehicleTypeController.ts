@@ -124,7 +124,7 @@ export const AddVehicleType = async (
 			};
 		}
 
-		res.status(200).json({
+		res.status(201).json({
 			vehicle_type,
 			message: "Vehicle type added successfully",
 		});

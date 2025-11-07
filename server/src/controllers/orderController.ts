@@ -43,7 +43,7 @@ export const CreateOrder = async (
         if (!order) {
             throw { status: 500, message: "Failed to create the order due to a server error." };
         }
-        res.status(201).json(order); // Use 201 for resource creation
+        res.status(201).json(order); // Use 200 for resource creation
     } catch (err) {
         next(err);
     }

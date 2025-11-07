@@ -104,7 +104,7 @@ export const AddVehicle = async (
 			};
 		}
 
-		res.status(200).json({
+		res.status(201).json({
 			vehicle,
 			message: "Vehicle added successfully.",
 		});

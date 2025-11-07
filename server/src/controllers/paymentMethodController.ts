@@ -188,7 +188,7 @@ export const AddPaymentMethod = async (
 			throw { status: 500, message: "Failed to create payment method" };
 		}
 
-		res.status(200).json({
+		res.status(201).json({
 			payment_method: new_method,
 			message: "Payment method created successfully"
 		});

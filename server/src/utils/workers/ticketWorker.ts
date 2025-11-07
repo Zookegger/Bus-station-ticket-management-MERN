@@ -32,8 +32,4 @@ ticketWorker.on("error", (err) => {
 	logger.error("Ticket worker error:", err);
 });
 
-ticketWorker.on("ready", () => {
-	logger.info("Ticket worker is ready and listening for jobs");
-});
-
 export default ticketWorker;

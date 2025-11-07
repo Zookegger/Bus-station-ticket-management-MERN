@@ -128,13 +128,13 @@ export const deleteCoupon = async (id: number): Promise<void> => {
 	const coupon = await db.Coupon.findByPk(id);
 
 	if (!coupon)
-		throw { status: 404, message: `Coupon with ID ${id} not found,` };
+		throw { status: 404, message: `Coupon with ID ${id} not found.` };
 
 	await coupon.destroy();
 
 	const deleted_coupon = await db.Coupon.findByPk(id);
 
-	if (deleted_coupon) throw { status: 500, message: `` };
+	if (deleted_coupon) throw { status: 500, message: "Failed to delete coupon." };
 };
 
 /**
@@ -148,8 +148,8 @@ export const getCouponById = async (
 ): Promise<Coupon | null> => {
 	const coupon =
 		attributes.length > 0
-			? await db.Coupon.findByPk(id)
-			: await db.Coupon.findByPk(id, { attributes });
+			? await db.Coupon.findByPk(id, { attributes })
+			: await db.Coupon.findByPk(id);
 
 	if (!coupon)
 		throw { status: 404, message: `Coupon with ID ${id} not found.` };
@@ -165,8 +165,8 @@ export const listCoupons = async (
 	...attributes: (keyof CouponAttributes)[]
 ): Promise<Coupon | Coupon[] | null> => {
 	return attributes.length > 0
-		? await db.Coupon.findAll()
-		: await db.Coupon.findAll({ attributes });
+		? await db.Coupon.findAll({ attributes })
+		: await db.Coupon.findAll();
 };
 
 /**
@@ -179,26 +179,26 @@ export const getCouponByCode = async (
 	...attributes: (keyof CouponAttributes)[]
 ): Promise<Coupon | Coupon[] | null> => {
 	return attributes.length > 0
-		? await db.Coupon.findAll({ where: { code } })
-		: await db.Coupon.findAll({ attributes });
+		? await db.Coupon.findAll({ where: { code }, attributes })
+		: await db.Coupon.findAll({ where: { code } });
 };
 
 /**
- * Validates a coupon and computes the discount amount for preview.
- * Does NOT mutate usage counts. Used during order creation to check eligibility.
+ * INTERNAL: Validates a coupon and computes the discount amount.
+ * Used during order creation within a transaction.
+ * Does NOT mutate usage counts.
  *
- * @param dto - The preview request data.
- * @param transaction - Optional Sequelize transaction for consistency with outer transaction.
+ * @param dto - The validation request data (code, orderTotal, userId).
+ * @param transaction - Sequelize transaction (required for order creation flow).
  * @returns The validated coupon and computed discount amount.
  * @throws {status: 404} If coupon not found.
  * @throws {status: 400} If coupon is inactive, expired, or usage limit reached.
  */
-export const previewCoupon = async (
+export const applyCoupon = async (
 	dto: PreviewCouponDTO,
-	transaction?: Transaction
+	transaction: Transaction
 ): Promise<{ coupon: Coupon; discountAmount: number }> => {
-	if (!transaction) transaction = await db.sequelize.transaction();
-
+	// Load coupon with lock to keep checks consistent inside order transaction
 	const coupon = await db.Coupon.findOne({
 		where: { code: dto.code },
 		lock: transaction.LOCK.UPDATE,
@@ -207,13 +207,10 @@ export const previewCoupon = async (
 
 	if (!coupon) throw { status: 404, message: "Coupon not found." };
 
-	const is_valid = validateCoupon(coupon!, dto.userId!, transaction);
-	if (!is_valid)
-		throw {
-			status: 500,
-			message: "Something happened while validating Coupon.",
-		};
+	// Validate coupon eligibility (active, dates, limits)
+	await validateCoupon(coupon, dto.userId, transaction);
 
+	// Compute discount based on coupon type
 	const value = Number(coupon.value ?? 0);
 	if (!Number.isFinite(value) || value <= 0)
 		throw { status: 400, message: "Invalid coupon configuration." };
@@ -223,8 +220,54 @@ export const previewCoupon = async (
 	else if (coupon.type === CouponTypes.PERCENTAGE)
 		discount = (dto.orderTotal * value) / 100;
 
+	// Discount cannot exceed order total
 	discount = Math.min(discount, dto.orderTotal);
+
 	return { coupon, discountAmount: Number(discount.toFixed(2)) };
+};
+
+/**
+ * PUBLIC API: Preview a coupon's discount for a given order total.
+ * This is a READ-ONLY operation for client-side preview (no mutations).
+ * Does NOT consume usage or lock rows.
+ *
+ * @param dto - The preview request data (code, orderTotal, userId).
+ * @returns The coupon details and computed discount amount for display.
+ * @throws {status: 404} If coupon not found.
+ * @throws {status: 400} If coupon is inactive, expired, or usage limit reached.
+ */
+export const previewCouponDiscount = async (
+	dto: PreviewCouponDTO
+): Promise<{ coupon: Coupon; discountAmount: number; newTotal: number }> => {
+	// Load coupon WITHOUT locking (read-only preview)
+	const coupon = await db.Coupon.findOne({
+		where: { code: dto.code },
+	});
+
+	if (!coupon) throw { status: 404, message: "Coupon not found." };
+
+	// Validate coupon eligibility (without transaction/locks)
+	await validateCoupon(coupon, dto.userId, undefined);
+
+	// Compute discount based on coupon type
+	const value = Number(coupon.value ?? 0);
+	if (!Number.isFinite(value) || value <= 0)
+		throw { status: 400, message: "Invalid coupon configuration." };
+
+	let discount = 0;
+	if (coupon.type === CouponTypes.FIXED) discount = value;
+	else if (coupon.type === CouponTypes.PERCENTAGE)
+		discount = (dto.orderTotal * value) / 100;
+
+	// Discount cannot exceed order total
+	discount = Math.min(discount, dto.orderTotal);
+	const new_total = Math.max(0, dto.orderTotal - discount);
+
+	return {
+		coupon,
+		discountAmount: Number(discount.toFixed(2)),
+		newTotal: Number(new_total.toFixed(2)),
+	};
 };
 
 /**
@@ -288,7 +331,7 @@ export const releaseCouponUsage = async (
 		transaction,
 	});
 
-    // If there is no usage, still continue with process
+	// If there is no usage, still continue with process
 	if (!coupon_usage) return;
 
 	// Lock and decrement the coupon's usage count
@@ -297,10 +340,10 @@ export const releaseCouponUsage = async (
 		transaction,
 	});
 
-    if (!coupon) throw { status: 404, message: "Coupon not found." };
+	if (!coupon) throw { status: 404, message: "Coupon not found." };
 
-    await coupon.decrement("currentUsageCount", { by: 1, transaction });
-    await coupon_usage.destroy({ transaction });
+	await coupon.decrement("currentUsageCount", { by: 1, transaction });
+	await coupon_usage.destroy({ transaction });
 };
 
 const validateCoupon = async (

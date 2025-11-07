@@ -48,12 +48,6 @@ emailWorker.on("failed", (job, err) => {
 	logger.info(`Job ${job?.id} failed:`, err);
 });
 
-emailWorker.on("error", (err) => {
-	logger.error("Email worker error:", err);
-});
-
-emailWorker.on("ready", () => {
-	logger.debug("Email worker is ready and listening for jobs");
-});
+ 
 
 export default emailWorker;

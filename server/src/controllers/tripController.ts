@@ -120,7 +120,7 @@ export const AddTrip = async (
 			};
 		}
 
-		res.status(200).json({
+		res.status(201).json({
 			trip,
 			message: "Trip added successfully.",
 		});
