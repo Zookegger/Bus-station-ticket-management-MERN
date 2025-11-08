@@ -44,7 +44,7 @@ export interface LoginResponse {
  * - Only frequently used, non-sensitive user fields are included
  * - Token metadata is included when relevant for frontend token management
  *
- * @interface GetMeDTO
+ * @interface GetMeResponse
  * @property {Object} user - The authenticated user's essential information
  * @property {string} user.id - The unique identifier of the authenticated user
  * @property {string} user.username - The user's username for display and identification
@@ -69,9 +69,5 @@ export interface GetMeResponse {
 		avatar?: string | null;
 		role: Role;
 	};
-	tokens?: {
-		expiresIn?: number;
-		tokenType?: string;
-		issuedAt?: Date | string;
-	};
+	csrfToken: string,
 }

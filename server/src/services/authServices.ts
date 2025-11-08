@@ -334,6 +334,7 @@ export const getMe = async (userId: string): Promise<GetMeResponse> => {
 			role: user.role,
 			...(user.avatar !== undefined && {avatar: user.avatar}),
 		},
+		csrfToken: null!
 	};
 }
 

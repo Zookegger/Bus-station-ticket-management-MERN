@@ -268,7 +268,7 @@ export const GetMe = async (
 			};
 		}
 
-		const user = await authServices.getMe(userId);
+		const { user } = await authServices.getMe(userId);
 		if (!user) {
 			throw { status: 404, message: "User profile not found." };
 		}

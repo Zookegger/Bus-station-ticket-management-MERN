@@ -31,6 +31,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			(error) => Promise.reject(error)
 		);
 
+		// Automatically refreshes expired access tokens when any API call receives a 401 (Unauthorized) error, allowing the user to stay logged in without manual intervention.
 		const responseInterceptor = axios.interceptors.response.use(
 			(response) => response, // Pass through successful responses
 			async (err) => {
@@ -48,13 +49,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 					// 2. Refresh endpoint - refresh itself failed, session is dead
 					// 3. Public endpoints - no session expected
 					const no_retry_endpoints = [
-						"/auth/login",
-						"/auth/refresh",
-						"/auth/register",
-						"/auth/forgot-password",
-						"/auth/reset-password",
-						"/auth/me",
-						"/auth/csrf-token",
+						API_ENDPOINTS.AUTH.LOGIN,
+						API_ENDPOINTS.AUTH.REFRESH,
+						API_ENDPOINTS.AUTH.REGISTER,
+						API_ENDPOINTS.AUTH.FORGOT_PASSWORD,
+						API_ENDPOINTS.AUTH.RESET_PASSWORD,
+						API_ENDPOINTS.AUTH.ME,
+						API_ENDPOINTS.AUTH.CSRF_TOKEN,
 					];
 
 					const should_not_retry = no_retry_endpoints.some(
@@ -66,7 +67,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 						// If refresh itself failed, clear auth state and redirect
 						setUser(null);
 						setCsrfToken(null);
-						if (requestUrl.includes("/auth/refresh")) {
+						if (requestUrl.includes(API_ENDPOINTS.AUTH.REFRESH)) {
 							window.location.href = ROUTES.LOGIN;
 						}
 						return Promise.reject(err);
@@ -74,7 +75,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 					originalRequest._retry = true; // Mark that we've retried this request
 					try {
-						await axios.post("/auth/refresh");
+						await axios.post(API_ENDPOINTS.AUTH.REFRESH);
 						return axios(originalRequest);
 					} catch (refreshErr) {
 						setUser(null);
@@ -104,15 +105,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	useEffect(() => {
 		const verifyUserSession = async () => {
 			try {
-				const response = await axios.get("/auth/me");
-				if (!response)
-					throw new Error("No response received from server") 
-				setUser(response.data.user);
-				setCsrfToken(response.data.csrfToken);
+				// Check if user has a valid session cookie
+				const response = await axios.get(API_ENDPOINTS.AUTH.ME);
+
+				// Validate response exists
+				if (!response || !response.data)
+					throw new Error("No response received from server");
+				
+				// Extract user and CSRF token from response
+				const user_response = response.data.user;
+				const csrf_response = response.data.csrfToken;
+
+				console.log(user_response);
+				console.log(csrf_response);
+
+				// Validate user data exists before setting state
+				if (!user_response) {
+					throw new Error("User data is missing from response")
+				}
+				
+				// Validate CSRF token exists
+				if (!csrf_response) {
+					throw new Error("CSRF token is missing from response")
+				}
+
+				// Update authentication state
+                setUser(user_response);
+                setCsrfToken(csrf_response);
+
+				if (!user) {
+					throw new Error("Missing User data");
+				}
+
+				if (!csrfToken) {
+					throw new Error("Missing CSRF Token");
+				}
+
 			} catch (err) {
 				// A 401 error here means the user is not logged in.
 				// No need to do anything, user state is already null.
-				console.log("No active session found.");
+				console.log(err ?? "No active session found.");
 			} finally {
 				setIsLoading(false);
 			}
@@ -147,7 +179,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 			// On success, extract user and csrfToken from the response data.
 			const { user, csrfToken, message } = response.data;
-			
+
 			// Update the global state with the new user and CSRF token.
 			setUser(user);
 			setCsrfToken(csrfToken);

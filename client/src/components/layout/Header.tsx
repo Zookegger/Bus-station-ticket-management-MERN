@@ -9,13 +9,14 @@ import {
 	Menu,
 	MenuItem,
 	Avatar,
+	Skeleton,
 } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import { APP_CONFIG, ROUTES } from "@constants";
 import { useAuth } from "@hooks/useAuth";
 
 const Header: React.FC = () => {
-	const { isAuthenticated, user, logout } = useAuth();
+	const { isAuthenticated, user, logout, isLoading } = useAuth();
 
 	const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -47,7 +48,17 @@ const Header: React.FC = () => {
 					</Typography>
 					<Box flex={1} />
 					<Box>
-						{isAuthenticated && user ? (
+						{isLoading ? (
+							<Skeleton
+                                variant="rectangular"
+                                width={120}
+                                height={40}
+                                sx={{
+                                    bgcolor: "rgba(255, 255, 255, 0.2)",
+                                    borderRadius: 1,
+                                }}
+                            />
+						) : isAuthenticated && user ? (
 							<>
 								<Button
 									onClick={handleMenuClick}
@@ -62,8 +73,8 @@ const Header: React.FC = () => {
 										alignItems={"center"}
 									>
 										<Avatar
-											src={`${user.avatar}`}
-											alt={`${user.firstName}`}
+											src={user.avatar ?? ''}
+											alt={user.firstName}
 											sx={{
 												width: "32px",
 												height: "32px",
