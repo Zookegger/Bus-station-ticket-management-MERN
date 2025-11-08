@@ -43,12 +43,12 @@ const checkInRateLimiter = rateLimit({
  *       404:
  *         description: Order not found.
  */
-checkInRouter.get(
+checkInRouter.post(
 	"/:orderId",
     checkInRateLimiter,
 	checkInValidators,
 	handleValidationResult,
-	checkInController.handleCheckIn,
+	checkInController.executeCheckIn,
 	errorHandler
 );
 

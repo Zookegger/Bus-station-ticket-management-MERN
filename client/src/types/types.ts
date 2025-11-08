@@ -58,6 +58,9 @@ export interface ApiEndpoints {
 		readonly BASE: string;
 		readonly BY_ID: string;
 	};
+	readonly CHECKIN: {
+		readonly BASE: string; 
+	}
 }
 
 export interface StorageKeys {

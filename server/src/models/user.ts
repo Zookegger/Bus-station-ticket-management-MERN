@@ -31,9 +31,9 @@ export enum Role {
  * @enum {string}
  */
 export enum Gender {
-	MALE = "MALE",
-	FEMALE = "FEMALE",
-	OTHER = "OTHER"
+	MALE = "male",
+	FEMALE = "female",
+	OTHER = "other"
 }
 
 /**

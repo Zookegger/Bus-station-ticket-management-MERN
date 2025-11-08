@@ -98,7 +98,7 @@ const Home: React.FC = () => {
         }}
       >
         <Container maxWidth="lg">
-          <Box textAlign="center" maxWidth={{ lg: 800 }} mx="auto">
+          <Box textAlign="center" maxWidth={{ lg: 800 }} mx="auto" my={5}>
             <Typography
               variant="h4"
               color="primary"

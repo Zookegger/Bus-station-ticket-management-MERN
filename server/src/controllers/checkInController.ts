@@ -2,22 +2,6 @@ import { Request, Response, NextFunction } from "express";
 import * as orderServices from "@services/orderServices";
 import { verifyCheckInToken } from "@middlewares/checkInToken";
 
-export const serveCheckInPage = (
-	req: Request,
-	res: Response,
-	next: NextFunction
-): Promise<void> => {
-	const { orderId } = req.params;
-	const { token } = req.query;
-
-	if (!token || !verifyCheckInToken(orderId as string, token as string)) {
-		// Just send a simple 403 HTML for the conductor to see
-		throw { status: 403, message: "<h1>Error: Invalid or Expired QR Code" };
-	}
-
-    
-};
-
 /**
  * Handles a check-in request from a scanned QR code.
  * Validates the security token and orchestrates the batch check-in of all eligible tickets in an order.

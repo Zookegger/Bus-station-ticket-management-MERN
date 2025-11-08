@@ -79,8 +79,6 @@ authRouter.post(
 authRouter.post(
 	"/logout",
 	csrfUserProtectionRoute,
-	authValidator.logoutValidation,
-	handleValidationResult,
 	authController.Logout,
 	errorHandler,
 );

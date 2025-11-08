@@ -18,20 +18,65 @@
  * @property {string | null} [issuingAuthority] - Authority that issued the license
  * @property {boolean} [isSuspended] - Indicates if the license is suspended (defaults to false)
  */
-export interface CreateDriverDTO {
+/**
+ * Client-side type definitions for Drivers.
+ * Based on server/src/types/driver.ts
+ */
+
+/**
+ * Represents a driver's profile on the client-side.
+ */
+export interface Driver {
 	id: number;
 	fullname?: string | null;
 	phoneNumber?: string | null;
 	avatar?: string | null;
-	hiredAt?: Date | null;
+	hiredAt?: string | null; // ISO Date string
+	isActive: boolean;
+	licenseNumber?: string | null;
+	licenseCategory?: string | null;
+	licenseIssueDate?: string | null; // ISO Date string
+	licenseExpiryDate?: string | null; // ISO Date string
+	issuingAuthority?: string | null;
+	isSuspended: boolean;
+	createdAt: string; // ISO Date string
+	updatedAt: string; // ISO Date string
+}
+
+/**
+ * DTO for creating a new Driver profile.
+ */
+export interface CreateDriverDTO {
+	fullname?: string | null;
+	phoneNumber?: string | null;
+	avatar?: string | null;
+	hiredAt?: string | null; // ISO Date string
 	isActive?: boolean;
 	licenseNumber?: string | null;
 	licenseCategory?: string | null;
-	licenseIssueDate?: Date | null;
-	licenseExpiryDate?: Date | null;
+	licenseIssueDate?: string | null; // ISO Date string
+	licenseExpiryDate?: string | null; // ISO Date string
 	issuingAuthority?: string | null;
 	isSuspended?: boolean;
 }
+
+/**
+ * DTO for updating an existing Driver profile.
+ */
+export interface UpdateDriverDTO {
+	fullname?: string | null;
+	phoneNumber?: string | null;
+	avatar?: string | null;
+	hiredAt?: string | null; // ISO Date string
+	isActive?: boolean;
+	licenseNumber?: string | null;
+	licenseCategory?: string | null;
+	licenseIssueDate?: string | null; // ISO Date string
+	licenseExpiryDate?: string | null; // ISO Date string
+	issuingAuthority?: string | null;
+	isSuspended?: boolean;
+}
+
 
 /**
  * Data Transfer Object for updating an existing Driver profile.
@@ -58,12 +103,12 @@ export interface UpdateDriverDTO {
 	fullname?: string | null;
 	phoneNumber?: string | null;
 	avatar?: string | null;
-	hiredAt?: Date | null;
+	hiredAt?: string | null;
 	isActive?: boolean;
 	licenseNumber?: string | null;
 	licenseCategory?: string | null;
-	licenseIssueDate?: Date | null;
-	licenseExpiryDate?: Date | null;
+	licenseIssueDate?: string | null;
+	licenseExpiryDate?: string | null;
 	issuingAuthority?: string | null;
 	isSuspended?: boolean;
 }

@@ -10,12 +10,47 @@
  * @property {string | null} [manufacturer] - Manufacturer or brand of the vehicle.
  * @property {string | null} [model] - Model name or code of the vehicle.
  */
+import type { VehicleType } from "./vehicleType";
+
+/**
+ * Client-side type definitions for Vehicles.
+ * Based on server/src/types/vehicle.ts
+ */
+
+/**
+ * Represents a vehicle on the client-side.
+ */
+export interface Vehicle {
+    id: number;
+    numberPlate: string;
+    vehicleTypeId: number;
+    manufacturer?: string | null;
+    model?: string | null;
+    createdAt: string; // ISO Date string
+    updatedAt: string; // ISO Date string
+    vehicleType?: VehicleType;
+}
+
+/**
+ * DTO for creating a new Vehicle.
+ */
 export interface CreateVehicleDTO {
 	numberPlate: string;
 	vehicleTypeId: number;
 	manufacturer?: string | null;
 	model?: string | null;
 }
+
+/**
+ * DTO for updating an existing Vehicle.
+ */
+export interface UpdateVehicleDTO {
+	numberPlate?: string;
+	vehicleTypeId?: number;
+	manufacturer?: string | null;
+	model?: string | null;
+}
+
 /**
  * Data Transfer Object for updating an existing Vehicle.
  *
