@@ -116,9 +116,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				const user_response = response.data.user;
 				const csrf_response = response.data.csrfToken;
 
-				console.log(user_response);
-				console.log(csrf_response);
-
 				// Validate user data exists before setting state
 				if (!user_response) {
 					throw new Error("User data is missing from response")
@@ -144,7 +141,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			} catch (err) {
 				// A 401 error here means the user is not logged in.
 				// No need to do anything, user state is already null.
-				console.log(err ?? "No active session found.");
+				console.error(err ?? "No active session found.");
 			} finally {
 				setIsLoading(false);
 			}
