@@ -26,15 +26,20 @@ DROP TABLE IF EXISTS `coupon_usages`;
 CREATE TABLE `coupon_usages` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `couponId` int(10) unsigned NOT NULL,
-  `ticketId` int(10) unsigned NOT NULL,
-  `discountAmount` decimal(10,0) NOT NULL,
+  `userId` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `orderId` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `discountAmount` decimal(10,2) NOT NULL,
   `createdAt` datetime NOT NULL,
   `updatedAt` datetime NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `coupon_usages_couponId_ticketId_unique` (`couponId`,`ticketId`),
-  KEY `ticketId` (`ticketId`),
-  CONSTRAINT `coupon_usages_ibfk_1` FOREIGN KEY (`couponId`) REFERENCES `coupons` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `coupon_usages_ibfk_2` FOREIGN KEY (`ticketId`) REFERENCES `tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  UNIQUE KEY `orderId` (`orderId`),
+  UNIQUE KEY `coupon_usages_coupon_id_user_id` (`couponId`,`userId`),
+  KEY `coupon_usages_order_id` (`orderId`),
+  KEY `coupon_usages_user_id` (`userId`),
+  KEY `coupon_usages_coupon_id` (`couponId`),
+  CONSTRAINT `coupon_usages_ibfk_1` FOREIGN KEY (`couponId`) REFERENCES `coupons` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `coupon_usages_ibfk_2` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `coupon_usages_ibfk_3` FOREIGN KEY (`orderId`) REFERENCES `orders` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -49,15 +54,19 @@ CREATE TABLE `coupons` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `code` varchar(255) NOT NULL,
   `type` enum('percentage','fixed') NOT NULL,
+  `value` decimal(10,2) NOT NULL,
+  `maxUsage` int(10) unsigned NOT NULL,
+  `currentUsageCount` int(10) unsigned NOT NULL,
   `startPeriod` datetime NOT NULL,
   `endPeriod` datetime NOT NULL,
-  `isActive` tinyint(1) NOT NULL,
-  `description` varchar(255) DEFAULT NULL,
+  `isActive` tinyint(1) NOT NULL DEFAULT 1,
+  `description` text DEFAULT NULL,
   `imgUrl` varchar(255) DEFAULT NULL,
   `title` varchar(255) DEFAULT NULL,
   `createdAt` datetime NOT NULL,
   `updatedAt` datetime NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `code` (`code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -69,7 +78,7 @@ DROP TABLE IF EXISTS `drivers`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `drivers` (
-  `id` int(10) unsigned NOT NULL,
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `fullname` varchar(100) DEFAULT NULL,
   `phoneNumber` varchar(16) DEFAULT NULL,
   `avatar` varchar(255) DEFAULT NULL,
@@ -135,6 +144,31 @@ CREATE TABLE `notifications` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `orders`
+--
+
+DROP TABLE IF EXISTS `orders`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `orders` (
+  `id` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `userId` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `totalBasePrice` decimal(10,2) NOT NULL,
+  `totalDiscount` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `totalFinalPrice` decimal(10,2) NOT NULL,
+  `guestPurchaserEmail` varchar(255) DEFAULT NULL,
+  `guestPurchaserName` varchar(255) DEFAULT NULL,
+  `guestPurchaserPhone` varchar(255) DEFAULT NULL,
+  `status` enum('pending','confirmed','cancelled','partially_refunded','refunded','EXPIRED') NOT NULL DEFAULT 'pending',
+  `createdAt` datetime NOT NULL,
+  `updatedAt` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `userId` (`userId`),
+  CONSTRAINT `orders_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `payment_methods`
 --
 
@@ -145,35 +179,12 @@ CREATE TABLE `payment_methods` (
   `id` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   `name` varchar(100) NOT NULL,
   `code` varchar(50) NOT NULL,
-  `is_active` tinyint(1) DEFAULT 1,
-  `config_json` longtext DEFAULT NULL,
-  `created_at` datetime DEFAULT NULL,
-  `updated_at` datetime DEFAULT NULL,
+  `isActive` tinyint(1) DEFAULT 1,
+  `configJson` longtext DEFAULT NULL,
+  `createdAt` datetime DEFAULT NULL,
+  `updatedAt` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `code` (`code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `payment_tickets`
---
-
-DROP TABLE IF EXISTS `payment_tickets`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `payment_tickets` (
-  `paymentId` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `ticketId` int(10) unsigned NOT NULL,
-  `amount` decimal(10,2) NOT NULL COMMENT 'Amount allocated to this specific ticket',
-  `createdAt` datetime NOT NULL,
-  `updatedAt` datetime NOT NULL,
-  PRIMARY KEY (`paymentId`,`ticketId`),
-  UNIQUE KEY `payment_tickets_ticketId_paymentId_unique` (`paymentId`,`ticketId`),
-  UNIQUE KEY `payment_tickets_payment_id_ticket_id` (`paymentId`,`ticketId`),
-  KEY `payment_tickets_payment_id` (`paymentId`),
-  KEY `payment_tickets_ticket_id` (`ticketId`),
-  CONSTRAINT `payment_tickets_ibfk_1` FOREIGN KEY (`paymentId`) REFERENCES `payments` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `payment_tickets_ibfk_2` FOREIGN KEY (`ticketId`) REFERENCES `tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -186,22 +197,25 @@ DROP TABLE IF EXISTS `payments`;
 /*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `payments` (
   `id` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `total_amount` decimal(10,2) NOT NULL,
-  `payment_method_id` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `payment_status` enum('pending','processing','completed','failed','cancelled','expired') DEFAULT 'pending',
-  `merchant_order_ref` varchar(255) NOT NULL,
-  `gateway_transaction_no` varchar(255) DEFAULT NULL,
-  `gateway_response_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`gateway_response_data`)),
-  `created_at` datetime DEFAULT NULL,
-  `expired_at` datetime NOT NULL,
-  `updated_at` datetime DEFAULT NULL,
+  `orderId` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `paymentMethodId` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `totalAmount` decimal(10,2) NOT NULL,
+  `paymentStatus` enum('PENDING','PROCESSING','COMPLETED','FAILED','CANCELLED','EXPIRED','REFUNDED','PARTIALLY_REFUNDED') DEFAULT 'PENDING',
+  `merchantOrderRef` varchar(255) NOT NULL,
+  `gatewayTransactionNo` varchar(255) DEFAULT NULL,
+  `gatewayResponseData` longtext DEFAULT NULL,
+  `createdAt` datetime DEFAULT NULL,
+  `expiredAt` datetime NOT NULL,
+  `updatedAt` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `merchant_order_ref` (`merchant_order_ref`),
-  KEY `payment_method_id` (`payment_method_id`),
-  KEY `payments_merchant_order_ref` (`merchant_order_ref`),
-  KEY `payments_payment_status` (`payment_status`),
-  KEY `payments_created_at` (`created_at`),
-  CONSTRAINT `payments_ibfk_1` FOREIGN KEY (`payment_method_id`) REFERENCES `payment_methods` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  UNIQUE KEY `merchantOrderRef` (`merchantOrderRef`),
+  KEY `paymentMethodId` (`paymentMethodId`),
+  KEY `payments_order_id` (`orderId`),
+  KEY `payments_merchant_order_ref` (`merchantOrderRef`),
+  KEY `payments_payment_status` (`paymentStatus`),
+  KEY `payments_created_at` (`createdAt`),
+  CONSTRAINT `payments_ibfk_1` FOREIGN KEY (`orderId`) REFERENCES `orders` (`id`) ON DELETE NO ACTION ON UPDATE CASCADE,
+  CONSTRAINT `payments_ibfk_2` FOREIGN KEY (`paymentMethodId`) REFERENCES `payment_methods` (`id`) ON DELETE NO ACTION ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -247,8 +261,8 @@ CREATE TABLE `routes` (
   PRIMARY KEY (`id`),
   KEY `startId` (`startId`),
   KEY `destinationId` (`destinationId`),
-  CONSTRAINT `routes_ibfk_1` FOREIGN KEY (`startId`) REFERENCES `locations` (`id`) ON DELETE NO ACTION ON UPDATE CASCADE,
-  CONSTRAINT `routes_ibfk_2` FOREIGN KEY (`destinationId`) REFERENCES `locations` (`id`) ON DELETE NO ACTION ON UPDATE CASCADE
+  CONSTRAINT `routes_ibfk_1` FOREIGN KEY (`startId`) REFERENCES `locations` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `routes_ibfk_2` FOREIGN KEY (`destinationId`) REFERENCES `locations` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -304,42 +318,47 @@ DROP TABLE IF EXISTS `tickets`;
 CREATE TABLE `tickets` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `userId` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `orderId` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   `seatId` int(10) unsigned DEFAULT NULL,
   `basePrice` decimal(10,2) NOT NULL,
   `finalPrice` decimal(10,2) NOT NULL,
-  `status` enum('PENDING','BOOKED','CANCELLED','COMPLETED','REFUNDED','INVALID') NOT NULL DEFAULT 'BOOKED',
-  `guestEmail` varchar(255) DEFAULT NULL,
-  `guestName` varchar(255) DEFAULT NULL,
-  `guestPhone` varchar(255) DEFAULT NULL,
+  `cancelledAt` datetime DEFAULT NULL,
+  `status` enum('PENDING','BOOKED','CANCELLED','COMPLETED','REFUNDED','INVALID','EXPIRED') NOT NULL DEFAULT 'PENDING',
   `createdAt` datetime NOT NULL,
   `updatedAt` datetime NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `userId` (`userId`),
-  KEY `seatId` (`seatId`),
+  KEY `tickets_user_id` (`userId`),
+  KEY `tickets_order_id` (`orderId`),
+  KEY `tickets_seat_id` (`seatId`),
   CONSTRAINT `tickets_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `tickets_ibfk_2` FOREIGN KEY (`seatId`) REFERENCES `seats` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+  CONSTRAINT `tickets_ibfk_2` FOREIGN KEY (`orderId`) REFERENCES `orders` (`id`) ON DELETE NO ACTION ON UPDATE CASCADE,
+  CONSTRAINT `tickets_ibfk_3` FOREIGN KEY (`seatId`) REFERENCES `seats` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `trip_driver_assignments`
+-- Table structure for table `trip_schedules`
 --
 
-DROP TABLE IF EXISTS `trip_driver_assignments`;
+DROP TABLE IF EXISTS `trip_schedules`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `trip_driver_assignments` (
+CREATE TABLE `trip_schedules` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `tripId` int(10) unsigned NOT NULL,
   `driverId` int(10) unsigned NOT NULL,
   `assignedAt` datetime DEFAULT NULL,
+  `assignmentMode` enum('AUTO','MANUAL') NOT NULL,
+  `assignedBy` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
   `createdAt` datetime NOT NULL,
   `updatedAt` datetime NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `tripId` (`tripId`),
+  UNIQUE KEY `trip_schedules_tripId_driverId_unique` (`tripId`,`driverId`),
   KEY `driverId` (`driverId`),
-  CONSTRAINT `trip_driver_assignments_ibfk_1` FOREIGN KEY (`tripId`) REFERENCES `trips` (`id`) ON DELETE NO ACTION ON UPDATE CASCADE,
-  CONSTRAINT `trip_driver_assignments_ibfk_2` FOREIGN KEY (`driverId`) REFERENCES `drivers` (`id`) ON DELETE NO ACTION ON UPDATE CASCADE
+  KEY `assignedBy` (`assignedBy`),
+  CONSTRAINT `trip_schedules_ibfk_1` FOREIGN KEY (`tripId`) REFERENCES `trips` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `trip_schedules_ibfk_2` FOREIGN KEY (`driverId`) REFERENCES `drivers` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `trip_schedules_ibfk_3` FOREIGN KEY (`assignedBy`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -356,15 +375,21 @@ CREATE TABLE `trips` (
   `routeId` int(10) unsigned NOT NULL,
   `startTime` datetime NOT NULL,
   `endTime` datetime DEFAULT NULL,
-  `price` decimal(10,2) DEFAULT NULL,
-  `status` varchar(255) DEFAULT 'Scheduled',
+  `price` decimal(10,2) NOT NULL,
+  `status` enum('PENDING','SCHEDULED','DEPARTED','COMPLETED','CANCELLED','DELAYED') NOT NULL DEFAULT 'PENDING',
+  `isTemplate` tinyint(1) NOT NULL DEFAULT 0,
+  `repeatFrequency` enum('NONE','DAILY','WEEKLY','WEEKDAY','MONTHLY','YEARLY') DEFAULT 'NONE',
+  `repeatEndDate` datetime DEFAULT NULL,
+  `templateTripId` int(10) unsigned DEFAULT NULL COMMENT 'Self-referencing key. If this trip is an ''instance'' (e.g., the 10AM trip for Nov 1st), this ID points to the ''template'' trip (e.g., the ''Daily 10AM'' schedule). This prevents duplicate generation by background workers and links instances for management.',
   `createdAt` datetime NOT NULL,
   `updatedAt` datetime NOT NULL,
   PRIMARY KEY (`id`),
   KEY `vehicleId` (`vehicleId`),
   KEY `routeId` (`routeId`),
+  KEY `templateTripId` (`templateTripId`),
   CONSTRAINT `trips_ibfk_1` FOREIGN KEY (`vehicleId`) REFERENCES `vehicles` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `trips_ibfk_2` FOREIGN KEY (`routeId`) REFERENCES `routes` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  CONSTRAINT `trips_ibfk_2` FOREIGN KEY (`routeId`) REFERENCES `routes` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `trips_ibfk_3` FOREIGN KEY (`templateTripId`) REFERENCES `trips` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -377,25 +402,27 @@ DROP TABLE IF EXISTS `users`;
 /*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `users` (
   `id` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `passwordHash` varchar(255) NOT NULL,
+  `firstName` varchar(255) DEFAULT NULL,
+  `lastName` varchar(255) DEFAULT NULL,
+  `fullName` varchar(255) DEFAULT NULL,
+  `userName` varchar(255) NOT NULL,
   `address` varchar(255) DEFAULT NULL,
+  `gender` enum('MALE','FEMALE','OTHER') DEFAULT 'OTHER',
   `avatar` varchar(255) DEFAULT NULL,
   `dateOfBirth` datetime DEFAULT NULL,
-  `email` varchar(255) NOT NULL,
   `emailConfirmed` tinyint(1) NOT NULL DEFAULT 0,
-  `role` enum('User','Admin','Operator') NOT NULL DEFAULT 'User',
-  `passwordHash` varchar(255) DEFAULT NULL,
   `phoneNumber` varchar(16) DEFAULT NULL,
-  `phoneNumberConfirmed` tinyint(1) DEFAULT 0,
-  `userName` varchar(255) NOT NULL,
-  `fullName` varchar(255) DEFAULT NULL,
-  `gender` varchar(255) DEFAULT NULL,
+  `phoneNumberConfirmed` tinyint(1) NOT NULL DEFAULT 0,
+  `role` enum('User','Admin') NOT NULL DEFAULT 'User',
   `createdAt` datetime DEFAULT NULL,
   `updatedAt` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`),
   UNIQUE KEY `userName` (`userName`),
   UNIQUE KEY `users_email` (`email`),
-  KEY `users_username` (`userName`)
+  UNIQUE KEY `users_user_name` (`userName`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -452,4 +479,4 @@ CREATE TABLE `vehicles` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-10-25 17:09:16
+-- Dump completed on 2025-11-03 19:56:06

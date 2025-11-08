@@ -66,7 +66,7 @@ export const connectToDatabase = async (): Promise<void> => {
 
 		await sequelize.sync({
 			alter: IS_DEVELOPMENT ? true : false,
-			force: IS_DEVELOPMENT ? true : false,
+			// force: IS_DEVELOPMENT ? true : false,
 		});
 		
 		logger.info("Models synchronized to Database");

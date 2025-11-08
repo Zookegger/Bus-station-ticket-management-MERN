@@ -18,7 +18,7 @@ import { sendEmail } from "@services/emailService";
  * Configured with Redis connection and concurrency settings for
  * efficient background email processing.
  */
-export const emailWorker = new Worker<EmailJobData>(
+const emailWorker = new Worker<EmailJobData>(
 	"email",
 	async (job: Job<EmailJobData>): Promise<void> => {
 		logger.debug(`Processing email job ${job.id} to ${job.data.to}`);
@@ -48,10 +48,6 @@ emailWorker.on("failed", (job, err) => {
 	logger.info(`Job ${job?.id} failed:`, err);
 });
 
-emailWorker.on("error", (err) => {
-	logger.error("Email worker error:", err);
-});
+ 
 
-emailWorker.on("ready", () => {
-	logger.debug("Email worker is ready and listening for jobs");
-});
+export default emailWorker;

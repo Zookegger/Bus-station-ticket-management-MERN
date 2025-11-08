@@ -1,4 +1,8 @@
 {
+	"DEFAULT_ASSIGNMENT_STRATEGY": {
+		"value": "AVAILABILITY",
+		"description": "Default driver assignment strategy: 'availability' or 'workload_balance'"
+	},
 	"PAYMENT_WINDOW_MINUTES": {
 		"value": 10,
 		"description": "The time in minutes a user has to complete payment before their ticket is cancelled."

@@ -22,34 +22,26 @@ import { DbModels } from "@models";;
  * @property {string} CANCELLED - The order has been cancelled.
  * @property {string} PARTIALLY_REFUNDED - The order has been partially refunded.
  * @property {string} REFUNDED - The order has been fully refunded.
+ * @property {string} EXPIRED - The order has expired.
  */
 export enum OrderStatus {
-	/**
-	 * The order is pending and awaiting confirmation or payment.
-	 */
+	/** The order is pending and awaiting confirmation or payment. */
 	PENDING = "pending",
-	/**
-	 * The order has been confirmed.
-	 */
+	/** The order has been confirmed. */
 	CONFIRMED = "confirmed",
-	/**
-	 * The order has been cancelled.
-	 */
+	/** The order has been cancelled. */
 	CANCELLED = "cancelled",
-	/**
-	 * The order has been partially refunded.
-	 */
+	/** The order has been partially refunded. */
 	PARTIALLY_REFUNDED = "partially_refunded",
-	/**
-	 * The order has been fully refunded.
-	 */
+	/** The order has been fully refunded. */
 	REFUNDED = "refunded",
+	/** The order has expired. */
+	EXPIRED = "EXPIRED"
 }
 
 export interface OrderAttributes {
 	id: string; // UUID
 	userId: string | null; // UUID, Nullable for guests
-	paymentId: string | null; // UUID
 	totalBasePrice: number;
 	totalDiscount: number;
 	totalFinalPrice: number;
@@ -66,7 +58,6 @@ export interface OrderCreationAttributes
 		OrderAttributes,
 		| "id"
 		| "totalDiscount"
-		| "paymentId"
 		| "status"
 		| "guestPurchaserEmail"
 		| "guestPurchaserName"
@@ -86,7 +77,6 @@ export interface OrderCreationAttributes
  * @property {number} totalBasePrice - The total base price of the order.
  * @property {number} totalDiscount - The total discount applied to the order.
  * @property {number} totalFinalPrice - The final price of the order after discounts.
- * @property {string | null} paymentId - The ID of the payment associated with the order.
  * @property {string | null} [guestPurchaserEmail] - The email of the guest purchaser.
  * @property {string | null} [guestPurchaserName] - The name of the guest purchaser.
  * @property {string | null} [guestPurchaserPhone] - The phone number of the guest purchaser.
@@ -122,10 +112,6 @@ export class Order
 	 * @property {number} totalFinalPrice - The final price of the order after discounts.
 	 */
 	public totalFinalPrice!: number;
-	/**
-	 * @property {string | null} paymentId - The ID of the payment associated with the order.
-	 */
-	public paymentId!: string | null;
 	/**
 	 * @property {string | null} guestPurchaserEmail - The email of the guest purchaser.
 	 */
@@ -165,7 +151,7 @@ export class Order
 	 */
 	public readonly tickets?: Ticket[];
 
-	public getPayment!: BelongsToGetAssociationMixin<Payment>;
+	public getPayment!: HasManyGetAssociationsMixin<Payment>;
 	/**
 	 * @property {Payment} [payment] - Associated Payment instance.
 	 */
@@ -211,11 +197,6 @@ export class Order
 					type: DataTypes.DECIMAL(10, 2),
 					allowNull: false,
 					field: 'totalFinalPrice'
-				},
-				paymentId: {
-					type: DataTypes.UUID,
-					allowNull: true,
-					field: 'paymentId'
 				},
 				guestPurchaserEmail: {
 					type: DataTypes.STRING,
@@ -265,9 +246,11 @@ export class Order
 			foreignKey: "orderId",
 			as: "tickets",
 		});
-		Order.belongsTo(models.Payment, {
-			foreignKey: "paymentId",
+		Order.hasMany(models.Payment, {
+			foreignKey: "orderId",
 			as: "payment",
+            onDelete: "CASCADE", // Reconsider this
+            onUpdate: "CASCADE", // Reconsider this
 		});
 		Order.hasOne(models.CouponUsage, {
 			foreignKey: "orderId",

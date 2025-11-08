@@ -74,6 +74,14 @@ export const router = createBrowserRouter([
 			},
 
 			{
+				path: ROUTES.CHECK_IN,
+				lazy: async () => {
+					const { default: CheckIn } = await import("@pages/common/CheckInPage");
+					return { Component: CheckIn };
+				}
+			},
+
+			{
 				path: ROUTES.PROFILE,
 				lazy: async () => {
 					const { default: Profile } = await import(

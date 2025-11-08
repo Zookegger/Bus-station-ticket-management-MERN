@@ -29,17 +29,20 @@ import {
 	PersonAdd,
 } from "@mui/icons-material";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
-import axios, { isAxiosError } from "axios";
-import { API_ENDPOINTS, APP_CONFIG, ROUTES } from "@constants/index";
+import { isAxiosError } from "axios";
+import { ROUTES } from "@constants/index";
 import ForgotPasswordDialog from "./ForgotPasswordDialog";
+import { useAuth } from "@hooks/useAuth";
 
 const LoginPage: React.FC = () => {
+	const { login } = useAuth();
 	const navigate = useNavigate();
 	const [formData, setFormData] = useState({
 		login: "",
 		password: "",
 		rememberMe: false,
 	});
+	const [message, setMessage] = useState<string | null>(null);
 	const [showPassword, setShowPassword] = useState(false);
 	const [errors, setErrors] = useState<Record<string, string>>({});
 	const [isLoading, setIsLoading] = useState(false);
@@ -76,36 +79,35 @@ const LoginPage: React.FC = () => {
 		}
 
 		setIsLoading(true);
+		setErrors({});
+		setMessage(null);
 
 		try {
-			const response = await axios.post(
-				APP_CONFIG.apiBaseUrl + API_ENDPOINTS.AUTH.LOGIN,
-				{
-					login: formData.login,
-					password: formData.password,
-				},
-				{
-					headers: {
-						"Content-Type": "application/json",
-					},
-					timeout: 7000,
-					timeoutErrorMessage: "Connection timeout, try again",
-				}
-			);
+			const dto = {
+				login: formData.login,
+				password: formData.password,
+			};
 
-			if (response.data.user === null) {
-				console.log("Login failed: ", response.data);
+			const { user, message } = await login(dto);
+
+			console.log(user);
+			
+			if (user === null) {
+				console.log("Login failed");
 				setErrors({ general: "Invalid credentials" });
 				return;
 			}
 
-			console.log("Login successful: ", response.data);
-			// Redirect to dashboard home on successful login
-			if (response.data.user.role === "admin") {
-				navigate(ROUTES.DASHBOARD_HOME);
-			} else {
-				navigate(ROUTES.HOME);
-			}
+			setMessage(message);
+
+			setTimeout(() => {
+				// Redirect to dashboard home on successful login
+				if (user.role === "Admin") {
+					navigate(ROUTES.DASHBOARD_HOME);
+				} else {
+					navigate(ROUTES.HOME);
+				}
+			}, 3000);
 		} catch (err: unknown) {
 			// Fixed: Use 'unknown' instead of specific type or 'any'
 			// Narrow the type safely
@@ -150,6 +152,11 @@ const LoginPage: React.FC = () => {
 										{errMsg}
 									</Typography>
 								))}
+							</MUIAlert>
+						)}
+						{message && (
+							<MUIAlert severity="success" sx={{ mb: 2 }}>
+								<Typography>{message}</Typography>
 							</MUIAlert>
 						)}
 						<Box
@@ -327,7 +334,12 @@ const LoginPage: React.FC = () => {
 				</Card>
 			</Paper>
 
-			<ForgotPasswordDialog open={openForget} onClose={() => { setOpenForget(false) }}/>
+			<ForgotPasswordDialog
+				open={openForget}
+				onClose={() => {
+					setOpenForget(false);
+				}}
+			/>
 
 			<Backdrop
 				open={isLoading}

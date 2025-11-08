@@ -21,6 +21,8 @@ import settingsRouter from "@routes/api/settingRouter";
 import paymentMethodRoute from "@routes/api/paymentMethodRouter";
 import orderRouter from "@routes/api/orderRouter";
 import checkInRouter from "@routes/api/checkInRouter";
+import couponRouter from "@routes/api/couponRouter";
+import debugRouter from "@routes/api/debugRouter";
 
 /**
  * Main API router instance.
@@ -75,7 +77,13 @@ apiRouter.use("/trips", apiRateLimiter, tripRoutes);
 apiRouter.use("/seats", apiRateLimiter, seatRoutes);
 apiRouter.use("/payment-methods", apiRateLimiter, paymentMethodRoute);
 apiRouter.use("/settings", apiRateLimiter, settingsRouter);
-apiRouter.use("/order", apiRateLimiter, orderRouter);
+apiRouter.use("/orders", apiRateLimiter, orderRouter);
+apiRouter.use("/coupons", apiRateLimiter, couponRouter);
 apiRouter.use("/check-in", checkInRouter);
+
+// Debug routes (admin only, for development/testing)
+if (process.env.NODE_ENV !== "production") {
+	apiRouter.use("/debug", apiRateLimiter, debugRouter);
+}
 
 export default apiRouter;

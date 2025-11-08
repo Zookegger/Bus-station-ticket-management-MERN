@@ -14,7 +14,6 @@ import { DbModels } from "@models";
  * @enum {string}
  * @property {string} User - Regular user.
  * @property {string} Admin - Administrator.
- * @property {string} Operator - Operator.
 */
 export enum Role {
 	/**  
@@ -32,9 +31,9 @@ export enum Role {
  * @enum {string}
  */
 export enum Gender {
-	MALE = "MALE",
-	FEMALE = "FEMALE",
-	OTHER = "OTHER"
+	MALE = "male",
+	FEMALE = "female",
+	OTHER = "other"
 }
 
 /**
@@ -271,6 +270,21 @@ export class User
 		User.hasMany(models.RefreshToken, {
 			foreignKey: "userId",
 			as: "refreshTokens",
+		});
+		// Link notifications created for this user
+		User.hasMany(models.Notification, {
+			foreignKey: "userId",
+			as: "notifications",
+		});
+		// Orders placed by this user (or guest when null)
+		User.hasMany(models.Order, {
+			foreignKey: "userId",
+			as: "orders",
+		});
+		// Coupon usage records by this user
+		User.hasMany(models.CouponUsage, {
+			foreignKey: "userId",
+			as: "couponUsages",
 		});
 	}
 

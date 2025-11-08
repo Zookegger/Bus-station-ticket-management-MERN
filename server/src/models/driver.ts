@@ -5,7 +5,7 @@ import {
 	Sequelize,
 	HasManyGetAssociationsMixin,
 } from "sequelize";
-import { TripDriverAssignment } from "./tripDriverAssignment";
+import { TripSchedule } from "@models/TripSchedule";
 import { DbModels } from "@models";;
 
 /**
@@ -88,7 +88,7 @@ export interface DriverCreationAttributes
  * @property {boolean} isSuspended - Indicates if the license is suspended
  * @property {Date} createdAt - Creation timestamp
  * @property {Date} updatedAt - Last update timestamp
- * @property {TripDriverAssignment[]} [tripAssignments] - Associated TripDriverAssignment instances.
+ * @property {TripSchedule[]} [tripAssignments] - Associated TripSchedule instances.
 */
 export class Driver
 	extends Model<DriverAttributes, DriverCreationAttributes>
@@ -152,11 +152,11 @@ export class Driver
 	public readonly updatedAt!: Date;
 
 	// Association properties
-	public getTripAssignments!: HasManyGetAssociationsMixin<TripDriverAssignment>;
+	public getTripAssignments!: HasManyGetAssociationsMixin<TripSchedule>;
 	/**
-	 * @property {TripDriverAssignment[]} [tripAssignments] - Associated TripDriverAssignment instances.
+	 * @property {TripSchedule[]} [tripAssignments] - Associated TripSchedule instances.
 	 */
-	public readonly tripAssignments?: TripDriverAssignment[];
+	public readonly tripAssignments?: TripSchedule[];
 
 	/**
 	 * Initializes the Driver model with Sequelize schema.
@@ -243,9 +243,15 @@ export class Driver
 	 * @returns {void}
 	 */
 	static associate(models: DbModels) {
-		Driver.hasMany(models.TripDriverAssignment, {
+		Driver.hasMany(models.TripSchedule, {
 			foreignKey: "driverId",
 			as: "tripAssignments",
 		});
+		Driver.belongsToMany(models.Trip, {
+            through: models.TripSchedule,
+            foreignKey: "driverId",
+            otherKey: "tripId",
+            as: "trips", 
+        });
 	}
 }

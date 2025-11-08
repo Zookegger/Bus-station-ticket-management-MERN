@@ -1,11 +1,9 @@
 import { Coupon } from "@models/coupon";
-import { CouponUsage } from "@models/couponUsage";
 import db from "@models/index";
 import { Order, OrderAttributes, OrderStatus } from "@models/orders";
 import { Seat } from "@models/seat";
-import { Ticket, TicketStatus } from "@models/ticket";
+import { Ticket } from "@models/ticket";
 import { Trip } from "@models/trip";
-import { CouponTypes } from "@my_types/coupon";
 import {
 	CreateOrderDTO,
 	CreateOrderResult,
@@ -16,10 +14,12 @@ import { SeatStatus } from "@my_types/seat";
 import logger from "@utils/logger";
 import * as paymentServices from "@services/paymentServices";
 import * as userServices from "@services/userServices";
+import * as couponServices from "@services/couponServices";
 import { Op } from "sequelize";
 import { PaymentStatus } from "@my_types/payments";
 import { TripStatus } from "@my_types/trip";
 import * as ticketServices from "@services/ticketServices";
+import { TicketStatus } from "@my_types/ticket";
 
 /**
  * Creates an order, reserves seats, applies coupons, and initiates payment.
@@ -80,65 +80,21 @@ export const createOrder = async (
 			0
 		);
 		let totalDiscount = 0;
-		let coupon: Coupon | null = null;
+		let coupon_ref: Coupon | null = null;
 
 		if (dto.couponCode) {
-			coupon = await Coupon.findOne({
-				where: { code: dto.couponCode },
-				transaction,
-				lock: transaction.LOCK.UPDATE,
-			});
-			if (!coupon) throw { status: 404, message: "Coupon not found." };
-			if (!coupon.isActive)
-				throw { status: 400, message: "Coupon is not active." };
+			// Delegate to couponServices for validation and discount calculation
+			const preview = await couponServices.applyCoupon(
+				{
+					code: dto.couponCode,
+					orderTotal: totalBasePrice,
+					userId: dto.userId ?? null,
+				},
+				transaction
+			);
 
-			const now = new Date();
-			if (coupon.startPeriod && coupon.startPeriod > now)
-				throw {
-					status: 400,
-					message: "Coupon is not yet valid.",
-				};
-			if (coupon.endPeriod && coupon.endPeriod < now)
-				throw {
-					status: 400,
-					message: "Coupon has expired.",
-				};
-
-			const hasUsageLimit =
-				typeof coupon.maxUsage === "number" && coupon.maxUsage > 0;
-			if (hasUsageLimit && coupon.currentUsageCount >= coupon.maxUsage)
-				throw {
-					status: 400,
-					message: "Coupon has reached its usage limit.",
-				};
-
-			if (hasUsageLimit && dto.userId) {
-				const userUsage = await CouponUsage.count({
-					where: { couponId: coupon.id, userId: dto.userId },
-					transaction,
-				});
-				if (userUsage >= coupon.maxUsage)
-					throw {
-						status: 400,
-						message:
-							"You have already used this coupon the maximum number of times.",
-					};
-			}
-
-			const couponValue = Number(coupon.value ?? 0);
-			if (!Number.isFinite(couponValue) || couponValue <= 0)
-				throw {
-					status: 400,
-					message: "Invalid coupon configuration.",
-				};
-
-			if (coupon.type === CouponTypes.FIXED) {
-				totalDiscount = couponValue;
-			} else if (coupon.type === CouponTypes.PERCENTAGE) {
-				totalDiscount = (totalBasePrice * couponValue) / 100;
-			}
-
-			totalDiscount = Math.min(totalDiscount, totalBasePrice);
+			totalDiscount = preview.discountAmount;
+			coupon_ref = preview.coupon;
 		}
 
 		// Limit to 0 instead of negative price
@@ -175,20 +131,18 @@ export const createOrder = async (
 		if (createdTickets.length <= 0)
 			throw new Error("Something went wrong while creating new tickets");
 
-		// 5. Create CouponUsage & Update Coupon
-		if (coupon) {
-			if (dto.userId) {
-				await CouponUsage.create(
-					{
-						couponId: coupon.id,
-						orderId: order.id,
-						userId: dto.userId,
-						discountAmount: totalDiscount,
-					},
-					{ transaction }
-				);
-			}
-			await coupon.increment("currentUsageCount", { by: 1, transaction });
+		// 5. Record Coupon Usage
+		if (coupon_ref) {
+			// Delegate to couponServices for transactional usage recording
+			await couponServices.reserveCouponForOrder(
+				{
+					couponId: coupon_ref.id,
+					orderId: order.id,
+					userId: dto.userId ?? null,
+					discountAmount: totalDiscount,
+				},
+				transaction
+			);
 		}
 
 		// 6. Reserve Seats
@@ -348,14 +302,8 @@ export const refundTickets = async (dto: RefundTicketDTO): Promise<Order> => {
 		if (allRefundableTicketsAreRefunded) {
 			newOrderStatus = OrderStatus.REFUNDED;
 
-			// 5.1 Revert Coupon Usage on full refund
-			if (order.couponUsage && order.couponUsage.coupon) {
-				await order.couponUsage.coupon.decrement(`currentUsageCount`, {
-					by: 1,
-					transaction,
-				});
-				await order.couponUsage.destroy();
-			}
+			// 5.1 Release Coupon Usage on full refund
+			await couponServices.releaseCouponUsage(order.id, transaction);
 		}
 		await order.update({ status: newOrderStatus }, { transaction });
 

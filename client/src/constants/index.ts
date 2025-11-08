@@ -6,6 +6,14 @@ import type {
 	ValidationRules,
 } from "@my-types/types";
 
+export const CSRF_CONFIG = {
+	COOKIE_NAME: import.meta.env.NODE_ENV === "production"
+			? "__Host-psifi.x-csrf-token"
+			: "psifi.x-csrf-token",
+	HEADER_NAME: 'x-csrf-token',
+} as const;
+
+
 /**
  * Application configuration object containing static and environment-based settings.
  *
@@ -40,6 +48,7 @@ export const ROUTES = {
 	DASHBOARD_TRIP: "/dashboard/trip",
 	DASHBOARD_USER: "/dashboard/user",
 	DASHBOARD_SYSTEM: "/dashboard/system",
+	CHECK_IN: "/check-in/:orderId",
 	PROFILE: "/profile",
 	VERIFY_EMAIL: "/verify-email",
 	SETTINGS: "/settings",
@@ -110,6 +119,9 @@ export const API_ENDPOINTS: ApiEndpoints = {
 		BASE: "/seats",
 		BY_ID: "/seats/:id"
 	},
+	CHECKIN: {
+		BASE: "/check-in/verify"
+	}
 } as const;
 
 /**
@@ -205,3 +217,12 @@ export const CHIP_COLORS = {
 	SUCCESS: "success",
 	WARNING: "warning",
 } as const;
+
+export const WEBSOCKET_CONNECTION_STATES = {
+    DISCONNECTED: 'disconnected',
+    CONNECTING: 'connecting',
+    CONNECTED: 'connected',
+    AUTHENTICATED: 'authenticated',
+    RECONNECTING: 'reconnecting',
+    ERROR: 'error'
+};

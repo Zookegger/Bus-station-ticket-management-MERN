@@ -1,10 +1,12 @@
 import { COMPUTED } from "@constants/config";
 import { Payment, PaymentAttributes } from "@models/payment";
-import { Ticket, TicketStatus } from "@models/ticket";
+import { Ticket } from "@models/ticket";
 import { Trip } from "@models/trip";
 import { Seat } from "@models/seat";
 import { PaymentMethod } from "@models/paymentMethod";
 import {
+	CleanupConfig,
+	CleanupResult,
 	GatewayRefundOptions,
 	InitiatePaymentDTO,
 	PaymentCallbackDTO,
@@ -15,11 +17,14 @@ import {
 	PaymentVerificationResult,
 } from "@my_types/payments";
 import * as paymentMethodServices from "@services/paymentMethodServices";
+import * as couponServices from "@services/couponServices";
 import logger from "@utils/logger";
 import { SeatStatus } from "@my_types/seat";
 import { Order, OrderStatus } from "@models/orders";
 import db from "@models/index";
-import { Transaction } from "sequelize";
+import { Op, Transaction } from "sequelize";
+import { TicketStatus } from "@my_types/ticket";
+import { voidTicket } from "./ticketServices";
 
 /**
  * Payment gateway interface - all gateways must implement this
@@ -71,91 +76,92 @@ const gatewayRegistry = new PaymentGatewayRegistry();
  */
 export const initiatePayment = async (
 	data: InitiatePaymentDTO,
-	transaction: Transaction
+	external_tx: Transaction
 ): Promise<{ paymentUrl: string; payment: PaymentResponseDTO }> => {
 	const { orderId, paymentMethodCode, additionalData } = data;
+	if (!orderId) throw new Error("No order Id provided");
 
-	if (!orderId) {
-		throw new Error("No order Id provided");
-	}
-
-	const order = await db.Order.findByPk(orderId, {
-		include: [
-			{
-				model: db.Ticket,
-				as: "tickets",
-				include: [
-					{
-						model: db.Seat,
-						as: "seat",
-						include: [{ model: db.Trip, as: "trip" }],
-					},
-				],
-			},
-		],
-		transaction,
-	});
-
-	if (!order) {
-		throw new Error("Order not found");
-	}
-
-	// Check if the order already has a different paymentId
-	if (order.paymentId) {
-		const payment = await db.Payment.findByPk(order.paymentId);
-		if (
-			payment &&
-			(payment.paymentStatus === PaymentStatus.COMPLETED ||
-				payment.paymentStatus === PaymentStatus.PROCESSING)
-		) {
-			throw {
-				status: 409,
-				message: "This order already has a payment associated with it.",
-			};
-		}
-	}
-
-	if (order.status !== OrderStatus.PENDING) {
-		throw new Error("Order is not in pending state");
-	}
-
-	if (!order.tickets || order.tickets.length === 0) {
-		throw new Error("No tickets found for this order");
-	}
-
-	const paidTickets = order.tickets.filter(
-		(t) => t.status === TicketStatus.BOOKED
-	);
-	if (paidTickets.length > 0) {
-		throw new Error(
-			"One or more tickets are already paid for in this order"
-		);
-	}
-
-	const totalAmount = Number(order.totalFinalPrice);
-
-	// Get payment method configuration
-	const payment_method = await paymentMethodServices.getPaymentMethodByCode(
-		paymentMethodCode.toLowerCase()
-	);
-
-	if (!payment_method) {
-		throw new Error(
-			`Payment method ${paymentMethodCode} not found or inactive`
-		);
-	}
-
-	// Get gateway handler
-	const gateway = gatewayRegistry.get(paymentMethodCode);
-	if (!gateway) {
-		throw new Error(
-			`No gateway handler registered for ${paymentMethodCode}`
-		);
-	}
-
-	const merchant_order_ref = generateMerchantOrderRef();
+	// Use caller transaction if provided; otherwise create one we control
+	const transaction = external_tx ?? (await db.sequelize.transaction());
+	const owns_tx = external_tx == null; // True if we created the transaction
 
 	try {
+		const order = await db.Order.findByPk(orderId, {
+			include: [
+				{
+					model: db.Ticket,
+					as: "tickets",
+					include: [
+						{
+							model: db.Seat,
+							as: "seat",
+							include: [{ model: db.Trip, as: "trip" }],
+						},
+					],
+				},
+			],
+			transaction,
+			lock: transaction.LOCK.UPDATE, // prevent concurrent modifications of order/tickets
+		});
+
+		if (!order) throw new Error("Order not found");
+		if (order.status !== OrderStatus.PENDING)
+			throw new Error("Order is not in pending state");
+		if (!order.tickets || order.tickets.length === 0)
+			throw new Error("No tickets found for this order");
+
+		// Check if the order already has a different paymentId
+		const existing_active_payment = await db.Payment.findOne({
+			where: {
+				orderId: order.id,
+				paymentStatus: {
+					[Op.in]: [
+						PaymentStatus.COMPLETED,
+						PaymentStatus.PROCESSING,
+					],
+				},
+			},
+			transaction,
+			lock: transaction.LOCK.UPDATE,
+		});
+
+		if (existing_active_payment)
+			throw {
+				status: 409,
+				message: "This order already has an active payment.",
+			};
+
+		// Prevent paying already-booked tickets
+		const paid_tickets = order.tickets.filter(
+			(t) => t.status === TicketStatus.BOOKED
+		);
+		if (paid_tickets.length > 0)
+			throw new Error(
+				"One or more tickets are already paid for in this order"
+			);
+
+		const totalAmount = Number(order.totalFinalPrice);
+
+		// Get payment method configuration and gateway
+		const payment_method =
+			await paymentMethodServices.getPaymentMethodByCode(
+				paymentMethodCode.toLowerCase()
+			);
+		if (!payment_method)
+			throw new Error(
+				`Payment method ${paymentMethodCode} not found or inactive`
+			);
+
+		// Get gateway handler
+		const gateway = gatewayRegistry.get(paymentMethodCode);
+		if (!gateway)
+			throw new Error(
+				`No gateway handler registered for ${paymentMethodCode}`
+			);
+
+		const merchant_order_ref = generateMerchantOrderRef();
+
+		// Create payment linked to the order
 		const payment = await Payment.create(
 			{
 				totalAmount,
@@ -170,9 +176,7 @@ export const initiatePayment = async (
 			{ transaction }
 		);
 
-		// Link payment to order
-		await order.update({ paymentId: payment.id }, { transaction });
-
+		// Mark tickets pending until callback
 		await Ticket.update(
 			{ status: TicketStatus.PENDING },
 			{ where: { id: order.tickets.map((t) => t.id) }, transaction }
@@ -185,33 +189,22 @@ export const initiatePayment = async (
 			additionalData
 		);
 
-		if (!payment_url) {
-			throw new Error("Failed to generate payment url");
-		}
+		if (!payment_url) throw new Error("Failed to generate payment url");
 
 		const completePayment = await getPaymentById(payment.id);
-
-		if (!completePayment) {
+		if (!completePayment)
 			throw new Error("Failed to retrieve created payment");
-		}
+
+		// Commit only if we created the transaction
+		if (owns_tx) await transaction.commit();
 
 		return {
 			paymentUrl: payment_url,
 			payment: completePayment,
 		};
 	} catch (error) {
-		// Rollback on error
-		if (!transaction) {
-			await Payment.destroy();
-			await Order.update({ paymentId: null }, { where: { id: orderId } });
-			await Ticket.update(
-				{ status: TicketStatus.INVALID },
-				{ where: { id: order.tickets.map((t) => t.id) } }
-			);
-		} else {
-			await transaction.rollback();
-		}
-
+		// Roll back only if we created the transaction; otherwise let caller handle it
+		if (owns_tx) await transaction.rollback();
 		throw error;
 	}
 };
@@ -455,6 +448,9 @@ export const handlePaymentCallback = async (
 					{ where: { id: seatIds }, transaction }
 				);
 			}
+
+			// Release coupon usage
+			await couponServices.releaseCouponUsage(order.id, transaction);
 		}
 
 		await transaction.commit();
@@ -596,4 +592,149 @@ export const processRefund = async (
 	);
 
 	return refund_result;
+};
+
+/**
+ * Cleans up expired and stale payment records.
+ * This function:
+ * 1. Finds payments that are PENDING/PROCESSING for too long
+ * 2. Marks them as EXPIRED
+ * 3. Cancels related orders
+ * 4. Releases reserved seats
+ * 5. Releases coupon usage
+ *
+ * @param {CleanupConfig} config - Cleanup configuration
+ * @returns {Promise<CleanupResult>} Statistics about the cleanup operation
+ */
+export const cleanupExpiredPayments = async (
+	config: CleanupConfig = {}
+): Promise<CleanupResult> => {
+	const {
+		expiryThresholdMinutes = 30,
+		batchSize = 100,
+		dryRun = false,
+	} = config;
+
+	const result: CleanupResult = {
+		expiredPayments: 0,
+		cancelledOrders: 0,
+		releasedCoupons: 0,
+		errors: 0,
+	};
+
+	const expiry_cutoff = new Date(
+		Date.now() - expiryThresholdMinutes * 60 * 1000
+	);
+
+	try {
+		// Find expired payments (PENDING/PROCESSING older than threshold)
+		const expired_payments = await db.Payment.findAll({
+			where: {
+				paymentStatus: {
+					[Op.in]: [PaymentStatus.PENDING, PaymentStatus.PROCESSING],
+				},
+				createdAt: {
+					[Op.lt]: expiry_cutoff,
+				},
+			},
+			include: [
+				{
+					model: db.Order,
+					as: "order",
+					where: {
+						status: {
+							[Op.in]: [OrderStatus.PENDING],
+						},
+					},
+				},
+			],
+			limit: batchSize,
+		});
+
+		logger.info(
+			`[Payment Cleanup] Found ${expired_payments.length} expired payments`
+		);
+
+		if (dryRun) {
+			logger.info(
+				`[Payment Cleanup] DRY RUN: Would expire ${expired_payments.length} payments`
+			);
+			result.expiredPayments = expired_payments.length;
+			return result;
+		}
+
+		// Process each expired payment
+		for (const payment of expired_payments) {
+			const transaction = await db.sequelize.transaction();
+
+			try {
+				// 1. Mark payment as expired
+				await payment.update(
+					{ paymentStatus: PaymentStatus.EXPIRED },
+					{ transaction }
+				);
+
+				// 2. Cancel the order
+				const order = await payment.getOrder();
+				if (order) {
+					await order.update(
+						{ status: OrderStatus.EXPIRED },
+						{ transaction }
+					);
+					result.cancelledOrders++;
+
+					// 3. Release tickets and seats
+					const tickets = await db.Ticket.findAll({
+						where: { orderId: order.id },
+						transaction,
+					});
+
+					// Void ticket and release seat
+					for (const ticket of tickets) {
+						const updated_ticket = await voidTicket(
+							ticket.id,
+							transaction
+						);
+						if (!updated_ticket) throw new Error("");
+					}
+
+					// 4. Releasing coupon usage if any
+
+					try {
+						await couponServices.releaseCouponUsage(
+							order.id,
+							transaction
+						);
+						result.releasedCoupons++;
+					} catch (err) {
+						// Coupon may not have been used, skip error
+						logger.warn(
+							`[Payment Cleanup] No coupon to release for order ${order.id}`
+						);
+					}
+				}
+
+				await transaction.commit();
+				logger.info(
+					`[Payment Cleanup] Expired payment ${payment.id} and cancelled order ${order?.id}`
+				);
+			} catch (err) {
+				await transaction.rollback();
+				result.errors++;
+				logger.error(
+					`[Payment Cleanup] Error processing payment ${payment.id}:`,
+					err
+				);
+			}
+		}
+
+		logger.info(
+			`[Payment Cleanup] Completed: ${result.expiredPayments} expired, ${result.cancelledOrders} orders cancelled, ${result.releasedCoupons} coupons released, ${result.errors} errors`
+		);
+
+		return result;
+	} catch (err) {
+		logger.error("[Payment Cleanup] Fatal error:", err);
+		throw err;
+	}
 };

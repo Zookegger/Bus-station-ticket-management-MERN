@@ -68,9 +68,6 @@ applyPassportStrategy();
 // Mount API routes under the /api prefix
 app.use("/api", apiRouter);
 
-// Mount CSRF protection only on admin routes
-// Note: CSRF is now applied per-route in the route files using csrfProtectionRoute
-
 /**
  * Health check endpoint to verify server status.
  *

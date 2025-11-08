@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node", "jest"],
+    "rootDir": ".",
+    "baseUrl": ".", // Explicitly set baseUrl for test environment
+    "outDir": "./dist-test",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": [
+    "src/**/*.ts",
+    "tests/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}
