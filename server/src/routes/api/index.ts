@@ -33,34 +33,34 @@ import debugRouter from "@routes/api/debugRouter";
 const apiRouter = Router();
 
 const formatMemoryUsage = (usage: NodeJS.MemoryUsage) => {
-    const toMB = (bytes: number) => (bytes / 1024 / 1024).toFixed(2) + 'MB';
-    return Object.fromEntries(
-        Object.entries(usage).map(([key, value]) => [key, toMB(value)])
-    )
-}
+	const toMB = (bytes: number) => (bytes / 1024 / 1024).toFixed(2) + "MB";
+	return Object.fromEntries(
+		Object.entries(usage).map(([key, value]) => [key, toMB(value)])
+	);
+};
 
 const formatUptime = (seconds: number) => {
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-    
-    const parts = [];
-    if (days > 0) parts.push(`${days}d`);
-    if (hours > 0) parts.push(`${hours}h`);
-    if (minutes > 0) parts.push(`${minutes}m`);
-    parts.push(`${secs}s`);
-    
-    return parts.join(' ');
-}
+	const days = Math.floor(seconds / 86400);
+	const hours = Math.floor((seconds % 86400) / 3600);
+	const minutes = Math.floor((seconds % 3600) / 60);
+	const secs = Math.floor(seconds % 60);
 
-apiRouter.get('/health', (_req: Request, res: Response) => {
-    res.json({
-        status: 'active',
-        timestamp: new Date().toISOString(),
-        memoryUsage: formatMemoryUsage(process.memoryUsage()),
-        uptime: formatUptime(process.uptime())
-    });
+	const parts = [];
+	if (days > 0) parts.push(`${days}d`);
+	if (hours > 0) parts.push(`${hours}h`);
+	if (minutes > 0) parts.push(`${minutes}m`);
+	parts.push(`${secs}s`);
+
+	return parts.join(" ");
+};
+
+apiRouter.get("/health", (_req: Request, res: Response) => {
+	res.json({
+		status: "active",
+		timestamp: new Date().toISOString(),
+		memoryUsage: formatMemoryUsage(process.memoryUsage()),
+		uptime: formatUptime(process.uptime()),
+	});
 });
 
 // Mount authentication routes under /auth prefix. It has its own stricter rate limiter.

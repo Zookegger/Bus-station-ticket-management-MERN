@@ -69,6 +69,13 @@ const Profile: React.FC = () => {
 			setSuccessMessage(null);
 
 			const token = localStorage.getItem("jwt");
+			const user_id = localStorage.getItem("user_id");
+
+			if (!user_id) {
+				setError("Unable to determine user identifier. Please re-authenticate.");
+				setIsLoading(false);
+				return;
+			}
 
 			const payload: UpdateProfileDTO & { gender?: string } = {
 				...editedProfile,
@@ -77,7 +84,7 @@ const Profile: React.FC = () => {
 			if (!payload.address) delete payload.address;
 
 			await axios.put(
-				`${APP_CONFIG.apiBaseUrl}${API_ENDPOINTS.USERS.UPDATE_PROFILE}`,
+				`${APP_CONFIG.apiBaseUrl}${API_ENDPOINTS.USERS.UPDATE_PROFILE.replace(":id", user_id)}`,
 				payload,
 				{ headers: { Authorization: `Bearer ${token}` } }
 			);
@@ -98,8 +105,14 @@ const Profile: React.FC = () => {
 			const token = localStorage.getItem("jwt");
 			const user_id = localStorage.getItem("user_id");
 
+			if (!user_id) {
+				setError("Unable to determine user identifier. Please re-authenticate.");
+				setDeleteDialogOpen(false);
+				return;
+			}
+
 			await axios.delete(
-				`${APP_CONFIG.apiBaseUrl}${API_ENDPOINTS.USERS.BASE}/${user_id}`,
+				`${APP_CONFIG.apiBaseUrl}${API_ENDPOINTS.USERS.ADMIN_DELETE.replace(":id", user_id)}`,
 				{ headers: { Authorization: `Bearer ${token}` } }
 			);
 

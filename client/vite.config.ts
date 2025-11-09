@@ -11,6 +11,9 @@ export default ({ mode }: { mode: string }) => {
 	return defineConfig({
 		plugins: [react(), tsconfigPaths()],
 		server: {
+			allowedHosts:[ 
+				"75c38663fb78.ngrok-free.app"
+			],
 			watch: {
 				usePolling: true,
 				interval: 300,

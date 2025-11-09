@@ -76,51 +76,115 @@ export const API_ENDPOINTS: ApiEndpoints = {
 		FORGOT_PASSWORD: "/auth/forgot-password",
 		VERIFY_EMAIL: "/auth/verify-email",
 		RESET_PASSWORD: "/auth/reset-password",
+		RESET_PASSWORD_WITH_TOKEN: "/auth/reset-password/:token",
+		CHANGE_PASSWORD: "/auth/change-password",
+		CHANGE_PASSWORD_WITH_ID: "/auth/change-password/:id",
 		ME: "/auth/me",
-		CSRF_TOKEN: "/auth/csrf-token"
+		CSRF_TOKEN: "/auth/csrf-token",
+		CSRF_VERIFY: "/auth/csrf-token"
 	},
 	USERS: {
 		BASE: "/users",
-		PROFILE: "/users/profile",
-		UPDATE_PROFILE: "/users/update-profile",
+		PROFILE: "/users/profile/:id",
+		UPDATE_PROFILE: "/users/profile/:id",
+		ADMIN_UPDATE: "/users/:id",
+		ADMIN_DELETE: "/users/:id",
 	},
 	VEHICLE: {
 		BASE: "/vehicles",
 		SEARCH: "/vehicles/search",
-		BY_ID: "/vehicles/:id"
+		BY_ID: "/vehicles/:id",
+		CREATE: "/vehicles",
+		UPDATE: "/vehicles/:id",
+		DELETE: "/vehicles/:id"
 	},
 	VEHICLE_TYPE: {
 		BASE: "/vehicle-types",
 		SEARCH: "/vehicle-types/search",
-		BY_ID: "/vehicle-types/:id"
+		BY_ID: "/vehicle-types/:id",
+		CREATE: "/vehicle-types",
+		UPDATE: "/vehicle-types/:id",
+		DELETE: "/vehicle-types/:id"
 	},
 	TRIP: {
 		BASE: "/trips",
 		SEARCH: "/trips/search",
-		BY_ID: "/trips/:id"
+		BY_ID: "/trips/:id",
+		CREATE: "/trips",
+		UPDATE: "/trips/:id",
+		DELETE: "/trips/:id",
+		ASSIGN_DRIVER: "/trips/:id/assign-driver",
+		AUTO_ASSIGN_DRIVER: "/trips/:id/auto-assign",
+		UNASSIGN_DRIVER: "/trips/:id/assign-driver"
 	},
 	DRIVER: {
 		BASE: "/drivers",
 		SEARCH: "/drivers/search",
-		BY_ID: "/drivers/:id"
+		BY_ID: "/drivers/:id",
+		CREATE: "/drivers",
+		UPDATE: "/drivers/:id",
+		DELETE: "/drivers/:id",
+		SCHEDULE: "/drivers/:id/schedule"
 	},
 	LOCATION: {
 		BASE: "/locations",
 		SEARCH: "/locations/search",
 		BY_ID: "/locations/:id",
-		BY_COORDINATES: "/locations/:lat/:lon"
+		BY_COORDINATES: "/locations/:lat/:lon",
+		CREATE: "/locations",
+		UPDATE: "/locations/:id",
+		DELETE: "/locations/:id"
 	},
 	ROUTE: {
 		BASE: "/routes",
 		SEARCH: "/routes/search",
-		BY_ID: "/routes/:id"
+		BY_ID: "/routes/:id",
+		CREATE: "/routes",
+		UPDATE: "/routes/:id",
+		DELETE: "/routes/:id"
+	},
+	COUPON: {
+		BASE: "/coupons",
+		SEARCH: "/coupons",
+		BY_ID: "/coupons/:id",
+		BY_CODE: "/coupons/code/:code",
+		ADD: "/coupons",
+		UPDATE: (id: number) => `/coupons/${id}`,
+		REMOVE: "/coupons/:id",
+		PREVIEW: "/coupons/preview",
 	},
 	SEAT: {
 		BASE: "/seats",
-		BY_ID: "/seats/:id"
+		BY_ID: "/seats/:id",
+		UPDATE: "/seats/:id"
+	},
+	PAYMENT_METHOD: {
+		BASE: "/payment-methods",
+		BY_CODE: "/payment-methods/code/:code",
+		ALL: "/payment-methods/all",
+		ACTIVE: "/payment-methods/active",
+		CREATE: "/payment-methods",
+		UPDATE: "/payment-methods/:id",
+		DELETE: "/payment-methods/:id",
+	},
+	ORDER: {
+		BASE: "/orders",
+		CREATE: "/orders",
+		BY_ID: "/orders/:id",
+		BY_USER: "/orders/user/:id",
+		BY_GUEST: "/orders/guest/:id",
+		REFUND: "/orders/:id/refund",
+	},
+	SETTINGS: {
+		BASE: "/settings",
+		UPDATE: "/settings/:key",
 	},
 	CHECKIN: {
-		BASE: "/check-in/verify"
+		VERIFY: "/check-in/:orderId"
+	},
+	DEBUG: {
+		TRIGGER_PAYMENT_CLEANUP: "/debug/trigger-payment-cleanup",
+		PAYMENT_QUEUE_STATS: "/debug/payment-queue-stats",
 	}
 } as const;
 
