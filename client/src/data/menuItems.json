@@ -29,6 +29,13 @@
   },
   {
     "id": 5,
+    "label": "Orders",
+    "icon": "person",
+    "path": "/dashboard/order",
+    "active": false
+  },
+  {
+    "id": 6,
     "label": "System",
     "icon": "gear",
     "path": "/dashboard/system",

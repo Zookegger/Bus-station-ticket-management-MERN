@@ -22,11 +22,11 @@ export type Gender = "male" | "female" | "other";
  * by the service layer or validators before persisting updates.
  */
 export interface RegisterDTO {
-	username: string;
-	email: string;
-	phoneNumber: string;
-	password: string;
-	confirmPassword: string;
+  username: string;
+  email: string;
+  phoneNumber: string;
+  password: string;
+  confirmPassword: string;
 }
 /**
  * Data Transfer Object for logging in.
@@ -38,8 +38,8 @@ export interface RegisterDTO {
  * by the service layer or validators before persisting updates.
  */
 export interface LoginDTO {
-	username: string;
-	password: string;
+  username: string;
+  password: string;
 }
 /**
  * Data Transfer Object for updating a user's profile.
@@ -56,12 +56,14 @@ export interface LoginDTO {
  * @property {string|null} [phoneNumber] - The user's phone number (include country code where applicable).
  */
 export interface UpdateProfileDTO {
-	fullName?: string | null;
-	address?: string | null;
-	gender?: Gender | null;
-	avatar?: string | null;
-	dateOfBirth?: Date | null;
-	phoneNumber?: string | null;
+  fullName?: string | null;
+  address?: string | null;
+  gender?: Gender | null;
+  avatar?: string | null;
+  dateOfBirth?: Date | string | null;
+  phoneNumber?: string | null;
+  role?: string | null;
+  email?: string | null;
 }
 
 export interface UpdateAdminProfileDTO {

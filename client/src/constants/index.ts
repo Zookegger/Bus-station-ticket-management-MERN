@@ -1,9 +1,9 @@
 import type {
-	AppConfig,
-	ApiEndpoints,
-	StorageKeys,
-	Pagination,
-	ValidationRules,
+  AppConfig,
+  ApiEndpoints,
+  StorageKeys,
+  Pagination,
+  ValidationRules,
 } from "@my-types/types";
 
 /**
@@ -16,12 +16,11 @@ import type {
  * - For production, ensure `VITE_API_BASE_URL` is set to a secure HTTPS endpoint.
  */
 export const APP_CONFIG: AppConfig = {
-	name: import.meta.env.VITE_APP_NAME || "Default App",
-	version: "1.0.0",
-	description: "Fast, easy, and secure bus ticket booking",
-	author: "EasyRide Team",
-	apiBaseUrl:
-		import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:5000/api",
+  name: import.meta.env.VITE_APP_NAME || "Default App",
+  version: "1.0.0",
+  description: "Fast, easy, and secure bus ticket booking",
+  author: "EasyRide Team",
+  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:5000/api",
 } as const;
 
 /**
@@ -33,20 +32,21 @@ export const APP_CONFIG: AppConfig = {
  * - Ensure all routes are protected appropriately (e.g., auth guards for DASHBOARD).
  */
 export const ROUTES = {
-	HOME: "/",
-	DASHBOARD_HOME: "/dashboard/home",
-	DASHBOARD_VEHICLE: "/dashboard/vehicle",
-	DASHBOARD_VEHICLE_TYPE: "/dashboard/vehicle-type",
-	DASHBOARD_TRIP: "/dashboard/trip",
-	DASHBOARD_USER: "/dashboard/user",
-	DASHBOARD_SYSTEM: "/dashboard/system",
-	PROFILE: "/profile",
-	VERIFY_EMAIL: "/verify-email",
-	SETTINGS: "/settings",
-	LOGIN: "/login",
-	REGISTER: "/register",
-	NOT_FOUND: "/404",
-	PRIVACY_POLICY: "/privacy",
+  HOME: "/",
+  DASHBOARD_HOME: "/dashboard/home",
+  DASHBOARD_VEHICLE: "/dashboard/vehicle",
+  DASHBOARD_VEHICLE_TYPE: "/dashboard/vehicle-type",
+  DASHBOARD_TRIP: "/dashboard/trip",
+  DASHBOARD_USER: "/dashboard/user",
+  DASHBOARD_ORDER: "/dashboard/order",
+  DASHBOARD_SYSTEM: "/dashboard/system",
+  PROFILE: "/profile",
+  VERIFY_EMAIL: "/verify-email",
+  SETTINGS: "/settings",
+  LOGIN: "/login",
+  REGISTER: "/register",
+  NOT_FOUND: "/404",
+  PRIVACY_POLICY: "/privacy",
 } as const;
 
 /**
@@ -59,57 +59,57 @@ export const ROUTES = {
  * - All endpoints assume RESTful conventions; adjust for GraphQL if needed.
  */
 export const API_ENDPOINTS: ApiEndpoints = {
-	AUTH: {
-		LOGIN: "/auth/login",
-		REGISTER: "/auth/register",
-		LOGOUT: "/auth/logout",
-		REFRESH: "/auth/refresh",
-		FORGOT_PASSWORD: "/auth/forgot-password",
-		VERIFY_EMAIL: "/auth/verify-email",
-		RESET_PASSWORD: "/auth/reset-password",
-		ME: "/auth/me",
-		CSRF_TOKEN: "/auth/csrf-token"
-	},
-	USERS: {
-		BASE: "/users",
-		PROFILE: "/users/profile",
-		UPDATE_PROFILE: "/users/update-profile",
-	},
-	VEHICLE: {
-		BASE: "/vehicles",
-		SEARCH: "/vehicles/search",
-		BY_ID: "/vehicles/:id"
-	},
-	VEHICLE_TYPE: {
-		BASE: "/vehicle-types",
-		SEARCH: "/vehicle-types/search",
-		BY_ID: "/vehicle-types/:id"
-	},
-	TRIP: {
-		BASE: "/trips",
-		SEARCH: "/trips/search",
-		BY_ID: "/trips/:id"
-	},
-	DRIVER: {
-		BASE: "/drivers",
-		SEARCH: "/drivers/search",
-		BY_ID: "/drivers/:id"
-	},
-	LOCATION: {
-		BASE: "/locations",
-		SEARCH: "/locations/search",
-		BY_ID: "/locations/:id",
-		BY_COORDINATES: "/locations/:lat/:lon"
-	},
-	ROUTE: {
-		BASE: "/routes",
-		SEARCH: "/routes/search",
-		BY_ID: "/routes/:id"
-	},
-	SEAT: {
-		BASE: "/seats",
-		BY_ID: "/seats/:id"
-	},
+  AUTH: {
+    LOGIN: "/auth/login",
+    REGISTER: "/auth/register",
+    LOGOUT: "/auth/logout",
+    REFRESH: "/auth/refresh",
+    FORGOT_PASSWORD: "/auth/forgot-password",
+    VERIFY_EMAIL: "/auth/verify-email",
+    RESET_PASSWORD: "/auth/reset-password",
+    ME: "/auth/me",
+    CSRF_TOKEN: "/auth/csrf-token",
+  },
+  USERS: {
+    BASE: "/users",
+    PROFILE: "/users/profile",
+    UPDATE_PROFILE: "/users/update-profile",
+  },
+  VEHICLE: {
+    BASE: "/vehicles",
+    SEARCH: "/vehicles/search",
+    BY_ID: "/vehicles/:id",
+  },
+  VEHICLE_TYPE: {
+    BASE: "/vehicle-types",
+    SEARCH: "/vehicle-types/search",
+    BY_ID: "/vehicle-types/:id",
+  },
+  TRIP: {
+    BASE: "/trips",
+    SEARCH: "/trips/search",
+    BY_ID: "/trips/:id",
+  },
+  DRIVER: {
+    BASE: "/drivers",
+    SEARCH: "/drivers/search",
+    BY_ID: "/drivers/:id",
+  },
+  LOCATION: {
+    BASE: "/locations",
+    SEARCH: "/locations/search",
+    BY_ID: "/locations/:id",
+    BY_COORDINATES: "/locations/:lat/:lon",
+  },
+  ROUTE: {
+    BASE: "/routes",
+    SEARCH: "/routes/search",
+    BY_ID: "/routes/:id",
+  },
+  SEAT: {
+    BASE: "/seats",
+    BY_ID: "/seats/:id",
+  },
 } as const;
 
 /**
@@ -123,10 +123,10 @@ export const API_ENDPOINTS: ApiEndpoints = {
  *   const user = localStorage.getItem(STORAGE_KEYS.USER);
  */
 export const STORAGE_KEYS: StorageKeys = {
-	TOKEN: "easyride_auth_token", // Prefixed
-	USER: "easyride_user_data",
-	THEME: "easyride_theme_preference",
-	LANGUAGE: "easyride_language_preference",
+  TOKEN: "easyride_auth_token", // Prefixed
+  USER: "easyride_user_data",
+  THEME: "easyride_theme_preference",
+  LANGUAGE: "easyride_language_preference",
 } as const;
 
 /**
@@ -138,9 +138,9 @@ export const STORAGE_KEYS: StorageKeys = {
  * - Persist selection via localStorage with STORAGE_KEYS.THEME.
  */
 export const THEMES = {
-	LIGHT: "light",
-	DARK: "dark",
-	AUTO: "auto",
+  LIGHT: "light",
+  DARK: "dark",
+  AUTO: "auto",
 } as const;
 
 /**
@@ -152,8 +152,8 @@ export const THEMES = {
  * - Integrate with libraries like react-i18next for full i18n support.
  */
 export const LANGUAGES = {
-	EN: "en",
-	VI: "vi",
+  EN: "en",
+  VI: "vi",
 } as const;
 
 /**
@@ -165,9 +165,9 @@ export const LANGUAGES = {
  * - Server-side pagination should align with these for consistency.
  */
 export const PAGINATION: Pagination = {
-	DEFAULT_PAGE: 1,
-	DEFAULT_LIMIT: 10,
-	LIMIT_OPTIONS: [5, 10, 20, 50],
+  DEFAULT_PAGE: 1,
+  DEFAULT_LIMIT: 10,
+  LIMIT_OPTIONS: [5, 10, 20, 50],
 } as const;
 
 /**
@@ -181,10 +181,10 @@ export const PAGINATION: Pagination = {
  *   const isValidEmail = VALIDATION_RULES.EMAIL_REGEX.test(email);
  */
 export const VALIDATION_RULES: ValidationRules = {
-	EMAIL_REGEX: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-	PASSWORD_MIN_LENGTH: 8,
-	NAME_MIN_LENGTH: 2,
-	NAME_MAX_LENGTH: 50,
+  EMAIL_REGEX: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+  PASSWORD_MIN_LENGTH: 8,
+  NAME_MIN_LENGTH: 2,
+  NAME_MAX_LENGTH: 50,
 } as const;
 
 /**
@@ -197,11 +197,11 @@ export const VALIDATION_RULES: ValidationRules = {
  *   const color = CONSTANTS.CHIP_COLORS.SUCCESS; // "success"
  */
 export const CHIP_COLORS = {
-	DEFAULT: "default",
-	PRIMARY: "primary",
-	SECONDARY: "secondary",
-	ERROR: "error",
-	INFO: "info",
-	SUCCESS: "success",
-	WARNING: "warning",
+  DEFAULT: "default",
+  PRIMARY: "primary",
+  SECONDARY: "secondary",
+  ERROR: "error",
+  INFO: "info",
+  SUCCESS: "success",
+  WARNING: "warning",
 } as const;
