@@ -7,12 +7,12 @@ import type {
 } from "@my-types/types";
 
 export const CSRF_CONFIG = {
-	COOKIE_NAME: import.meta.env.NODE_ENV === "production"
+	COOKIE_NAME:
+		import.meta.env.NODE_ENV === "production"
 			? "__Host-psifi.x-csrf-token"
 			: "psifi.x-csrf-token",
-	HEADER_NAME: 'x-csrf-token',
+	HEADER_NAME: "x-csrf-token",
 } as const;
-
 
 /**
  * Application configuration object containing static and environment-based settings.
@@ -81,50 +81,50 @@ export const API_ENDPOINTS: ApiEndpoints = {
 		CHANGE_PASSWORD_WITH_ID: "/auth/change-password/:id",
 		ME: "/auth/me",
 		CSRF_TOKEN: "/auth/csrf-token",
-		CSRF_VERIFY: "/auth/csrf-token"
+		CSRF_VERIFY: "/auth/csrf-token",
 	},
 	USERS: {
 		BASE: "/users",
 		PROFILE: "/users/profile/:id",
 		UPDATE_PROFILE: "/users/profile/:id",
-		ADMIN_UPDATE: "/users/:id",
-		ADMIN_DELETE: "/users/:id",
+		ADMIN_UPDATE: (id: number) => `/users/${id}`,
+		ADMIN_DELETE: (id: number) => `/users/${id}`,
 	},
 	VEHICLE: {
 		BASE: "/vehicles",
 		SEARCH: "/vehicles/search",
 		BY_ID: "/vehicles/:id",
 		CREATE: "/vehicles",
-		UPDATE: "/vehicles/:id",
-		DELETE: "/vehicles/:id"
+		UPDATE: (id: number) => `/vehicles/${id}`,
+		DELETE: (id: number) => `/vehicles/${id}`,
 	},
 	VEHICLE_TYPE: {
 		BASE: "/vehicle-types",
 		SEARCH: "/vehicle-types/search",
 		BY_ID: "/vehicle-types/:id",
 		CREATE: "/vehicle-types",
-		UPDATE: "/vehicle-types/:id",
-		DELETE: "/vehicle-types/:id"
+		UPDATE: (id: number) => `/vehicle-types/${id}`,
+		DELETE: (id: number) => `/vehicle-types/${id}`,
 	},
 	TRIP: {
 		BASE: "/trips",
 		SEARCH: "/trips/search",
 		BY_ID: "/trips/:id",
 		CREATE: "/trips",
-		UPDATE: "/trips/:id",
-		DELETE: "/trips/:id",
+		UPDATE: (id: number) => `/trips/${id}`,
+		DELETE: (id: number) => `/trips/${id}`,
 		ASSIGN_DRIVER: "/trips/:id/assign-driver",
 		AUTO_ASSIGN_DRIVER: "/trips/:id/auto-assign",
-		UNASSIGN_DRIVER: "/trips/:id/assign-driver"
+		UNASSIGN_DRIVER: "/trips/:id/assign-driver",
 	},
 	DRIVER: {
 		BASE: "/drivers",
 		SEARCH: "/drivers/search",
 		BY_ID: "/drivers/:id",
 		CREATE: "/drivers",
-		UPDATE: "/drivers/:id",
-		DELETE: "/drivers/:id",
-		SCHEDULE: "/drivers/:id/schedule"
+		UPDATE: (id: number) => `/drivers/${id}`,
+		DELETE: (id: number) => `/drivers/${id}`,
+		SCHEDULE: "/drivers/:id/schedule",
 	},
 	LOCATION: {
 		BASE: "/locations",
@@ -132,16 +132,16 @@ export const API_ENDPOINTS: ApiEndpoints = {
 		BY_ID: "/locations/:id",
 		BY_COORDINATES: "/locations/:lat/:lon",
 		CREATE: "/locations",
-		UPDATE: "/locations/:id",
-		DELETE: "/locations/:id"
+		UPDATE: (id: number) => `/locations/${id}`,
+		DELETE: (id: number) => `/locations/${id}`,
 	},
 	ROUTE: {
 		BASE: "/routes",
 		SEARCH: "/routes/search",
 		BY_ID: "/routes/:id",
 		CREATE: "/routes",
-		UPDATE: "/routes/:id",
-		DELETE: "/routes/:id"
+		UPDATE: (id: number) => `/routes/${id}`,
+		DELETE: (id: number) => `/routes/${id}`,
 	},
 	COUPON: {
 		BASE: "/coupons",
@@ -150,13 +150,13 @@ export const API_ENDPOINTS: ApiEndpoints = {
 		BY_CODE: "/coupons/code/:code",
 		ADD: "/coupons",
 		UPDATE: (id: number) => `/coupons/${id}`,
-		REMOVE: "/coupons/:id",
+		DELETE: (id: number) => `/coupons/${id}`,
 		PREVIEW: "/coupons/preview",
 	},
 	SEAT: {
 		BASE: "/seats",
 		BY_ID: "/seats/:id",
-		UPDATE: "/seats/:id"
+		UPDATE: "/seats/:id",
 	},
 	PAYMENT_METHOD: {
 		BASE: "/payment-methods",
@@ -164,8 +164,8 @@ export const API_ENDPOINTS: ApiEndpoints = {
 		ALL: "/payment-methods/all",
 		ACTIVE: "/payment-methods/active",
 		CREATE: "/payment-methods",
-		UPDATE: "/payment-methods/:id",
-		DELETE: "/payment-methods/:id",
+		UPDATE: (id: number) => `/payment-methods/${id}`,
+		DELETE: (id: number) => `/payment-methods/${id}`,
 	},
 	ORDER: {
 		BASE: "/orders",
@@ -180,12 +180,12 @@ export const API_ENDPOINTS: ApiEndpoints = {
 		UPDATE: "/settings/:key",
 	},
 	CHECKIN: {
-		VERIFY: "/check-in/:orderId"
+		VERIFY: "/check-in/:orderId",
 	},
 	DEBUG: {
 		TRIGGER_PAYMENT_CLEANUP: "/debug/trigger-payment-cleanup",
 		PAYMENT_QUEUE_STATS: "/debug/payment-queue-stats",
-	}
+	},
 } as const;
 
 /**
@@ -283,10 +283,10 @@ export const CHIP_COLORS = {
 } as const;
 
 export const WEBSOCKET_CONNECTION_STATES = {
-    DISCONNECTED: 'disconnected',
-    CONNECTING: 'connecting',
-    CONNECTED: 'connected',
-    AUTHENTICATED: 'authenticated',
-    RECONNECTING: 'reconnecting',
-    ERROR: 'error'
+	DISCONNECTED: "disconnected",
+	CONNECTING: "connecting",
+	CONNECTED: "connected",
+	AUTHENTICATED: "authenticated",
+	RECONNECTING: "reconnecting",
+	ERROR: "error",
 };
