@@ -7,7 +7,11 @@ import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { Box } from "@mui/system";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
-import { AddCouponForm, CouponDetailsDrawer } from "./components";
+import {
+	AddCouponForm,
+	CouponDetailsDrawer,
+	DeleteCouponForm,
+} from "./components";
 import EditCouponForm from "./components/EditCouponForm";
 
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
@@ -17,6 +21,7 @@ const CouponPage: React.FC = () => {
 	const [coupons, setCoupons] = useState<Coupon[] | null>(null);
 	const [addOpen, setAddOpen] = useState<boolean>(false);
 	const [editOpen, setEditOpen] = useState<boolean>(false);
+	const [deleteOpen, setDeleteOpen] = useState<boolean>(false);
 	const [detailOpen, setDetailOpen] = useState<boolean>(false);
 	const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
 
@@ -44,13 +49,25 @@ const CouponPage: React.FC = () => {
 			setDetailOpen(false);
 			setEditOpen(true);
 		}
+	};
 
+	const handleOpenDelete = (id: number) => {
+		if (coupons === null) {
+			return;
+		}
+
+		const detail = coupons.find((c) => c.id === id);
+		if (detail) {
+			setSelectedCoupon(detail);
+			setDetailOpen(false);
+			setDeleteOpen(true);
+		}
 	};
 
 	const handleCloseDrawer = () => {
 		setDetailOpen(false);
 		setSelectedCoupon(null);
-	}
+	};
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -127,7 +144,11 @@ const CouponPage: React.FC = () => {
 									"dd/MM/yyyy - HH:mm:ss"
 								).toString(),
 							}))}
-							onRowClick={(e) => handleOpenDrawer(Number.parseInt(e.id.toString()))}
+							onRowClick={(e) =>
+								handleOpenDrawer(
+									Number.parseInt(e.id.toString())
+								)
+							}
 							columns={
 								[
 									{
@@ -190,13 +211,23 @@ const CouponPage: React.FC = () => {
 				onClose={() => setAddOpen(false)}
 				onCreated={() => setIsLoading(true)}
 			/>
-			<CouponDetailsDrawer
-				coupon={selectedCoupon}
-				open={detailOpen}
-				onClose={handleCloseDrawer}
-				onDelete={() => setIsLoading(true)}
-				onEdit={() => handleOpenEdit(selectedCoupon!.id)}
-			/>
+			{selectedCoupon && (
+				<>
+					<CouponDetailsDrawer
+						coupon={selectedCoupon}
+						open={detailOpen}
+						onClose={handleCloseDrawer}
+						onDelete={() => handleOpenDelete(selectedCoupon.id)}
+						onEdit={() => handleOpenEdit(selectedCoupon.id)}
+					/>
+					<DeleteCouponForm
+						id={selectedCoupon.id}
+						open={deleteOpen}
+						onClose={() => setDeleteOpen(false)}
+						onConfirm={() => setIsLoading(true)}
+					/>
+				</>
+			)}
 		</Box>
 	);
 };

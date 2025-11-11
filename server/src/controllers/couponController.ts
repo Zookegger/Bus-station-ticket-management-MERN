@@ -14,10 +14,10 @@ export const AddCoupon = async (
 ): Promise<void> => {
 	try {
 		const dto: AddCouponDTO = req.body;
-		const file = req.file;
+		const imageFile = req.file;
 		if (!dto) throw { status: 400, message: "Coupon data is required." };
 
-		const imgUrl = file ? `/uploads/${file.filename}` : undefined;
+		const imgUrl = imageFile ? `/uploads/${imageFile.filename}` : undefined;
 
 		if (imgUrl != undefined) {
 			dto.imgUrl = imgUrl;

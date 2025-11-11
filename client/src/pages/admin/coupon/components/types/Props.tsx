@@ -14,6 +14,7 @@ export interface EditCouponFormProps {
 }
 
 export interface DeleteCouponFormProps {
+	id?: number;
 	open: boolean;
 	onClose: () => void;
 	onConfirm: () => void;

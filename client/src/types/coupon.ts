@@ -41,7 +41,7 @@ export interface AddCouponDTO {
 	endPeriod: string; // ISO Date string
 	isActive?: boolean;
 	description?: string;
-	imgUrl?: string;
+	imgUrl?: string | null;
 	title?: string;
 }
 
@@ -57,7 +57,7 @@ export interface UpdateCouponDTO {
 	endPeriod?: string; // ISO Date string
 	isActive?: boolean;
 	description?: string;
-	imgUrl?: string;
+	imgUrl?: string | null;
 	title?: string;
 }
 

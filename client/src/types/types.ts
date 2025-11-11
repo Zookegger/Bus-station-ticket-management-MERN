@@ -26,32 +26,32 @@ export interface ApiEndpoints {
 		readonly BASE: string;
 		readonly PROFILE: string;
 		readonly UPDATE_PROFILE: string;
-		readonly ADMIN_UPDATE: string;
-		readonly ADMIN_DELETE: string;
+		readonly ADMIN_UPDATE: (id: number) => string;
+		readonly ADMIN_DELETE: (id: number) => string;
 	};
 	readonly VEHICLE: {
 		readonly BASE: string;
 		readonly SEARCH: string;
 		readonly BY_ID: string;
 		readonly CREATE: string;
-		readonly UPDATE: string;
-		readonly DELETE: string;
+		readonly UPDATE: (id: number) => string;
+		readonly DELETE: (id: number) => string;
 	};
 	readonly VEHICLE_TYPE: {
 		readonly BASE: string;
 		readonly SEARCH: string;
 		readonly BY_ID: string;
 		readonly CREATE: string;
-		readonly UPDATE: string;
-		readonly DELETE: string;
+		readonly UPDATE: (id: number) => string;
+		readonly DELETE: (id: number) => string;
 	};
 	readonly TRIP: {
 		readonly BASE: string;
 		readonly SEARCH: string;
 		readonly BY_ID: string;
 		readonly CREATE: string;
-		readonly UPDATE: string;
-		readonly DELETE: string;
+		readonly UPDATE: (id: number) => string;
+		readonly DELETE: (id: number) => string;
 		readonly ASSIGN_DRIVER: string;
 		readonly AUTO_ASSIGN_DRIVER: string;
 		readonly UNASSIGN_DRIVER: string;
@@ -61,8 +61,8 @@ export interface ApiEndpoints {
 		readonly SEARCH: string;
 		readonly BY_ID: string;
 		readonly CREATE: string;
-		readonly UPDATE: string;
-		readonly DELETE: string;
+		readonly UPDATE: (id: number) => string;
+		readonly DELETE: (id: number) => string;
 		readonly SCHEDULE: string;
 	};
 	readonly LOCATION: {
@@ -71,16 +71,16 @@ export interface ApiEndpoints {
 		readonly BY_ID: string;
 		readonly BY_COORDINATES: string;
 		readonly CREATE: string;
-		readonly UPDATE: string;
-		readonly DELETE: string;
+		readonly UPDATE: (id: number) => string;
+		readonly DELETE: (id: number) => string;
 	};
 	readonly ROUTE: {
 		readonly BASE: string;
 		readonly SEARCH: string;
 		readonly BY_ID: string;
 		readonly CREATE: string;
-		readonly UPDATE: string;
-		readonly DELETE: string;
+		readonly UPDATE: (id: number) =>  string;
+		readonly DELETE: (id: number) =>  string;
 	};
 	readonly COUPON: {
 		readonly BASE: string;
@@ -89,7 +89,7 @@ export interface ApiEndpoints {
 		readonly BY_CODE: string;
 		readonly ADD: string;
 		readonly UPDATE: (id: number) => string;
-		readonly REMOVE: string;
+		readonly DELETE: (id: number) => string;
 		readonly PREVIEW: string;
 	};
 	readonly SEAT: {
@@ -103,8 +103,8 @@ export interface ApiEndpoints {
 		readonly ALL: string;
 		readonly ACTIVE: string;
 		readonly CREATE: string;
-		readonly UPDATE: string;
-		readonly DELETE: string;
+		readonly UPDATE: (id: number) => string;
+		readonly DELETE: (id: number) => string;
 	};
 	readonly ORDER: {
 		readonly BASE: string;

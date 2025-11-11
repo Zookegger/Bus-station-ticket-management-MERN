@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { AddCouponFormProps } from "./types/Props";
 import { COUPON_TYPES, type AddCouponDTO } from "@my-types";
@@ -23,11 +23,14 @@ import {
 	MenuItem,
 	Select,
 	TextField,
+	Typography,
 } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { DateTimePicker } from "@mui/x-date-pickers";
 import { isValid } from "date-fns";
+import { Stack } from "@mui/system";
+import { Clear } from "@mui/icons-material";
 
 axios.defaults.withCredentials = true;
 
@@ -75,12 +78,35 @@ const AddCouponForm: React.FC<AddCouponFormProps> = ({
 	});
 	const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 	const [serverError, setServerError] = useState<string | null>(null);
+	const [imageFile, setImageFile] = useState<File | null>(null);
+	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+	const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		if (!("files" in e.target)) return;
+		const file = e.target.files?.[0] ?? null;
+		setImageFile(file);
+	};
+
+	useEffect(() => {
+		if (!imageFile) {
+			setPreviewUrl(null);
+			return;
+		}
+		const url = URL.createObjectURL(imageFile);
+		setPreviewUrl(url);
+		console.log(previewUrl);
+		return () => URL.revokeObjectURL(url);
+	}, [imageFile]);
 
 	/**
 	 * Resets the form state whenever the dialog closes so the next open starts fresh.
 	 */
 	const resetForm = (): void => {
 		setFormData({ ...INITIAL_FORM_STATE });
+		setImageFile(null);
+		setPreviewUrl(null);
 		setErrors({});
 		setServerError(null);
 	};
@@ -90,6 +116,15 @@ const AddCouponForm: React.FC<AddCouponFormProps> = ({
 			resetForm();
 		}
 	}, [open]);
+
+	const clearImage = () => {
+		setImageFile(null);
+		setPreviewUrl(null);
+
+		if (fileInputRef.current) {
+			fileInputRef.current.value = "";
+		}
+	}
 
 	/**
 	 * Generic handler that keeps local state in sync with text, number, or boolean inputs.
@@ -225,14 +260,27 @@ const AddCouponForm: React.FC<AddCouponFormProps> = ({
 				endPeriod: new Date(formData.endPeriod as string).toISOString(),
 				isActive: formData.isActive,
 				description: formData.description?.trim() || undefined,
-				imgUrl: formData.imgUrl?.trim() || undefined,
 				title: formData.title?.trim() || undefined,
 			};
 
-			const response = await axios.post(
-				API_ENDPOINTS.COUPON.ADD,
-				payload
-			);
+			let response;
+
+			// If a file is selected, send multipart/form-data so multer can read req.file
+			if (imageFile) {
+				const formData = new FormData();
+				Object.entries(payload).forEach(([k, v]) =>
+					formData.append(k, v)
+				);
+
+				formData.append("file", imageFile, imageFile.name);
+
+				response = await axios.post(API_ENDPOINTS.COUPON.ADD, {
+					headers: { "Content-Type": "multipart/form-data" },
+				});
+			} else {
+				response = await axios.post(API_ENDPOINTS.COUPON.ADD, payload);
+			}
+
 			onCreated?.(response.data);
 			resetForm();
 			onClose();
@@ -261,9 +309,43 @@ const AddCouponForm: React.FC<AddCouponFormProps> = ({
 	return (
 		<LocalizationProvider dateAdapter={AdapterDateFns}>
 			<Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-				<DialogTitle>Add New Coupon</DialogTitle>
-				<DialogContent>
-					<Box component="form" p={1} onSubmit={handleSubmit}>
+				<Box component="form" p={1} onSubmit={handleSubmit}>
+					<DialogTitle>
+						<Box
+							display={"flex"}
+							flexDirection={"row"}
+							justifyContent={"space-between"}
+							alignItems={"center"}
+						>
+							<Typography variant="h5" fontWeight={"600"}>
+								Add New Coupon
+							</Typography>
+							<FormControl
+								sx={{
+									alignItems: "center",
+									justifyContent: "center",
+								}}
+								error={!!errors.isActive}
+							>
+								<FormControlLabel
+									control={
+										<Checkbox
+											checked={formData.isActive}
+											onChange={(event) =>
+												handleInputChange(
+													"isActive",
+													event.target.checked
+												)
+											}
+										/>
+									}
+									label="Active"
+									sx={{ margin: 0 }}
+								/>
+							</FormControl>
+						</Box>
+					</DialogTitle>
+					<DialogContent>
 						{serverError && (
 							<Alert severity="error" sx={{ mb: 2 }}>
 								{serverError}
@@ -271,7 +353,7 @@ const AddCouponForm: React.FC<AddCouponFormProps> = ({
 						)}
 
 						<Grid container spacing={2}>
-							<Grid size={{ xs: 12, md: 6 }}>
+							<Grid size={{ xs: 12, sm: 6 }}>
 								<FormControl
 									fullWidth
 									required
@@ -296,7 +378,7 @@ const AddCouponForm: React.FC<AddCouponFormProps> = ({
 								</FormControl>
 							</Grid>
 
-							<Grid size={{ xs: 12, md: 6 }}>
+							<Grid size={{ xs: 12, sm: 6 }}>
 								<FormControl
 									fullWidth
 									required
@@ -324,7 +406,7 @@ const AddCouponForm: React.FC<AddCouponFormProps> = ({
 								</FormControl>
 							</Grid>
 
-							<Grid size={{ xs: 12, md: 6 }}>
+							<Grid size={{ xs: 12, sm: 6 }}>
 								<FormControl
 									fullWidth
 									required
@@ -377,7 +459,7 @@ const AddCouponForm: React.FC<AddCouponFormProps> = ({
 								</FormControl>
 							</Grid>
 
-							<Grid size={{ xs: 12, md: 6 }}>
+							<Grid size={{ xs: 12, sm: 6 }}>
 								<FormControl
 									fullWidth
 									required
@@ -443,61 +525,7 @@ const AddCouponForm: React.FC<AddCouponFormProps> = ({
 								</FormControl>
 							</Grid>
 
-							<Grid size={{ xs: 12, md: 6 }}>
-								<FormControl
-									fullWidth
-									required
-									error={!!errors.maxUsage}
-								>
-									<TextField
-										label="Max usage"
-										type="number"
-										value={formData.maxUsage ?? 1}
-										slotProps={{ htmlInput: { min: 1 } }}
-										onChange={(event) => {
-											const parsed = Number(
-												event.target.value
-											);
-											handleInputChange(
-												"maxUsage",
-												Math.max(1, parsed)
-											);
-										}}
-									/>
-									{errors.maxUsage && (
-										<FormHelperText>
-											{errors.maxUsage}
-										</FormHelperText>
-									)}
-								</FormControl>
-							</Grid>
-
-							<Grid size={{ xs: 12, md: 6 }} display={"flex"}>
-								<FormControl
-									sx={{
-										alignItems: "center",
-										justifyContent: "center",
-									}}
-									error={!!errors.isActive}
-								>
-									<FormControlLabel
-										control={
-											<Checkbox
-												checked={formData.isActive}
-												onChange={(event) =>
-													handleInputChange(
-														"isActive",
-														event.target.checked
-													)
-												}
-											/>
-										}
-										label="Active"
-									/>
-								</FormControl>
-							</Grid>
-
-							<Grid size={{ xs: 12, md: 6 }}>
+							<Grid size={{ xs: 12, sm: 6 }}>
 								<FormControl
 									fullWidth
 									required
@@ -527,7 +555,7 @@ const AddCouponForm: React.FC<AddCouponFormProps> = ({
 								</FormControl>
 							</Grid>
 
-							<Grid size={{ xs: 12, md: 6 }}>
+							<Grid size={{ xs: 12, sm: 6 }}>
 								<FormControl
 									fullWidth
 									required
@@ -553,56 +581,123 @@ const AddCouponForm: React.FC<AddCouponFormProps> = ({
 								</FormControl>
 							</Grid>
 
-							<Grid size={{ xs: 12 }}>
-								<FormControl  fullWidth error={!!errors.imgUrl}>
-									{/* <InputLabel id="coupon-img-label"  label="Image URL" ></InputLabel> */}
-									<TextField
-										label="Image Upload"
-										slotProps={{ inputLabel: { shrink: true }}}
-										type="file"
+							<Grid size={{ xs: 12, sm: 6 }}>
+								<Stack rowGap={2} flex={1}>
+									<Grid flexGrow={1} sx={{ maxHeight: 56 }}>
+										<FormControl
+											fullWidth
+											required
+											error={!!errors.maxUsage}
+										>
+											<TextField
+												label="Max usage"
+												type="number"
+												value={formData.maxUsage ?? 1}
+												slotProps={{
+													htmlInput: { min: 1 },
+												}}
+												onChange={(event) => {
+													const parsed = Number(
+														event.target.value
+													);
+													handleInputChange(
+														"maxUsage",
+														Math.max(1, parsed)
+													);
+												}}
+											/>
+											{errors.maxUsage && (
+												<FormHelperText>
+													{errors.maxUsage}
+												</FormHelperText>
+											)}
+										</FormControl>
+									</Grid>
 
-										variant="outlined"
-										placeholder="https://cdn.example.com/coupons/summer.jpg"
-										value={formData.imgUrl ?? ""}
-										onChange={(event) =>
-											handleInputChange(
-												"imgUrl",
-												event.target.value
-											)
-										}
-									/>
-									{errors.imgUrl && (
-										<FormHelperText>
-											{errors.imgUrl}
-										</FormHelperText>
-									)}
-								</FormControl>
+									<Grid flexGrow={1}>
+										<FormControl
+											fullWidth
+											error={!!errors.description}
+											sx={{ flex: 1 }}
+										>
+											<TextField
+												label="Description"
+												placeholder="Describe when and how this coupon should be used"
+												value={
+													formData.description ?? ""
+												}
+												onChange={(event) =>
+													handleInputChange(
+														"description",
+														event.target.value
+													)
+												}
+												multiline
+												minRows={3}
+											/>
+											{errors.description && (
+												<FormHelperText>
+													{errors.description}
+												</FormHelperText>
+											)}
+										</FormControl>
+									</Grid>
+								</Stack>
 							</Grid>
 
-							<Grid size={{ xs: 12 }}>
-								<FormControl
-									fullWidth
-									error={!!errors.description}
-								>
-									<TextField
-										label="Description"
-										placeholder="Describe when and how this coupon should be used"
-										value={formData.description ?? ""}
-										onChange={(event) =>
-											handleInputChange(
-												"description",
-												event.target.value
-											)
-										}
-										multiline
-										minRows={3}
-									/>
-									{errors.description && (
-										<FormHelperText>
-											{errors.description}
-										</FormHelperText>
-									)}
-								</FormControl>
+							<Grid container size={{ xs: 12, sm: 6 }}>
+								<Stack rowGap={2} flex={1}>
+									<Grid flexGrow={1} sx={{ maxHeight: 56 }}>
+										<FormControl
+											fullWidth
+											error={!!errors.imgUrl}
+										>
+											<TextField
+												inputRef={fileInputRef}
+												label="Image Upload"
+												slotProps={{
+													inputLabel: {
+														shrink: true,
+													},
+													input: {
+														endAdornment:
+															imageFile &&
+																previewUrl && (
+																	<Button sx={{ minWidth:'25px', width: '25px', p: 0 }} variant="outlined" color="error" onClick={clearImage}><Clear/></Button>
+																),
+													},
+												}}
+												type="file"
+												variant="outlined"
+												placeholder="https://cdn.example.com/coupons/summer.jpg"
+												onChange={(event) => {
+													handleFileChange(
+														event as React.ChangeEvent<HTMLInputElement>
+													);
+												}}
+											/>
+											{errors.imgUrl && (
+												<FormHelperText>
+													{errors.imgUrl}
+												</FormHelperText>
+											)}
+										</FormControl>
+									</Grid>
+
+									<Grid
+										flexGrow={1}
+										display={"flex"}
+										justifyContent={"center"}
+										alignItems={"center"}
+									>
+										<img
+											src={previewUrl || ""}
+											width={"100%"}
+											height={"100%"}
+											alt="No image uploaded"
+										/>
+									</Grid>
+								</Stack>
 							</Grid>
 						</Grid>
 
@@ -618,8 +713,8 @@ const AddCouponForm: React.FC<AddCouponFormProps> = ({
 								{isSubmitting ? "Creating..." : "Create coupon"}
 							</Button>
 						</DialogActions>
-					</Box>
-				</DialogContent>
+					</DialogContent>
+				</Box>
 			</Dialog>
 		</LocalizationProvider>
 	);

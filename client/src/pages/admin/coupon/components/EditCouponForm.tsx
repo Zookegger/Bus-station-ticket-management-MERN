@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { EditCouponFormProps } from "./types/Props";
 import { COUPON_TYPES, type UpdateCouponDTO } from "@my-types";
@@ -23,11 +23,14 @@ import {
 	MenuItem,
 	Select,
 	TextField,
+	IconButton,
 } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { DateTimePicker } from "@mui/x-date-pickers";
 import { isValid } from "date-fns";
+import { Stack } from "@mui/system";
+import { Clear } from "@mui/icons-material";
 
 axios.defaults.withCredentials = true;
 
@@ -77,20 +80,45 @@ const EditCouponForm: React.FC<EditCouponFormProps> = ({
 	const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 	const [serverError, setServerError] = useState<string | null>(null);
 
+	// File upload state and ref (mirrors Add form)
+	const [imageFile, setImageFile] = useState<File | null>(null);
+	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+	const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		if (!("files" in e.target)) return;
+		const file = e.target.files?.[0] ?? null;
+		setImageFile(file);
+	};
+
 	useEffect(() => {
-        if (!open) {
+		if (!open) {
 			resetForm();
 		}
 
-        console.log(coupon)
-
+		// Populate form when editing an existing coupon
 		if (coupon) {
 			setFormData({
 				...coupon,
 				maxUsage: coupon.maxUsage ?? 1,
 			});
+			// Show current image if any and no new file selected
+			if (!imageFile && coupon.imgUrl) {
+				setPreviewUrl(coupon.imgUrl);
+			}
 		}
 	}, [coupon, open]);
+
+	// Manage object URL lifecycle for newly selected file
+	useEffect(() => {
+		if (!imageFile) {
+			// keep existing previewUrl if it came from coupon.imgUrl
+			return;
+		}
+		const url = URL.createObjectURL(imageFile);
+		setPreviewUrl(url);
+		return () => URL.revokeObjectURL(url);
+	}, [imageFile]);
 
 	/**
 	 * Resets the form state whenever the dialog closes so the next open starts fresh.
@@ -99,6 +127,9 @@ const EditCouponForm: React.FC<EditCouponFormProps> = ({
 		setFormData({ ...INITIAL_FORM_STATE });
 		setErrors({});
 		setServerError(null);
+		setImageFile(null);
+		setPreviewUrl(null);
+		if (fileInputRef.current) fileInputRef.current.value = "";
 	};
 
 	/**
@@ -239,10 +270,29 @@ const EditCouponForm: React.FC<EditCouponFormProps> = ({
 				title: formData.title?.trim() || undefined,
 			};
 
-			const response = await axios.put(
-				API_ENDPOINTS.COUPON.UPDATE(coupon!.id),
-				payload
-			);
+			let response;
+
+			if (imageFile) {
+				// Send multipart/form-data when updating with a new image
+				const fd = new FormData();
+				Object.entries(payload).forEach(([k, v]) => {
+					if (v !== undefined && v !== null) {
+						fd.append(k, String(v));
+					}
+				});
+				fd.append("file", imageFile, imageFile.name);
+
+				response = await axios.put(
+					API_ENDPOINTS.COUPON.UPDATE(coupon!.id),
+					fd
+				);
+			} else {
+				// No file selected: keep JSON
+				response = await axios.put(
+					API_ENDPOINTS.COUPON.UPDATE(coupon!.id),
+					payload
+				);
+			}
 			onEdited?.(response.data);
 			resetForm();
 			onClose();
@@ -559,25 +609,70 @@ const EditCouponForm: React.FC<EditCouponFormProps> = ({
 								</FormControl>
 							</Grid>
 
-							<Grid size={12}>
-								<FormControl fullWidth error={!!errors.imgUrl}>
-									<TextField
-										label="Image URL"
-										placeholder="https://cdn.example.com/coupons/summer.jpg"
-										value={formData.imgUrl ?? ""}
-										onChange={(event) =>
-											handleInputChange(
-												"imgUrl",
-												event.target.value
-											)
-										}
-									/>
-									{errors.imgUrl && (
-										<FormHelperText>
-											{errors.imgUrl}
-										</FormHelperText>
-									)}
-								</FormControl>
+							<Grid container size={{ xs: 12, md: 6 }}>
+								<Stack rowGap={2} flex={1} width="100%">
+									<Grid flexGrow={1} sx={{ maxHeight: 56 }}>
+										<FormControl fullWidth error={!!errors.imgUrl}>
+											<TextField
+												label="Image Upload"
+												type="file"
+												inputRef={fileInputRef}
+												inputProps={{
+													accept: "image/jpeg,image/png,image/webp",
+												}}
+												slotProps={{
+													inputLabel: { shrink: true },
+													input: {
+														endAdornment:
+															imageFile && previewUrl ? (
+																<InputAdornment position="end">
+																	<IconButton
+																		size="small"
+																		edge="end"
+																		aria-label="Clear image"
+																		onClick={() => {
+																			setImageFile(null);
+																			setPreviewUrl(coupon?.imgUrl ?? null);
+																			if (fileInputRef.current) fileInputRef.current.value = "";
+																		}}
+																		sx={{ p: 0.5 }}
+																	>
+																		<Clear fontSize="small" />
+																	</IconButton>
+																</InputAdornment>
+															) : null,
+													},
+												}}
+												onChange={(event) => {
+													handleFileChange(
+														event as React.ChangeEvent<HTMLInputElement>
+													);
+												}}
+											/>
+											{errors.imgUrl && (
+												<FormHelperText>
+													{errors.imgUrl}
+												</FormHelperText>
+											)}
+										</FormControl>
+									</Grid>
+
+									<Grid
+										flexGrow={1}
+										display={"flex"}
+										justifyContent={"center"}
+										alignItems={"center"}
+									>
+										{previewUrl ? (
+											<img
+												src={previewUrl}
+												width={"100%"}
+												height={"100%"}
+												alt="Coupon image preview"
+											/>
+										) : null}
+									</Grid>
+								</Stack>
 							</Grid>
 
 							<Grid size={12}>
