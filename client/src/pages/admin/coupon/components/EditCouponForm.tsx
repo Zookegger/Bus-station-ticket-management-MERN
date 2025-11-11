@@ -31,6 +31,7 @@ import { DateTimePicker } from "@mui/x-date-pickers";
 import { isValid } from "date-fns";
 import { Stack } from "@mui/system";
 import { Clear } from "@mui/icons-material";
+import { isSafeImageSrc } from "@utils/imageHelper";
 
 axios.defaults.withCredentials = true;
 
@@ -75,7 +76,7 @@ const EditCouponForm: React.FC<EditCouponFormProps> = ({
 }) => {
 	const [errors, setErrors] = useState<FormErrorState>({});
 	const [formData, setFormData] = useState<EditCouponFormState>({
-	    ...INITIAL_FORM_STATE
+		...INITIAL_FORM_STATE,
 	});
 	const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 	const [serverError, setServerError] = useState<string | null>(null);
@@ -612,7 +613,10 @@ const EditCouponForm: React.FC<EditCouponFormProps> = ({
 							<Grid container size={{ xs: 12, md: 6 }}>
 								<Stack rowGap={2} flex={1} width="100%">
 									<Grid flexGrow={1} sx={{ maxHeight: 56 }}>
-										<FormControl fullWidth error={!!errors.imgUrl}>
+										<FormControl
+											fullWidth
+											error={!!errors.imgUrl}
+										>
 											<TextField
 												label="Image Upload"
 												type="file"
@@ -621,21 +625,35 @@ const EditCouponForm: React.FC<EditCouponFormProps> = ({
 													accept: "image/jpeg,image/png,image/webp",
 												}}
 												slotProps={{
-													inputLabel: { shrink: true },
+													inputLabel: {
+														shrink: true,
+													},
 													input: {
 														endAdornment:
-															imageFile && previewUrl ? (
+															imageFile &&
+															previewUrl ? (
 																<InputAdornment position="end">
 																	<IconButton
 																		size="small"
 																		edge="end"
 																		aria-label="Clear image"
 																		onClick={() => {
-																			setImageFile(null);
-																			setPreviewUrl(coupon?.imgUrl ?? null);
-																			if (fileInputRef.current) fileInputRef.current.value = "";
+																			setImageFile(
+																				null
+																			);
+																			setPreviewUrl(
+																				coupon?.imgUrl ??
+																					null
+																			);
+																			if (
+																				fileInputRef.current
+																			)
+																				fileInputRef.current.value =
+																					"";
 																		}}
-																		sx={{ p: 0.5 }}
+																		sx={{
+																			p: 0.5,
+																		}}
 																	>
 																		<Clear fontSize="small" />
 																	</IconButton>
@@ -663,14 +681,27 @@ const EditCouponForm: React.FC<EditCouponFormProps> = ({
 										justifyContent={"center"}
 										alignItems={"center"}
 									>
-										{previewUrl ? (
+										{isSafeImageSrc(previewUrl) ? (
 											<img
-												src={previewUrl}
-												width={"100%"}
-												height={"100%"}
-												alt="Coupon image preview"
+												src={previewUrl as string}
+												style={{
+													width: "100%",
+													height: "100%",
+													objectFit: "contain",
+												}}
+												alt="Preview"
 											/>
-										) : null}
+										) : (
+											<img
+												src={undefined}
+												aria-hidden
+												alt="No image uploaded"
+												style={{
+													width: "100%",
+													height: "100%",
+												}}
+											/>
+										)}
 									</Grid>
 								</Stack>
 							</Grid>

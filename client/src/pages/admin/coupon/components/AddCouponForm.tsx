@@ -31,6 +31,7 @@ import { DateTimePicker } from "@mui/x-date-pickers";
 import { isValid } from "date-fns";
 import { Stack } from "@mui/system";
 import { Clear } from "@mui/icons-material";
+import { isSafeImageSrc } from "@utils/imageHelper";
 
 axios.defaults.withCredentials = true;
 
@@ -124,7 +125,7 @@ const AddCouponForm: React.FC<AddCouponFormProps> = ({
 		if (fileInputRef.current) {
 			fileInputRef.current.value = "";
 		}
-	}
+	};
 
 	/**
 	 * Generic handler that keeps local state in sync with text, number, or boolean inputs.
@@ -663,7 +664,21 @@ const AddCouponForm: React.FC<AddCouponFormProps> = ({
 														endAdornment:
 															imageFile &&
 																previewUrl && (
-																	<Button sx={{ minWidth:'25px', width: '25px', p: 0 }} variant="outlined" color="error" onClick={clearImage}><Clear/></Button>
+																	<Button
+																		sx={{
+																			minWidth:
+																				"25px",
+																			width: "25px",
+																			p: 0,
+																		}}
+																		variant="outlined"
+																		color="error"
+																		onClick={
+																			clearImage
+																		}
+																	>
+																		<Clear />
+																	</Button>
 																),
 													},
 												}}
@@ -690,12 +705,29 @@ const AddCouponForm: React.FC<AddCouponFormProps> = ({
 										justifyContent={"center"}
 										alignItems={"center"}
 									>
-										<img
-											src={previewUrl || ""}
-											width={"100%"}
-											height={"100%"}
-											alt="No image uploaded"
-										/>
+										{/* Only render preview if it's a safe image src.
+                                         Avoid using dangerouslySetInnerHTML / innerHTML anywhere. */}
+										{isSafeImageSrc(previewUrl) ? (
+											<img
+												src={previewUrl as string}
+												style={{
+													width: "100%",
+													height: "100%",
+													objectFit: "contain",
+												}}
+												alt="Preview"
+											/>
+										) : (
+											<img
+												src={undefined}
+												aria-hidden
+												alt="No image uploaded"
+												style={{
+													width: "100%",
+													height: "100%",
+												}}
+											/>
+										)}
 									</Grid>
 								</Stack>
 							</Grid>
