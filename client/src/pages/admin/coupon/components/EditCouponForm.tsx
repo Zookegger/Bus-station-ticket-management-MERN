@@ -681,15 +681,25 @@ const EditCouponForm: React.FC<EditCouponFormProps> = ({
 										justifyContent={"center"}
 										alignItems={"center"}
 									>
-										{isSafeImageSrc(previewUrl) ? (
+										{isSafeImageSrc(previewUrl) && typeof previewUrl === "string" && previewUrl.startsWith("blob:") ? (
 											<img
-												src={previewUrl as string}
+												src={previewUrl}
 												style={{
 													width: "100%",
 													height: "100%",
 													objectFit: "contain",
 												}}
 												alt="Preview"
+										) : coupon?.imgUrl && isSafeImageSrc(coupon.imgUrl) ? (
+											<img
+												src={coupon.imgUrl}
+												style={{
+													width: "100%",
+													height: "100%",
+													objectFit: "contain",
+												}}
+												alt="Preview"
+											/>
 											/>
 										) : (
 											<img
