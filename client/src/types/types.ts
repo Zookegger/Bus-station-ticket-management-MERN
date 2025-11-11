@@ -24,10 +24,10 @@ export interface ApiEndpoints {
 	};
 	readonly USERS: {
 		readonly BASE: string;
-		readonly PROFILE: (string: number) => string;
-		readonly UPDATE_PROFILE: (string: number) => string;
-		readonly ADMIN_UPDATE: (string: number) => string;
-		readonly ADMIN_DELETE: (string: number) => string;
+		readonly PROFILE: (id: string) => string;
+		readonly UPDATE_PROFILE: (id: string) => string;
+		readonly ADMIN_UPDATE: (id: string) => string;
+		readonly ADMIN_DELETE: (id: string) => string;
 	};
 	readonly VEHICLE: {
 		readonly BASE: string;
@@ -79,8 +79,8 @@ export interface ApiEndpoints {
 		readonly SEARCH: string;
 		readonly BY_ID: string;
 		readonly CREATE: string;
-		readonly UPDATE: (id: number) =>  string;
-		readonly DELETE: (id: number) =>  string;
+		readonly UPDATE: (id: number) => string;
+		readonly DELETE: (id: number) => string;
 	};
 	readonly COUPON: {
 		readonly BASE: string;

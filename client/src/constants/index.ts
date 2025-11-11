@@ -85,10 +85,10 @@ export const API_ENDPOINTS: ApiEndpoints = {
 	},
 	USERS: {
 		BASE: "/users",
-		PROFILE: "/users/profile/:id",
-		UPDATE_PROFILE: "/users/profile/:id",
-		ADMIN_UPDATE: (id: number) => `/users/${id}`,
-		ADMIN_DELETE: (id: number) => `/users/${id}`,
+		PROFILE: (id: string) => `/users/profile/${id}`,
+		UPDATE_PROFILE: (id: string) => `/users/profile/${id}`,
+		ADMIN_UPDATE: (id: string) => `/users/${id}`,
+		ADMIN_DELETE: (id: string) => `/users/${id}`,
 	},
 	VEHICLE: {
 		BASE: "/vehicles",
