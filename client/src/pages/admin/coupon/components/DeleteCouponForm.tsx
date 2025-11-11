@@ -44,7 +44,7 @@ const DeleteCouponForm: React.FC<DeleteCouponFormProps> = ({
 		setIsDeleting(true);
 		setErrors(null);
 
-		if (!id) throw new Error("No ID provide");
+		if (!id) throw new Error("No ID provided");
 
 		try {
 			const response = await axios.delete(
