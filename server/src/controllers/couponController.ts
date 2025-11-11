@@ -19,7 +19,7 @@ export const AddCoupon = async (
 
 		const imgUrl = imageFile ? `/uploads/${imageFile.filename}` : undefined;
 
-		if (imgUrl != undefined) {
+		if (imgUrl !== undefined) {
 			dto.imgUrl = imgUrl;
 		}
 

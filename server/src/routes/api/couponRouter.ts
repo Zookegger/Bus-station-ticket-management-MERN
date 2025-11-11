@@ -49,19 +49,19 @@ couponRouter.post(
 );
 couponRouter.post(
 	"/",
+	uploadMiddleware.single('image'),
 	validateAddCoupon,
 	handleValidationResult,
 	csrfAdminProtectionRoute,
-	uploadMiddleware.single('image'),
 	couponServices.AddCoupon,
 	errorHandler
 );
 couponRouter.put(
 	"/:id",
+	uploadMiddleware.single('image'),
 	validateUpdateCoupon,
 	handleValidationResult,
 	csrfAdminProtectionRoute,
-	uploadMiddleware.single('image'),
 	couponServices.UpdateCoupon,
 	errorHandler
 );

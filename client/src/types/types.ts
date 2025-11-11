@@ -24,10 +24,10 @@ export interface ApiEndpoints {
 	};
 	readonly USERS: {
 		readonly BASE: string;
-		readonly PROFILE: string;
-		readonly UPDATE_PROFILE: string;
-		readonly ADMIN_UPDATE: (id: number) => string;
-		readonly ADMIN_DELETE: (id: number) => string;
+		readonly PROFILE: (string: number) => string;
+		readonly UPDATE_PROFILE: (string: number) => string;
+		readonly ADMIN_UPDATE: (string: number) => string;
+		readonly ADMIN_DELETE: (string: number) => string;
 	};
 	readonly VEHICLE: {
 		readonly BASE: string;
