@@ -4,6 +4,7 @@ import type { User } from "@my-types/user";
 import { AuthContext } from "./AuthContext.context";
 import { API_ENDPOINTS, CSRF_CONFIG, ROUTES } from "@constants";
 import type { LoginDTO, LoginResponse } from "@my-types/auth";
+import { handleAxiosError } from "@utils/handleError";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 axios.defaults.baseURL = API_BASE_URL;
@@ -50,17 +51,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 					// 3. Public endpoints - no session expected
 					const no_retry_endpoints = [
 						API_ENDPOINTS.AUTH.LOGIN,
+						API_ENDPOINTS.AUTH.LOGOUT,
 						API_ENDPOINTS.AUTH.REFRESH,
 						API_ENDPOINTS.AUTH.REGISTER,
 						API_ENDPOINTS.AUTH.FORGOT_PASSWORD,
 						API_ENDPOINTS.AUTH.RESET_PASSWORD,
+						API_ENDPOINTS.AUTH.RESET_PASSWORD_WITH_TOKEN,
+						API_ENDPOINTS.AUTH.CHANGE_PASSWORD,
+						API_ENDPOINTS.AUTH.CHANGE_PASSWORD_WITH_ID,
+						API_ENDPOINTS.AUTH.VERIFY_EMAIL,
 						API_ENDPOINTS.AUTH.ME,
 						API_ENDPOINTS.AUTH.CSRF_TOKEN,
+						API_ENDPOINTS.AUTH.CSRF_VERIFY,
 					];
 
-					const should_not_retry = no_retry_endpoints.some(
-						(endpoint) => requestUrl.includes(endpoint)
-					);
+					const trimmed_url = requestUrl.split("?")[0];
+					const should_not_retry = no_retry_endpoints.some((endpoint) => {
+						const normalized_endpoint = endpoint.split("/:")[0];
+						return trimmed_url.includes(normalized_endpoint);
+					});
 
 					// If we shouldn't retry OR we've already retried this request, reject immediately
 					if (should_not_retry || originalRequest._retry) {
@@ -197,7 +206,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				setCsrfToken(null);
 			}
 		} catch (err) {
-			console.error("Logout failed:", err);
+			const message = handleAxiosError(err);
+			console.error("Logout failed:", message);
 		} finally {
 			setIsLoading(false);
 		}

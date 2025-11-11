@@ -14,7 +14,8 @@ const Layout: React.FC<React.PropsWithChildren> = ({ children }) => {
 					flex: 1,
 					overflow: "hidden",
 					display: "flex",
-					flexDirection: "column"
+					flexDirection: "column",
+					maxWidth: "100vw"
 				}}
 			>
 				{children}

@@ -6,7 +6,6 @@ import {
 import { NextFunction, Request, Response } from "express";
 import * as couponServices from "@services/couponServices";
 import { getParamNumericId } from "@utils/request";
-import logger from "@utils/logger";
 
 export const AddCoupon = async (
 	req: Request,
@@ -14,11 +13,15 @@ export const AddCoupon = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
-		logger.debug("Route hit");
 		const dto: AddCouponDTO = req.body;
-
-
+		const imageFile = req.file;
 		if (!dto) throw { status: 400, message: "Coupon data is required." };
+
+		const imgUrl = imageFile ? `/uploads/${imageFile.filename}` : undefined;
+
+		if (imgUrl !== undefined) {
+			dto.imgUrl = imgUrl;
+		}
 
 		const coupon = await couponServices.addCoupon(dto);
 		if (!coupon) throw { status: 500, message: "Failed to create coupon." };
@@ -37,7 +40,13 @@ export const UpdateCoupon = async (
 	try {
 		const id: number = getParamNumericId(req);
 		const dto: UpdateCouponDTO = req.body;
+		const file = req.file;
 		if (!dto) throw { status: 400, message: "Update data is required." };
+		const imgUrl = file ? `/uploads/${file.filename}` : undefined;
+
+		if (imgUrl != undefined) {
+			dto.imgUrl = imgUrl;
+		}
 
 		const coupon = await couponServices.updateCoupon(id, dto);
 		if (!coupon) throw { status: 500, message: "Failed to update coupon." };

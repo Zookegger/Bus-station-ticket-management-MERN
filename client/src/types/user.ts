@@ -40,6 +40,7 @@ export interface UpdateProfileDTO {
 	email?: string;
 	fullName?: string;
 	address?: string | null;
+	phoneNumber?: string | null;
 	gender?: Gender | null;
 	avatar?: string | null;
 	dateOfBirth?: string | null; // ISO Date string

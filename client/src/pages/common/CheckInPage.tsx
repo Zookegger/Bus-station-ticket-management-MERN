@@ -1,6 +1,6 @@
 import { API_ENDPOINTS, APP_CONFIG } from "@constants";
-import { Check, Close } from "@mui/icons-material";
-import { Box, Chip, Paper, Typography } from "@mui/material";
+import { Check } from "@mui/icons-material";
+import { Box, Paper, Typography } from "@mui/material";
 import type {
 	Order,
 	OrderCheckInRequest,
@@ -41,8 +41,10 @@ const CheckInPage: React.FC = () => {
 					token: token,
 				};
 
+				const verify_endpoint = `${APP_CONFIG.apiBaseUrl}${API_ENDPOINTS.CHECKIN.VERIFY.replace(":orderId", orderId)}`;
+
 				const response: OrderCheckInResponse = await axios.post(
-					`${APP_CONFIG.apiBaseUrl}${API_ENDPOINTS.CHECKIN.BASE}`,
+					verify_endpoint,
 					request
 				);
 

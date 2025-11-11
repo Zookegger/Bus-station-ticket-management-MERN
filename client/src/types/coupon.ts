@@ -6,7 +6,8 @@
 /**
  * Represents the types of coupons available.
  */
-export type CouponType = "percentage" | "fixed";
+export const COUPON_TYPES = ["percentage", "fixed"] as const;
+export type CouponType = typeof COUPON_TYPES[number];
 
 /**
  * Represents a coupon object on the client-side.
@@ -40,7 +41,7 @@ export interface AddCouponDTO {
 	endPeriod: string; // ISO Date string
 	isActive?: boolean;
 	description?: string;
-	imgUrl?: string;
+	imgUrl?: string | null;
 	title?: string;
 }
 
@@ -56,7 +57,7 @@ export interface UpdateCouponDTO {
 	endPeriod?: string; // ISO Date string
 	isActive?: boolean;
 	description?: string;
-	imgUrl?: string;
+	imgUrl?: string | null;
 	title?: string;
 }
 
