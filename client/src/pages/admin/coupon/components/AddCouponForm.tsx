@@ -86,6 +86,16 @@ const AddCouponForm: React.FC<AddCouponFormProps> = ({
 	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		if (!("files" in e.target)) return;
 		const file = e.target.files?.[0] ?? null;
+		// restrict preview to image files only
+		if (file && !file.type.startsWith("image/")) {
+			setImageFile(null);
+			setPreviewUrl(null);
+			setErrors((prev) => ({
+				...prev,
+				imgUrl: "Selected file is not a valid image.",
+			}));
+			return;
+		}
 		setImageFile(file);
 	};
 
@@ -669,6 +679,7 @@ const AddCouponForm: React.FC<AddCouponFormProps> = ({
 												}}
 												type="file"
 												variant="outlined"
+												accept="image/*"
 												placeholder="https://cdn.example.com/coupons/summer.jpg"
 												onChange={(event) => {
 													handleFileChange(
