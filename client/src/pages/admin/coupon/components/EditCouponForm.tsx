@@ -621,12 +621,12 @@ const EditCouponForm: React.FC<EditCouponFormProps> = ({
 												label="Image Upload"
 												type="file"
 												inputRef={fileInputRef}
-												inputProps={{
-													accept: "image/jpeg,image/png,image/webp",
-												}}
 												slotProps={{
 													inputLabel: {
 														shrink: true,
+													},
+													htmlInput: {
+														accept: "image/jpeg,image/png,image/webp",
 													},
 													input: {
 														endAdornment:

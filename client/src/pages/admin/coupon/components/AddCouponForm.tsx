@@ -691,10 +691,12 @@ const AddCouponForm: React.FC<AddCouponFormProps> = ({
 																	</Button>
 																),
 													},
+													htmlInput: {
+														accept: "image/jpeg,image/png,image/webp",
+													}
 												}}
 												type="file"
 												variant="outlined"
-												accept="image/*"
 												placeholder="https://cdn.example.com/coupons/summer.jpg"
 												onChange={(event) => {
 													handleFileChange(
