@@ -30,14 +30,7 @@ const DeleteCouponForm: React.FC<DeleteCouponFormProps> = ({
 			setErrors(null);
 		}
 	}, [id]);
-
-	useEffect(() => {
-		console.log(!isDeleting);
-		console.log(!errors);
-		console.log(errors && errors.length > 0);
-		console.log(!isDeleting || !errors || errors.length > 0);
-	}, [open]);
-
+	
 	const handleSubmit = async () => {
 		if (errors) return;
 

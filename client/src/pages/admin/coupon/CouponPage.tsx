@@ -17,7 +17,7 @@ import EditCouponForm from "./components/EditCouponForm";
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 
 const CouponPage: React.FC = () => {
-	const [isLoading, setIsLoading] = useState(true);
+	const [_isLoading, setIsLoading] = useState(true);
 	const [coupons, setCoupons] = useState<Coupon[] | null>(null);
 	const [addOpen, setAddOpen] = useState<boolean>(false);
 	const [editOpen, setEditOpen] = useState<boolean>(false);
@@ -34,7 +34,6 @@ const CouponPage: React.FC = () => {
 		if (detail) {
 			setSelectedCoupon(detail);
 			setDetailOpen(true);
-			console.log(id);
 		}
 	};
 
@@ -78,17 +77,10 @@ const CouponPage: React.FC = () => {
 				if (response.status !== 200) {
 					throw new Error("Failed to fetch data");
 				}
-				console.log(response);
 
 				const coupon_response = response.data;
 
 				setCoupons(coupon_response);
-
-				if (coupons && coupons.length > 0) {
-					console.log("Coupon: ", coupons);
-				} else {
-					console.log("Empty set");
-				}
 			} catch (err) {
 				const message = handleAxiosError(err);
 				console.error(message);
@@ -98,7 +90,7 @@ const CouponPage: React.FC = () => {
 		};
 
 		fetchData();
-	}, [isLoading]);
+	}, []);
 
 	return (
 		<Box>

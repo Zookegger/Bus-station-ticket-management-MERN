@@ -107,7 +107,6 @@ const AddCouponForm: React.FC<AddCouponFormProps> = ({
 		}
 		const url = URL.createObjectURL(imageFile);
 		setPreviewUrl(url);
-		console.log(previewUrl);
 		return () => URL.revokeObjectURL(url);
 	}, [imageFile]);
 
