@@ -11,7 +11,7 @@ import {
   Grid,
 } from "@mui/material";
 import { ArrowBack as ArrowBackIcon, Add as AddIcon } from "@mui/icons-material";
-import Map from "../../../../components/common/Map"; // giữ nguyên import của bạn
+import Map from "../../../../../components/common/Map"; // giữ nguyên import của bạn
 
 interface RouteType {
   id: number;

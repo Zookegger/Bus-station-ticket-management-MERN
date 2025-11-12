@@ -43,7 +43,7 @@ const CreateVehicleTypeForm: React.FC<CreateVehicleTypeFormProps> = ({
 			...prev,
 			totalSeats: calculatedSeats,
 		}));
-	}, [formData.totalRow, formData.totalColumn, formData.totalFlooring, formData]);
+	}, [formData.totalRow, formData.totalColumn, formData.totalFlooring]);
 
 	type CreateVehicleTypeErrors = Partial<
 		Record<keyof CreateVehicleTypeDTO, string>

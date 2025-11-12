@@ -1,7 +1,7 @@
 // EditRoutePage.tsx
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import EditRouteForm from "@pages/admin/trip/route/EditRouteForm";
+import EditRouteForm from "@pages/admin/trip/components/route/EditRouteForm";
 
 const EditRoutePage: React.FC = () => {
   const location = useLocation();

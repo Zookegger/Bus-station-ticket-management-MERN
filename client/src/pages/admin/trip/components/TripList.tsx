@@ -18,6 +18,7 @@ import {
 import { Add as AddIcon, MoreVert as MoreIcon } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import type { TripItemDTO, ApiTripDTO } from "@my-types/TripDTOs";
+import axios from "axios";
 
 interface TripListProps {
 	onOpenDetails: (trip: TripItemDTO) => void;
@@ -35,14 +36,9 @@ const TripList: React.FC<TripListProps> = ({ onOpenDetails }) => {
 		const fetchTrips = async () => {
 			try {
 				// Replace with your auth token retrieval (e.g., from context)
-				const token = localStorage.getItem("jwt"); // Placeholder
-				const response = await fetch("/api/trips", {
-					headers: {
-						Authorization: `Bearer ${token}`,
-					},
-				});
-				if (response.ok) {
-					const data = await response.json();
+				const response = await axios.get("/api/trips");
+				if (response.status === 200) {
+					const data = response.data;
 					// Assuming API returns { trips: [...] } or direct array
 					const tripsData = data.trips || data;
 					setTrips(

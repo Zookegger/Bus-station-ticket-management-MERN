@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Box } from "@mui/material";
-import TripList from "../components/TripList";
-import TripDetailsDrawer from "../components/TripDetailsDrawer";
+import TripList from "../TripList";
+import TripDetailsDrawer from "../TripDetailsDrawer";
 
 const Trip: React.FC = () => {
   const [open, setOpen] = useState(false);

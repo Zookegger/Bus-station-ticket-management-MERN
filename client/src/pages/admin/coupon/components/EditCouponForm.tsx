@@ -281,7 +281,8 @@ const EditCouponForm: React.FC<EditCouponFormProps> = ({
 						fd.append(k, String(v));
 					}
 				});
-				fd.append("file", imageFile, imageFile.name);
+				// Field name must match server upload middleware: uploadMiddleware.single('image')
+				fd.append("image", imageFile, imageFile.name);
 
 				response = await axios.put(
 					API_ENDPOINTS.COUPON.UPDATE(coupon!.id),

@@ -9,6 +9,10 @@ import {
 	Typography,
 	IconButton,
 	Tooltip,
+	Button,
+	type BoxProps,
+	Menu,
+	MenuItem,
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -24,42 +28,49 @@ import {
 	CardGiftcard,
 } from "@mui/icons-material";
 import { APP_CONFIG } from "@constants/index";
+import { useAuth } from "@hooks/useAuth";
 
 const menuItemsData: MenuItem[] = [
 	{
 		id: 1,
 		label: "Home",
 		icon: "home",
+		tips: "View dashboard overview, key metrics, and recent activities",
 		path: "/dashboard/home",
 	},
 	{
 		id: 2,
 		label: "Vehicle",
 		icon: "car",
+		tips: "Add, edit, and manage vehicles, vehicle types, and their assignments",
 		path: "/dashboard/vehicle",
 	},
 	{
 		id: 3,
 		label: "Trip",
 		icon: "map-pin",
+		tips: "Plan, schedule, and monitor bus trips, including driver assignments",
 		path: "/dashboard/trip",
 	},
 	{
 		id: 4,
 		label: "User",
 		icon: "person",
+		tips: "Manage user accounts, roles, permissions, and access controls",
 		path: "/dashboard/user",
 	},
 	{
 		id: 5,
 		label: "Coupon",
 		icon: "coupon",
+		tips: "Create, edit, and manage discount coupons for promotions",
 		path: "/dashboard/coupon",
 	},
 	{
 		id: 6,
 		label: "System",
 		icon: "gear",
+		tips: "Configure system settings, maintenance, and administrative options",
 		path: "/dashboard/system",
 	},
 ];
@@ -68,6 +79,7 @@ interface MenuItem {
 	id: number;
 	label: string;
 	icon: string;
+	tips: string;
 	path: string | null;
 }
 
@@ -84,6 +96,121 @@ const iconMap: { [key: string]: React.ComponentType } = {
 interface SidebarProps {
 	onToggle?: (collapsed: boolean) => void;
 }
+
+interface PositionedMenuProps {
+	isCollapsed: boolean;
+	sx?: BoxProps["sx"];
+}
+
+const PositionedMenu: React.FC<PositionedMenuProps> = ({ isCollapsed, sx }) => {
+	const { user } = useAuth();
+	const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+	const open = Boolean(anchorEl);
+
+	const handleClick = (e: React.MouseEvent<HTMLElement>) => {
+		setAnchorEl(e.currentTarget);
+	};
+
+	const handleClose = () => {
+		setAnchorEl(null);
+	};
+
+	return (
+		<Box sx={{ ...sx }}>
+			<Button
+				sx={{
+					py: 1,
+					px: "8px",
+					"&:hover": {
+						backgroundColor: "rgba(255, 255, 255, 0.05)",
+					},
+					justifyContent: isCollapsed ? "center" : "flex-start",
+				}}
+				aria-controls={open ? "demo-positioned-menu" : undefined}
+				aria-haspopup="true"
+				aria-expanded={open ? "true" : undefined}
+				onClick={handleClick}
+				fullWidth
+			>
+				<ListItemIcon
+					sx={{
+						color: "white",
+						minWidth: isCollapsed ? "auto" : 40,
+						justifyContent: "center",
+					}}
+				>
+					<AccountIcon />
+				</ListItemIcon>
+				{!isCollapsed && (
+					<>
+						<ListItemText
+							primary={`${user?.firstName}`}
+							sx={{
+								"& .MuiListItemText-primary": {
+									color: "white",
+								},
+							}}
+						/>
+						<ArrowDownIcon
+							sx={{
+								color: "white",
+								transform: open
+									? "rotate(180deg)"
+									: "rotate(0deg)", // Rotate 180 degrees when open
+								transition: "transform 0.25s ease", // Smooth rotation animation
+							}}
+						/>
+					</>
+				)}
+			</Button>
+			<Menu
+				anchorEl={anchorEl}
+				open={open}
+				onClose={handleClose}
+				anchorOrigin={{
+					vertical: "top",
+					horizontal: "center",
+				}}
+				transformOrigin={{
+					vertical: "top",
+					horizontal: "center",
+				}}
+				slotProps={{
+					paper: {
+						sx: {
+							width: "150px",
+							maxWidth: "200px",
+							marginTop: -4,
+						},
+					},
+				}}
+			>
+				<MenuItem
+					onClick={handleClose}
+					sx={{
+						color: "black",
+						"&:hover": {
+							backgroundColor: "rgba(255, 255, 255, 0.1)",
+						},
+					}}
+				>
+					Profile
+				</MenuItem>
+				<MenuItem
+					onClick={handleClose}
+					sx={{
+						color: "black",
+						"&:hover": {
+							backgroundColor: "rgba(255, 255, 255, 0.1)",
+						},
+					}}
+				>
+					Logout
+				</MenuItem>
+			</Menu>
+		</Box>
+	);
+};
 
 const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
 	const navigate = useNavigate();
@@ -123,7 +250,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
 					alignItems: "center",
 					justifyContent: isCollapsed ? "center" : "space-between",
 					p: 2,
-					borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+					borderBottom: "3px solid rgba(255, 255, 255, 0.1)",
 				}}
 			>
 				{!isCollapsed && (
@@ -157,11 +284,19 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
 						<React.Fragment key={item.id}>
 							<ListItem disablePadding sx={{ px: 2, mb: 0.5 }}>
 								<Tooltip
-									title={isCollapsed ? item.label : ""}
+									title={
+										<Typography variant="body2">
+											{item.tips}
+										</Typography>
+									}
 									placement="right"
+									id={item.id.toString()}
+									slotProps={{}}
 								>
 									<ListItemButton
-										onClick={() => handleMenuClick(item.path)}
+										onClick={() =>
+											handleMenuClick(item.path)
+										}
 										sx={{
 											borderRadius: 1,
 											backgroundColor: isActive
@@ -197,9 +332,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
 														"& .MuiListItemText-primary":
 															{
 																color: "white",
-																fontWeight: isActive
-																	? "bold"
-																	: "normal",
+																fontWeight:
+																	isActive
+																		? "bold"
+																		: "normal",
 															},
 													}}
 												/>
@@ -216,50 +352,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
 			</List>
 
 			{/* Account Section */}
-			<Box
+
+			<PositionedMenu
+				isCollapsed={isCollapsed}
 				sx={{
-					borderTop: "1px solid rgba(255, 255, 255, 0.1)",
-					p: 2,
+					borderTop: "3px solid rgba(255, 255, 255, 0.1)",
 				}}
-			>
-				<Tooltip title={isCollapsed ? "Account" : ""} placement="right">
-					<ListItemButton
-						sx={{
-							borderRadius: 1,
-							"&:hover": {
-								backgroundColor: "rgba(255, 255, 255, 0.05)",
-							},
-							justifyContent: isCollapsed
-								? "center"
-								: "flex-start",
-							minHeight: 48,
-						}}
-					>
-						<ListItemIcon
-							sx={{
-								color: "white",
-								minWidth: isCollapsed ? "auto" : 40,
-								justifyContent: "center",
-							}}
-						>
-							<AccountIcon />
-						</ListItemIcon>
-						{!isCollapsed && (
-							<>
-								<ListItemText
-									primary="Account"
-									sx={{
-										"& .MuiListItemText-primary": {
-											color: "white",
-										},
-									}}
-								/>
-								<ArrowDownIcon sx={{ color: "white" }} />
-							</>
-						)}
-					</ListItemButton>
-				</Tooltip>
-			</Box>
+			/>
 		</Box>
 	);
 };

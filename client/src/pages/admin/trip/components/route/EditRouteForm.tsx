@@ -11,7 +11,7 @@ import {
   Grid,
 } from "@mui/material";
 import { ArrowBack as ArrowBackIcon, Save as SaveIcon } from "@mui/icons-material";
-import Map from "../../../../components/common/Map"; // <-- giữ nguyên file Map.tsx
+import Map from "../../../../../components/common/Map"; // <-- giữ nguyên file Map.tsx
 
 interface RouteType {
   id: number;
