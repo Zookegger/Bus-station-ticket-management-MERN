@@ -14,7 +14,7 @@ import {
 	Menu,
 	MenuItem,
 } from "@mui/material";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, redirect } from "react-router-dom";
 import {
 	Home as HomeIcon,
 	DirectionsCar as CarIcon,
@@ -103,7 +103,7 @@ interface PositionedMenuProps {
 }
 
 const PositionedMenu: React.FC<PositionedMenuProps> = ({ isCollapsed, sx }) => {
-	const { user } = useAuth();
+	const { user, logout, isAuthenticated, isLoading } = useAuth();
 	const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 	const open = Boolean(anchorEl);
 
@@ -114,6 +114,19 @@ const PositionedMenu: React.FC<PositionedMenuProps> = ({ isCollapsed, sx }) => {
 	const handleClose = () => {
 		setAnchorEl(null);
 	};
+
+	const handleLogout = async () => {
+		await logout();
+		console.log("Loading: ", isLoading);
+		console.log("Authenticated: ",isAuthenticated);
+		console.log("User: ",user);
+
+		if (isAuthenticated) {
+			console.error("Unable to logout of session");
+			return;
+		}
+		redirect("/login");
+	}
 
 	return (
 		<Box sx={{ ...sx }}>
@@ -197,7 +210,10 @@ const PositionedMenu: React.FC<PositionedMenuProps> = ({ isCollapsed, sx }) => {
 					Profile
 				</MenuItem>
 				<MenuItem
-					onClick={handleClose}
+					onClick={async () => {
+						handleClose();
+						await handleLogout();
+					}}
 					sx={{
 						color: "black",
 						"&:hover": {

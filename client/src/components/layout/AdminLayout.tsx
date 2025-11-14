@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Box } from "@mui/material";
 import Sidebar from "./Sidebar";
+import { useAuth } from "@hooks/useAuth";
+import { redirect } from "react-router-dom";
 
 interface AdminLayoutProps {
 	children: React.ReactNode;
@@ -8,10 +10,17 @@ interface AdminLayoutProps {
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+	const { isAuthenticated, isAdmin } = useAuth();
 
 	const handleSidebarToggle = (collapsed: boolean) => {
 		setSidebarCollapsed(collapsed);
 	};
+
+	useEffect(() => {
+		if (!isAdmin || !isAuthenticated) {
+			redirect("/login");
+		} 
+	},[isAdmin, isAuthenticated]);
 
 	return (
 		<Box sx={{ display: "flex" }}>

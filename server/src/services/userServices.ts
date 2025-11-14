@@ -134,6 +134,8 @@ export const generateDefaultAdminAccount = async (): Promise<User | null> => {
 		phoneNumber: "0902040312",
 		emailConfirmed: true,
 		userName: "admin",
+		firstName: "admin",
+		lastName: "admin",
 		fullName: "admin",
 		passwordHash,
 	});

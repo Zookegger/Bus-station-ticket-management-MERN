@@ -19,6 +19,7 @@ import { body, param } from "express-validator";
 export const loginValidation = [
 	body("login").notEmpty().withMessage("Username or email is required"),
 	body("password").notEmpty().withMessage("Password is required"),
+	body("rememberMe").optional().isBoolean().default(false).withMessage("Remember me must be a boolean"),
 ];
 
 /**

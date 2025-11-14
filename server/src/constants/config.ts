@@ -17,7 +17,11 @@ export const CONFIG = {
 	},
 
 	get REFRESH_TOKEN_EXPIRY_HOURS(): number {
-		return configService.get<number>("REFRESH_TOKEN_EXPIRY_HOURS", 720);
+		return configService.get<number>("REFRESH_TOKEN_EXPIRY_HOURS", 72);
+	},
+	
+	get REFRESH_TOKEN_REMEMBER_EXPIRY_HOURS(): number {
+		return configService.get<number>("REFRESH_TOKEN_REMEMBER_EXPIRY_HOURS", 720);
 	},
 
 	get CHANGE_PASSWORD_EXPIRY_HOURS(): number {
@@ -91,6 +95,10 @@ export const COMPUTED = {
 
 	get REFRESH_TOKEN_EXPIRY_SECONDS(): number {
 		return CONFIG.REFRESH_TOKEN_EXPIRY_HOURS * 3600;
+	},
+	
+	get REFRESH_TOKEN_REMEMBER_EXPIRY_SECONDS(): number {
+		return CONFIG.REFRESH_TOKEN_REMEMBER_EXPIRY_HOURS * 3600;
 	},
 
 	get PAYMENT_WINDOW_SECONDS(): number {

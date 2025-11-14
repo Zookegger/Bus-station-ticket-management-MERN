@@ -33,6 +33,7 @@ import { isAxiosError } from "axios";
 import { ROUTES } from "@constants/index";
 import ForgotPasswordDialog from "./ForgotPasswordDialog";
 import { useAuth } from "@hooks/useAuth";
+import type { LoginDTO } from "@my-types/auth";
 
 const LoginPage: React.FC = () => {
 	const { login } = useAuth();
@@ -83,9 +84,10 @@ const LoginPage: React.FC = () => {
 		setMessage(null);
 
 		try {
-			const dto = {
+			const dto: LoginDTO = {
 				login: formData.login,
 				password: formData.password,
+				rememberMe: formData.rememberMe,
 			};
 
 			const { user, message } = await login(dto);

@@ -4,6 +4,20 @@ import DashboardLayout from "@components/layout/AdminLayout";
 import { ROUTES } from "@constants/index";
 import { Suspense } from "react";
 import LoadingSkeleton from "@components/layout/LoadingSkeleton";
+import { useAuth } from "@hooks/useAuth";
+
+/**
+ * Component to protect routes that require authentication.
+ * Redirects to login if the user is not authenticated.
+ */
+const RequireAuth: React.FC<{ children: React.ReactElement }> = ({
+	children,
+}) => {
+	const { isLoading, isAuthenticated } = useAuth();
+	if (isLoading) return <LoadingSkeleton />;
+	if (!isAuthenticated) return <Navigate to={ROUTES.LOGIN} replace />;
+	return children;
+};
 
 export const router = createBrowserRouter([
 	// Default routes with separate layout (no header/footer)
@@ -102,11 +116,13 @@ export const router = createBrowserRouter([
 	{
 		path: "/dashboard",
 		element: (
-			<DashboardLayout>
-				<Suspense fallback={<LoadingSkeleton />}>
-					<Outlet />
-				</Suspense>
-			</DashboardLayout>
+			<RequireAuth>
+				<DashboardLayout>
+					<Suspense fallback={<LoadingSkeleton />}>
+						<Outlet />
+					</Suspense>
+				</DashboardLayout>
+			</RequireAuth>
 		),
 		children: [
 			{

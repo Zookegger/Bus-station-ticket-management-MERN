@@ -50,21 +50,21 @@ const Header: React.FC = () => {
 					<Box>
 						{isLoading ? (
 							<Skeleton
-                                variant="rectangular"
-                                width={120}
-                                height={40}
-                                sx={{
-                                    bgcolor: "rgba(255, 255, 255, 0.2)",
-                                    borderRadius: 1,
-                                }}
-                            />
+								variant="rectangular"
+								width={120}
+								height={40}
+								sx={{
+									bgcolor: "rgba(255, 255, 255, 0.2)",
+									borderRadius: 1,
+								}}
+							/>
 						) : isAuthenticated && user ? (
 							<>
 								<Button
 									onClick={handleMenuClick}
 									color="inherit"
 									sx={{
-										textTransform: 'none'
+										textTransform: "none",
 									}}
 								>
 									<Box
@@ -73,7 +73,7 @@ const Header: React.FC = () => {
 										alignItems={"center"}
 									>
 										<Avatar
-											src={user.avatar ?? ''}
+											src={user.avatar ?? ""}
 											alt={user.firstName}
 											sx={{
 												width: "32px",
@@ -89,11 +89,26 @@ const Header: React.FC = () => {
 									anchorEl={anchorEl}
 									open={menuOpen}
 									onClose={handleMenuClose}
-									anchorOrigin={{ vertical: 'bottom', horizontal: 'center'}}
-									transformOrigin={{ vertical: 'top', horizontal: 'center'}}
+									anchorOrigin={{
+										vertical: "bottom",
+										horizontal: "center",
+									}}
+									transformOrigin={{
+										vertical: "top",
+										horizontal: "center",
+									}}
 								>
-									<MenuItem onClick={handleMenuClose}>Profile</MenuItem>
-									<MenuItem onClick={() => { handleMenuClose(); logout(); }}>Logout</MenuItem>
+									<MenuItem onClick={handleMenuClose}>
+										Profile
+									</MenuItem>
+									<MenuItem
+										onClick={async () => {
+											handleMenuClose();
+											await logout();
+										}}
+									>
+										Logout
+									</MenuItem>
 								</Menu>
 							</>
 						) : (

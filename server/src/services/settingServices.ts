@@ -110,11 +110,11 @@ class ConfigService {
 	 * @param value - The new value for the setting.
 	 * @returns Promise resolving to the updated or created setting record.
 	 */
-	public async set(key: string, value: any): Promise<Setting> {
+	public async set(key: string, value: any, description?: string): Promise<Setting> {
 		const stringValue = JSON.stringify(value);
 
 		// Find the setting or create it if it doesn't exist
-		const [setting] = await Setting.upsert({ key, value: stringValue });
+		const [setting] = description ? await Setting.upsert({ key, value: stringValue, description }) : await Setting.upsert({ key, value: stringValue });
 
 		// Update the cache immediately
 		this.settingCache.set(key, stringValue);
