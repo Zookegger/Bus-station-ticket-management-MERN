@@ -6,6 +6,7 @@
  * to validate request bodies and provide meaningful error messages.
  */
 
+import { Gender } from "@models/user";
 import { body, param } from "express-validator";
 
 /**
@@ -24,15 +25,18 @@ export const loginValidation = [
  * Validation rules for user registration.
  *
  * Comprehensive validation for new user registration including:
- * - Username presence
+ * - First and last name presence
  * - Strong password requirements (length, numbers, letters, complexity)
  * - Password confirmation matching
  * - Valid email format
+ * - Phone number presence
+ * - Optional fields for address, gender, and date of birth
  *
  * Used in registration endpoint to validate user input before account creation.
  */
 export const registerValidation = [
-	body("username").notEmpty().withMessage("Username is required"),
+	body("firstName").notEmpty().withMessage("First name is required").trim(),
+	body("lastName").notEmpty().withMessage("Last name is required").trim(),
 	body("password")
 		.notEmpty()
 		.isLength({ min: 8 })
@@ -57,6 +61,21 @@ export const registerValidation = [
 		.normalizeEmail()
 		.isEmail()
 		.withMessage("Email must be in valid email format"),
+	body("phoneNumber")
+		.notEmpty()
+		.withMessage("Phone number is required")
+		.isMobilePhone("any")
+		.withMessage("Please provide a valid phone number"),
+	body("address").optional().isString().trim(),
+	body("gender")
+		.optional()
+		.isIn(Object.values(Gender))
+		.withMessage("Gender must be one of 'male', 'female', or 'other'"),
+	body("dateOfBirth")
+		.optional()
+		.isISO8601()
+		.toDate()
+		.withMessage("Date of birth must be a valid date"),
 ];
 
 /**

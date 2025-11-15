@@ -1,5 +1,5 @@
 import React from "react";
-import DashboardLayout from "../../../../components/layout/DashboardLayout";
+import DashboardLayout from "../../../../components/layout/AdminLayout";
 import RouteList from "./Routelist";
 
 const RoutePage: React.FC = () => {

@@ -13,6 +13,7 @@ import cookieParser from "cookie-parser";
 import { applyPassportStrategy } from "@config/passport"
 import apiRouter from "@routes/api";
 import passport from "passport";
+import path from "path";
 
 /**
  * Configured Express application instance.
@@ -65,11 +66,11 @@ app.use(passport.initialize());
 // Apply the JWT strategy configuration
 applyPassportStrategy();
 
+// Server uploads statically
+app.use('/uploads', express.static(path.join(__dirname, "..", "uploads")));
+
 // Mount API routes under the /api prefix
 app.use("/api", apiRouter);
-
-// Mount CSRF protection only on admin routes
-// Note: CSRF is now applied per-route in the route files using csrfProtectionRoute
 
 /**
  * Health check endpoint to verify server status.

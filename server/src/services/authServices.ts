@@ -5,7 +5,7 @@ import crypto from "crypto";
 import { add, addDays } from "date-fns";
 import * as DTO from "@my_types/user";
 import ms from "ms";
-import { Role } from "@models/user";
+import { Gender, Role } from "@models/user";
 import { Op } from "sequelize";
 import * as verificationServices from "@services/verificationServices";
 import { getUserByEmail, getUserById } from "./userServices";
@@ -14,6 +14,7 @@ import redis from "@config/redis";
 import { generateResetPasswordHTML } from "./emailService";
 import logger from "@utils/logger";
 import { CONFIG, COMPUTED, TOKEN_CONFIG } from "@constants";
+import { GetMeResponse, LoginResponse } from "@my_types/auth";
 
 const JWT_SECRET: jwt.Secret = process.env.JWT_SECRET || "yoursupersecret";
 
@@ -73,12 +74,21 @@ export const register = async (
 	user: { id: string; username: string; email: string; role: Role };
 	message: string;
 }> => {
+	if (!dto) throw { status: 400, message: "" }
+
 	const existing = await db.User.findOne({ where: { email: dto.email } });
 	if (existing) throw { status: 400, message: "Email already in use" };
- 
+	
+	const fullname = dto.firstName + ' ' + dto.lastName;
+
 	const passwordHash = await bcrypt.hash(dto.password, CONFIG.BCRYPT_SALT_ROUNDS);
 	const user = await db.User.create({
-		userName: dto.username,
+		userName: dto.email,
+		firstName: dto.firstName,
+		lastName: dto.lastName,
+		fullName: fullname,
+		address: dto.address!,
+		gender: dto.gender as Gender,
 		email: dto.email,
 		phoneNumber: dto.phoneNumber,
 		emailConfirmed: false,
@@ -125,12 +135,7 @@ export const register = async (
  */
 export const login = async (
 	dto: DTO.LoginDTO
-): Promise<{
-	accessToken: string;
-	refreshToken: string;
-	user: { id: string; username: string; email: string; role: Role };
-	message: string;
-}> => {
+): Promise<LoginResponse> => {
 	const user = await db.User.findOne({
 		where: {
 			[Op.or]: [{ email: dto.username }, { userName: dto.username }],
@@ -156,7 +161,10 @@ export const login = async (
 		refreshToken: refreshToken.value,
 		user: {
 			id: user.id,
-			username: user.userName,
+			userName: user.userName,
+			fullName: user.fullName!,
+			firstName: user.firstName!,
+			lastName: user.lastName!,
 			email: user.email,
 			role: user.role,
 		},
@@ -311,18 +319,22 @@ export const resetPassword = async (dto: DTO.ResetPasswordDTO): Promise<void> =>
  * @returns Promise resolving to user profile data
  * @throws {Object} Error with status 404 if user not found
  */
-export const getMe = async (userId: string): Promise<DTO.GetMeDTO> => {
-	const user = await getUserById(userId, "userName", "email", "emailConfirmed", "role", "avatar");
+export const getMe = async (userId: string): Promise<GetMeResponse> => {
+	const user = await getUserById(userId, "userName", "fullName", "firstName", "lastName", "email", "emailConfirmed", "role", "avatar");
 	if (!user) throw { status: 404, message: "User not found" }
 	return {
 		user: {
 			id: user.id,
-			username: user.userName,
+			userName: user.userName,
+			fullName: user.fullName!,
+			firstName: user.firstName!,
+			lastName: user.lastName!,
 			email: user.email,
 			emailConfirmed: user.emailConfirmed ?? false,
 			role: user.role,
 			...(user.avatar !== undefined && {avatar: user.avatar}),
 		},
+		csrfToken: null!
 	};
 }
 

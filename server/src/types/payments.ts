@@ -16,21 +16,34 @@ export enum PaymentMethod {
 /**
  * Enum for the status of a payment.
  * @enum {string}
- * @property {string} PENDING - Payment is pending.
- * @property {string} PROCESSING - Payment is being processed.
- * @property {string} COMPLETED - Payment has been completed successfully.
- * @property {string} FAILED - Payment has failed.
- * @property {string} CANCELLED - Payment has been cancelled.
- * @property {string} EXPIRED - Payment has expired.
+ * @property {string} PENDING - The payment is pending.
+ * @property {string} PROCESSING - The payment is being processed.
+ * @property {string} COMPLETED - The payment has been completed successfully.
+ * @property {string} FAILED - The payment has failed.
+ * @property {string} CANCELLED - The payment has been cancelled.
+ * @property {string} EXPIRED - The payment has expired.
+ * @property {string} REFUNDED - The payment has been refunded.
+ * @property {string} PARTIALLY_REFUNDED - The payment has been partially refunded.
  */
 export enum PaymentStatus {
-	PENDING = "pending",
-	PROCESSING = "processing",
-	COMPLETED = "completed",
-	FAILED = "failed",
-	CANCELLED = "cancelled",
-	EXPIRED = "expired",
+	/** The payment is pending. */
+	PENDING = "PENDING",
+	/** The payment is being processed. */
+	PROCESSING = "PROCESSING",
+	/** The payment has been completed successfully. */
+	COMPLETED = "COMPLETED",
+	/** The payment has failed. */
+	FAILED = "FAILED",
+	/** The payment has been cancelled. */
+	CANCELLED = "CANCELLED",
+	/** The payment has expired. */
+	EXPIRED = "EXPIRED",
+	/** The payment has been refunded. */
+	REFUNDED = "REFUNDED",
+	/** The payment has been partially refunded. */
+	PARTIALLY_REFUNDED = "PARTIALLY_REFUNDED",
 }
+
 
 /**
  * Interface for a payment request.
@@ -277,4 +290,32 @@ export interface GatewayRefundOptions {
     performedBy?: string;
     ipAddress?: string;
     [key: string]: any; // Allow any other gateway-specific properties
+}
+
+/**
+ * Configuration for payment cleanup operations.
+ * @interface CleanupConfig
+ * @property {number} expiryThresholdMinutes - How old (in minutes) a pending payment must be to be considered expired
+ * @property {number} batchSize - Number of records to process per batch
+ * @property {boolean} dryRun - If true, only log without actual deletion
+ */
+export interface CleanupConfig {
+    expiryThresholdMinutes?: number;
+    batchSize?: number;
+    dryRun?: boolean;
+}
+
+/**
+ * Result statistics from a cleanup operation.
+ * @interface CleanupResult
+ * @property {number} expiredPayments - Number of expired payments processed
+ * @property {number} cancelledOrders - Number of orders cancelled
+ * @property {number} releasedCoupons - Number of coupon usages released
+ * @property {number} errors - Number of errors encountered
+ */
+export interface CleanupResult {
+    expiredPayments: number;
+    cancelledOrders: number;
+    releasedCoupons: number;
+    errors: number;
 }

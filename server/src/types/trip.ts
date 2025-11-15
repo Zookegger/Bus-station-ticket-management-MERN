@@ -40,8 +40,34 @@ export enum TripStatus {
 	 */
 	CANCELLED = "CANCELLED",
 
+	/**
+	 * The trip is delayed.
+	 * This indicates that the trip is scheduled but has been postponed.
+	 */
 	DELAYED = "DELAYED",
 }
+
+export enum TripRepeatFrequency {
+	NONE = "NONE",
+	DAILY = "DAILY",
+	WEEKLY = "WEEKLY",
+	WEEKDAY = "WEEKDAY",
+	MONTHLY = "MONTHLY",
+	YEARLY = "YEARLY",
+};
+
+/**
+ * Enum for trip assignment mode.
+ * @enum {string}
+ * @property {string} AUTO - Driver was automatically assigned by the system.
+ * @property {string} MANUAL - Driver was manually assigned by an admin/user.
+ */
+export enum AssignmentMode {
+	/** Driver was automatically assigned by the system. */
+    AUTO = "AUTO",
+	/** Driver was manually assigned by an admin/user. */
+    MANUAL = "MANUAL"
+};
 
 /**
  * Data Transfer Object for creating a new Trip.
@@ -54,16 +80,22 @@ export enum TripStatus {
  * @property {number} routeId - ID of the route for the trip.
  * @property {Date} startTime - Scheduled start time of the trip.
  * @property {Date | null} [endTime] - Scheduled or actual end time of the trip.
- * @property {number | null} [price] - Price of the trip.
- * @property {'Scheduled' | 'Departed' | 'Completed' | 'Cancelled'} [status] - Status of the trip.
+ * @property {number} price - Price of the trip.
+ * @property {TripStatus} status - Status of the trip.
+ * @property {boolean} [isTemplate] - Flag indicating whether the trip should be treated as a template.
+ * @property {TripRepeatFrequency} [repeatFrequency] - Frequency for generating future trips.
+ * @property {Date} [repeatEndDate] - The last date on which this template should generate trips.
  */
 export interface CreateTripDTO {
 	vehicleId: number;
 	routeId: number;
 	startTime: Date;
 	endTime?: Date | null;
-	price?: number | null;
-	status?: "Scheduled" | "Departed" | "Completed" | "Cancelled";
+	price: number;
+	status: TripStatus;
+	isTemplate?: boolean;
+	repeatFrequency?: TripRepeatFrequency;
+	repeatEndDate?: Date;
 }
 
 /**
@@ -80,6 +112,9 @@ export interface CreateTripDTO {
  * @property {Date | null} [endTime] - Updated end time.
  * @property {number | null} [price] - Updated price.
  * @property {'Scheduled' | 'Departed' | 'Completed' | 'Cancelled'} [status] - Updated status.
+ * @property {boolean} [isTemplate] - Updated template flag.
+ * @property {TripRepeatFrequency} [repeatFrequency] - Updated repeat frequency.
+ * @property {Date} [repeatEndDate] - Updated repeat end date.
  */
 export interface UpdateTripDTO {
 	id: number;
@@ -89,4 +124,7 @@ export interface UpdateTripDTO {
 	endTime?: Date | null;
 	price?: number | null;
 	status?: "Scheduled" | "Departed" | "Completed" | "Cancelled";
+	isTemplate?: boolean;
+	repeatFrequency?: TripRepeatFrequency;
+	repeatEndDate?: Date;
 }

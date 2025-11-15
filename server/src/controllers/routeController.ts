@@ -107,7 +107,7 @@ export const AddRoute = async (
 			};
 		}
 
-		res.status(200).json({
+		res.status(201).json({
 			route,
 			message: "Route added successfully.",
 		});

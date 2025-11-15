@@ -4,39 +4,14 @@ import {
 	DataTypes,
 	BelongsToGetAssociationMixin,
 	BelongsToManyGetAssociationsMixin,
-	HasManyGetAssociationsMixin,
 	Sequelize,
 } from "sequelize";
 import { PaymentMethod } from "./paymentMethod";
 import { decryptDB, encryptDB } from "@utils/encryption";
 import { Ticket } from "./ticket";
-import { PaymentTicket } from "./paymentTicket";
 import { Order } from "./orders";
 import { DbModels } from "@models";import logger from "@utils/logger";
-;
-
-/**
- * Enum for the status of a payment.
- * @enum {string}
- * @property {string} PENDING - The payment is pending.
- * @property {string} PROCESSING - The payment is being processed.
- * @property {string} COMPLETED - The payment has been completed successfully.
- * @property {string} FAILED - The payment has failed.
- * @property {string} CANCELLED - The payment has been cancelled.
- * @property {string} EXPIRED - The payment has expired.
- * @property {string} REFUNDED - The payment has been refunded.
- * @property {string} PARTIALLY_REFUNDED - The payment has been partially refunded.
- */
-export enum PaymentStatus {
-	PENDING = "pending",
-	PROCESSING = "processing",
-	COMPLETED = "completed",
-	FAILED = "failed",
-	CANCELLED = "cancelled",
-	EXPIRED = "expired",
-	REFUNDED = "refunded",
-	PARTIALLY_REFUNDED = "partially_refunded",
-}
+import { PaymentStatus } from "@my_types/payments";
 
 /**
  * Interface for the attributes of a Payment.
@@ -157,12 +132,6 @@ export class Payment
 	 */
 	public readonly tickets?: Ticket[];
 
-	public getPaymentTickets!: HasManyGetAssociationsMixin<PaymentTicket>;
-	/**
-	 * @property {PaymentTicket[]} [paymentTickets] - Associated PaymentTicket instances.
-	 */
-	public readonly paymentTickets?: PaymentTicket[];
-
 	/**
 	 * Initializes the Sequelize model definition for Payment.
 	 *
@@ -180,18 +149,17 @@ export class Payment
 				orderId: {
 					type: DataTypes.UUID,
 					allowNull: false,
-					unique: true, // Each order should have one primary payment record
 					field: "orderId",
-				},
-				totalAmount: {
-					type: DataTypes.DECIMAL(10, 2),
-					allowNull: false,
-					field: "totalAmount",
 				},
 				paymentMethodId: {
 					type: DataTypes.UUID,
 					allowNull: false,
 					field: "paymentMethodId",
+				},
+				totalAmount: {
+					type: DataTypes.DECIMAL(10, 2),
+					allowNull: false,
+					field: "totalAmount",
 				},
 				paymentStatus: {
 					type: DataTypes.ENUM(...Object.values(PaymentStatus)),
@@ -290,16 +258,6 @@ export class Payment
 		Payment.belongsTo(models.Order, {
 			foreignKey: "orderId",
 			as: "order",
-		});
-		Payment.belongsToMany(models.Ticket, {
-			through: models.PaymentTicket,
-			foreignKey: "paymentId",
-			otherKey: "ticketId",
-			as: "tickets",
-		});
-		Payment.hasMany(models.PaymentTicket, {
-			foreignKey: "paymentId",
-			as: "paymentTickets",
 		});
 	}
 }

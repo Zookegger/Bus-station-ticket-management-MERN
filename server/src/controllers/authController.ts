@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import * as authServices from "@services/authServices";
 import * as verificationServices from "@services/verificationServices";
-import { ChangePasswordDTO, ResetPasswordDTO } from "@my_types/user";
+import { ChangePasswordDTO, RegisterDTO, ResetPasswordDTO } from "@my_types/user";
 import { getCsrfToken, isValidCsrfToken } from "@middlewares/csrf";
 import { CONFIG, COMPUTED } from "@constants";
 import logger from "@utils/logger";
@@ -66,22 +66,11 @@ export const Register = async (
 	next: NextFunction,
 ): Promise<void> => {
 	try {
-		const { username, email, phoneNumber, password, confirmPassword } =
-			req.body;
-		const result = await authServices.register({
-			username,
-			email,
-			phoneNumber,
-			password,
-			confirmPassword,
-		});
+		const dto: RegisterDTO = req.body;
 
-		if (!result) {
-			throw {
-				status: 500,
-				message: "Failed to create a new account due to a server error.",
-			};
-		}
+		const result = await authServices.register(dto);
+
+		if (!result) throw { status: 500, message: "Failed to create a new account due to a server error.",};
 
 		setCookieTokens(res, result.accessToken, result.refreshToken);
 
@@ -242,7 +231,7 @@ export const Logout = async (
 		res.clearCookie("accessToken", cookieOptions as any);
 		res.clearCookie("refreshToken", cookieOptions as any);
 		// Also clear the CSRF secret cookie
-		res.clearCookie("_csrfSecret", cookieOptions as any);
+		res.clearCookie("psifi.x-csrf-token", cookieOptions as any);
 
 		res.status(200).json({ message: "Logged out successfully." });
 	} catch (err) {
@@ -279,7 +268,7 @@ export const GetMe = async (
 			};
 		}
 
-		const user = await authServices.getMe(userId);
+		const { user } = await authServices.getMe(userId);
 		if (!user) {
 			throw { status: 404, message: "User profile not found." };
 		}

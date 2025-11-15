@@ -45,7 +45,6 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
 		}
 	};
 	if (!vehicle) return null;
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	function onDelete(_vehicle: VehicleDetail) {
 		throw new Error("Function not implemented.");
 	}
@@ -310,14 +309,6 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
 						Edit
 					</Button>
 					<Button
-						variant="outlined"
-						startIcon={<ArrowBackIcon />}
-						onClick={onClose}
-						sx={{ flex: 1 }}
-					>
-						Back
-					</Button>
-					<Button
 						variant="contained"
 						color="error"
 						sx={{ flex: 1 }}
@@ -329,9 +320,6 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
 						}}
 					>
 						Delete
-					</Button>
-					<Button variant="outlined" sx={{ flex: 1 }}>
-						Info
 					</Button>
 				</Box>
 			</Box>

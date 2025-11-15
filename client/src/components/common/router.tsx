@@ -1,6 +1,6 @@
 import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 import Layout from "@components/layout/Layout";
-import DashboardLayout from "@components/layout/DashboardLayout";
+import DashboardLayout from "@components/layout/AdminLayout";
 import { ROUTES } from "@constants/index";
 import { Suspense } from "react";
 import LoadingSkeleton from "@components/layout/LoadingSkeleton";
@@ -69,6 +69,16 @@ export const router = createBrowserRouter([
             "@pages/common/PrivacyPolicy"
           );
           return { Component: PrivacyPolicy };
+        },
+      },
+
+      {
+        path: ROUTES.CHECK_IN,
+        lazy: async () => {
+          const { default: CheckIn } = await import(
+            "@pages/common/CheckInPage"
+          );
+          return { Component: CheckIn };
         },
       },
 
@@ -186,11 +196,18 @@ export const router = createBrowserRouter([
         },
       },
       {
-        path: "order",
-        lazy: async () => {
-          const { default: Order } = await import("@pages/admin/order/Order");
-          return { Component: Order };
-        },
+        path: "coupon",
+        children: [
+          {
+            path: "",
+            lazy: async () => {
+              const { default: Coupon } = await import(
+                "@pages/admin/coupon/CouponPage"
+              );
+              return { Component: Coupon };
+            },
+          },
+        ],
       },
       {
         path: "system",

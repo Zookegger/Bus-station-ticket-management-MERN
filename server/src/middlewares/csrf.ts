@@ -70,6 +70,7 @@ import { doubleCsrf } from "csrf-csrf";
 import { Request, Response } from "express";
 import { authenticateJwt, isAdmin, optionalAuthenticateJwt } from "./auth";
 import { CSRF_CONFIG } from "@constants/security";
+import { apiRateLimiter } from "./rateLimiter";
 
 /**
  * Configuration object for Double CSRF protection
@@ -128,8 +129,7 @@ import { CSRF_CONFIG } from "@constants/security";
  *   @returns {string|undefined} CSRF token from 'x-csrf-token' header
  */
 export const doubleCsrfUtilities = doubleCsrf({
-	getSecret: (req) =>
-		req?.secret || CSRF_CONFIG.SECRET,
+	getSecret: () => CSRF_CONFIG.SECRET,
 	getSessionIdentifier: (req) =>
 		(req as any).user?.id || req.ip || "anonymous", // Identifies the session (use user ID if authenticated, fallback to IP)
 	// Use the __Host- prefix only in production where Secure cookies are expected.
@@ -174,7 +174,7 @@ export const { doubleCsrfProtection, generateCsrfToken, validateRequest } =
  *
  * @returns {Function[]} Array containing [isAdmin, doubleCsrfProtection] middleware
  */
-export const csrfAdminProtectionRoute = [authenticateJwt, isAdmin, doubleCsrfProtection];
+export const csrfAdminProtectionRoute = [authenticateJwt, apiRateLimiter, isAdmin, doubleCsrfProtection];
 
 /**
  * Pre-configured CSRF protection route middleware
@@ -191,7 +191,7 @@ export const csrfAdminProtectionRoute = [authenticateJwt, isAdmin, doubleCsrfPro
  *
  * @returns {Function[]} Array containing [authenticateJwt, doubleCsrfProtection] middleware
  */
-export const csrfUserProtectionRoute = [authenticateJwt, doubleCsrfProtection];
+export const csrfUserProtectionRoute = [authenticateJwt, apiRateLimiter, doubleCsrfProtection];
 
 /**
  * Pre-configured CSRF protection route for both guests and authenticated users.
@@ -209,7 +209,7 @@ export const csrfUserProtectionRoute = [authenticateJwt, doubleCsrfProtection];
  *
  * @returns {Function[]} Array containing [optionalAuthenticateJwt, doubleCsrfProtection] middleware
  */
-export const csrfGuestOrUserProtectionRoute = [optionalAuthenticateJwt, doubleCsrfProtection];
+export const csrfGuestOrUserProtectionRoute = [optionalAuthenticateJwt, apiRateLimiter, doubleCsrfProtection];
 
 /**
  * Generates and returns a CSRF token

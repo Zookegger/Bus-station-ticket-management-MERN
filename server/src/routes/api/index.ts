@@ -21,6 +21,8 @@ import settingsRouter from "@routes/api/settingRouter";
 import paymentMethodRoute from "@routes/api/paymentMethodRouter";
 import orderRouter from "@routes/api/orderRouter";
 import checkInRouter from "@routes/api/checkInRouter";
+import couponRouter from "@routes/api/couponRouter";
+import debugRouter from "@routes/api/debugRouter";
 
 /**
  * Main API router instance.
@@ -31,34 +33,34 @@ import checkInRouter from "@routes/api/checkInRouter";
 const apiRouter = Router();
 
 const formatMemoryUsage = (usage: NodeJS.MemoryUsage) => {
-    const toMB = (bytes: number) => (bytes / 1024 / 1024).toFixed(2) + 'MB';
-    return Object.fromEntries(
-        Object.entries(usage).map(([key, value]) => [key, toMB(value)])
-    )
-}
+	const toMB = (bytes: number) => (bytes / 1024 / 1024).toFixed(2) + "MB";
+	return Object.fromEntries(
+		Object.entries(usage).map(([key, value]) => [key, toMB(value)])
+	);
+};
 
 const formatUptime = (seconds: number) => {
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-    
-    const parts = [];
-    if (days > 0) parts.push(`${days}d`);
-    if (hours > 0) parts.push(`${hours}h`);
-    if (minutes > 0) parts.push(`${minutes}m`);
-    parts.push(`${secs}s`);
-    
-    return parts.join(' ');
-}
+	const days = Math.floor(seconds / 86400);
+	const hours = Math.floor((seconds % 86400) / 3600);
+	const minutes = Math.floor((seconds % 3600) / 60);
+	const secs = Math.floor(seconds % 60);
 
-apiRouter.get('/health', (_req: Request, res: Response) => {
-    res.json({
-        status: 'active',
-        timestamp: new Date().toISOString(),
-        memoryUsage: formatMemoryUsage(process.memoryUsage()),
-        uptime: formatUptime(process.uptime())
-    });
+	const parts = [];
+	if (days > 0) parts.push(`${days}d`);
+	if (hours > 0) parts.push(`${hours}h`);
+	if (minutes > 0) parts.push(`${minutes}m`);
+	parts.push(`${secs}s`);
+
+	return parts.join(" ");
+};
+
+apiRouter.get("/health", (_req: Request, res: Response) => {
+	res.json({
+		status: "active",
+		timestamp: new Date().toISOString(),
+		memoryUsage: formatMemoryUsage(process.memoryUsage()),
+		uptime: formatUptime(process.uptime()),
+	});
 });
 
 // Mount authentication routes under /auth prefix. It has its own stricter rate limiter.
@@ -75,7 +77,13 @@ apiRouter.use("/trips", apiRateLimiter, tripRoutes);
 apiRouter.use("/seats", apiRateLimiter, seatRoutes);
 apiRouter.use("/payment-methods", apiRateLimiter, paymentMethodRoute);
 apiRouter.use("/settings", apiRateLimiter, settingsRouter);
-apiRouter.use("/order", apiRateLimiter, orderRouter);
+apiRouter.use("/orders", apiRateLimiter, orderRouter);
+apiRouter.use("/coupons", apiRateLimiter, couponRouter);
 apiRouter.use("/check-in", checkInRouter);
+
+// Debug routes (admin only, for development/testing)
+if (process.env.NODE_ENV !== "production") {
+	apiRouter.use("/debug", apiRateLimiter, debugRouter);
+}
 
 export default apiRouter;

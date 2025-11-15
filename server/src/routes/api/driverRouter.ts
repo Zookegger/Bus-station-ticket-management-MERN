@@ -45,4 +45,7 @@ driverRouter.put("/:id", csrfAdminProtectionRoute, validateDriverIdParam, update
 // DELETE /drivers/:id - Delete driver by ID
 driverRouter.delete("/:id", csrfAdminProtectionRoute, validateDriverIdParam, handleValidationResult, driverController.DeleteDriver, errorHandler);
 
+// GET /drivers/:id/schedule - Get driver's schedule
+driverRouter.get("/:id/schedule", isAdmin, validateDriverIdParam, handleValidationResult, driverController.GetDriverSchedule, errorHandler);
+
 export default driverRouter;

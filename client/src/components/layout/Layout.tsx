@@ -12,10 +12,10 @@ const Layout: React.FC<React.PropsWithChildren> = ({ children }) => {
 				component="main"
 				sx={{
 					flex: 1,
-					width: "100%",
 					overflow: "hidden",
 					display: "flex",
-					position: "relative"
+					flexDirection: "column",
+					maxWidth: "100vw"
 				}}
 			>
 				{children}

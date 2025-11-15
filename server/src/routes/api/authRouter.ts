@@ -12,7 +12,6 @@ import { errorHandler } from "@middlewares/errorHandler";
 import * as authValidator from "@middlewares/validators/authValidator";
 import * as authController from "@controllers/authController";
 import { handleValidationResult } from "@middlewares/validateRequest";
-import { authenticateJwt } from "@middlewares/auth";
 import { authRateLimiter } from "@middlewares/rateLimiter";
 import { csrfUserProtectionRoute } from "@middlewares/csrf";
 
@@ -27,7 +26,6 @@ const authRouter = Router();
 // CSRF token endpoint
 authRouter.get(
 	"/csrf-token",
-	authRateLimiter,
 	csrfUserProtectionRoute,
 	authValidator.getCsrfTokenValidator,
 	authController.GetCsrfToken,
@@ -36,7 +34,6 @@ authRouter.get(
 
 authRouter.post(
 	"/csrf-token",
-	authRateLimiter,
 	csrfUserProtectionRoute,
 	authController.VerifyCsrfToken,
 	errorHandler,
@@ -44,7 +41,6 @@ authRouter.post(
 
 authRouter.post(
 	"/refresh",
-	authRateLimiter,
 	csrfUserProtectionRoute,
 	authController.RefreshToken,
 	errorHandler,
@@ -82,10 +78,7 @@ authRouter.post(
  */
 authRouter.post(
 	"/logout",
-	authRateLimiter,
 	csrfUserProtectionRoute,
-	authValidator.logoutValidation,
-	handleValidationResult,
 	authController.Logout,
 	errorHandler,
 );
@@ -96,9 +89,7 @@ authRouter.post(
  */
 authRouter.get(
 	"/me",
-	authRateLimiter,
 	csrfUserProtectionRoute,
-	authenticateJwt,
 	authController.GetMe,
 	errorHandler,
 );
@@ -109,7 +100,6 @@ authRouter.get(
  */
 authRouter.post(
 	"/verify-email",
-	authRateLimiter,
 	csrfUserProtectionRoute,
 	authController.VerifyEmail,
 	errorHandler,
@@ -121,7 +111,6 @@ authRouter.post(
  */
 authRouter.post(
 	"/change-password/:id",
-	authRateLimiter,
 	csrfUserProtectionRoute,
 	authValidator.changePasswordValidation,
 	authController.ChangePassword,

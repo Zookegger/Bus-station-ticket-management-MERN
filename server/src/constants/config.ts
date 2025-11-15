@@ -1,5 +1,6 @@
-import { configService } from '@services/settingServices';
-import ms from 'ms';
+import { configService } from "@services/settingServices";
+import { SchedulingStrategies } from "@utils/schedulingStrategy";
+import ms from "ms";
 
 /**
  * Configuration constants that depend on configService.
@@ -8,64 +9,75 @@ import ms from 'ms';
 export const CONFIG = {
 	// Authentication
 	get BCRYPT_SALT_ROUNDS(): number {
-		return configService.get<number>('BCRYPT_SALT_ROUNDS', 12);
+		return configService.get<number>("BCRYPT_SALT_ROUNDS", 12);
 	},
 
 	get JWT_EXPIRY_HOURS(): number {
-		return configService.get<number>('JWT_EXPIRY_HOURS', 72);
+		return configService.get<number>("JWT_EXPIRY_HOURS", 72);
 	},
 
 	get REFRESH_TOKEN_EXPIRY_HOURS(): number {
-		return configService.get<number>('REFRESH_TOKEN_EXPIRY_HOURS', 720);
+		return configService.get<number>("REFRESH_TOKEN_EXPIRY_HOURS", 720);
 	},
 
 	get CHANGE_PASSWORD_EXPIRY_HOURS(): number {
-		return configService.get<number>('CHANGE_PASSWORD_EXPIRY_HOURS', 24);
+		return configService.get<number>("CHANGE_PASSWORD_EXPIRY_HOURS", 24);
 	},
 
 	get VERIFICATION_TOKEN_EXPIRY_HOURS(): number {
-		return configService.get<number>('VERIFICATION_TOKEN_EXPIRY_HOURS', 24);
+		return configService.get<number>("VERIFICATION_TOKEN_EXPIRY_HOURS", 24);
 	},
 
 	// Payment & Booking
 	get PAYMENT_WINDOW_MINUTES(): number {
-		return configService.get<number>('PAYMENT_WINDOW_MINUTES', 10);
+		return configService.get<number>("PAYMENT_WINDOW_MINUTES", 10);
 	},
 
 	get TICKET_RESERVATION_MINUTES(): number {
-		return configService.get<number>('TICKET_RESERVATION_MINUTES', 15);
+		return configService.get<number>("TICKET_RESERVATION_MINUTES", 15);
 	},
 
 	// System
 	get MAX_TICKET_CLEANUP_BATCH_SIZE(): number {
-		return configService.get<number>('MAX_TICKET_CLEANUP_BATCH_SIZE', 200);
+		return configService.get<number>("MAX_TICKET_CLEANUP_BATCH_SIZE", 200);
 	},
 
 	get MAX_LOGIN_ATTEMPTS(): number {
-		return configService.get<number>('MAX_LOGIN_ATTEMPTS', 5);
+		return configService.get<number>("MAX_LOGIN_ATTEMPTS", 5);
 	},
 
 	get SESSION_TIMEOUT_MINUTES(): number {
-		return configService.get<number>('SESSION_TIMEOUT_MINUTES', 60);
+		return configService.get<number>("SESSION_TIMEOUT_MINUTES", 60);
 	},
 
 	// Features
 	get ENABLE_EMAIL_NOTIFICATIONS(): boolean {
-		return configService.get<boolean>('ENABLE_EMAIL_NOTIFICATIONS', true);
+		return configService.get<boolean>("ENABLE_EMAIL_NOTIFICATIONS", true);
 	},
 
 	get ENABLE_GUEST_BOOKING(): boolean {
-		return configService.get<boolean>('ENABLE_GUEST_BOOKING', true);
+		return configService.get<boolean>("ENABLE_GUEST_BOOKING", true);
 	},
 
 	// Business
 	get DEFAULT_CURRENCY(): string {
-		return configService.get<string>('DEFAULT_CURRENCY', 'VND');
+		return configService.get<string>("DEFAULT_CURRENCY", "VND");
 	},
 
 	// Cron
 	get CLEANUP_CRON_EXPRESSION(): string {
-		return configService.get<string>('CLEANUP_CRON_EXPRESSION', '*/5 * * * *');
+		return configService.get<string>(
+			"CLEANUP_CRON_EXPRESSION",
+			"*/5 * * * *"
+		);
+	},
+
+	// Auto assignment
+	get DEFAULT_ASSIGNMENT_STRATEGY(): string {
+		return configService.get<string>(
+			`DEFAULT_ASSIGNMENT_STRATEGY`,
+			SchedulingStrategies.AVAILABILITY
+		);
 	},
 };
 

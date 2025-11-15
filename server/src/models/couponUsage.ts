@@ -13,7 +13,7 @@ import { DbModels } from "@models";;
 export interface CouponUsageAttributes {
 	id: number;
 	couponId: number;
-	userId: string;
+	userId: string | null;
 	orderId: string;
 	discountAmount: number;
 	createdAt?: Date;

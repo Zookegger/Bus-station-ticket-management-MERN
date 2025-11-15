@@ -72,4 +72,31 @@ tripRouter.delete(
 	errorHandler
 );
 
+// Manual driver assignment (admin only)
+tripRouter.post(
+    "/:id/assign-driver",
+    csrfAdminProtectionRoute,
+	tripValidator.validateIdParam,
+    tripController.ManuallyAssignDriver,
+	errorHandler
+);
+
+// Trigger auto-assignment (admin only)
+tripRouter.post(
+    "/:id/auto-assign",
+    csrfAdminProtectionRoute,
+	tripValidator.validateIdParam,
+    tripController.TriggerAutoAssignment,
+	errorHandler
+);
+
+// Unassign driver (admin only)
+tripRouter.delete(
+    "/:id/assign-driver",
+    csrfAdminProtectionRoute,
+	tripValidator.validateIdParam,
+    tripController.UnassignDriver,
+	errorHandler
+);
+
 export default tripRouter;

@@ -36,7 +36,7 @@ export const AddLocation = async (
         const location = await locationServices.addLocation(new_location);
         if (!location) throw { status: 500, message: "No location added, Something went wrong." };
 
-        res.status(200).json({ location, message: "Location added successfully" })
+        res.status(201).json({ location, message: "Location added successfully" })
     } catch (err) {
         next(err);
     }
