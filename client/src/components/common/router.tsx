@@ -210,6 +210,13 @@ export const router = createBrowserRouter([
         ],
       },
       {
+        path: "order",
+        lazy: async () => {
+          const { default: Order } = await import("@pages/admin/order/Order");
+          return { Component: Order };
+        },
+      },
+      {
         path: "system",
         lazy: async () => {
           const { default: System } = await import(
