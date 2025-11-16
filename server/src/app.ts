@@ -10,7 +10,7 @@ import express, { Application, Request, Response } from "express";
 import cors from "cors";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
-import { applyPassportStrategy } from "@config/passport"
+import { applyPassportStrategy } from "@config/passport";
 import apiRouter from "@routes/api";
 import passport from "passport";
 import path from "path";
@@ -32,7 +32,7 @@ app.use(
 			"http://localhost:3000",
 			"http://127.0.0.1:3000",
 		],
-		methods: ['GET', 'POST', 'PUT', 'DELETE'],
+		methods: ["GET", "POST", "PUT", "DELETE"],
 		credentials: true,
 	})
 );
@@ -67,7 +67,19 @@ app.use(passport.initialize());
 applyPassportStrategy();
 
 // Server uploads statically
-app.use('/uploads', express.static(path.join(__dirname, "..", "uploads")));
+const uploadsPath = path.resolve(__dirname, "../../uploads");
+app.use(
+	"/uploads",
+	express.static(uploadsPath, {
+		dotfiles: "ignore",
+		index: false,
+		maxAge: "1d",
+		setHeaders: (res, _path) => {
+			res.setHeader("X-Content-Type-Options", "nosniff");
+			res.setHeader("Cache-Control", "public, max-age=86400");
+		},
+	})
+);
 
 // Mount API routes under the /api prefix
 app.use("/api", apiRouter);

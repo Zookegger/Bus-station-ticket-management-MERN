@@ -26,15 +26,15 @@ import { DbModels } from "@models";;
  */
 export enum OrderStatus {
 	/** The order is pending and awaiting confirmation or payment. */
-	PENDING = "pending",
+	PENDING = "PENDING",
 	/** The order has been confirmed. */
-	CONFIRMED = "confirmed",
+	CONFIRMED = "CONFIRMED",
 	/** The order has been cancelled. */
-	CANCELLED = "cancelled",
+	CANCELLED = "CANCELLED",
 	/** The order has been partially refunded. */
-	PARTIALLY_REFUNDED = "partially_refunded",
+	PARTIALLY_REFUNDED = "PARTIALLY_REFUNDED",
 	/** The order has been fully refunded. */
-	REFUNDED = "refunded",
+	REFUNDED = "REFUNDED",
 	/** The order has expired. */
 	EXPIRED = "EXPIRED"
 }

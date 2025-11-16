@@ -7,7 +7,13 @@ import type { PaymentMethodCode } from "@my-types/payment";
  * Based on server/src/types/order.ts
  */
 
-export type OrderStatus = "pending" | "confirmed" | "cancelled" | "partially_refunded" | "refunded" | "expired";
+export type OrderStatus =
+	| "PENDING"
+	| "CONFIRMED"
+	| "CANCELLED"
+	| "PARTIALLY_REFUNDED"
+	| "REFUNDED"
+	| "EXPIRED";
 
 /**
  * Information for guest purchasers.

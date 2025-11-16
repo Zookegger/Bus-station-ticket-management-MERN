@@ -1,10 +1,5 @@
 import { API_ENDPOINTS } from "@constants";
-import {
-	Button,
-	Paper,
-	Box,
-	CircularProgress,
-} from "@mui/material";
+import { Button, Paper, Box, CircularProgress } from "@mui/material";
 import type { Route } from "@my-types";
 import { handleAxiosError } from "@utils/handleError";
 import axios from "axios";
@@ -82,15 +77,16 @@ const RouteList: React.FC = () => {
 		const fetchData = async () => {
 			try {
 				const response = await axios.get(API_ENDPOINTS.ROUTE.SEARCH);
-				if (response.status !== 200) throw new Error("Failed to fetch data");
+				if (response.status !== 200)
+					throw new Error("Failed to fetch data");
 				const data = response.data as any;
 				const normalized: Route[] = Array.isArray(data)
 					? data
 					: Array.isArray(data.routes)
-						? data.routes
-						: Array.isArray(data.data)
-							? data.data
-							: [];
+					? data.routes
+					: Array.isArray(data.data)
+					? data.data
+					: [];
 				setRoutes(normalized);
 			} catch (err) {
 				console.error(handleAxiosError(err));
@@ -116,31 +112,43 @@ const RouteList: React.FC = () => {
 			sortable: false,
 			renderCell: (params) => {
 				const raw = routes.find((r) => r.id === params.id);
-				const hasCoords = !!(raw?.startLocation?.latitude && raw?.startLocation?.longitude && raw?.destination?.latitude && raw?.destination?.longitude);
+				const hasCoords = !!(
+					raw?.startLocation?.latitude &&
+					raw?.startLocation?.longitude &&
+					raw?.destination?.latitude &&
+					raw?.destination?.longitude
+				);
 				return (
 					<Button
-						 size="small"
-						 variant="outlined"
-						 disabled={!raw || !hasCoords}
-						 onClick={(e) => {
-							 e.stopPropagation();
-							 if (!raw) return;
-							 if (raw.startLocation?.latitude && raw.startLocation?.longitude) {
-								 setMapStart({
-									 lat: raw.startLocation.latitude,
-									 lon: raw.startLocation.longitude,
-									 display_name: raw.startLocation.name ?? "Start",
-								 });
-							 }
-							 if (raw.destination?.latitude && raw.destination?.longitude) {
-								 setMapEnd({
-									 lat: raw.destination.latitude,
-									 lon: raw.destination.longitude,
-									 display_name: raw.destination.name ?? "End",
-								 });
-							 }
-							 setMapOpen(true);
-						 }}
+						size="small"
+						variant="outlined"
+						disabled={!raw || !hasCoords}
+						onClick={(e) => {
+							e.stopPropagation();
+							if (!raw) return;
+							if (
+								raw.startLocation?.latitude &&
+								raw.startLocation?.longitude
+							) {
+								setMapStart({
+									lat: raw.startLocation.latitude,
+									lon: raw.startLocation.longitude,
+									display_name:
+										raw.startLocation.name ?? "Start",
+								});
+							}
+							if (
+								raw.destination?.latitude &&
+								raw.destination?.longitude
+							) {
+								setMapEnd({
+									lat: raw.destination.latitude,
+									lon: raw.destination.longitude,
+									display_name: raw.destination.name ?? "End",
+								});
+							}
+							setMapOpen(true);
+						}}
 					>
 						Map
 					</Button>
@@ -166,7 +174,7 @@ const RouteList: React.FC = () => {
 	);
 
 	return (
-		<DataGridPageLayout title="Route Management" actionBar={actionBar}  >
+		<DataGridPageLayout title="Route Management" actionBar={actionBar}>
 			{isLoading ? (
 				<Box display="flex" justifyContent="center" py={8}>
 					<CircularProgress />
@@ -177,6 +185,7 @@ const RouteList: React.FC = () => {
 						rows={rows}
 						columns={columns}
 						pagination
+						rowHeight={35}
 						initialState={{
 							pagination: { paginationModel: { pageSize: 10 } },
 						}}
@@ -223,17 +232,17 @@ const RouteList: React.FC = () => {
 			)}
 			{/* Map dialog for viewing/editing route coordinates */}
 			<RouteMapDialog
-				 open={mapOpen}
-				 onClose={() => setMapOpen(false)}
-				 initialStart={mapStart ?? undefined}
-				 initialEnd={mapEnd ?? undefined}
-				 onConfirm={(start, end) => {
-					 // Currently just close; persistence can be added when API supports coordinate updates
-					 setMapStart(start);
-					 setMapEnd(end);
-					 setMapOpen(false);
-				 }}
-				 title="Route Map"
+				open={mapOpen}
+				onClose={() => setMapOpen(false)}
+				initialStart={mapStart ?? undefined}
+				initialEnd={mapEnd ?? undefined}
+				onConfirm={(start, end) => {
+					// Currently just close; persistence can be added when API supports coordinate updates
+					setMapStart(start);
+					setMapEnd(end);
+					setMapOpen(false);
+				}}
+				title="Route Map"
 			/>
 		</DataGridPageLayout>
 	);

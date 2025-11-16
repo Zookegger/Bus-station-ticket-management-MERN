@@ -232,6 +232,7 @@ const VehicleList: React.FC = () => {
 				<DataGrid
 					rows={rows}
 					columns={columns}
+					rowHeight={35}
 					pagination
 					initialState={{
 						pagination: {
