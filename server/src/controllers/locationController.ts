@@ -27,19 +27,27 @@ import { CreateLocationDTO, UpdateLocationDTO } from "@my_types/location";
  * @throws {Error} When creation fails or validation errors occur
  */
 export const AddLocation = async (
-    req: Request, 
-    res: Response, 
-    next: NextFunction
+	req: Request,
+	res: Response,
+	next: NextFunction
 ): Promise<void> => {
-    try {
-        const new_location: CreateLocationDTO = req.body;
-        const location = await locationServices.addLocation(new_location);
-        if (!location) throw { status: 500, message: "No location added, Something went wrong." };
+	try {
+		const new_location: CreateLocationDTO = req.body;
+		const location = await locationServices.addLocation(new_location);
 
-        res.status(201).json({ location, message: "Location added successfully" })
-    } catch (err) {
-        next(err);
-    }
+		if (!location)
+			throw {
+				status: 500,
+				message: "No location added, Something went wrong.",
+			};
+
+		res.status(201).json({
+			location,
+			message: "Location added successfully",
+		});
+	} catch (err) {
+		next(err);
+	}
 };
 
 /**
@@ -58,21 +66,32 @@ export const AddLocation = async (
  * @throws {Error} When update fails or location not found
  */
 export const UpdateLocation = async (
-    req: Request, 
-    res: Response, 
-    next: NextFunction
+	req: Request,
+	res: Response,
+	next: NextFunction
 ): Promise<void> => {
-    try {
-        const id = getParamNumericId(req);
+	try {
+		const id = getParamNumericId(req);
 
-        const updated_location: UpdateLocationDTO = req.body;
-        const location = await locationServices.updateLocation(id, updated_location);
-        if (!location) throw { status: 500, message: "No location updated, Something went wrong or no new changes.", };
+		const updated_location: UpdateLocationDTO = req.body;
+		const location = await locationServices.updateLocation(
+			id,
+			updated_location
+		);
+		if (!location)
+			throw {
+				status: 500,
+				message:
+					"No location updated, Something went wrong or no new changes.",
+			};
 
-        res.status(200).json({ location, message: "Location updated successfully.", });
-    } catch (err) {
-        next(err);
-    }
+		res.status(200).json({
+			location,
+			message: "Location updated successfully.",
+		});
+	} catch (err) {
+		next(err);
+	}
 };
 
 /**
@@ -92,22 +111,22 @@ export const UpdateLocation = async (
  * @returns JSON response with success message
  */
 export const DeleteLocation = async (
-    req: Request, 
-    res: Response, 
-    next: NextFunction
+	req: Request,
+	res: Response,
+	next: NextFunction
 ): Promise<void> => {
-    try {
-        const id = getParamNumericId(req);
+	try {
+		const id = getParamNumericId(req);
 
-        await locationServices.removeLocation(id);
+		await locationServices.removeLocation(id);
 
-        res.status(200).json({
-            success: true,
+		res.status(200).json({
+			success: true,
 			message: "Location deleted successfully.",
-        })
-    } catch (err) {
-        next(err);
-    }
+		});
+	} catch (err) {
+		next(err);
+	}
 };
 
 /**
@@ -126,22 +145,23 @@ export const DeleteLocation = async (
  * @throws {Error} When location not found or query fails
  */
 export const GetLocationById = async (
-    req: Request, 
-    res: Response, 
-    next: NextFunction
+	req: Request,
+	res: Response,
+	next: NextFunction
 ): Promise<void> => {
-    try {
-        const id = getParamNumericId(req);
-        const location = await locationServices.getLocationById(id);
+	try {
+		const id = getParamNumericId(req);
+		const location = await locationServices.getLocationById(id);
 
-        if (!location) throw { status: 404, message: `No location found with Id ${id}` }
-        res.status(200).json(location);
-    } catch (err) {
-        next(err);
-    }
+		if (!location)
+			throw { status: 404, message: `No location found with Id ${id}` };
+		res.status(200).json(location);
+	} catch (err) {
+		next(err);
+	}
 };
 
-const getParamsLonLat = (req: Request): { lon: number, lat: number} => {
+const getParamsLonLat = (req: Request): { lon: number; lat: number } => {
 	const lon: number = Number.parseInt(req.params.lon as string);
 	const lat: number = Number.parseInt(req.params.lat as string);
 	if (isNaN(lon)) {
@@ -155,19 +175,26 @@ const getParamsLonLat = (req: Request): { lon: number, lat: number} => {
 };
 
 export const GetLocationByCoordinates = async (
-    req: Request, 
-    res: Response, 
-    next: NextFunction
+	req: Request,
+	res: Response,
+	next: NextFunction
 ): Promise<void> => {
-    try {
-        const coordinates = getParamsLonLat(req);
-        const location = await locationServices.getLocationByCoordinates(coordinates.lon, coordinates.lat);
+	try {
+		const coordinates = getParamsLonLat(req);
+		const location = await locationServices.getLocationByCoordinates(
+			coordinates.lon,
+			coordinates.lat
+		);
 
-        if (!location) throw { status: 404, message: `No location found with coordinate lon:${coordinates.lon} lat:${coordinates.lat}` }
-        res.status(200).json(location);
-    } catch (err) {
-        next(err);
-    }
+		if (!location)
+			throw {
+				status: 404,
+				message: `No location found with coordinate lon:${coordinates.lon} lat:${coordinates.lat}`,
+			};
+		res.status(200).json(location);
+	} catch (err) {
+		next(err);
+	}
 };
 
 /**
@@ -186,38 +213,39 @@ export const GetLocationByCoordinates = async (
  * @throws {Error} When query fails or invalid parameters provided
  */
 export const searchLocation = async (
-    req: Request, 
-    res: Response, 
-    next: NextFunction
+	req: Request,
+	res: Response,
+	next: NextFunction
 ): Promise<void> => {
-    try {
-        const {
-            keywords,
-            orderBy = "createdAt",
-            sortOrder = "DESC",
-            page,
-            limit,
-            name,
-            address,
-            long,
-            lat,
-        } = req.query;
+	try {
+		const {
+			keywords,
+			orderBy = "createdAt",
+			sortOrder = "DESC",
+			page,
+			limit,
+			name,
+			address,
+			long,
+			lat,
+		} = req.query;
 
-        const options: any = {
-            keywords: keywords as string,
-            orderBy: orderBy as string,
-            sortOrder: sortOrder as "ASC" | "DESC",
-        };
-        if (page !== undefined) options.page = parseInt(page as string);
-        if (limit !== undefined) options.limit = parseInt(limit as string);
-        if (name !== undefined) options.name = name as string;
-        if (address !== undefined) options.address = address as string;
-        if (long !== undefined) options.long = parseFloat(long as string);
-        if (lat !== undefined) options.lat = parseFloat(lat as string);
+		const options: any = {
+			keywords: keywords as string,
+			orderBy: orderBy as string,
+			sortOrder: sortOrder as "ASC" | "DESC",
+		};
+		if (page !== undefined) options.page = parseInt(page as string);
+		if (limit !== undefined) options.limit = parseInt(limit as string);
+		if (name !== undefined) options.name = name as string;
+		if (address !== undefined) options.address = address as string;
+		if (long !== undefined) options.long = parseFloat(long as string);
+		if (lat !== undefined) options.lat = parseFloat(lat as string);
 
-        const locations = await locationServices.searchLocation(options);
-        res.status(200).json(locations);
-    } catch (err) {
-        next(err);
-    }
+		const locations = await locationServices.searchLocation(options);
+
+        res.status(200).json({ locations: locations!.rows });
+	} catch (err) {
+		next(err);
+	}
 };

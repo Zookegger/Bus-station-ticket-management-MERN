@@ -11,6 +11,7 @@ import {
 	ListItemText,
 	Button,
 	Chip,
+	Grid,
 } from "@mui/material";
 import {
 	Close as CloseIcon,
@@ -18,12 +19,12 @@ import {
 	AttachMoney as MoneyIcon,
 	EventSeat as SeatIcon,
 	Layers as FloorIcon,
-	ViewColumn as ColumnIcon,
-	TableRows as RowIcon,
 	Edit as EditIcon,
 	ArrowBack as ArrowBackIcon,
+	Delete as DeleteIcon,
 } from "@mui/icons-material";
-import type { VehicleType } from "./types";
+import type { VehicleType } from "@my-types/vehicleType";
+import SeatLayoutPreview from "./SeatLayoutPreview";
 
 interface VehicleTypeDetailsDrawerProps {
 	open: boolean;
@@ -112,7 +113,9 @@ const VehicleTypeDetailsDrawer: React.FC<VehicleTypeDetailsDrawerProps> = ({
 										variant="body1"
 										sx={{ fontWeight: "medium" }}
 									>
-										{formatCurrency(vehicleType.baseFare)}
+										{vehicleType.price
+											? formatCurrency(vehicleType.price)
+											: "N/A"}
 									</Typography>
 								}
 							/>
@@ -137,71 +140,43 @@ const VehicleTypeDetailsDrawer: React.FC<VehicleTypeDetailsDrawerProps> = ({
 
 						<ListItem sx={{ px: 0 }}>
 							<ListItemIcon>
-								<ColumnIcon color="secondary" />
-							</ListItemIcon>
-							<ListItemText
-								primary="Total Columns"
-								secondary={
-									<Typography
-										variant="body1"
-										sx={{ fontWeight: "medium" }}
-									>
-										{vehicleType.totalColumn}
-									</Typography>
-								}
-							/>
-						</ListItem>
-
-						<ListItem sx={{ px: 0 }}>
-							<ListItemIcon>
-								<RowIcon color="warning" />
-							</ListItemIcon>
-							<ListItemText
-								primary="Total Rows"
-								secondary={
-									<Typography
-										variant="body1"
-										sx={{ fontWeight: "medium" }}
-									>
-										{vehicleType.totalRow}
-									</Typography>
-								}
-							/>
-						</ListItem>
-
-						<ListItem sx={{ px: 0 }}>
-							<ListItemIcon>
 								<FloorIcon color="error" />
 							</ListItemIcon>
 							<ListItemText
-								primary="Total Flooring"
+								primary="Total Floors"
 								secondary={
 									<Typography
 										variant="body1"
 										sx={{ fontWeight: "medium" }}
 									>
-										{vehicleType.totalFlooring}
+										{vehicleType.totalFloors}
 									</Typography>
 								}
 							/>
 						</ListItem>
-
-						{vehicleType.description && (
-							<ListItem sx={{ px: 0 }}>
-								<ListItemText
-									primary="Description"
-									secondary={
-										<Typography
-											variant="body2"
-											color="text.secondary"
-										>
-											{vehicleType.description}
-										</Typography>
-									}
-								/>
-							</ListItem>
-						)}
 					</List>
+				</Box>
+
+				{/* Seat Layout Preview */}
+				<Box sx={{ bgcolor: "white", p: 3, borderRadius: 2, mb: 3 }}>
+					<Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
+						Seat Layout
+					</Typography>
+					<Grid container spacing={2}>
+						<Grid size={{ xs: 12 }}>
+							<Typography variant="subtitle1">
+								Total Seats:
+							</Typography>
+							<Typography variant="body1">
+								{vehicleType?.totalSeats ?? "N/A"}
+							</Typography>
+						</Grid>
+					</Grid>
+					<Divider sx={{ my: 2 }} />
+					<Typography variant="h6" gutterBottom>
+						Seat Layout
+					</Typography>
+					<SeatLayoutPreview seatLayout={vehicleType?.seatLayout} />
 				</Box>
 
 				{/* Action Buttons */}
@@ -216,9 +191,9 @@ const VehicleTypeDetailsDrawer: React.FC<VehicleTypeDetailsDrawerProps> = ({
 					</Button>
 					<Button
 						variant="contained"
-						startIcon={<EditIcon />}
+						startIcon={<DeleteIcon />}
 						onClick={() => onDelete(vehicleType)}
-						sx={{ bgcolor: "#1976d2" }}
+						sx={{ bgcolor: "#d32f2f" }}
 					>
 						Delete
 					</Button>

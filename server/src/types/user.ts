@@ -2,43 +2,6 @@ import { Gender } from "@models/user";
 // Data transfer object
 
 /**
- * @interface RegisterDTO
- * @property {string} username - The user's username.
- * @property {string} email - The user's email address.
- * @property {string} phoneNumber - The user's phone number.
- * @property {string} password - The user's password.
- * @property {string} confirmPassword - Confirmation of the password.
- */
-export interface RegisterDTO {
-	email: string;
-	phoneNumber: string;
-	firstName: string;
-	lastName: string;
-	address?: string | null;
-	gender?: Gender | string | null;
-	dateOfBirth?: string | Date | null;
-	password: string;
-	confirmPassword: string;
-}
-
-/**
- * Data Transfer Object for logging in.
- * @property {string} [username or email] The user's email address or username.
- * @property {string} [password] The user's plaintext password
- *
- * @remarks
- * Validation (such as email format checking or password strength) should be performed
- * by the service layer or validators before persisting updates.
- * @interface LoginDTO
- * @property {string} username - The user's username or email.
- * @property {string} password - The user's password.
- */
-export interface LoginDTO {
-	username: string;
-	password: string;
-}
-
-/**
  * Data Transfer Object for updating a user's profile.
  *
  * All fields are optional — only provided fields will be applied when updating the user's record.

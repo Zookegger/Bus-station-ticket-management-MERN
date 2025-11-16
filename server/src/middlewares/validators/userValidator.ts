@@ -61,14 +61,13 @@ const genderValidator = body("gender")
  *
  * Validates required role from predefined list: User, Admin, Operator.
  */
-const roleValidator = body("role")
-	.custom((value) => {
-		const roles = ["User", "Admin", "Operator"];
-		if (!roles.includes(value)) {
-			throw new Error("Invalid role. Must be User, Admin, or Operator");
-		}
-		return true;
-	});
+const roleValidator = body("role").custom((value) => {
+	const roles = ["User", "Admin", "Operator"];
+	if (!roles.includes(value)) {
+		throw new Error("Invalid role. Must be User, Admin, or Operator");
+	}
+	return true;
+});
 
 /**
  * Validation rule for password field.
@@ -84,13 +83,14 @@ const passwordValidator = body("password")
  *
  * Validates that confirm password matches the password field.
  */
-const confirmPasswordValidator = body("confirmPassword")
-	.custom((value, { req }) => {
+const confirmPasswordValidator = body("confirmPassword").custom(
+	(value, { req }) => {
 		if (value !== req.body.password) {
 			throw new Error("Password confirmation does not match password");
 		}
 		return true;
-	});
+	}
+);
 
 /**
  * Validation rule for date of birth field.
@@ -117,10 +117,7 @@ const addressValidator = body("address")
  *
  * Validates optional avatar URL format.
  */
-const avatarValidator = body("avatar")
-	.optional()
-	.isURL()
-	.withMessage("Avatar must be a valid URL");
+const avatarValidator = body("avatar").optional();
 
 /**
  * Validation rule for phone number field.
@@ -170,12 +167,8 @@ export const userRegistrationValidation = [
  * Requires username/email and password.
  */
 export const userLoginValidation = [
-	body("username")
-		.isString()
-		.withMessage("Username must be a string"),
-	body("password")
-		.notEmpty()
-		.withMessage("Password is required"),
+	body("username").isString().withMessage("Username must be a string"),
+	body("password").notEmpty().withMessage("Password is required"),
 ];
 
 /**
@@ -185,9 +178,7 @@ export const userLoginValidation = [
  * Used for routes that require an ID parameter (e.g., /:id).
  */
 export const validateUserIdParam = [
-	param("id")
-		.isUUID()
-		.withMessage("ID must be a valid UUID"),
+	param("id").isUUID().withMessage("ID must be a valid UUID"),
 ];
 
 /**
@@ -208,4 +199,36 @@ export const updateProfileValidation = [
 	addressValidator,
 	avatarValidator,
 	phoneValidator,
+];
+
+export const verifyEmailValidation = [
+	body("email")
+		.notEmpty()
+		.withMessage("Email must be included")
+		.isEmail()
+		.withMessage("Email must be valid")
+		.normalizeEmail(),
+];
+
+export const changeEmailValidation = [
+	body("current_email")
+		.notEmpty()
+		.withMessage("Email must be included")
+		.isEmail()
+		.withMessage("Email must be valid")
+		.normalizeEmail(),
+	body("new_email")
+		.notEmpty()
+		.withMessage("Email must be included")
+		.isEmail()
+		.withMessage("Email must be valid")
+		.normalizeEmail()
+		.custom((value, { req }) => {
+			if (value === req.body.current_email) {
+				throw new Error(
+					"New email must not match old one "
+				);
+			}
+			return true;
+		}),
 ];

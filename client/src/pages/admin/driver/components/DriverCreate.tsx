@@ -62,7 +62,7 @@ const DriverCreate: React.FC = () => {
       setLoading(false);
       setSuccess(true);
       setTimeout(() => {
-        navigate("/drivers"); // Quay lại danh sách
+        navigate("/dashboard/trip"); // Quay lại danh sách
       }, 1500);
     }, 1000);
   };

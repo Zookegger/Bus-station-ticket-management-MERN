@@ -45,12 +45,18 @@ const CreateVehicleForm: React.FC<CreateVehicleFormProps> = ({
 		const getVehicleTypes = async () => {
 			try {
 				const response = await axios.get(`${APP_CONFIG.apiBaseUrl}${API_ENDPOINTS.VEHICLE_TYPE.BASE}`);
-				if (response.data === null) {
+				const rows: VehicleType[] = response.data.rows;
+				const count: number = response.data.count;
+				if (rows.length !== count) {
+					throw new Error("Data inconsistency: number of rows does not match count");
+				}
+				
+				if (rows && rows.length <= 0) {
 					throw new Error("Server returned empty set");
 				}
 
-				if (Array.isArray(response.data)) {
-					setVehicleTypes(response.data);
+				if (Array.isArray(rows)) {
+					setVehicleTypes(rows);
 				} else {
 					throw new Error("Invalid data format from server");
 				}

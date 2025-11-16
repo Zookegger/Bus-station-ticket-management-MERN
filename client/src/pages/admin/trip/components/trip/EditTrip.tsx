@@ -12,7 +12,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import Map from "@components/common/Map";
 
-const CreateTrip: React.FC = () => {
+const EditTrip: React.FC = () => {
   const navigate = useNavigate();
   return (
     <Box sx={{ p: 3 }}>
@@ -20,7 +20,7 @@ const CreateTrip: React.FC = () => {
         variant="h4"
         sx={{ fontWeight: "bold", color: "#2E7D32", mb: 3 }}
       >
-        Create Trip
+        Edit Trip
       </Typography>
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, md: 8 }}>
@@ -34,7 +34,9 @@ const CreateTrip: React.FC = () => {
                   fullWidth
                   label="Departure Time"
                   type="datetime-local"
-                  InputLabelProps={{ shrink: true }}
+                  slotProps={{
+                    inputLabel: { shrink: true },
+                  }}
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 6 }}>
@@ -42,24 +44,29 @@ const CreateTrip: React.FC = () => {
                   fullWidth
                   label="Arrival Time"
                   type="datetime-local"
-                  InputLabelProps={{ shrink: true }}
+                  slotProps={{
+                    inputLabel: { shrink: true },
+                  }}
                 />
               </Grid>
               <Grid size={{ xs: 12 }}>
-                <FormControlLabel control={<Checkbox />} label="Is Two Way?" />
+                <FormControlLabel
+                  control={<Checkbox defaultChecked />}
+                  label="Is Two Way?"
+                />
               </Grid>
               <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   label="Route Name"
-                  placeholder="Hồ Tây - Bitexco Financial Tower"
+                  defaultValue="Hồ Tây - Bitexco Financial Tower"
                 />
               </Grid>
               <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   label="Vehicle Name"
-                  placeholder="City Runner"
+                  defaultValue="City Runner"
                 />
               </Grid>
             </Grid>
@@ -72,12 +79,12 @@ const CreateTrip: React.FC = () => {
                   "&:hover": { backgroundColor: "#276a2b" },
                 }}
               >
-                Create
+                Update
               </Button>
               <Button
                 variant="outlined"
                 sx={{ textTransform: "none" }}
-                onClick={() => navigate("../trip/cartrip")}
+                onClick={() => navigate("../")}
               >
                 Back to List
               </Button>
@@ -91,16 +98,36 @@ const CreateTrip: React.FC = () => {
             </Typography>
             <Grid container spacing={1}>
               <Grid size={{ xs: 6 }}>
-                <TextField fullWidth size="small" label="Total Seats" />
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Total Seats"
+                  defaultValue={40}
+                />
               </Grid>
               <Grid size={{ xs: 6 }}>
-                <TextField fullWidth size="small" label="Rows" />
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Rows"
+                  defaultValue={10}
+                />
               </Grid>
               <Grid size={{ xs: 6 }}>
-                <TextField fullWidth size="small" label="Columns" />
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Columns"
+                  defaultValue={4}
+                />
               </Grid>
               <Grid size={{ xs: 6 }}>
-                <TextField fullWidth size="small" label="Floors" />
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Floors"
+                  defaultValue={1}
+                />
               </Grid>
             </Grid>
           </Paper>
@@ -125,4 +152,4 @@ const CreateTrip: React.FC = () => {
   );
 };
 
-export default CreateTrip;
+export default EditTrip;

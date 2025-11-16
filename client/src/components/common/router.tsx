@@ -4,6 +4,20 @@ import DashboardLayout from "@components/layout/AdminLayout";
 import { ROUTES } from "@constants/index";
 import { Suspense } from "react";
 import LoadingSkeleton from "@components/layout/LoadingSkeleton";
+import { useAuth } from "@hooks/useAuth";
+
+/**
+ * Component to protect routes that require authentication.
+ * Redirects to login if the user is not authenticated.
+ */
+const RequireAuth: React.FC<{ children: React.ReactElement }> = ({
+  children,
+}) => {
+  const { isLoading, isAuthenticated } = useAuth();
+  if (isLoading) return <LoadingSkeleton />;
+  if (!isAuthenticated) return <Navigate to={ROUTES.LOGIN} replace />;
+  return children;
+};
 
 export const router = createBrowserRouter([
   // Default routes with separate layout (no header/footer)
@@ -81,7 +95,24 @@ export const router = createBrowserRouter([
           return { Component: CheckIn };
         },
       },
-
+      {
+        path: "*",
+        element: <Navigate to={ROUTES.NOT_FOUND} replace />,
+      },
+    ],
+  },
+  {
+    path: "/user",
+    element: (
+      <RequireAuth>
+        <Layout>
+          <Suspense fallback={<LoadingSkeleton />}>
+            <Outlet />
+          </Suspense>
+        </Layout>
+      </RequireAuth>
+    ),
+    children: [
       {
         path: ROUTES.PROFILE,
         lazy: async () => {
@@ -99,11 +130,13 @@ export const router = createBrowserRouter([
   {
     path: "/dashboard",
     element: (
-      <DashboardLayout>
-        <Suspense fallback={<LoadingSkeleton />}>
-          <Outlet />
-        </Suspense>
-      </DashboardLayout>
+      <RequireAuth>
+        <DashboardLayout>
+          <Suspense fallback={<LoadingSkeleton />}>
+            <Outlet />
+          </Suspense>
+        </DashboardLayout>
+      </RequireAuth>
     ),
     children: [
       {
@@ -145,7 +178,7 @@ export const router = createBrowserRouter([
             path: "create",
             lazy: async () => {
               const { default: CreateTrip } = await import(
-                "@pages/admin/trip/cartrip/CreateTrip"
+                "@pages/admin/trip/components/trip/CreateTrip"
               );
               return { Component: CreateTrip };
             },
@@ -154,7 +187,7 @@ export const router = createBrowserRouter([
             path: "edit/:id",
             lazy: async () => {
               const { default: EditTrip } = await import(
-                "@pages/admin/trip/cartrip/EditTrip"
+                "@pages/admin/trip/components/trip/EditTrip"
               );
               return { Component: EditTrip };
             },
@@ -163,7 +196,7 @@ export const router = createBrowserRouter([
             path: "delete/:id",
             lazy: async () => {
               const { default: DeleteTrip } = await import(
-                "@pages/admin/trip/cartrip/DeleteTrip"
+                "@pages/admin/trip/components/trip/DeleteTrip"
               );
               return { Component: DeleteTrip };
             },
@@ -171,19 +204,19 @@ export const router = createBrowserRouter([
           {
             path: "createRoute",
             lazy: async () => {
-              const { default: CreateRouteFrom } = await import(
-                "@pages/admin/trip/route/CreateRoute"
+              const { default: CreateRouteForm } = await import(
+                "@pages/admin/trip/components/route/CreateRouteForm"
               );
-              return { Component: CreateRouteFrom };
+              return { Component: CreateRouteForm };
             },
           },
           {
             path: "editRoute",
             lazy: async () => {
-              const { default: EditRoutePage } = await import(
-                "@pages/admin/trip/route/EditRoutePage"
+              const { default: EditRouteForm } = await import(
+                "@pages/admin/trip/components/route/EditRouteForm"
               );
-              return { Component: EditRoutePage };
+              return { Component: EditRouteForm };
             },
           },
           {
@@ -243,6 +276,20 @@ export const router = createBrowserRouter([
           const { default: Order } = await import("@pages/admin/order/Order");
           return { Component: Order };
         },
+      },
+      {
+        path: "coupon",
+        children: [
+          {
+            path: "",
+            lazy: async () => {
+              const { default: Coupon } = await import(
+                "@pages/admin/coupon/CouponPage"
+              );
+              return { Component: Coupon };
+            },
+          },
+        ],
       },
       {
         path: "system",

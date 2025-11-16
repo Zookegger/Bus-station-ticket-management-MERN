@@ -13,7 +13,7 @@ import * as authValidator from "@middlewares/validators/authValidator";
 import * as authController from "@controllers/authController";
 import { handleValidationResult } from "@middlewares/validateRequest";
 import { authRateLimiter } from "@middlewares/rateLimiter";
-import { csrfUserProtectionRoute } from "@middlewares/csrf";
+import { csrfGuestOrUserProtectionRoute, csrfUserProtectionRoute } from "@middlewares/csrf";
 
 /**
  * Authentication router instance.
@@ -26,7 +26,7 @@ const authRouter = Router();
 // CSRF token endpoint
 authRouter.get(
 	"/csrf-token",
-	csrfUserProtectionRoute,
+	csrfGuestOrUserProtectionRoute,
 	authValidator.getCsrfTokenValidator,
 	authController.GetCsrfToken,
 	errorHandler,
@@ -34,7 +34,7 @@ authRouter.get(
 
 authRouter.post(
 	"/csrf-token",
-	csrfUserProtectionRoute,
+	csrfGuestOrUserProtectionRoute,
 	authController.VerifyCsrfToken,
 	errorHandler,
 );

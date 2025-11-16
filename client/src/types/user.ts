@@ -9,7 +9,14 @@ export type Role = "User" | "Admin";
  * Type for user gender.
  * @type {string}
  */
-export type Gender = "male" | "female" | "other";
+
+export type Gender = (typeof Gender)[keyof typeof Gender];
+
+export const Gender = {
+	MALE: "male",
+	FEMALE: "female",
+	OTHER: "other",
+} as const;
 
 /**
  * Represents a user object on the client-side.
@@ -127,26 +134,32 @@ export interface ChangePasswordDTO {
  * DTO for resetting a user's password.
  */
 export interface ResetPasswordDTO {
+<<<<<<< HEAD
   token: string;
   newPassword: string;
   newConfirmPassword: string;
+=======
+	token: string;
+	newPassword: string;
+	newConfirmPassword: string;
+>>>>>>> 23a6af83efad0e1321b2e962ed87763b29997462
 }
 
 /**
  * DTO for retrieving minimal authenticated user data.
  */
 export interface GetMeDTO {
-  user: {
-    id: string;
-    username: string;
-    email: string;
-    emailConfirmed: boolean;
-    avatar?: string | null;
-    role: Role;
-  };
-  tokens?: {
-    expiresIn?: number;
-    tokenType?: string;
-    issuedAt?: string | null; // ISO Date string
-  };
+	user: {
+		id: string;
+		username: string;
+		email: string;
+		emailConfirmed: boolean;
+		avatar?: string | null;
+		role: Role;
+	};
+	tokens?: {
+		expiresIn?: number;
+		tokenType?: string;
+		issuedAt?: string | null; // ISO Date string
+	};
 }

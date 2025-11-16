@@ -1,11 +1,10 @@
 import { API_ENDPOINTS } from "@constants";
-import { Button, Paper, Typography } from "@mui/material";
+import { Button, Paper } from "@mui/material";
 import type { Coupon } from "@my-types";
 import { handleAxiosError } from "@utils/handleError";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { Box } from "@mui/system";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import {
 	AddCouponForm,
@@ -13,12 +12,13 @@ import {
 	DeleteCouponForm,
 } from "./components";
 import EditCouponForm from "./components/EditCouponForm";
+import { DataGridPageLayout } from "@components/admin";
 
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 
 const CouponPage: React.FC = () => {
-	const [_isLoading, setIsLoading] = useState(true);
-	const [coupons, setCoupons] = useState<Coupon[] | null>(null);
+	const [isLoading, setIsLoading] = useState(true);
+	const [coupons, setCoupons] = useState<Coupon[]>([]);
 	const [addOpen, setAddOpen] = useState<boolean>(false);
 	const [editOpen, setEditOpen] = useState<boolean>(false);
 	const [deleteOpen, setDeleteOpen] = useState<boolean>(false);
@@ -26,7 +26,7 @@ const CouponPage: React.FC = () => {
 	const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
 
 	const handleOpenDrawer = (id: number) => {
-		if (coupons === null) {
+		if (coupons === null || typeof coupons === "undefined") {
 			return;
 		}
 
@@ -38,7 +38,7 @@ const CouponPage: React.FC = () => {
 	};
 
 	const handleOpenEdit = (id: number) => {
-		if (coupons === null) {
+		if (coupons === null || typeof coupons === "undefined") {
 			return;
 		}
 
@@ -51,7 +51,7 @@ const CouponPage: React.FC = () => {
 	};
 
 	const handleOpenDelete = (id: number) => {
-		if (coupons === null) {
+		if (coupons === null || typeof coupons === "undefined") {
 			return;
 		}
 
@@ -92,102 +92,84 @@ const CouponPage: React.FC = () => {
 		fetchData();
 	}, []);
 
-	return (
-		<Box>
-			<Box sx={{ p: 3, paddingBottom: 0 }}>
-				<Typography
-					variant="h4"
-					sx={{
-						fontWeight: "bold",
-						color: "#2E7D32",
-					}}
-				>
-					Coupon Management
-				</Typography>
-			</Box>
+	const actionBar = (
+		<Button
+			onClick={() => {
+				setAddOpen(true);
+			}}
+			variant="contained"
+		>
+			Add new coupon
+		</Button>
+	);
 
-			<Box p="24px">
-				<Box sx={{ marginBottom: 2 }}>
-					<Button
-						onClick={() => {
-							setAddOpen(true);
-						}}
-						variant="contained"
-					>
-						Add new coupon
-					</Button>
-				</Box>
-				{coupons ? (
-					<Paper elevation={3} sx={{ width: "100%" }}>
-						<DataGrid
-							sx={{ maxWidth: "100%" }}
-							rows={coupons.map((c) => ({
-								id: c.id,
-								code: c.code,
-								maxUsage: c.maxUsage ?? null,
-								description: c.description,
-								type: c.type,
-								updatedAt: format(
-									new Date(c.updatedAt),
-									"dd/MM/yyyy - HH:mm:ss"
-								).toString(),
-								createdAt: format(
-									new Date(c.createdAt),
-									"dd/MM/yyyy - HH:mm:ss"
-								).toString(),
-							}))}
-							onRowClick={(e) =>
-								handleOpenDrawer(
-									Number.parseInt(e.id.toString())
-								)
-							}
-							columns={
-								[
-									{
-										field: "code",
-										headerName: "Code",
-										flex: 1,
-									},
-									{
-										field: "maxUsage",
-										headerName: "Max Usage",
-										width: 120,
-									},
-									{
-										field: "description",
-										headerName: "Description",
-										flex: 2,
-									},
-									{
-										field: "type",
-										headerName: "Type",
-										width: 120,
-										valueFormatter: (value: string) => {
-											return (
-												value.charAt(0).toUpperCase() +
-												value.slice(1).toLowerCase()
-											);
-										},
-									},
-									{
-										field: "updatedAt",
-										headerName: "Updated At",
-										width: 190,
-									},
-									{
-										field: "createdAt",
-										headerName: "Created At",
-										width: 190,
-									},
-								] as GridColDef[]
-							}
-							pagination
-						/>
-					</Paper>
-				) : (
-					<Typography>Empty set</Typography>
-				)}
-			</Box>
+	return (
+		<DataGridPageLayout title="Coupon Management" actionBar={actionBar}>
+			<Paper elevation={3} sx={{ width: "100%" }}>
+				<DataGrid
+					sx={{ maxWidth: "100%" }}
+					rows={coupons.map((c) => ({
+						id: c.id,
+						code: c.code,
+						maxUsage: c.maxUsage ?? null,
+						description: c.description,
+						type: c.type,
+						updatedAt: format(
+							new Date(c.updatedAt),
+							"dd/MM/yyyy - HH:mm:ss"
+						).toString(),
+						createdAt: format(
+							new Date(c.createdAt),
+							"dd/MM/yyyy - HH:mm:ss"
+						).toString(),
+					}))}
+					onRowClick={(e) =>
+						handleOpenDrawer(Number.parseInt(e.id.toString()))
+					}
+					columns={
+						[
+							{
+								field: "code",
+								headerName: "Code",
+								flex: 1,
+							},
+							{
+								field: "maxUsage",
+								headerName: "Max Usage",
+								width: 120,
+							},
+							{
+								field: "description",
+								headerName: "Description",
+								flex: 2,
+							},
+							{
+								field: "type",
+								headerName: "Type",
+								width: 120,
+								valueFormatter: (value: string) => {
+									return (
+										value.charAt(0).toUpperCase() +
+										value.slice(1).toLowerCase()
+									);
+								},
+							},
+							{
+								field: "updatedAt",
+								headerName: "Updated At",
+								width: 190,
+							},
+							{
+								field: "createdAt",
+								headerName: "Created At",
+								width: 190,
+							},
+						] as GridColDef[]
+					}
+					loading={isLoading}
+					pagination
+				/>
+			</Paper>
 			<EditCouponForm
 				coupon={selectedCoupon}
 				key={selectedCoupon ? selectedCoupon.id : "new"}
@@ -220,7 +202,7 @@ const CouponPage: React.FC = () => {
 					/>
 				</>
 			)}
-		</Box>
+		</DataGridPageLayout>
 	);
 };
 

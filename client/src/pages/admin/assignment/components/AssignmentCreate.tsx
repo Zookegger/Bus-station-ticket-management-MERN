@@ -27,7 +27,7 @@ const AssignmentCreate: React.FC = () => {
   const handleAssign = () => {
     // Thêm vào MOCK_ASSIGNMENTS
     console.log("assignment:", { trip, driver });
-    setTimeout(() => navigate("/assignments"), 1000);
+    setTimeout(() => navigate("/dashboard/trip"), 1000);
   };
 
   return (

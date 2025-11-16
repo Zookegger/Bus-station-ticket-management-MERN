@@ -3,3 +3,9 @@ export { default as Header } from "./layout/Header";
 export { default as Footer } from "./layout/Footer";
 export { default as AdminLayout } from "./layout/AdminLayout";
 export { default as Sidebar } from "./layout/Sidebar";
+
+// Admin components
+export * from "./admin";
+
+// Map components
+export * from "./map";

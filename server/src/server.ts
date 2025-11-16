@@ -43,52 +43,22 @@ const startServer = async (): Promise<void> => {
 		await configService.initialize();
 		
 		const { app } = await import("./app");
-        const emailWorker = await import("@utils/workers/emailWorker");
+		
+		// Import here for graceful shutdown
+		const emailWorker = await import("@utils/workers/emailWorker");
 		const ticketWorker = await import("@utils/workers/ticketWorker");
 		const tripSchedulingWorker = await import("@utils/workers/tripSchedulingWorker");
 		const paymentWorker = await import("@utils/workers/paymentWorker");
-		const { scheduleRecurringCleanup } = await import("@utils/queues/paymentQueue");
+		// Refresh token worker is initialized via bootstrap; no direct usage here
+
+		const { initializeWorkersAndSchedules } = await import("@utils/workerBootstrap");
         const http = await import("http");
         const { Server } = await import("socket.io");
 
-		// Start all workers and wait for them to be ready
-		logger.info("Initializing background workers...");
-		await emailWorker.default.waitUntilReady();
-		logger.info("✓ Email worker ready");
-		
-		await ticketWorker.default.waitUntilReady();
-		logger.info("✓ Ticket worker ready");
-		
-		await tripSchedulingWorker.default.waitUntilReady();
-		logger.info("✓ Trip scheduling worker ready");
-		
-		await paymentWorker.default.waitUntilReady();
-		logger.info("✓ Payment worker ready");
-		
-		// Schedule recurring payment cleanup job (daily at 2 AM)
-		try {
-			const recurring_job = await scheduleRecurringCleanup({
-				batchSize: 100,
-				dryRun: false,
-			});
-			logger.info(`✓ Payment cleanup job scheduled (daily at 2 AM) - Job ID: ${recurring_job.id}`);
-			
-			// Get next scheduled time
-			const cron_parser = await import("cron-parser");
-			const interval = cron_parser.parseExpression("0 2 * * *");
-			const next_run = interval.next().toDate();
-			logger.info(`   Next cleanup scheduled for: ${next_run.toLocaleString()}`);
-			
-			// Add an immediate test job to verify worker is functioning
-			const { addCleanupJob } = await import("@utils/queues/paymentQueue");
-			const test_job = await addCleanupJob(
-				{ batchSize: 10, dryRun: true },
-				{ delay: 30000 } // Run in 30 seconds
-			);
-			logger.info(`✓ Test cleanup job queued (runs in 30 seconds) - Job ID: ${test_job.id}`);
-		} catch (err) {
-			logger.error("Failed to schedule payment cleanup job:", err);
-		}
+		// Initialize workers and schedule maintenance jobs via bootstrap
+		logger.info("Initializing background workers and schedules via bootstrap...");
+		await initializeWorkersAndSchedules();
+		logger.info("✓ Workers ready and schedules initialized");
 		
 		initializePaymentGateways();
 

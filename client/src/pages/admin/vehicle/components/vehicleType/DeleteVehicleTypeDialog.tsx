@@ -1,80 +1,95 @@
-import React from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Typography,
-  Box,
+	Alert,
+	Button,
+	Dialog,
+	DialogActions,
+	DialogContent,
+	DialogContentText,
+	DialogTitle,
 } from "@mui/material";
-import {
-  Warning as WarningIcon,
-  DirectionsBus as BusIcon,
-} from "@mui/icons-material";
-import type { VehicleType } from "./types";
+import { useEffect, useState } from "react";
+import { handleAxiosError } from "@utils/handleError";
+import axios from "axios";
+import { API_ENDPOINTS } from "@constants";
+import { Warning } from "@mui/icons-material";
 
 interface DeleteVehicleTypeDialogProps {
-  open: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  vehicleType: VehicleType | null;
+	id?: number;
+	open: boolean;
+	onClose: () => void;
+	onConfirm: () => void;
 }
 
 const DeleteVehicleTypeDialog: React.FC<DeleteVehicleTypeDialogProps> = ({
-  open,
-  onClose,
-  onConfirm,
-  vehicleType,
+	id,
+	open,
+	onClose,
+	onConfirm,
 }) => {
-  if (!vehicleType) return null;
+	const [errors, setErrors] = useState<string | null>(null);
+	const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ bgcolor: "#ffebee", color: "#d32f2f" }}>
-        <Box sx={{ display: "flex", alignItems: "center" }}>
-          <WarningIcon sx={{ mr: 1 }} />
-          <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-            Confirm Delete
-          </Typography>
-        </Box>
-      </DialogTitle>
+	useEffect(() => {
+		if (!(typeof id === "number" && Number.isInteger(id))) {
+			setErrors("Invalid ID");
+		} else {
+			setErrors(null);
+		}
+	}, [id]);
 
-      <DialogContent sx={{ p: 3, textAlign: "center" }}>
-        {/* Vehicle Type Icon */}
-        <Box sx={{ mb: 3 }}>
-          <BusIcon sx={{ fontSize: 80, color: "#d32f2f" }} />
-        </Box>
+	const handleSubmit = async () => {
+		if (errors) return;
 
-        {/* Confirmation Message */}
-        <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
-          Are you sure you want to delete "{vehicleType.name}"?
-        </Typography>
+		setIsDeleting(true);
+		setErrors(null);
 
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-          This action cannot be undone.
-        </Typography>
-      </DialogContent>
+		if (!id) throw new Error("No ID provided");
 
-      <DialogActions sx={{ p: 3, justifyContent: "center" }}>
-        <Button
-          onClick={onClose}
-          variant="outlined"
-          sx={{ color: "#666", borderColor: "#ddd", mr: 2 }}
-        >
-          Cancel
-        </Button>
-        <Button
-          onClick={onConfirm}
-          variant="contained"
-          color="error"
-          sx={{ bgcolor: "#d32f2f" }}
-        >
-          Delete
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
+		try {
+			const response = await axios.delete(
+				API_ENDPOINTS.VEHICLE_TYPE.DELETE(id)
+			);
+			if (!response || response.status !== 200) {
+				throw new Error("No response from server");
+			}
+			await onConfirm();
+			onClose();
+		} catch (err: unknown) {
+			const message = handleAxiosError(err);
+			setErrors(message.message);
+		} finally {
+			setIsDeleting(false);
+		}
+	};
+
+	return (
+		<Dialog open={open} onClose={onClose}>
+			<DialogTitle>
+				<Warning color="error" />
+				{errors && <Alert>{errors.toString()}</Alert>}
+			</DialogTitle>
+
+			<DialogContent>
+				<DialogContentText>
+					Are you sure you want to delete this vehicle type?
+				</DialogContentText>
+			</DialogContent>
+			<DialogActions sx={{ px: 2 }}>
+				<Button onClick={onClose} color="inherit">
+					Cancel
+				</Button>
+				<Button
+					type="button"
+					variant="contained"
+					color="error"
+					disabled={isDeleting || errors != null}
+					onClick={handleSubmit}
+				>
+					{isDeleting ? "Deleting..." : "Confirm Delete"}
+				</Button>
+			</DialogActions>
+		</Dialog>
+	);
 };
 
 export default DeleteVehicleTypeDialog;

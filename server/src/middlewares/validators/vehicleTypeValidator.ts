@@ -56,29 +56,42 @@ export const validateCreateVehicleType = [
 		.withMessage("Total floors must be 1 or 2")
 		.toInt(),
 
-	body("totalColumns")
-		.optional()
-		.isInt({ min: 1 })
-		.withMessage("Total columns must be a positive integer")
-		.toInt(),
-
 	body("totalSeats")
 		.optional()
 		.isInt({ min: 1 })
 		.withMessage("Total seats must be a positive integer")
 		.toInt(),
 
-	body("rowsPerFloor")
+	body("seatLayout")
 		.optional()
 		.isString()
-		.withMessage("Rows per floor must be a string")
-		.trim(),
-
-	body("seatsPerFloor")
-		.optional()
-		.isString()
-		.withMessage("Seats per floor must be a string")
-		.trim(),
+		.withMessage("Seat layout must be a stringified JSON.")
+		.custom((value) => {
+			try {
+				const layout = JSON.parse(value);
+				if (!Array.isArray(layout)) {
+					throw new Error("Seat layout must be an array of floors.");
+				}
+				for (const floor of layout) {
+					if (!Array.isArray(floor)) {
+						throw new Error("Each floor in the layout must be an array of rows.");
+					}
+					for (const row of floor) {
+						if (!Array.isArray(row)) {
+							throw new Error("Each row must be an array of seat types.");
+						}
+						for (const seat of row) {
+							if (!['available', 'aisle', 'disabled', 'occupied'].includes(seat)) {
+								throw new Error(`Invalid seat type: ${seat}`);
+							}
+						}
+					}
+				}
+				return true;
+			} catch (e) {
+				throw new Error("Seat layout must be a valid JSON string.");
+			}
+		}),
 ];
 
 /**
@@ -109,27 +122,40 @@ export const validateUpdateVehicleType = [
 		.withMessage("Total floors must be 1 or 2")
 		.toInt(),
 
-	body("totalColumns")
-		.optional()
-		.isInt({ min: 1 })
-		.withMessage("Total columns must be a positive integer")
-		.toInt(),
-
 	body("totalSeats")
 		.optional()
 		.isInt({ min: 1 })
 		.withMessage("Total seats must be a positive integer")
 		.toInt(),
 
-	body("rowsPerFloor")
+	body("seatLayout")
 		.optional()
 		.isString()
-		.withMessage("Rows per floor must be a string")
-		.trim(),
-
-	body("seatsPerFloor")
-		.optional()
-		.isString()
-		.withMessage("Seats per floor must be a string")
-		.trim(),
+		.withMessage("Seat layout must be a stringified JSON.")
+		.custom((value) => {
+			try {
+				const layout = JSON.parse(value);
+				if (!Array.isArray(layout)) {
+					throw new Error("Seat layout must be an array of floors.");
+				}
+				for (const floor of layout) {
+					if (!Array.isArray(floor)) {
+						throw new Error("Each floor in the layout must be an array of rows.");
+					}
+					for (const row of floor) {
+						if (!Array.isArray(row)) {
+							throw new Error("Each row must be an array of seat types.");
+						}
+						for (const seat of row) {
+							if (!['available', 'aisle', 'disabled', 'occupied'].includes(seat)) {
+								throw new Error(`Invalid seat type: ${seat}`);
+							}
+						}
+					}
+				}
+				return true;
+			} catch (e) {
+				throw new Error("Seat layout must be a valid JSON string.");
+			}
+		}),
 ];

@@ -56,7 +56,11 @@
 		"description": "Hours before JWT access tokens expire."
 	},
 	"REFRESH_TOKEN_EXPIRY_HOURS": {
+		"value": 72,
+		"description": "Hours before refresh tokens expire (3 days = 72 hours)."
+	},
+	"REFRESH_TOKEN_REMEMBER_EXPIRY_HOURS": {
 		"value": 720,
-		"description": "Hours before refresh tokens expire (30 days = 720 hours)."
+		"description": "Hours before refresh tokens expire if remember me is selected (30 days = 720 hours)."
 	}
 }

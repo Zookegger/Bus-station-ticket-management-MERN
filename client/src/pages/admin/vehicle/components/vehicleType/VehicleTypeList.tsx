@@ -1,24 +1,11 @@
 import React, { useState } from "react";
 import {
 	Box,
-	Typography,
 	Button,
-	Table,
-	TableBody,
-	TableCell,
-	TableContainer,
-	TableHead,
-	TableRow,
 	Paper,
 	TextField,
 	InputAdornment,
 	IconButton,
-	TablePagination,
-	Chip,
-	FormControl,
-	InputLabel,
-	Select,
-	MenuItem,
 } from "@mui/material";
 import {
 	Add as AddIcon,
@@ -27,7 +14,9 @@ import {
 	Edit as EditIcon,
 	Delete as DeleteIcon,
 } from "@mui/icons-material";
-import type { VehicleType } from "./types";
+import { DataGrid, type GridColDef } from "@mui/x-data-grid";
+import { DataGridPageLayout } from "@components/admin";
+import type { VehicleType } from "@my-types/vehicleType";
 import VehicleTypeDetailsDrawer from "./VehicleTypeDetailsDrawer";
 import DeleteVehicleTypeDialog from "./DeleteVehicleTypeDialog";
 import CreateVehicleTypeForm from "./CreateVehicleTypeForm";
@@ -44,8 +33,6 @@ const VehicleTypeList: React.FC = () => {
 	const [vehicleTypeToDelete, setVehicleTypeToDelete] =
 		useState<VehicleType | null>(null);
 	const [searchTerm, setSearchTerm] = useState("");
-	const [page, setPage] = useState(0);
-	const [rowsPerPage, setRowsPerPage] = useState(5);
 
 	const formatCurrency = (amount: number) => {
 		return new Intl.NumberFormat("vi-VN", {
@@ -54,6 +41,7 @@ const VehicleTypeList: React.FC = () => {
 		}).format(amount);
 	};
 
+	// Filter vehicle types based on search term
 	const filteredVehicleTypes = vehicleTypes.filter((vt) =>
 		vt.name.toLowerCase().includes(searchTerm.toLowerCase())
 	);
@@ -72,12 +60,7 @@ const VehicleTypeList: React.FC = () => {
 		setCreateOpen(true);
 	};
 
-	const handleCreate = (newVehicleType: Omit<VehicleType, "id">) => {
-		const vehicleTypeWithId: VehicleType = {
-			...newVehicleType,
-			id: vehicleTypes.length + 1, // Temporary ID generation
-		};
-		setVehicleTypes((prev) => [...prev, vehicleTypeWithId]);
+	const handleCreate = () => {
 		setCreateOpen(false);
 	};
 
@@ -86,9 +69,11 @@ const VehicleTypeList: React.FC = () => {
 		setEditOpen(true);
 	};
 
-	const handleUpdate = (id: number, updatedData: Partial<VehicleType>) => {
+	const handleUpdate = (updatedData: Partial<VehicleType>) => {
 		setVehicleTypes((prev) =>
-			prev.map((vt) => (vt.id === id ? { ...vt, ...updatedData } : vt))
+			prev.map((vt) =>
+				vt.id === updatedData.id ? { ...vt, ...updatedData } : vt
+			)
 		);
 		setEditOpen(false);
 		setSelectedVehicleType(null);
@@ -113,187 +98,138 @@ const VehicleTypeList: React.FC = () => {
 		setVehicleTypeToDelete(null);
 	};
 
-	return (
-		<Box sx={{ p: 3 }}>
-			<Box
-				sx={{
-					display: "flex",
-					gap: 2,
-					mb: 2,
-					flexWrap: "wrap",
-					alignItems: "center",
-				}}
-			>
-				<Button
-					variant="contained"
-					startIcon={<AddIcon />}
-					onClick={handleOpenCreate}
-					sx={{ bgcolor: "#1976d2" }}
-				>
-					Add New Type
-				</Button>
-				<FormControl size="small" sx={{ minWidth: 150 }}>
-					<InputLabel>Show</InputLabel>
-					<Select
-						value={rowsPerPage}
-						onChange={(e) => setRowsPerPage(Number(e.target.value))}
-					>
-						<MenuItem value={5}>5 entries</MenuItem>
-						<MenuItem value={10}>10 entries</MenuItem>
-						<MenuItem value={25}>25 entries</MenuItem>
-						<MenuItem value={50}>50 entries</MenuItem>
-						<MenuItem value={-1}>All entries</MenuItem>
-					</Select>
-				</FormControl>
+	// Define DataGrid columns
+	const columns: GridColDef[] = [
+		{
+			field: "name",
+			headerName: "Name",
+			flex: 1,
+			minWidth: 150,
+			renderCell: (params) => (params.value),
+		},
+		{
+			field: "baseFare",
+			headerName: "Base Fare",
+			width: 150,
+			renderCell: (params) => formatCurrency(params.value as number),
+		},
+		{
+			field: "totalSeats",
+			headerName: "Total Seats",
+			width: 120,
+		},
+		{
+			field: "totalFlooring",
+			headerName: "Total Flooring",
+			width: 130,
+		},
+		{
+			field: "totalRow",
+			headerName: "Total Row",
+			width: 110,
+		},
+		{
+			field: "totalColumn",
+			headerName: "Total Column",
+			width: 130,
+		},
+		{
+			field: "actions",
+			headerName: "Actions",
+			width: 150,
+			sortable: false,
+			renderCell: (params) => {
+				const vehicleType = params.row as VehicleType;
+				return (
+					<Box onClick={(e) => e.stopPropagation()}>
+						<IconButton
+							size="small"
+							onClick={(e) => {
+								e.stopPropagation();
+								handleViewDetails(vehicleType);
+							}}
+							title="View Details"
+						>
+							<VisibilityIcon />
+						</IconButton>
+						<IconButton
+							size="small"
+							color="primary"
+							onClick={(e) => {
+								e.stopPropagation();
+								handleOpenEdit(vehicleType);
+							}}
+							title="Edit"
+						>
+							<EditIcon />
+						</IconButton>
+						<IconButton
+							size="small"
+							color="error"
+							onClick={(e) => {
+								e.stopPropagation();
+								handleOpenDelete(vehicleType);
+							}}
+							title="Delete"
+						>
+							<DeleteIcon />
+						</IconButton>
+					</Box>
+				);
+			},
+		},
+	];
 
-				<TextField
-					size="small"
-					placeholder="Search"
-					value={searchTerm}
-					onChange={(e) => setSearchTerm(e.target.value)}
-					slotProps={{
-						input: {
-							startAdornment: (
-								<InputAdornment position="start">
-									<SearchIcon />
-								</InputAdornment>
-							),
+	return (
+		<DataGridPageLayout
+			title="Vehicle Type Management"
+			actionBar={
+				<Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+					<Button
+						variant="contained"
+						startIcon={<AddIcon />}
+						onClick={handleOpenCreate}
+					>
+						Add New Type
+					</Button>
+					<TextField
+						size="small"
+						placeholder="Search"
+						value={searchTerm}
+						onChange={(e) => setSearchTerm(e.target.value)}
+						slotProps={{
+							input: {
+								startAdornment: (
+									<InputAdornment position="start">
+										<SearchIcon />
+									</InputAdornment>
+								),
+							},
+						}}
+						sx={{ minWidth: 200 }}
+					/>
+				</Box>
+			}
+		>
+			<Paper elevation={3} sx={{ width: "100%" }}>
+				<DataGrid
+					rows={filteredVehicleTypes}
+					columns={columns}
+					pagination
+					initialState={{
+						pagination: {
+							paginationModel: { pageSize: 10, page: 0 },
 						},
 					}}
-					sx={{ minWidth: 200 }}
+					pageSizeOptions={[5, 10, 25, 50]}
+					sx={{ border: "none" }}
+					onRowClick={(params) =>
+						handleViewDetails(params.row as VehicleType)
+					}
 				/>
-			</Box>
+			</Paper>
 
-			<TableContainer component={Paper}>
-				<Table>
-					<TableHead>
-						<TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-							<TableCell>Name</TableCell>
-							<TableCell>Base Fare</TableCell>
-							<TableCell>Total Seats</TableCell>
-							<TableCell>Total Flooring</TableCell>
-							<TableCell>Total Row</TableCell>
-							<TableCell>Total Column</TableCell>
-							<TableCell>Actions</TableCell>
-						</TableRow>
-					</TableHead>
-					<TableBody>
-						{filteredVehicleTypes
-							.slice(
-								page * rowsPerPage,
-								rowsPerPage === -1
-									? undefined
-									: page * rowsPerPage + rowsPerPage
-							)
-							.map((vehicleType) => (
-								<TableRow
-									key={vehicleType.id}
-									hover
-									onClick={() =>
-										handleViewDetails(vehicleType)
-									}
-									sx={{ cursor: "pointer" }}
-								>
-									<TableCell>
-										<Typography
-											variant="body1"
-											sx={{ fontWeight: "medium" }}
-										>
-											{vehicleType.name}
-										</Typography>
-									</TableCell>
-									<TableCell>
-										<Typography
-											variant="body1"
-											sx={{
-												fontWeight: "medium",
-												color: "#2e7d32",
-											}}
-										>
-											{formatCurrency(
-												vehicleType.baseFare
-											)}
-										</Typography>
-									</TableCell>
-									<TableCell>
-										<Chip
-											label={vehicleType.totalSeats}
-											color="primary"
-											size="small"
-											sx={{ fontWeight: "bold" }}
-										/>
-									</TableCell>
-									<TableCell>
-										{vehicleType.totalFlooring}
-									</TableCell>
-									<TableCell>
-										{vehicleType.totalRow}
-									</TableCell>
-									<TableCell>
-										{vehicleType.totalColumn}
-									</TableCell>
-									<TableCell
-										onClick={(e) => e.stopPropagation()}
-									>
-										<IconButton
-											size="small"
-											onClick={() =>
-												handleViewDetails(vehicleType)
-											}
-											title="View Details"
-										>
-											<VisibilityIcon />
-										</IconButton>
-										<IconButton
-											size="small"
-											color="primary"
-											onClick={() =>
-												handleOpenEdit(vehicleType)
-											}
-											title="Edit Vehicle Type"
-										>
-											<EditIcon />
-										</IconButton>
-										<IconButton
-											size="small"
-											color="error"
-											onClick={() =>
-												handleOpenDelete(vehicleType)
-											}
-											title="Delete Vehicle Type"
-										>
-											<DeleteIcon />
-										</IconButton>
-									</TableCell>
-								</TableRow>
-							))}
-					</TableBody>
-				</Table>
-			</TableContainer>
-
-			<TablePagination
-				component="div"
-				count={filteredVehicleTypes.length}
-				page={page}
-				onPageChange={(_e, newPage) => setPage(newPage)}
-				rowsPerPage={rowsPerPage === -1 ? 0 : rowsPerPage}
-				onRowsPerPageChange={(e) =>
-					setRowsPerPage(Number(e.target.value))
-				}
-				rowsPerPageOptions={[
-					5,
-					10,
-					25,
-					50,
-					{ label: "All", value: -1 },
-				]}
-				labelDisplayedRows={({ from, to, count }) =>
-					`${from}-${to} of ${
-						count !== -1 ? count : `more than ${to}`
-					} entries`
-				}
-			/>
-
+			{/* Dialogs and Drawers */}
 			<VehicleTypeDetailsDrawer
 				open={drawerOpen}
 				onClose={handleCloseDrawer}
@@ -306,9 +242,9 @@ const VehicleTypeList: React.FC = () => {
 				open={deleteOpen}
 				onClose={handleCloseDelete}
 				onConfirm={handleConfirmDelete}
-				vehicleType={vehicleTypeToDelete}
+				id={vehicleTypeToDelete?.id}
 			/>
-
+			
 			<CreateVehicleTypeForm
 				open={createOpen}
 				onClose={() => setCreateOpen(false)}
@@ -323,7 +259,7 @@ const VehicleTypeList: React.FC = () => {
 					onUpdate={handleUpdate}
 				/>
 			)}
-		</Box>
+		</DataGridPageLayout>
 	);
 };
 

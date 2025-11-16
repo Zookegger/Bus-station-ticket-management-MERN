@@ -3,7 +3,12 @@ import axios from "axios";
 import type { User } from "@my-types/user";
 import { AuthContext } from "./AuthContext.context";
 import { API_ENDPOINTS, CSRF_CONFIG, ROUTES } from "@constants";
-import type { LoginDTO, LoginResponse } from "@my-types/auth";
+import type {
+	LoginDTO,
+	LoginResponse,
+	RegisterDTO,
+	RegisterResponse,
+} from "@my-types/auth";
 import { handleAxiosError } from "@utils/handleError";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -66,10 +71,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 					];
 
 					const trimmed_url = requestUrl.split("?")[0];
-					const should_not_retry = no_retry_endpoints.some((endpoint) => {
-						const normalized_endpoint = endpoint.split("/:")[0];
-						return trimmed_url.includes(normalized_endpoint);
-					});
+					const should_not_retry = no_retry_endpoints.some(
+						(endpoint) => {
+							const normalized_endpoint = endpoint.split("/:")[0];
+							return trimmed_url.includes(normalized_endpoint);
+						}
+					);
 
 					// If we shouldn't retry OR we've already retried this request, reject immediately
 					if (should_not_retry || originalRequest._retry) {
@@ -115,38 +122,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		const verifyUserSession = async () => {
 			try {
 				// Check if user has a valid session cookie
-				const response = await axios.get(API_ENDPOINTS.AUTH.ME);
+				const csrfResponse = await axios.get(
+					API_ENDPOINTS.AUTH.CSRF_TOKEN
+				);
+				const csrf_token = csrfResponse.data.csrfToken;
 
-				// Validate response exists
-				if (!response || !response.data)
-					throw new Error("No response received from server");
-				
-				// Extract user and CSRF token from response
-				const user_response = response.data.user;
-				const csrf_response = response.data.csrfToken;
-
-				// Validate user data exists before setting state
-				if (!user_response) {
-					throw new Error("User data is missing from response")
-				}
-				
-				// Validate CSRF token exists
-				if (!csrf_response) {
-					throw new Error("CSRF token is missing from response")
+				if (!csrf_token) {
+					throw new Error("CSRF token is missing from response");
 				}
 
-				// Update authentication state
-                setUser(user_response);
-                setCsrfToken(csrf_response);
+				// Set CSRF token for all users (authenticated or not)
+				setCsrfToken(csrf_token);
 
-				if (!user) {
-					throw new Error("Missing User data");
+				try {
+					const userResponse = await axios.get(API_ENDPOINTS.AUTH.ME);
+
+					// Validate response exists
+					if (!userResponse || !userResponse.data?.user)
+						throw new Error("User data is missing from response");
+
+					// Update authentication state
+					setUser(userResponse.data.user);
+				} catch (userErr) {
+					// User not logged in (401) - that's fine, they can be a guest
+					// CSRF token is already set above
+					console.log("No active session found (guest user)");
 				}
-
-				if (!csrfToken) {
-					throw new Error("Missing CSRF Token");
-				}
-
 			} catch (err) {
 				// A 401 error here means the user is not logged in.
 				// No need to do anything, user state is already null.
@@ -170,10 +171,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		try {
 			const response = await axios.post(
 				API_ENDPOINTS.AUTH.LOGIN,
-				{
-					login: login_dto.login,
-					password: login_dto.password,
-				},
+				login_dto,
 				{
 					headers: {
 						"Content-Type": "application/json",
@@ -184,7 +182,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			);
 
 			// On success, extract user and csrfToken from the response data.
-			const { user, csrfToken, message } = response.data;
+			const { user, message } = response.data;
+
+			const csrfResponse = await axios.get(API_ENDPOINTS.AUTH.CSRF_TOKEN);
+			const csrfToken = csrfResponse.data.csrfToken;
 
 			// Update the global state with the new user and CSRF token.
 			setUser(user);
@@ -198,16 +199,107 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		}
 	};
 
+	const deleteAccount = async (): Promise<boolean> => {
+		if (user) {
+			try {
+				const response = await axios.delete(
+					API_ENDPOINTS.USERS.DELETE_PROFILE(user.id)
+				);
+				if (response.status === 200) {
+					setCsrfToken(null);
+					setUser(null);
+					// ✅ After deleting accouunt, get a fresh CSRF token for guest session
+					try {
+						const csrfResponse = await axios.get(
+							API_ENDPOINTS.AUTH.CSRF_TOKEN
+						);
+						setCsrfToken(csrfResponse.data.csrfToken);
+					} catch (csrfErr) {
+						// If we can't get a new token, clear it
+						setCsrfToken(null);
+						console.error(
+							"Failed to get CSRF token after logout:",
+							csrfErr
+						);
+					}
+				}
+				return true;
+			} catch (err) {
+				const message = handleAxiosError(err);
+				console.error("Logout failed:", message);
+				return false;
+			} finally {
+				setIsLoading(false);
+			}
+		}
+		return false;
+	};
+
 	const logout = async (): Promise<void> => {
 		try {
-			const response = await axios.post("/auth/logout");
+			const response = await axios.post(API_ENDPOINTS.AUTH.LOGOUT);
 			if (response.status === 200) {
 				setUser(null);
-				setCsrfToken(null);
+
+				// ✅ After logout, get a fresh CSRF token for guest session
+				try {
+					const csrfResponse = await axios.get(
+						API_ENDPOINTS.AUTH.CSRF_TOKEN
+					);
+					setCsrfToken(csrfResponse.data.csrfToken);
+				} catch (csrfErr) {
+					// If we can't get a new token, clear it
+					setCsrfToken(null);
+					console.error(
+						"Failed to get CSRF token after logout:",
+						csrfErr
+					);
+				}
 			}
 		} catch (err) {
 			const message = handleAxiosError(err);
 			console.error("Logout failed:", message);
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	const register = async (
+		register_dto: RegisterDTO
+	): Promise<RegisterResponse> => {
+		try {
+			const response = await axios.post(
+				API_ENDPOINTS.AUTH.REGISTER,
+				register_dto,
+				{
+					headers: {
+						"Content-Type": "application/json",
+					},
+					timeout: 7000,
+					timeoutErrorMessage: "Connection timeout, try again",
+				}
+			);
+
+			// On success, extract user and csrfToken from the response data.
+			const { user, message } = response.data;
+
+			if (!response.data.csrfToken || !user) {
+				console.log("Registration failed: ", response.data);
+				throw new Error(
+					"Registration failed: Invalid server response."
+				);
+			}
+
+			const csrfResponse = await axios.get(API_ENDPOINTS.AUTH.CSRF_TOKEN);
+			const csrfToken = csrfResponse.data.csrfToken;
+
+			// Update the global state with the new user and CSRF token.
+			setUser(user);
+			setCsrfToken(csrfToken);
+
+			return { user, csrfToken, message };
+		} catch (err) {
+			throw err;
 		} finally {
 			setIsLoading(false);
 		}
@@ -227,7 +319,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 	return (
 		<AuthContext.Provider
-			value={{ user, login, logout, isLoading, isAdmin, isAuthenticated }}
+			value={{
+				user,
+				login,
+				logout,
+				register,
+				deleteAccount,
+				isLoading,
+				isAdmin,
+				isAuthenticated,
+			}}
 		>
 			{children}
 		</AuthContext.Provider>

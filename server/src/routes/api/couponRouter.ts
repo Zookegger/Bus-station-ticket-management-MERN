@@ -4,7 +4,7 @@ import {
 	csrfGuestOrUserProtectionRoute,
 } from "@middlewares/csrf";
 import { errorHandler } from "@middlewares/errorHandler";
-import { uploadMiddleware } from "@middlewares/upload";
+import { createUploadMiddleware } from "@middlewares/upload";
 import { handleValidationResult } from "@middlewares/validateRequest";
 import {
 	validateAddCoupon,
@@ -16,6 +16,8 @@ import {
 import { Router } from "express";
 
 const couponRouter = Router();
+
+const couponUpload = createUploadMiddleware("coupons");
 
 couponRouter.get(
 	"/",
@@ -49,7 +51,7 @@ couponRouter.post(
 );
 couponRouter.post(
 	"/",
-	uploadMiddleware.single('image'),
+	couponUpload.single('image'),
 	validateAddCoupon,
 	handleValidationResult,
 	csrfAdminProtectionRoute,
@@ -58,7 +60,7 @@ couponRouter.post(
 );
 couponRouter.put(
 	"/:id",
-	uploadMiddleware.single('image'),
+	couponUpload.single('image'),
 	validateUpdateCoupon,
 	handleValidationResult,
 	csrfAdminProtectionRoute,
