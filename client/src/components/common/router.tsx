@@ -27,6 +27,15 @@ export const router = createBrowserRouter([
 				},
 			},
 			{
+               path: ROUTES.SEAT_BOOKING,
+               lazy: async () => {
+                   const { default: SeatBooking } = await import(
+					   "@pages/landing/SeatBooking"
+				    );
+                    return { Component: SeatBooking };
+               },
+            },
+			{
 				path: ROUTES.LOGIN,
 				lazy: async () => {
 					const { default: Login } = await import(
@@ -204,6 +213,15 @@ export const router = createBrowserRouter([
 					return { Component: User };
 				},
 			},
+			{
+                path: "seat-booking",
+                lazy: async () => {
+                   const { default: SeatBooking } = await import(
+					"@pages/landing/SeatBooking"
+				   );
+                   return { Component: SeatBooking };
+                },
+            },
 			{
 				path: "coupon",
 				children: [

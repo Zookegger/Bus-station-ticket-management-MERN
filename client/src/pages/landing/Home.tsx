@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Container,
   Card,
@@ -7,15 +8,20 @@ import {
   Button,
   Box,
   Typography,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
 
 interface Trip {
   route: string;
-  departure: string; // yyyy-mm-dd
-  departureTime: string; // hh:mm
-  arrival: string; // yyyy-mm-dd
-  arrivalTime: string; // hh:mm
+  departure: string;
+  departureTime: string;
+  arrival: string;
+  arrivalTime: string;
   price: string;
+  type?: string;
 }
 
 const popularTrips: Trip[] = [
@@ -26,6 +32,7 @@ const popularTrips: Trip[] = [
     arrival: "2023-06-01",
     arrivalTime: "19:00",
     price: "200.000 đ",
+    type: "hot",
   },
   {
     route: "Ho Tay - Vincom Mega Mall Royal City",
@@ -34,6 +41,7 @@ const popularTrips: Trip[] = [
     arrival: "2023-06-02",
     arrivalTime: "20:45",
     price: "135.000 đ",
+    type: "cheap",
   },
   {
     route: "Ho Tay - Bitexco Financial Tower",
@@ -42,11 +50,13 @@ const popularTrips: Trip[] = [
     arrival: "2023-06-01",
     arrivalTime: "15:20",
     price: "6.050.000 đ",
+    type: "vip",
   },
-  // ... bạn có thể thêm nhiều trip khác
 ];
 
 const Home: React.FC = () => {
+  const navigate = useNavigate(); 
+
   const [searchForm, setSearchForm] = useState({
     from: "",
     to: "",
@@ -54,6 +64,7 @@ const Home: React.FC = () => {
   });
 
   const [filteredTrips, setFilteredTrips] = useState<Trip[]>(popularTrips);
+  const [filterType, setFilterType] = useState<string>("all");
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -82,29 +93,21 @@ const Home: React.FC = () => {
   const handleReset = () => {
     setSearchForm({ from: "", to: "", date: "" });
     setFilteredTrips(popularTrips);
+    setFilterType("all");
   };
+
+  const combinedFilteredTrips = filteredTrips.filter((trip) => {
+    if (filterType === "all") return true;
+    return trip.type === filterType;
+  });
 
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       {/* Header Section */}
-      <Box
-        sx={{
-          backgroundColor: "#d4e6d4",
-          flex: "0 0 50%",
-          position: "relative",
-          display: "flex",
-          alignItems: "center",
-          py: 1,
-        }}
-      >
+      <Box sx={{ backgroundColor: "#d4e6d4", py: 2 }}>
         <Container maxWidth="lg">
-          <Box textAlign="center" maxWidth={{ lg: 800 }} mx="auto" my={5}>
-            <Typography
-              variant="h4"
-              color="primary"
-              fontWeight={700}
-              sx={{ mb: 1 }}
-            >
+          <Box textAlign="center">
+            <Typography variant="h4" color="primary" fontWeight={700} sx={{ mb: 1 }}>
               Book Your Bus Ticket Online
             </Typography>
             <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 2 }}>
@@ -112,129 +115,47 @@ const Home: React.FC = () => {
             </Typography>
 
             <Box component="form" onSubmit={handleSearch}>
-              <Box
-                display="grid"
-                gridTemplateColumns={{ xs: "1fr", md: "repeat(3, 1fr)" }}
-                gap={1.5}
-                sx={{ mb: 1.5 }}
-              >
-                <TextField
-                  fullWidth
-                  name="from"
-                  value={searchForm.from}
-                  onChange={handleInputChange}
-                  placeholder="From"
-                  size="small"
-                />
-                <TextField
-                  fullWidth
-                  name="to"
-                  value={searchForm.to}
-                  onChange={handleInputChange}
-                  placeholder="To"
-                  size="small"
-                />
-                <TextField
-                  fullWidth
-                  name="date"
-                  value={searchForm.date}
-                  onChange={handleInputChange}
-                  type="date"
-                  size="small"
-                />
+              <Box display="grid" gridTemplateColumns={{ xs: "1fr", md: "repeat(3, 1fr)" }} gap={1.5}>
+                <TextField name="from" value={searchForm.from} onChange={handleInputChange} placeholder="From" size="small" />
+                <TextField name="to" value={searchForm.to} onChange={handleInputChange} placeholder="To" size="small" />
+                <TextField name="date" type="date" value={searchForm.date} onChange={handleInputChange} size="small" />
               </Box>
-              <Box display="flex" justifyContent="center" gap={1}>
-                <Button type="submit" variant="contained" size="small">
-                  Search
-                </Button>
-                <Button type="button" variant="outlined" size="small" onClick={handleReset}>
-                  Reset
-                </Button>
+              <Box display="flex" justifyContent="center" gap={1} mt={2}>
+                <Button type="submit" variant="contained" size="small">Search</Button>
+                <Button type="button" variant="outlined" size="small" onClick={handleReset}>Reset</Button>
               </Box>
             </Box>
           </Box>
         </Container>
       </Box>
 
-      {/* Popular Trips Section */}
-      <Container
-        maxWidth="lg"
-        sx={{
-          flex: 1,
-          py: 1.5,
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <Typography variant="h5" fontWeight={700} sx={{ mb: 1.5 }}>
-          Popular Trips
-        </Typography>
-        <Box
-          display="grid"
-          gridTemplateColumns={{ xs: "1fr", md: "repeat(3, 1fr)" }}
-          gap={2}
-          sx={{
-            flex: 1,
-            minHeight: 0,
-            overflowY: "auto",
-            alignContent: "start",
-            gridAutoRows: { xs: "auto", md: 240 },
-          }}
-        >
-          {filteredTrips.map((trip, index) => (
-            <Card
-              key={index}
-              sx={{
-                height: { xs: "auto", md: 240 },
-                display: "flex",
-                flexDirection: "column",
-                bgcolor: "#fff !important",
-              }}
-            >
-              <CardContent sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
-                <Typography variant="h6" fontWeight={600} gutterBottom>
-                  {trip.route}
-                </Typography>
-                <Box mb={2} sx={{ flex: 1, overflow: "hidden" }}>
-                  <Box display="flex" justifyContent="space-between" mb={1}>
-                    <Typography variant="caption" color="text.secondary">
-                      Departure:
-                    </Typography>
-                    <Typography variant="body2">
-                      {trip.departure} {trip.departureTime}
-                    </Typography>
-                  </Box>
-                  <Box display="flex" justifyContent="space-between" mb={1}>
-                    <Typography variant="caption" color="text.secondary">
-                      Arrival:
-                    </Typography>
-                    <Typography variant="body2">
-                      {trip.arrival} {trip.arrivalTime}
-                    </Typography>
-                  </Box>
-                  <Box display="flex" justifyContent="space-between">
-                    <Typography variant="caption" color="text.secondary">
-                      Price:
-                    </Typography>
-                    <Typography variant="subtitle1" color="success.main" fontWeight={700}>
-                      {trip.price}
-                    </Typography>
-                  </Box>
-                </Box>
-                <Button
-                  variant="contained"
-                  size="small"
-                  fullWidth
-                  sx={{
-                    mt: "auto",
-                    bgcolor: "#1976d2 !important",
-                    color: "#fff !important",
-                    "&:hover": { bgcolor: "#1565c0 !important" },
-                  }}
-                >
+      {/* Popular Trips + Filter */}
+      <Container maxWidth="lg" sx={{ flex: 1, py: 2 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+          <Typography variant="h5" fontWeight={700}>Popular Trips</Typography>
+
+          <FormControl size="small" sx={{ width: 180 }}>
+            <InputLabel>Filter</InputLabel>
+            <Select value={filterType} label="Filter" onChange={(e) => setFilterType(e.target.value)}>
+              <MenuItem value="all">All</MenuItem>
+              <MenuItem value="hot">🔥 Hot / Khuyến mãi</MenuItem>
+              <MenuItem value="cheap">💰 Giá rẻ</MenuItem>
+              <MenuItem value="vip">⭐ VIP / Cao cấp</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+
+        <Box display="grid" gridTemplateColumns={{ xs: "1fr", md: "repeat(3, 1fr)" }} gap={2}>
+          {combinedFilteredTrips.map((trip, index) => (
+            <Card key={index}>
+              <CardContent>
+                <Typography variant="h6" fontWeight={600}>{trip.route}</Typography>
+                <Typography variant="caption">Departure: {trip.departure} {trip.departureTime}</Typography><br />
+                <Typography variant="caption">Arrival: {trip.arrival} {trip.arrivalTime}</Typography><br />
+                <Typography variant="subtitle1" color="success.main" fontWeight={700}>{trip.price}</Typography>
+                <Button variant="contained" fullWidth sx={{ mt: 2 }} onClick={() => navigate("/seat-booking")}>
                   SELECT SEAT
-                </Button>
+              </Button>
               </CardContent>
             </Card>
           ))}
