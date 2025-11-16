@@ -130,13 +130,13 @@ export const router = createBrowserRouter([
   {
     path: "/dashboard",
     element: (
-      <RequireAuth>
-        <DashboardLayout>
-          <Suspense fallback={<LoadingSkeleton />}>
-            <Outlet />
-          </Suspense>
-        </DashboardLayout>
-      </RequireAuth>
+      // <RequireAuth>
+      <DashboardLayout>
+        <Suspense fallback={<LoadingSkeleton />}>
+          <Outlet />
+        </Suspense>
+      </DashboardLayout>
+      // </RequireAuth>
     ),
     children: [
       {
