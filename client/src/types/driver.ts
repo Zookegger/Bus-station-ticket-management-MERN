@@ -27,56 +27,55 @@
  * Represents a driver's profile on the client-side.
  */
 export interface Driver {
-	id: number;
-	fullname?: string | null;
-	phoneNumber?: string | null;
-	avatar?: string | null;
-	hiredAt?: string | null; // ISO Date string
-	isActive: boolean;
-	licenseNumber?: string | null;
-	licenseCategory?: string | null;
-	licenseIssueDate?: string | null; // ISO Date string
-	licenseExpiryDate?: string | null; // ISO Date string
-	issuingAuthority?: string | null;
-	isSuspended: boolean;
-	createdAt: string; // ISO Date string
-	updatedAt: string; // ISO Date string
+  id: number;
+  fullname?: string | null;
+  phoneNumber?: string | null;
+  avatar?: string | null;
+  hiredAt?: string | null; // ISO Date string
+  isActive: boolean;
+  licenseNumber?: string | null;
+  licenseCategory?: string | null;
+  licenseIssueDate?: string | null; // ISO Date string
+  licenseExpiryDate?: string | null; // ISO Date string
+  issuingAuthority?: string | null;
+  isSuspended: boolean;
+  createdAt: string; // ISO Date string
+  updatedAt: string; // ISO Date string
 }
 
 /**
  * DTO for creating a new Driver profile.
  */
 export interface CreateDriverDTO {
-	fullname?: string | null;
-	phoneNumber?: string | null;
-	avatar?: string | null;
-	hiredAt?: string | null; // ISO Date string
-	isActive?: boolean;
-	licenseNumber?: string | null;
-	licenseCategory?: string | null;
-	licenseIssueDate?: string | null; // ISO Date string
-	licenseExpiryDate?: string | null; // ISO Date string
-	issuingAuthority?: string | null;
-	isSuspended?: boolean;
+  fullname?: string | null;
+  phoneNumber?: string | null;
+  avatar?: string | null;
+  hiredAt?: string | null; // ISO Date string
+  isActive?: boolean;
+  licenseNumber?: string | null;
+  licenseCategory?: string | null;
+  licenseIssueDate?: string | null; // ISO Date string
+  licenseExpiryDate?: string | null; // ISO Date string
+  issuingAuthority?: string | null;
+  isSuspended?: boolean;
 }
 
 /**
  * DTO for updating an existing Driver profile.
  */
 export interface UpdateDriverDTO {
-	fullname?: string | null;
-	phoneNumber?: string | null;
-	avatar?: string | null;
-	hiredAt?: string | null; // ISO Date string
-	isActive?: boolean;
-	licenseNumber?: string | null;
-	licenseCategory?: string | null;
-	licenseIssueDate?: string | null; // ISO Date string
-	licenseExpiryDate?: string | null; // ISO Date string
-	issuingAuthority?: string | null;
-	isSuspended?: boolean;
+  fullname?: string | null;
+  phoneNumber?: string | null;
+  avatar?: string | null;
+  hiredAt?: string | null; // ISO Date string
+  isActive?: boolean;
+  licenseNumber?: string | null;
+  licenseCategory?: string | null;
+  licenseIssueDate?: string | null; // ISO Date string
+  licenseExpiryDate?: string | null; // ISO Date string
+  issuingAuthority?: string | null;
+  isSuspended?: boolean;
 }
-
 
 /**
  * Data Transfer Object for updating an existing Driver profile.
@@ -99,16 +98,34 @@ export interface UpdateDriverDTO {
  * @property {boolean} [isSuspended] - Updated suspension status
  */
 export interface UpdateDriverDTO {
-	id: number;
-	fullname?: string | null;
-	phoneNumber?: string | null;
-	avatar?: string | null;
-	hiredAt?: string | null;
-	isActive?: boolean;
-	licenseNumber?: string | null;
-	licenseCategory?: string | null;
-	licenseIssueDate?: string | null;
-	licenseExpiryDate?: string | null;
-	issuingAuthority?: string | null;
-	isSuspended?: boolean;
+  id: number;
+  fullname?: string | null;
+  phoneNumber?: string | null;
+  avatar?: string | null;
+  hiredAt?: string | null;
+  isActive?: boolean;
+  licenseNumber?: string | null;
+  licenseCategory?: string | null;
+  licenseIssueDate?: string | null;
+  licenseExpiryDate?: string | null;
+  issuingAuthority?: string | null;
+  isSuspended?: boolean;
+}
+export interface DriverRecord {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  gender: "Male" | "Female";
+  dateOfBirth: string; // YYYY-MM-DD
+  address: string;
+  licenseNumber: string;
+  licenseClass: string;
+  issueDate: string;
+  expiryDate: string;
+  status: "active" | "inactive" | "suspended";
+  totalTrips: number;
+  totalEarnings: number;
+  rating: number;
+  avatar?: string;
 }
