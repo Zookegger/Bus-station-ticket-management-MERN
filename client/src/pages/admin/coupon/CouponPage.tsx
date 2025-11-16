@@ -84,12 +84,20 @@ const CouponPage: React.FC = () => {
 
 				const coupon_response = response.data;
 
-				setCoupons(coupon_response);
+				// Only update state if the component is still mounted.
+				// The `mounted` flag is set to false in the cleanup function
+				// to avoid calling `setState` on an unmounted component
+				// which would otherwise trigger a React warning.
+				if (mounted) {
+					setCoupons(coupon_response);
+				}
 			} catch (err) {
 				const message = handleAxiosError(err);
 				console.error(message);
 			} finally {
-				setIsLoading(false);
+				if (mounted) {
+					setIsLoading(false);
+				}
 			}
 		};
 
