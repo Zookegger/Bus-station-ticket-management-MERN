@@ -26,7 +26,7 @@ const AssignmentCreate: React.FC = () => {
 
   const handleAssign = () => {
     // Thêm vào MOCK_ASSIGNMENTS
-    console.log("Phân công:", { trip, driver });
+    console.log("assignment:", { trip, driver });
     setTimeout(() => navigate("/assignments"), 1000);
   };
 
@@ -36,16 +36,16 @@ const AssignmentCreate: React.FC = () => {
         variant="h5"
         sx={{ fontWeight: 700, color: "#2E7D32", mb: 3 }}
       >
-        Phân Công Tài Xế
+        Driver Assignment
       </Typography>
 
       <Paper variant="outlined" sx={{ p: 3 }}>
         <Stack spacing={3}>
           <FormControl fullWidth>
-            <InputLabel>Chuyến đi</InputLabel>
+            <InputLabel>Trip</InputLabel>
             <Select
               value={tripId}
-              label="Chuyến đi"
+              label="Trip"
               onChange={(e) => setTripId(e.target.value)}
             >
               {MOCK_TRIPS.filter((t) => t.status === "pending").map((t) => (
@@ -58,24 +58,24 @@ const AssignmentCreate: React.FC = () => {
 
           {trip && (
             <>
-              <TextField label="Điểm đi" value={trip.startPoint} disabled />
-              <TextField label="Điểm đến" value={trip.endPoint} disabled />
+              <TextField label="Start Point" value={trip.startPoint} disabled />
+              <TextField label="End Point" value={trip.endPoint} disabled />
               <TextField
-                label="Thời gian"
+                label="Time"
                 value={`${trip.startTime} - ${trip.endTime}`}
                 disabled
               />
-              <TextField label="Ngày" value={trip.date} disabled />
+              <TextField label="Date" value={trip.date} disabled />
             </>
           )}
 
           <Divider />
 
           <FormControl fullWidth>
-            <InputLabel>Tài xế</InputLabel>
+            <InputLabel>Driver</InputLabel>
             <Select
               value={driverId}
-              label="Tài xế"
+              label="Driver"
               onChange={(e) => setDriverId(e.target.value)}
             >
               {MOCK_DRIVERS.filter((d) => d.status === "active").map((d) => (
@@ -88,8 +88,8 @@ const AssignmentCreate: React.FC = () => {
 
           {driver && (
             <TextField
-              label="Thông tin tài xế"
-              value={`${driver.fullName} | ${driver.phone} | GPLX: ${driver.licenseNumber}`}
+              label="Driver Information"
+              value={`${driver.fullName} | ${driver.phone} | License: ${driver.licenseNumber}`}
               disabled
             />
           )}
@@ -99,14 +99,14 @@ const AssignmentCreate: React.FC = () => {
               variant="outlined"
               onClick={() => navigate("/dashboard/trip")}
             >
-              Hủy
+              Cancel
             </Button>
             <Button
               variant="contained"
               onClick={handleAssign}
               disabled={!tripId || !driverId}
             >
-              Phân công
+              Assign
             </Button>
           </Stack>
         </Stack>

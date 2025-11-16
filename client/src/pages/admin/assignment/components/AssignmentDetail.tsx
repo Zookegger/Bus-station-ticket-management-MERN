@@ -31,7 +31,7 @@ const AssignmentDetail: React.FC<AssignmentDetailProps> = ({
   if (!assignment || !trip) {
     return (
       <Box sx={{ p: 3 }}>
-        <Typography color="error">Không tìm thấy phân công</Typography>
+        <Typography color="error">No assignment found</Typography>
       </Box>
     );
   }
@@ -57,7 +57,7 @@ const AssignmentDetail: React.FC<AssignmentDetailProps> = ({
                 <LocationOnIcon color="success" />
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Điểm đi
+                    Start Point
                   </Typography>
                   <Typography variant="body2">{trip.startPoint}</Typography>
                 </Box>
@@ -66,7 +66,7 @@ const AssignmentDetail: React.FC<AssignmentDetailProps> = ({
                 <LocationOnIcon color="error" />
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Điểm đến
+                    End Point
                   </Typography>
                   <Typography variant="body2">{trip.endPoint}</Typography>
                 </Box>
@@ -99,7 +99,7 @@ const AssignmentDetail: React.FC<AssignmentDetailProps> = ({
               <Stack direction="row" spacing={1} alignItems="center">
                 <DirectionsCarIcon fontSize="small" />
                 <Typography variant="body2">
-                  Xe: {assignment.vehicle}
+                  Vehicle: {assignment.vehicle}
                 </Typography>
               </Stack>
             </Stack>
@@ -121,11 +121,11 @@ const AssignmentDetail: React.FC<AssignmentDetailProps> = ({
               align="center"
               sx={{ pt: 8 }}
             >
-              [Bản đồ Google Maps sẽ hiển thị ở đây]
+              [Google Maps will be displayed here]
             </Typography>
             <Box sx={{ mt: 2, textAlign: "center" }}>
-              <Chip label="Khoảng cách: 12.5 km" size="small" />
-              <Chip label="Thời gian: ~22 phút" size="small" sx={{ ml: 1 }} />
+              <Chip label="Distance: 12.5 km" size="small" />
+              <Chip label="Duration: ~22 minutes" size="small" sx={{ ml: 1 }} />
             </Box>
           </Box>
         </Stack>
@@ -133,9 +133,9 @@ const AssignmentDetail: React.FC<AssignmentDetailProps> = ({
 
       <Stack direction="row" spacing={2} justifyContent="flex-end">
         <Button variant="outlined" onClick={onClose}>
-          Quay lại danh sách
+          Back to list
         </Button>
-        <Button variant="contained">Chỉnh sửa phân công</Button>
+        <Button variant="contained">Edit Assignment</Button>
       </Stack>
     </Box>
   );
