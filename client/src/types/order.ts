@@ -18,6 +18,28 @@ export interface Ticket {
   status: "confirmed" | "pending" | "cancelled";
 }
 
+/**
+ * Client-side type definitions for Orders.
+ * Based on server/src/types/order.ts
+ */
+
+export type OrderStatus =
+  | "PENDING"
+  | "CONFIRMED"
+  | "CANCELLED"
+  | "PARTIALLY_REFUNDED"
+  | "REFUNDED"
+  | "EXPIRED";
+
+/**
+ * Information for guest purchasers.
+ */
+export interface GuestPurchaserInfo {
+  email?: string;
+  name?: string;
+  phone?: string;
+}
+
 export interface Order {
   id: string;
   customer: Customer;

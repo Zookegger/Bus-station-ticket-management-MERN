@@ -69,6 +69,10 @@ const CouponPage: React.FC = () => {
 	};
 
 	useEffect(() => {
+		let mounted = true;
+
+		if (!isLoading) return;
+
 		const fetchData = async () => {
 			try {
 				const response = await axios.get(
@@ -80,17 +84,28 @@ const CouponPage: React.FC = () => {
 
 				const coupon_response = response.data;
 
-				setCoupons(coupon_response);
+				// Only update state if the component is still mounted.
+				// The `mounted` flag is set to false in the cleanup function
+				// to avoid calling `setState` on an unmounted component
+				// which would otherwise trigger a React warning.
+				if (mounted) {
+					setCoupons(coupon_response);
+				}
 			} catch (err) {
 				const message = handleAxiosError(err);
 				console.error(message);
 			} finally {
-				setIsLoading(false);
+				if (mounted) {
+					setIsLoading(false);
+				}
 			}
 		};
 
 		fetchData();
-	}, []);
+		return () => {
+            mounted = false;
+        };
+	}, [isLoading]);
 
 	const actionBar = (
 		<Button
@@ -126,6 +141,7 @@ const CouponPage: React.FC = () => {
 					onRowClick={(e) =>
 						handleOpenDrawer(Number.parseInt(e.id.toString()))
 					}
+					rowHeight={35}
 					columns={
 						[
 							{
@@ -191,13 +207,22 @@ const CouponPage: React.FC = () => {
 						coupon={selectedCoupon}
 						open={detailOpen}
 						onClose={handleCloseDrawer}
-						onDelete={() => handleOpenDelete(selectedCoupon.id)}
-						onEdit={() => handleOpenEdit(selectedCoupon.id)}
+						onDelete={() => {
+							handleOpenDelete(selectedCoupon.id);
+							setIsLoading(false);
+						}}
+						onEdit={() => {
+							handleOpenEdit(selectedCoupon.id);
+							setIsLoading(false);
+						}}
 					/>
 					<DeleteCouponForm
 						id={selectedCoupon.id}
 						open={deleteOpen}
-						onClose={() => setDeleteOpen(false)}
+						onClose={() => {
+							setDeleteOpen(false);
+							setIsLoading(false);
+						}}
 						onConfirm={() => setIsLoading(true)}
 					/>
 				</>

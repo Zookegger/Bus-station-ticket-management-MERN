@@ -1,7 +1,4 @@
-// src/components/orders/OrderManagement.tsx
-"use client";
-
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Paper,
   Typography,
@@ -11,37 +8,70 @@ import {
   DialogActions,
   Button,
 } from "@mui/material";
-import { mockOrders } from "@data/mockOrder";
-import OrderFilters from "./OrderFilters";
-import OrderTable from "./OrderTable";
-import OrderDetailDialog from "./OrderDetailDialog";
-import type { Order, Ticket } from "@my-types/order";
+import { OrderFilters, OrderTable, OrderDetailDialog } from "./components";
+import type { Order } from "@my-types/order";
+import type { Ticket } from "@my-types/ticket";
 import { Box } from "@mui/system";
+import callApi from "@utils/apiCaller";
 
 export default function OrderManagement() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<
-    "all" | "paid" | "pending" | "cancelled"
+    | "all"
+    | "pending"
+    | "confirmed"
+    | "cancelled"
+    | "partially_refunded"
+    | "refunded"
+    | "EXPIRED"
   >("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [ticketToCancel, setTicketToCancel] = useState<Ticket | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await callApi<Order[]>({
+          method: "GET",
+          url: "/api/orders",
+          params: {
+            include: ["tickets"],
+            // optionally: limit/offset, but we paginate client-side for now
+          },
+        });
+        setOrders(Array.isArray(data) ? data : []);
+      } catch (e: any) {
+        setError(e?.message || "Failed to load orders");
+        setOrders([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOrders();
+  }, []);
 
   const filteredOrders = useMemo(() => {
-    return (mockOrders as Order[]).filter((order) => {
+    const q = search.trim().toLowerCase();
+    return orders.filter((order) => {
       const matchesSearch =
-        order.id.toLowerCase().includes(search.toLowerCase()) ||
-        order.customer.name.toLowerCase().includes(search.toLowerCase()) ||
-        order.customer.phone.includes(search) ||
-        (order.customer.email && order.customer.email.includes(search)) ||
-        order.tripCode.toLowerCase().includes(search.toLowerCase());
+        !q ||
+        order.id.toLowerCase().includes(q) ||
+        (order.guestPurchaserName || "").toLowerCase().includes(q) ||
+        (order.guestPurchaserEmail || "").toLowerCase().includes(q) ||
+        (order.guestPurchaserPhone || "").toLowerCase().includes(q);
 
       const matchesStatus =
         statusFilter === "all" || order.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [search, statusFilter]);
+  }, [orders, search, statusFilter]);
 
   const paginatedOrders = filteredOrders.slice(
     page * rowsPerPage,
@@ -70,8 +100,29 @@ export default function OrderManagement() {
           search={search}
           statusFilter={statusFilter}
           onSearchChange={setSearch}
-          onStatusChange={setStatusFilter}
+          onStatusChange={(value: string) =>
+            setStatusFilter(
+              value as
+                | "all"
+                | "pending"
+                | "confirmed"
+                | "cancelled"
+                | "partially_refunded"
+                | "refunded"
+                | "EXPIRED"
+            )
+          }
         />
+        {loading && (
+          <Typography variant="body2" color="text.secondary">
+            Loading orders...
+          </Typography>
+        )}
+        {error && (
+          <Typography variant="body2" color="error">
+            {error}
+          </Typography>
+        )}
       </Paper>
 
       <OrderTable

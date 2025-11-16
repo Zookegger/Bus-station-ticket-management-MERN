@@ -194,6 +194,7 @@ const TripList: React.FC<TripListProps> = ({ onOpenDetails }) => {
 					rows={filtered}
 					columns={columns}
 					pagination
+					rowHeight={35}
 					initialState={{
 						pagination: {
 							paginationModel: { pageSize: 10, page: 0 },
