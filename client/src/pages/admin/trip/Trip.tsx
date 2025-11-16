@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import { Box, Tabs, Tab } from "@mui/material";
 import TripList from "./components/TripList";
 import RouteList from "./route/Routelist";
+import Driver from "../driver/Driver";
 import TripDetailsDrawer from "./components/TripDetailsDrawer";
+import { AssignmentList } from "../assignment";
 
 const Vehicle: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -22,6 +24,8 @@ const Vehicle: React.FC = () => {
       >
         <Tab label="Trip List" />
         <Tab label="Route List" />
+        <Tab label="Driver List" />
+        <Tab label="Assignment List " />
       </Tabs>
 
       {activeTab === 0 && (
@@ -34,6 +38,10 @@ const Vehicle: React.FC = () => {
       )}
 
       {activeTab === 1 && <RouteList />}
+
+      {activeTab === 2 && <Driver />}
+
+      {activeTab === 3 && <AssignmentList />}
 
       {/* Drawer chi tiết chuyến đi */}
       <TripDetailsDrawer

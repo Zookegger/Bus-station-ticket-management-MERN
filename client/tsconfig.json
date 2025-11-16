@@ -1,41 +1,42 @@
 {
-	"files": [],
-	"references": [
-		{ "path": "./tsconfig.app.json" },
-		{ "path": "./tsconfig.node.json" }
-	],
-	"compilerOptions": {
-		"target": "ES2020",
-		"useDefineForClassFields": true,
-		"lib": ["ES2020", "DOM", "DOM.Iterable"],
-		"module": "ESNext",
-		"skipLibCheck": true,
-		"moduleResolution": "bundler",
-		"allowImportingTsExtensions": true,
-		"resolveJsonModule": true,
-		"isolatedModules": true,
-		"noEmit": true,
-		"jsx": "react-jsx",
-		"strict": true,
-		"noUnusedLocals": true,
-		"noUnusedParameters": true,
-		"noFallthroughCasesInSwitch": true,
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ],
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
 
-		// Path mapping - vite-tsconfig-paths will use these
-		"baseUrl": "./src",
-		"paths": {
-			"@components/*": ["components/*"],
-			"@utils/*": ["utils/*"],
-			"@assets/*": ["assets/*"],
-			"@constants/*": ["constants/*"],
-			"@my-types/*": ["types/*"],
-			"@services/*": ["services/*"],
-			"@pages/*": ["pages/*"],
-			"@hooks/*": ["hooks/*"],
-			"@contexts/*": ["contexts/*"],
-			"@layouts/*": ["layouts/*"],
-			"@common/*": ["common/*"],
-			"@data/*": ["data/*"]
-		}
-	}
+    // Path mapping - vite-tsconfig-paths will use these
+    "baseUrl": "./src",
+    "paths": {
+      "@components/*": ["components/*"],
+      "@utils/*": ["utils/*"],
+      "@assets/*": ["assets/*"],
+      "@constants/*": ["constants/*"],
+      "@my-types/*": ["types/*"],
+      "@services/*": ["services/*"],
+      "@pages/*": ["pages/*"],
+      "@hooks/*": ["hooks/*"],
+      "@contexts/*": ["contexts/*"],
+      "@layouts/*": ["layouts/*"],
+      "@common/*": ["common/*"],
+      "@data/*": ["data/*"],
+      "@schemas/*": ["schemas/*"]
+    }
+  }
 }

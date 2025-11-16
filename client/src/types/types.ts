@@ -4,9 +4,14 @@ export interface AppConfig {
   readonly description: string;
   readonly author: string;
   readonly apiBaseUrl: string;
+  readonly serverBaseUrl: string;
 }
 
 export interface ApiEndpoints {
+  readonly UPLOADS: {
+    readonly AVATARS: (url: string) => string;
+    readonly COUPONS: (url: string) => string;
+  };
   readonly AUTH: {
     readonly LOGIN: string;
     readonly REGISTER: string;
@@ -25,7 +30,10 @@ export interface ApiEndpoints {
   readonly USERS: {
     readonly BASE: string;
     readonly PROFILE: (id: string) => string;
+    readonly VERIFY_EMAIL: (id: string) => string;
+    readonly CHANGE_EMAIL: (id: string) => string;
     readonly UPDATE_PROFILE: (id: string) => string;
+    readonly DELETE_PROFILE: (id: string) => string;
     readonly ADMIN_UPDATE: (id: string) => string;
     readonly ADMIN_DELETE: (id: string) => string;
   };
@@ -146,67 +154,3 @@ export interface ValidationRules {
   readonly NAME_MIN_LENGTH: number;
   readonly NAME_MAX_LENGTH: number;
 }
-
-export const formatDateForInput = (date?: string | null): string => {
-  if (!date) return "";
-  const d = new Date(date);
-  return !isNaN(d.getTime()) ? d.toISOString().split("T")[0] : "";
-};
-
-export interface Order {
-  ticketId: string;
-  trip: string;
-  vehicle: string;
-  customer: string;
-  seat: string;
-  price: number;
-  bookingDate: string;
-  status: "Paid" | "Cancelled";
-}
-
-export interface DailyRevenue {
-  date: string;
-  revenue: number;
-}
-
-export interface TopRoute {
-  route: string;
-  revenue: number;
-}
-
-export interface WeeklyData {
-  day: string;
-  revenue: number;
-}
-
-export interface CancelData {
-  route: string;
-  cancelled: number;
-  total: number;
-}
-
-export interface VipCustomer {
-  name: string;
-  total: number;
-}
-
-export interface MonthlyComparison {
-  month: string;
-  current: number;
-  previous: number;
-}
-
-export type UserRecord = {
-  id: string;
-  username: string; // login/email
-  fullName: string;
-  email: string;
-  phone: string;
-  dateOfBirth?: string;
-  address?: string;
-  emailVerified: boolean;
-  ticketsTotal: number;
-  totalSpentVnd: number;
-  role: string;
-  status: string;
-};

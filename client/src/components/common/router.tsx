@@ -186,8 +186,36 @@ export const router = createBrowserRouter([
               return { Component: EditRoutePage };
             },
           },
+          {
+            path: "driver/create",
+            lazy: async () => {
+              const { default: CreateDriver } = await import(
+                "@pages/admin/driver/components/DriverCreate"
+              );
+              return { Component: CreateDriver };
+            },
+          },
+          {
+            path: "assignment/create",
+            lazy: async () => {
+              const { default: AssignmentCreate } = await import(
+                "@pages/admin/assignment/components/AssignmentCreate"
+              );
+              return { Component: AssignmentCreate };
+            },
+          },
+          {
+            path: "assignment/:id",
+            lazy: async () => {
+              const { default: AssignmentDetail } = await import(
+                "@pages/admin/assignment/components/AssignmentDetail"
+              );
+              return { Component: AssignmentDetail };
+            },
+          },
         ],
       },
+
       {
         path: "user",
         lazy: async () => {
