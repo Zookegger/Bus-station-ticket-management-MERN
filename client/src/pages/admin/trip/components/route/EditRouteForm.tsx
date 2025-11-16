@@ -1,259 +1,396 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
+import type { EditRouteFormProps } from "./types/Props";
+import type { UpdateRouteDTO } from "@my-types";
+import { API_ENDPOINTS } from "@constants";
+import { handleAxiosError } from "@utils/handleError";
+import axios from "axios";
 import {
-  Box,
-  Typography,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Button,
-  Grid,
+	Alert,
+	Box,
+	Button,
+	Dialog,
+	DialogActions,
+	DialogContent,
+	DialogTitle,
+	FormControl,
+	FormHelperText,
+	Grid,
+	TextField,
+	CircularProgress,
+	Typography,
 } from "@mui/material";
-import { ArrowBack as ArrowBackIcon, Save as SaveIcon } from "@mui/icons-material";
-import Map from "../../../../../components/common/Map"; // <-- giữ nguyên file Map.tsx
+import { RouteMap } from "@components/map";
+import { useAutoRoute } from "@hooks/map";
 
-interface RouteType {
-  id: number;
-  name: string;
-  description: string;
-}
+axios.defaults.withCredentials = true;
 
-import type { Route } from "@pages/admin/vehicle/components/vehicleType/types";
-
-// Dummy route types
-const routeTypes: RouteType[] = [
-  { id: 1, name: "Short Route", description: "Route for short distances (under 100km)" },
-  { id: 2, name: "Medium Route", description: "Route for medium distances (100-300km)" },
-  { id: 3, name: "Long Route", description: "Route for long distances (over 300km)" },
-];
-
-interface EditRouteFormProps {
-  routeToEdit: Route;
-  onSave: (updatedRoute: Route) => void;
-  onBack: () => void;
-}
-
-// Hàm geocoding đơn giản với Nominatim (OpenStreetMap)
-const geocode = async (query: string): Promise<[number, number] | null> => {
-  if (!query) return null;
-  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-    query
-  )}`;
-  try {
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.length > 0) {
-      return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
-    }
-    return null;
-  } catch (err) {
-    console.error("Geocoding error:", err);
-    return null;
-  }
+/**
+ * Internal shape used to keep the form state strongly typed while allowing optional fields.
+ */
+type EditRouteFormState = Partial<UpdateRouteDTO> & {
+	price: number;
 };
 
-const EditRouteForm: React.FC<EditRouteFormProps> = ({ routeToEdit, onSave, onBack }) => {
-  const [formData, setFormData] = useState({
-    routeType: "",
-    departure: "",
-    destination: "",
-    price: "",
-  });
+/**
+ * Default values applied whenever the dialog opens or resets.
+ */
+const INITIAL_FORM_STATE: EditRouteFormState = {
+	startId: undefined,
+	destinationId: undefined,
+	distance: undefined,
+	duration: undefined,
+	price: 0,
+};
 
-  const [errors, setErrors] = useState({
-    routeType: "",
-    departure: "",
-    destination: "",
-    price: "",
-  });
+/**
+ * Collection of validation errors indexed by form field name.
+ */
+type FormErrorState = Partial<
+	Record<keyof EditRouteFormState | "general", string>
+>;
 
-  // Tọa độ start & end cho Map
-  const [startPoint, setStartPoint] = useState<[number, number]>([21.0285, 105.8542]);
-  const [endPoint, setEndPoint] = useState<[number, number]>([10.7769, 106.7009]);
+/**
+ * Renders the modal dialog that lets admin users edit existing routes.
+ */
+const EditRouteForm: React.FC<EditRouteFormProps> = ({
+	open,
+	onClose,
+	onEdited,
+	route,
+}) => {
+	const [errors, setErrors] = useState<FormErrorState>({});
+	const [formData, setFormData] = useState<EditRouteFormState>({
+		...INITIAL_FORM_STATE,
+	});
+	const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+	const [serverError, setServerError] = useState<string | null>(null);
 
-  useEffect(() => {
-    setFormData({
-      routeType: routeToEdit.routeType,
-      departure: routeToEdit.departure,
-      destination: routeToEdit.destination,
-      price: routeToEdit.price,
-    });
+	// Auto-calculate route if we have valid coordinates
+	const startLat = route?.startLocation?.latitude ?? null;
+	const startLon = route?.startLocation?.longitude ?? null;
+	const endLat = route?.destination?.latitude ?? null;
+	const endLon = route?.destination?.longitude ?? null;
 
-    // Geocode ngay khi load form
-    (async () => {
-      const start = await geocode(routeToEdit.departure);
-      const end = await geocode(routeToEdit.destination);
-      if (start) setStartPoint(start);
-      if (end) setEndPoint(end);
-    })();
-  }, [routeToEdit]);
+	const {
+		route: calculatedRoute,
+		isLoading: routeLoading,
+		error: routeError,
+	} = useAutoRoute(startLat, startLon, endLat, endLon);
 
-  // Geocode khi người dùng thay đổi input
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      if (formData.departure) {
-        const start = await geocode(formData.departure);
-        if (start) setStartPoint(start);
-      }
-      if (formData.destination) {
-        const end = await geocode(formData.destination);
-        if (end) setEndPoint(end);
-      }
-    }, 800); // debounce 0.8s
-    return () => clearTimeout(timer);
-  }, [formData.departure, formData.destination]);
+	useEffect(() => {
+		if (!open) {
+			resetForm();
+		}
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field as keyof typeof errors]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }));
-    }
-  };
+		// Populate form when editing an existing route
+		if (route) {
+			setFormData({
+				startId: route.startId,
+				destinationId: route.destinationId,
+				distance: route.distance ?? undefined,
+				duration: route.duration ?? undefined,
+				price: route.price ?? 0,
+			});
+		}
+	}, [route, open]);
 
-  const validateForm = () => {
-    const newErrors = { routeType: "", departure: "", destination: "", price: "" };
-    if (!formData.routeType) newErrors.routeType = "Please select a route type";
-    if (!formData.departure.trim()) newErrors.departure = "Departure is required";
-    if (!formData.destination.trim()) newErrors.destination = "Destination is required";
-    if (!formData.price.trim()) newErrors.price = "Price is required";
-    else if (isNaN(Number(formData.price)) || Number(formData.price) <= 0)
-      newErrors.price = "Price must be a valid positive number";
+	// Auto-populate distance and duration from calculated route
+	useEffect(() => {
+		if (calculatedRoute && open) {
+			setFormData((prev) => ({
+				...prev,
+				distance: calculatedRoute.route.distance / 1000, // Convert meters to km
+				duration: calculatedRoute.route.duration / 60, // Convert seconds to minutes
+			}));
+		}
+	}, [calculatedRoute, open]);
 
-    setErrors(newErrors);
-    return Object.values(newErrors).every((e) => e === "");
-  };
+	/**
+	 * Resets the form state whenever the dialog closes so the next open starts fresh.
+	 */
+	const resetForm = (): void => {
+		setFormData({ ...INITIAL_FORM_STATE });
+		setErrors({});
+		setServerError(null);
+	};
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validateForm()) {
-      onSave({ ...routeToEdit, ...formData });
-    }
-  };
+	/**
+	 * Generic handler that keeps local state in sync with text, number, or boolean inputs.
+	 */
+	const handleInputChange = (
+		field: keyof EditRouteFormState,
+		value: string | number | undefined
+	): void => {
+		setFormData((prev) => ({
+			...prev,
+			[field]: value,
+		}));
 
-  return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ fontWeight: "bold", color: "#2E7D32", mb: 1 }}>
-        Edit Route
-      </Typography>
-      <Typography variant="h6" sx={{ color: "#333", mb: 4 }}>
-        Update Route Details
-      </Typography>
+		if (errors[field]) {
+			setErrors((prev) => {
+				const next = { ...prev };
+				delete next[field];
+				return next;
+			});
+		}
 
-      <Box component="form" onSubmit={handleSave}>
-        <Grid container spacing={3}>
-          <Grid size={{ xs: 12 }}>
-            <FormControl fullWidth error={!!errors.routeType}>
-              <InputLabel>Select a route type</InputLabel>
-              <Select
-                value={formData.routeType}
-                label="Select a route type"
-                onChange={(e) => handleInputChange("routeType", e.target.value)}
-              >
-                {routeTypes.map((type) => (
-                  <MenuItem key={type.id} value={type.name}>
-                    {type.name}
-                  </MenuItem>
-                ))}
-              </Select>
-              {errors.routeType && (
-                <Typography variant="caption" color="error" sx={{ mt: 1, ml: 2 }}>
-                  {errors.routeType}
-                </Typography>
-              )}
-            </FormControl>
-          </Grid>
+		if (serverError) {
+			setServerError(null);
+		}
+	};
 
-          <Grid size={{ xs: 12 }}>
-            <TextField
-              fullWidth
-              label="Departure"
-              value={formData.departure}
-              onChange={(e) => handleInputChange("departure", e.target.value)}
-              error={!!errors.departure}
-              helperText={errors.departure}
-              placeholder="Enter departure location"
-            />
-          </Grid>
+	/**
+	 * Validates the current form snapshot before attempting submission.
+	 */
+	const validateForm = (): boolean => {
+		const nextErrors: FormErrorState = {};
 
-          <Grid size={{ xs: 12 }}>
-            <TextField
-              fullWidth
-              label="Destination"
-              value={formData.destination}
-              onChange={(e) => handleInputChange("destination", e.target.value)}
-              error={!!errors.destination}
-              helperText={errors.destination}
-              placeholder="Enter destination location"
-            />
-          </Grid>
+		if (!formData.price || Number(formData.price) <= 0) {
+			nextErrors.price = "Price must be greater than 0.";
+		}
 
-          <Grid size={{ xs: 12 }}>
-            <TextField
-              fullWidth
-              label="Price"
-              value={formData.price}
-              onChange={(e) => handleInputChange("price", e.target.value)}
-              error={!!errors.price}
-              helperText={errors.price}
-              placeholder="Enter price (e.g., 100000)"
-            />
-          </Grid>
-        </Grid>
+		setErrors(nextErrors);
+		return Object.keys(nextErrors).length === 0;
+	};
 
-        {/* Map */}
-        <Box
-          sx={{
-            mt: 4,
-            mb: 3,
-            border: "1px solid #e0e0e0",
-            borderRadius: 1,
-            overflow: "hidden",
-          }}
-        >
-          <Map height={400} startPoint={startPoint} endPoint={endPoint} showRoute={true} />
-        </Box>
+	/**
+	 * Handles the submit event by validating inputs and calling the backend API.
+	 */
+	const handleSubmit = async (
+		event: FormEvent<HTMLFormElement>
+	): Promise<void> => {
+		event.preventDefault();
 
-        {/* Action Buttons */}
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            mt: 4,
-            pt: 3,
-            borderTop: "1px solid #e0e0e0",
-          }}
-        >
-          <Button
-            variant="outlined"
-            startIcon={<ArrowBackIcon />}
-            onClick={onBack}
-            sx={{
-              borderColor: "#666",
-              color: "#666",
-              "&:hover": { borderColor: "#333", backgroundColor: "#f5f5f5" },
-            }}
-          >
-            Back
-          </Button>
+		try {
+			if (!validateForm()) {
+				return;
+			}
 
-          <Button
-            type="submit"
-            variant="contained"
-            startIcon={<SaveIcon />}
-            sx={{
-              backgroundColor: "#1976d2",
-              "&:hover": { backgroundColor: "#1565c0" },
-              minWidth: 120,
-            }}
-          >
-            Save
-          </Button>
-        </Box>
-      </Box>
-    </Box>
-  );
+			setIsSubmitting(true);
+			setServerError(null);
+
+			const payload: UpdateRouteDTO = {
+				startId: formData.startId,
+				destinationId: formData.destinationId,
+				distance: formData.distance ?? null,
+				duration: formData.duration ?? null,
+				price: Number(formData.price),
+			};
+
+			const response = await axios.put(
+				API_ENDPOINTS.ROUTE.UPDATE(route!.id),
+				payload
+			);
+
+			onEdited?.(response.data);
+			resetForm();
+			onClose();
+		} catch (error: unknown) {
+			const handled_error = handleAxiosError(error);
+			setServerError(handled_error.message);
+
+			if (handled_error.field_errors) {
+				setErrors((prev) => ({
+					...prev,
+					...handled_error.field_errors,
+				}));
+			}
+		} finally {
+			setIsSubmitting(false);
+		}
+	};
+
+	const hasValidCoordinates =
+		startLat != null && startLon != null && endLat != null && endLon != null;
+
+	return (
+		<Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+			<DialogTitle>Edit Route</DialogTitle>
+			<DialogContent>
+				<Box component="form" p={1} onSubmit={handleSubmit}>
+					{serverError && (
+						<Alert severity="error" sx={{ mb: 2 }}>
+							{serverError}
+						</Alert>
+					)}
+
+					<Grid container spacing={2}>
+						<Grid size={12}>
+							<Typography variant="subtitle2" color="text.secondary">
+								Departure Location
+							</Typography>
+							<Typography variant="body1">
+								{route?.startLocation?.name ?? "Unknown"}
+							</Typography>
+							{route?.startLocation?.address && (
+								<Typography variant="body2" color="text.secondary">
+									{route.startLocation.address}
+								</Typography>
+							)}
+						</Grid>
+
+						<Grid size={12}>
+							<Typography variant="subtitle2" color="text.secondary">
+								Destination Location
+							</Typography>
+							<Typography variant="body1">
+								{route?.destination?.name ?? "Unknown"}
+							</Typography>
+							{route?.destination?.address && (
+								<Typography variant="body2" color="text.secondary">
+									{route.destination.address}
+								</Typography>
+							)}
+						</Grid>
+
+						{hasValidCoordinates && (
+							<>
+								{routeLoading && (
+									<Grid size={12}>
+										<Box
+											sx={{
+												display: "flex",
+												alignItems: "center",
+												gap: 1,
+											}}
+										>
+											<CircularProgress size={16} />
+											<Typography variant="body2">
+												Calculating route...
+											</Typography>
+										</Box>
+									</Grid>
+								)}
+								{routeError && (
+									<Grid size={12}>
+										<Alert severity="warning">
+											Could not calculate route path
+										</Alert>
+									</Grid>
+								)}
+								{calculatedRoute && (
+									<>
+										<Grid size={{ xs: 12, sm: 6 }}>
+											<FormControl fullWidth>
+												<TextField
+													label="Distance (km)"
+													type="number"
+													value={formData.distance?.toFixed(2) ?? ""}
+													onChange={(e) =>
+														handleInputChange(
+															"distance",
+															e.target.value
+																? Number(e.target.value)
+																: undefined
+														)
+													}
+													slotProps={{
+														htmlInput: {
+															min: 0,
+															step: 0.01,
+															readOnly: true,
+														},
+													}}
+												/>
+											</FormControl>
+										</Grid>
+										<Grid size={{ xs: 12, sm: 6 }}>
+											<FormControl fullWidth>
+												<TextField
+													label="Duration (minutes)"
+													type="number"
+													value={formData.duration?.toFixed(0) ?? ""}
+													onChange={(e) =>
+														handleInputChange(
+															"duration",
+															e.target.value
+																? Number(e.target.value)
+																: undefined
+														)
+													}
+													slotProps={{
+														htmlInput: {
+															min: 0,
+															step: 1,
+															readOnly: true,
+														},
+													}}
+												/>
+											</FormControl>
+										</Grid>
+									</>
+								)}
+							</>
+						)}
+
+						<Grid size={12}>
+							<FormControl fullWidth required error={!!errors.price}>
+								<TextField
+									label="Price (VND)"
+									type="number"
+									value={formData.price ?? ""}
+									onChange={(e) =>
+										handleInputChange(
+											"price",
+											e.target.value ? Number(e.target.value) : 0
+										)
+									}
+									slotProps={{
+										htmlInput: { min: 0, step: 1000 },
+									}}
+								/>
+								{errors.price && (
+									<FormHelperText>{errors.price}</FormHelperText>
+								)}
+							</FormControl>
+						</Grid>
+
+						{hasValidCoordinates ? (
+							<Grid size={12}>
+								<Typography
+									variant="subtitle2"
+									color="text.secondary"
+									sx={{ mb: 1 }}
+								>
+									Route Map
+								</Typography>
+								<Box
+									sx={{
+										border: "1px solid #e0e0e0",
+										borderRadius: 1,
+										overflow: "hidden",
+									}}
+								>
+									<RouteMap route={calculatedRoute} height={400} />
+								</Box>
+							</Grid>
+						) : (
+							<Grid size={12}>
+								<Alert severity="info">
+									No map data available. Location coordinates are
+									missing.
+								</Alert>
+							</Grid>
+						)}
+					</Grid>
+
+					<DialogActions sx={{ px: 0, pt: 3 }}>
+						<Button onClick={onClose} color="inherit">
+							Cancel
+						</Button>
+						<Button
+							type="submit"
+							variant="contained"
+							disabled={isSubmitting}
+						>
+							{isSubmitting ? "Saving..." : "Save Changes"}
+						</Button>
+					</DialogActions>
+				</Box>
+			</DialogContent>
+		</Dialog>
+	);
 };
 
 export default EditRouteForm;

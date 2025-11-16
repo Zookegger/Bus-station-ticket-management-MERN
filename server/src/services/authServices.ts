@@ -373,6 +373,7 @@ export const resetPassword = async (
 export const getMe = async (userId: string): Promise<GetMeResponse> => {
 	const user = await getUserById(
 		userId,
+		"id",
 		"userName",
 		"fullName",
 		"firstName",

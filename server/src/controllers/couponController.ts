@@ -17,7 +17,7 @@ export const AddCoupon = async (
 		const imageFile = req.file;
 		if (!dto) throw { status: 400, message: "Coupon data is required." };
 
-		const imgUrl = imageFile ? `/uploads/${imageFile.filename}` : undefined;
+		const imgUrl = imageFile ? `/uploads/coupons/${imageFile.filename}` : undefined;
 
 		if (imgUrl !== undefined) {
 			dto.imgUrl = imgUrl;
@@ -42,7 +42,7 @@ export const UpdateCoupon = async (
 		const dto: UpdateCouponDTO = req.body;
 		const file = req.file;
 		if (!dto) throw { status: 400, message: "Update data is required." };
-		const imgUrl = file ? `/uploads/${file.filename}` : undefined;
+		const imgUrl = file ? `/uploads/coupons/${file.filename}` : undefined;
 
 		if (imgUrl != undefined) {
 			dto.imgUrl = imgUrl;

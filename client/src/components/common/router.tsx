@@ -96,7 +96,24 @@ export const router = createBrowserRouter([
 					return { Component: CheckIn };
 				},
 			},
-
+			{
+				path: "*",
+				element: <Navigate to={ROUTES.NOT_FOUND} replace />,
+			},
+		],
+	},
+	{
+		path: "/user",
+		element: (
+			<RequireAuth>
+				<Layout>
+					<Suspense fallback={<LoadingSkeleton />}>
+						<Outlet />
+					</Suspense>
+				</Layout>
+			</RequireAuth>
+		),
+		children: [
 			{
 				path: ROUTES.PROFILE,
 				lazy: async () => {
@@ -162,51 +179,6 @@ export const router = createBrowserRouter([
 								"@pages/admin/trip/Trip"
 							);
 							return { Component: Trip };
-						},
-					},
-					{
-						path: "create",
-						lazy: async () => {
-							const { default: CreateTrip } = await import(
-								"@pages/admin/trip/components/trip/CreateTrip"
-							);
-							return { Component: CreateTrip };
-						},
-					},
-					{
-						path: "edit/:id",
-						lazy: async () => {
-							const { default: EditTrip } = await import(
-								"@pages/admin/trip/components/trip/EditTrip"
-							);
-							return { Component: EditTrip };
-						},
-					},
-					{
-						path: "delete/:id",
-						lazy: async () => {
-							const { default: DeleteTrip } = await import(
-								"@pages/admin/trip/components/trip/DeleteTrip"
-							);
-							return { Component: DeleteTrip };
-						},
-					},
-					{
-						path: "createRoute",
-						lazy: async () => {
-							const { default: CreateRouteFrom } = await import(
-								"@pages/admin/trip/components/route/CreateRoute"
-							);
-							return { Component: CreateRouteFrom };
-						},
-					},
-					{
-						path: "editRoute",
-						lazy: async () => {
-							const { default: EditRoutePage } = await import(
-								"@pages/admin/trip/components/route/EditRoutePage"
-							);
-							return { Component: EditRoutePage };
 						},
 					},
 				],

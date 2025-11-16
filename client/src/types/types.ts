@@ -4,9 +4,14 @@ export interface AppConfig {
 	readonly description: string;
 	readonly author: string;
 	readonly apiBaseUrl: string;
+	readonly serverBaseUrl: string;
 }
 
 export interface ApiEndpoints {
+	readonly UPLOADS: {
+		readonly AVATARS: (url: string) => string;
+		readonly COUPONS: (url: string) => string;
+	}
 	readonly AUTH: {
 		readonly LOGIN: string;
 		readonly REGISTER: string;
@@ -25,7 +30,10 @@ export interface ApiEndpoints {
 	readonly USERS: {
 		readonly BASE: string;
 		readonly PROFILE: (id: string) => string;
+		readonly VERIFY_EMAIL: (id: string) => string;
+		readonly CHANGE_EMAIL: (id: string) => string;
 		readonly UPDATE_PROFILE: (id: string) => string;
+		readonly DELETE_PROFILE: (id: string) => string;
 		readonly ADMIN_UPDATE: (id: string) => string;
 		readonly ADMIN_DELETE: (id: string) => string;
 	};

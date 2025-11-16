@@ -1,179 +1,242 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { API_ENDPOINTS } from "@constants";
 import {
-  Box,
-  Typography,
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  TextField,
-  InputAdornment,
-  IconButton,
-  TablePagination,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+	Button,
+	Paper,
+	Box,
+	CircularProgress,
 } from "@mui/material";
-import {
-  Add as AddIcon,
-  Search as SearchIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-} from "@mui/icons-material";
-import type { Route } from "@pages/admin/vehicle/components/vehicleType/types";
+import type { Route } from "@my-types";
+import { handleAxiosError } from "@utils/handleError";
+import axios from "axios";
+import { useEffect, useState } from "react";
+import { format } from "date-fns";
+import { RouteMapDialog, type LocationData } from "@components/map";
+import { CreateRouteForm, RouteDetailsDrawer, DeleteRouteForm } from "./index";
+import EditRouteForm from "./EditRouteForm";
+import { DataGridPageLayout } from "@components/admin";
+import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 
+axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
+
+/**
+ * Admin Route Management list.
+ * Fetches routes, displays them in a Grid (v7), supports view/edit/delete dialogs.
+ */
 const RouteList: React.FC = () => {
-  const navigate = useNavigate();
-  const [routes, setRoutes] = useState<Route[]>([
-    { id: 1, departure: "Hồ Tây", destination: "Vincom Mega Mall Royal City", price: "100,000 đ" },
-    { id: 2, departure: "Hồ Tây", destination: "Bitexco Financial Tower", price: "3,000,000 đ" },
-    { id: 3, departure: "Thảo Cầm Viên Sài Gòn", destination: "Chợ Bến Thành", price: "230,000 đ" },
-  ]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [routeToDelete, setRouteToDelete] = useState<Route | null>(null);
+	const [isLoading, setIsLoading] = useState(true);
+	const [routes, setRoutes] = useState<Route[]>([]);
+	const [addOpen, setAddOpen] = useState(false);
+	const [editOpen, setEditOpen] = useState(false);
+	const [deleteOpen, setDeleteOpen] = useState(false);
+	const [detailOpen, setDetailOpen] = useState(false);
+	const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
+	// Map dialog state
+	const [mapOpen, setMapOpen] = useState(false);
+	const [mapStart, setMapStart] = useState<LocationData | null>(null);
+	const [mapEnd, setMapEnd] = useState<LocationData | null>(null);
 
-  const filteredRoutes = routes.filter(
-    (route) =>
-      !searchTerm ||
-      route.departure.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      route.destination.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      route.price.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+	const handleOpenDrawer = (id: number) => {
+		if (routes === null) {
+			return;
+		}
 
-  const handleOpenDelete = (route: Route) => {
-    setRouteToDelete(route);
-    setDeleteOpen(true);
-  };
+		const detail = routes.find((r) => r.id === id);
+		if (detail) {
+			setSelectedRoute(detail);
+			setDetailOpen(true);
+		}
+	};
 
-  const handleConfirmDelete = () => {
-    if (routeToDelete) {
-      setRoutes((prev) => prev.filter((r) => r.id !== routeToDelete.id));
-      setRouteToDelete(null);
-      setDeleteOpen(false);
-    }
-  };
+	const handleOpenEdit = (id: number) => {
+		if (routes === null) {
+			return;
+		}
 
-  const handleAddNewRoute = () => {
-    navigate("/dashboard/trip/createRoute");
-  };
+		const detail = routes.find((r) => r.id === id);
+		if (detail) {
+			setSelectedRoute(detail);
+			setDetailOpen(false);
+			setEditOpen(true);
+		}
+	};
 
-  const handleEditRoute = (route: Route) => {
-    navigate("/dashboard/trip/editRoute", { state: { route } });
-  };
+	const handleOpenDelete = (id: number) => {
+		if (routes === null) {
+			return;
+		}
 
-  return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ fontWeight: "bold", color: "#2E7D32", mb: 3 }}>
-        Route List
-      </Typography>
+		const detail = routes.find((r) => r.id === id);
+		if (detail) {
+			setSelectedRoute(detail);
+			setDetailOpen(false);
+			setDeleteOpen(true);
+		}
+	};
 
-      {/* Add New Route Button */}
-      <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 3 }}>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddNewRoute}>
-          Add New Route
-        </Button>
-      </Box>
+	const handleCloseDrawer = () => {
+		setDetailOpen(false);
+		setSelectedRoute(null);
+	};
 
-      {/* Search */}
-      <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
-        <TextField
-          size="small"
-          placeholder="Search"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-        />
-      </Box>
+	useEffect(() => {
+		const fetchData = async () => {
+			try {
+				const response = await axios.get(API_ENDPOINTS.ROUTE.SEARCH);
+				if (response.status !== 200) throw new Error("Failed to fetch data");
+				const data = response.data as any;
+				const normalized: Route[] = Array.isArray(data)
+					? data
+					: Array.isArray(data.routes)
+						? data.routes
+						: Array.isArray(data.data)
+							? data.data
+							: [];
+				setRoutes(normalized);
+			} catch (err) {
+				console.error(handleAxiosError(err));
+			} finally {
+				setIsLoading(false);
+			}
+		};
+		fetchData();
+	}, [isLoading]);
 
-      {/* Table */}
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-              <TableCell>Departure</TableCell>
-              <TableCell>Destination</TableCell>
-              <TableCell>Price</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredRoutes
-              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-              .map((route) => (
-                <TableRow key={route.id} hover>
-                  <TableCell>{route.departure}</TableCell>
-                  <TableCell>{route.destination}</TableCell>
-                  <TableCell>{route.price}</TableCell>
-                  <TableCell>
-                    {/* Edit Button */}
-                    <IconButton
-                      size="small"
-                      color="primary"
-                      title="Edit"
-                      onClick={() => handleEditRoute(route)}
-                    >
-                      <EditIcon />
-                    </IconButton>
+	// Columns definition outside JSX for clarity
+	const columns: GridColDef[] = [
+		{ field: "startLocation", headerName: "Departure", flex: 1 },
+		{ field: "destination", headerName: "Destination", flex: 1 },
+		{ field: "price", headerName: "Price", width: 150 },
+		{ field: "distance", headerName: "Distance", width: 120 },
+		{ field: "updatedAt", headerName: "Updated At", width: 190 },
+		{ field: "createdAt", headerName: "Created At", width: 190 },
+		{
+			field: "map",
+			headerName: "Map",
+			width: 100,
+			sortable: false,
+			renderCell: (params) => {
+				const raw = routes.find((r) => r.id === params.id);
+				const hasCoords = !!(raw?.startLocation?.latitude && raw?.startLocation?.longitude && raw?.destination?.latitude && raw?.destination?.longitude);
+				return (
+					<Button
+						 size="small"
+						 variant="outlined"
+						 disabled={!raw || !hasCoords}
+						 onClick={(e) => {
+							 e.stopPropagation();
+							 if (!raw) return;
+							 if (raw.startLocation?.latitude && raw.startLocation?.longitude) {
+								 setMapStart({
+									 lat: raw.startLocation.latitude,
+									 lon: raw.startLocation.longitude,
+									 display_name: raw.startLocation.name ?? "Start",
+								 });
+							 }
+							 if (raw.destination?.latitude && raw.destination?.longitude) {
+								 setMapEnd({
+									 lat: raw.destination.latitude,
+									 lon: raw.destination.longitude,
+									 display_name: raw.destination.name ?? "End",
+								 });
+							 }
+							 setMapOpen(true);
+						 }}
+					>
+						Map
+					</Button>
+				);
+			},
+		},
+	];
 
-                    {/* Delete Button */}
-                    <IconButton
-                      size="small"
-                      color="error"
-                      onClick={() => handleOpenDelete(route)}
-                      title="Delete"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+	const rows = routes.map((r) => ({
+		id: r.id,
+		startLocation: r.startLocation?.name ?? "Unknown",
+		destination: r.destination?.name ?? "Unknown",
+		price: r.price ? `${r.price.toLocaleString("vi-VN")} VND` : "N/A",
+		distance: r.distance ? `${r.distance.toFixed(2)} km` : "N/A",
+		updatedAt: format(new Date(r.updatedAt), "dd/MM/yyyy - HH:mm:ss"),
+		createdAt: format(new Date(r.createdAt), "dd/MM/yyyy - HH:mm:ss"),
+	}));
 
-      {/* Pagination */}
-      <TablePagination
-        component="div"
-        count={filteredRoutes.length}
-        page={page}
-        onPageChange={(_e, newPage) => setPage(newPage)}
-        rowsPerPage={rowsPerPage}
-        onRowsPerPageChange={(e) => setRowsPerPage(Number(e.target.value))}
-        rowsPerPageOptions={[5, 10, 20]}
-        labelRowsPerPage="Show"
-      />
+	const actionBar = (
+		<Button variant="contained" onClick={() => setAddOpen(true)}>
+			Add new route
+		</Button>
+	);
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)}>
-        <DialogTitle>Delete Route</DialogTitle>
-        <DialogContent>
-          Are you sure you want to delete the route from{" "}
-          <strong>{routeToDelete?.departure}</strong> to <strong>{routeToDelete?.destination}</strong>?
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteOpen(false)}>Cancel</Button>
-          <Button color="error" onClick={handleConfirmDelete}>
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
-  );
+	return (
+		<DataGridPageLayout title="Route Management" actionBar={actionBar}  >
+			{isLoading ? (
+				<Box display="flex" justifyContent="center" py={8}>
+					<CircularProgress />
+				</Box>
+			) : (
+				<Paper elevation={3} sx={{ width: "100%" }}>
+					<DataGrid
+						rows={rows}
+						columns={columns}
+						pagination
+						initialState={{
+							pagination: { paginationModel: { pageSize: 10 } },
+						}}
+						pageSizeOptions={[5, 10, 20, 50]}
+						sx={{ maxWidth: "100%", border: "none" }}
+						onRowClick={(params) =>
+							handleOpenDrawer(Number(params.id))
+						}
+					/>
+				</Paper>
+			)}
+
+			<EditRouteForm
+				route={selectedRoute}
+				key={selectedRoute ? selectedRoute.id : "new"}
+				open={editOpen}
+				onClose={() => setEditOpen(false)}
+				onEdited={() => {
+					setEditOpen(false);
+					setIsLoading(true);
+				}}
+			/>
+			<CreateRouteForm
+				open={addOpen}
+				onClose={() => setAddOpen(false)}
+				onCreated={() => setIsLoading(true)}
+			/>
+			{selectedRoute && (
+				<>
+					<RouteDetailsDrawer
+						route={selectedRoute}
+						open={detailOpen}
+						onClose={handleCloseDrawer}
+						onDelete={() => handleOpenDelete(selectedRoute.id)}
+						onEdit={() => handleOpenEdit(selectedRoute.id)}
+					/>
+					<DeleteRouteForm
+						id={selectedRoute.id}
+						open={deleteOpen}
+						onClose={() => setDeleteOpen(false)}
+						onConfirm={() => setIsLoading(true)}
+					/>
+				</>
+			)}
+			{/* Map dialog for viewing/editing route coordinates */}
+			<RouteMapDialog
+				 open={mapOpen}
+				 onClose={() => setMapOpen(false)}
+				 initialStart={mapStart ?? undefined}
+				 initialEnd={mapEnd ?? undefined}
+				 onConfirm={(start, end) => {
+					 // Currently just close; persistence can be added when API supports coordinate updates
+					 setMapStart(start);
+					 setMapEnd(end);
+					 setMapOpen(false);
+				 }}
+				 title="Route Map"
+			/>
+		</DataGridPageLayout>
+	);
 };
 
 export default RouteList;

@@ -3,13 +3,20 @@
  * Based on server/src/types/user.ts
  */
 
-export type Role = "User" | "Admin" ;
+export type Role = "User" | "Admin";
 
 /**
  * Type for user gender.
  * @type {string}
  */
-export type Gender = "male" | "female" | "other";
+
+export type Gender = (typeof Gender)[keyof typeof Gender];
+
+export const Gender = {
+	MALE: "male",
+	FEMALE: "female",
+	OTHER: "other",
+} as const;
 
 /**
  * Represents a user object on the client-side.
@@ -62,7 +69,7 @@ export interface ChangePasswordDTO {
 export interface ResetPasswordDTO {
 	token: string;
 	newPassword: string;
-	newConfirmPassword:string;
+	newConfirmPassword: string;
 }
 
 /**

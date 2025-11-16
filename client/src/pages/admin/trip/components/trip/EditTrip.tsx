@@ -34,7 +34,9 @@ const EditTrip: React.FC = () => {
                   fullWidth
                   label="Departure Time"
                   type="datetime-local"
-                  InputLabelProps={{ shrink: true }}
+                  slotProps={{
+                    inputLabel: { shrink: true },
+                  }}
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 6 }}>
@@ -42,7 +44,9 @@ const EditTrip: React.FC = () => {
                   fullWidth
                   label="Arrival Time"
                   type="datetime-local"
-                  InputLabelProps={{ shrink: true }}
+                  slotProps={{
+                    inputLabel: { shrink: true },
+                  }}
                 />
               </Grid>
               <Grid size={{ xs: 12 }}>

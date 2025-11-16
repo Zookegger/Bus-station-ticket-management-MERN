@@ -182,8 +182,13 @@ export class User
 					allowNull: true,
 				},
 				fullName: {
-					type: DataTypes.STRING,
-					allowNull: true,
+					type: DataTypes.VIRTUAL,
+					get() {
+						return `${this.firstName} ${this.lastName}`;
+					},
+					set(_value: string) {
+						throw new Error("Do not try to set the `fullName` value directly. It is a virtual field.");
+					}
 				},
 				userName: {
 					type: DataTypes.STRING,
@@ -247,7 +252,17 @@ export class User
 						if (!user.userName) {
 							user.userName = user.email;
 						}
+						if (user.firstName && user.lastName) {
+							// @ts-ignore
+							user.fullName = `${user.firstName} ${user.lastName}`;
+						}
 					},
+					beforeUpdate: (user: User) => {
+						if (user.changed('firstName') || user.changed('lastName')) {
+							// @ts-ignore
+							user.fullName = `${user.firstName} ${user.lastName}`;
+						}
+					}
 				},
 				indexes: [
 					{ fields: ["email"], unique: true },

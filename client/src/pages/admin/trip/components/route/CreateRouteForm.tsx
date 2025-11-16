@@ -1,210 +1,293 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import type { FormEvent } from "react";
 import {
-  Box,
-  Typography,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Button,
-  Grid,
+	Alert,
+	Box,
+	Button,
+	Dialog,
+	DialogActions,
+	DialogContent,
+	DialogTitle,
+	Grid,
+	TextField,
+	Typography,
 } from "@mui/material";
-import { ArrowBack as ArrowBackIcon, Add as AddIcon } from "@mui/icons-material";
-import Map from "../../../../../components/common/Map"; // giữ nguyên import của bạn
+import { RouteMapDialog, type LocationData } from "@components/map";
+import { handleAxiosError } from "@utils/handleError";
+import axios from "axios";
+import { API_ENDPOINTS } from "@constants";
 
-interface RouteType {
-  id: number;
-  name: string;
-  description: string;
+/**
+ * Props for the CreateRouteForm dialog component.
+ */
+interface CreateRouteFormProps {
+	open: boolean;
+	onClose: () => void;
+	onCreated?: () => void;
 }
 
-// Dummy data for route types
-const routeTypes: RouteType[] = [
-  { id: 1, name: "Short Route", description: "Route for short distances (under 100km)" },
-  { id: 2, name: "Medium Route", description: "Route for medium distances (100-300km)" },
-  { id: 3, name: "Long Route", description: "Route for long distances (over 300km)" },
-];
+/**
+ * Renders the modal dialog that lets admin users create new routes.
+ */
+const CreateRouteForm: React.FC<CreateRouteFormProps> = ({
+	open,
+	onClose,
+	onCreated,
+}) => {
+	// Form state
+	const [formData, setFormData] = useState({
+		departure: "",
+		destination: "",
+		price: "",
+	});
 
-const CreateRouteForm: React.FC = () => {
-  const [formData, setFormData] = useState({
-    routeType: "",
-    departure: "",
-    destination: "",
-    price: "",
-  });
+	// Validation errors
+	const [errors, setErrors] = useState({
+		departure: "",
+		destination: "",
+		price: "",
+	});
 
-  const [errors, setErrors] = useState({
-    routeType: "",
-    departure: "",
-    destination: "",
-    price: "",
-  });
+	// Map dialog and selected locations
+	const [mapOpen, setMapOpen] = useState(false);
+	const [startLocation, setStartLocation] = useState<LocationData | null>(null);
+	const [endLocation, setEndLocation] = useState<LocationData | null>(null);
 
-  // State cho Map
-  const [startPoint, setStartPoint] = useState<[number, number]>([21.0285, 105.8542]); // Hà Nội
-  const [endPoint, setEndPoint] = useState<[number, number]>([10.7769, 106.7009]); // TP.HCM
+	// Submission state
+	const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+	const [serverError, setServerError] = useState<string | null>(null);
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+	/**
+	 * Generic handler that keeps local state in sync with text inputs.
+	 */
+	const handleInputChange = (field: string, value: string): void => {
+		setFormData((prev) => ({ ...prev, [field]: value }));
 
-    // Reset lỗi nếu đang có
-    if (errors[field as keyof typeof errors]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }));
-    }
-  };
+		// Clear error for this field if it exists
+		if (errors[field as keyof typeof errors]) {
+			setErrors((prev) => ({ ...prev, [field]: "" }));
+		}
 
-  const validateForm = () => {
-    const newErrors = { routeType: "", departure: "", destination: "", price: "" };
-    if (!formData.routeType) newErrors.routeType = "Please select a route type";
-    if (!formData.departure.trim()) newErrors.departure = "Departure is required";
-    if (!formData.destination.trim()) newErrors.destination = "Destination is required";
-    if (!formData.price.trim()) newErrors.price = "Price is required";
-    else if (isNaN(Number(formData.price)) || Number(formData.price) <= 0)
-      newErrors.price = "Price must be a valid positive number";
+		// Clear server error when user starts typing
+		if (serverError) {
+			setServerError(null);
+		}
+	};
 
-    setErrors(newErrors);
-    return Object.values(newErrors).every((e) => e === "");
-  };
+	/**
+	 * Validates the current form snapshot before attempting submission.
+	 */
+	const validateForm = (): boolean => {
+		const newErrors = {
+			departure: "",
+			destination: "",
+			price: "",
+		};
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validateForm()) {
-      console.log("Creating route:", formData);
-      alert("Route created successfully!");
+		if (!formData.departure.trim()) {
+			newErrors.departure = "Departure is required";
+		}
 
-      // Reset form
-      setFormData({ routeType: "", departure: "", destination: "", price: "" });
-      // Reset Map về mặc định (tuỳ chọn)
-      setStartPoint([21.0285, 105.8542]);
-      setEndPoint([10.7769, 106.7009]);
-    }
-  };
+		if (!formData.destination.trim()) {
+			newErrors.destination = "Destination is required";
+		}
 
-  const handleBackToList = () => {
-    window.history.back();
-  };
+		if (!formData.price.trim()) {
+			newErrors.price = "Price is required";
+		} else if (
+			isNaN(Number(formData.price)) ||
+			Number(formData.price) <= 0
+		) {
+			newErrors.price = "Price must be a valid positive number";
+		}
 
-  return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ fontWeight: "bold", color: "#2E7D32", mb: 1 }}>
-        Create Route
-      </Typography>
+		setErrors(newErrors);
+		return Object.values(newErrors).every((e) => e === "");
+	};
 
-      <Typography variant="h6" sx={{ color: "#333", mb: 4 }}>
-        Route Details
-      </Typography>
+	/**
+	 * Handles the submit event by validating inputs and calling the backend API.
+	 */
+	const handleSubmit = async (
+		event: FormEvent<HTMLFormElement>
+	): Promise<void> => {
+		event.preventDefault(); // Prevent page reload
 
-      <Box component="form" onSubmit={handleSubmit}>
-        <Grid container spacing={3}>
-          {/* Route Type */}
-          <Grid size={{ xs: 12 }}>
-            <FormControl fullWidth error={!!errors.routeType}>
-              <InputLabel>Select a route type</InputLabel>
-              <Select
-                value={formData.routeType}
-                label="Select a route type"
-                onChange={(e) => handleInputChange("routeType", e.target.value)}
-              >
-                {routeTypes.map((type) => (
-                  <MenuItem key={type.id} value={type.name}>
-                    {type.name}
-                  </MenuItem>
-                ))}
-              </Select>
-              {errors.routeType && (
-                <Typography variant="caption" color="error" sx={{ mt: 1, ml: 2 }}>
-                  {errors.routeType}
-                </Typography>
-              )}
-            </FormControl>
-          </Grid>
+		if (!validateForm()) {
+			return;
+		}
 
-          {/* Departure */}
-          <Grid size={{ xs: 12 }}>
-            <TextField
-              fullWidth
-              label="Departure"
-              value={formData.departure}
-              onChange={(e) => handleInputChange("departure", e.target.value)}
-              error={!!errors.departure}
-              helperText={errors.departure}
-              placeholder="Enter departure location"
-            />
-          </Grid>
+		setIsSubmitting(true);
+		setServerError(null);
 
-          {/* Destination */}
-          <Grid size={{ xs: 12 }}>
-            <TextField
-              fullWidth
-              label="Destination"
-              value={formData.destination}
-              onChange={(e) => handleInputChange("destination", e.target.value)}
-              error={!!errors.destination}
-              helperText={errors.destination}
-              placeholder="Enter destination location"
-            />
-          </Grid>
+		try {
+			const response = await axios.post(API_ENDPOINTS.ROUTE.BASE, {
+				departure: formData.departure.trim(),
+				destination: formData.destination.trim(),
+				price: Number(formData.price),
+			});
 
-          {/* Price */}
-          <Grid size={{ xs: 12 }}>
-            <TextField
-              fullWidth
-              label="Price"
-              value={formData.price}
-              onChange={(e) => handleInputChange("price", e.target.value)}
-              error={!!errors.price}
-              helperText={errors.price}
-              placeholder="Enter price (e.g., 100000)"
-            />
-          </Grid>
-        </Grid>
+			if (response.status === 200 || response.status === 201) {
+				onCreated?.();
+				onClose();
+			}
+		} catch (err: unknown) {
+			const handled_error = handleAxiosError(err);
+			setServerError(handled_error.message);
 
-        {/* Map */}
-        <Box sx={{ mt: 4, mb: 3, border: "1px solid #e0e0e0", borderRadius: 1, overflow: "hidden" }}>
-          <Map startPoint={startPoint} endPoint={endPoint} height={400} />
-        </Box>
+			if (handled_error.field_errors) {
+				setErrors((prev) => ({
+					...prev,
+					...handled_error.field_errors,
+				}));
+			}
+		} finally {
+			setIsSubmitting(false);
+		}
+	};
 
-        {/* Action Buttons */}
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            mt: 4,
-            pt: 3,
-            borderTop: "1px solid #e0e0e0",
-          }}
-        >
-          <Button
-            variant="outlined"
-            startIcon={<ArrowBackIcon />}
-            onClick={handleBackToList}
-            sx={{
-              borderColor: "#666",
-              color: "#666",
-              "&:hover": { borderColor: "#333", backgroundColor: "#f5f5f5" },
-            }}
-          >
-            Back to List
-          </Button>
+	/**
+	 * Resets the form state whenever the dialog closes so the next open starts fresh.
+	 */
+	useEffect(() => {
+		if (!open) {
+			setFormData({ departure: "", destination: "", price: "" });
+			setErrors({ departure: "", destination: "", price: "" });
+			setServerError(null);
+			setStartLocation(null);
+			setEndLocation(null);
+		}
+	}, [open]);
 
-          <Button
-            type="submit"
-            variant="contained"
-            startIcon={<AddIcon />}
-            sx={{
-              backgroundColor: "#1976d2",
-              "&:hover": { backgroundColor: "#1565c0" },
-              minWidth: 120,
-            }}
-          >
-            Create
-          </Button>
-        </Box>
-      </Box>
-    </Box>
-  );
+	return (
+		<Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+			<Box component="form" p={1} onSubmit={handleSubmit}>
+				<DialogTitle>
+					<Typography variant="h5" fontWeight={"600"}>
+						Create Route
+					</Typography>
+				</DialogTitle>
+				<DialogContent>
+					{serverError && (
+						<Alert severity="error" sx={{ mb: 2 }}>
+							{serverError}
+						</Alert>
+					)}
+
+					<Grid container spacing={3} sx={{ pt: 2 }}>
+						{/* Departure */}
+						<Grid size={{ xs: 12 }}>
+							<TextField
+								fullWidth
+								required
+								label="Departure"
+								value={formData.departure}
+								onChange={(e) =>
+									handleInputChange("departure", e.target.value)
+								}
+								error={!!errors.departure}
+								helperText={errors.departure}
+								placeholder="Enter departure location"
+							/>
+						</Grid>
+
+						{/* Destination */}
+						<Grid size={{ xs: 12 }}>
+							<TextField
+								fullWidth
+								required
+								label="Destination"
+								value={formData.destination}
+								onChange={(e) =>
+									handleInputChange(
+										"destination",
+										e.target.value
+									)
+								}
+								error={!!errors.destination}
+								helperText={errors.destination}
+								placeholder="Enter destination location"
+							/>
+						</Grid>
+
+						{/* Price */}
+						<Grid size={{ xs: 12 }}>
+							<TextField
+								fullWidth
+								required
+								label="Price"
+								type="number"
+								value={formData.price}
+								onChange={(e) =>
+									handleInputChange("price", e.target.value)
+								}
+								error={!!errors.price}
+								helperText={errors.price}
+								placeholder="Enter price (e.g., 100000)"
+								slotProps={{
+									htmlInput: { min: 0, step: 1000 },
+								}}
+							/>
+						</Grid>
+
+						{/* Map Selection */}
+						<Grid size={{ xs: 12 }}>
+							<Box
+								sx={{
+									border: "1px solid #e0e0e0",
+									borderRadius: 1,
+									p: 2,
+									backgroundColor: "#fafafa",
+								}}
+							>
+								<Typography variant="subtitle2" sx={{ mb: 1 }}>
+									Route Coordinates
+								</Typography>
+								{startLocation && endLocation ? (
+									<Typography variant="body2" color="text.secondary">
+										Start: {startLocation.display_name} | End: {endLocation.display_name}
+									</Typography>
+								) : (
+									<Typography variant="body2" color="text.secondary">
+										No coordinates selected.
+									</Typography>
+								)}
+								<Button variant="outlined" size="small" sx={{ mt: 1 }} onClick={() => setMapOpen(true)}>
+									{startLocation && endLocation ? "Edit on Map" : "Select on Map"}
+								</Button>
+							</Box>
+						</Grid>
+					</Grid>
+
+					<DialogActions sx={{ px: 0, pt: 3 }}>
+						<Button onClick={onClose} color="inherit">
+							Cancel
+						</Button>
+						<Button
+							type="submit"
+							variant="contained"
+							disabled={isSubmitting}
+						>
+							{isSubmitting ? "Creating..." : "Create Route"}
+						</Button>
+					</DialogActions>
+					{/* Map Dialog (opens when user selects coordinates) */}
+					<RouteMapDialog
+						 open={mapOpen}
+						 onClose={() => setMapOpen(false)}
+						 initialStart={startLocation ?? undefined}
+						 initialEnd={endLocation ?? undefined}
+						 onConfirm={(start, end) => {
+							 setStartLocation(start);
+							 setEndLocation(end);
+							 setMapOpen(false);
+						 }}
+						 title="Select Route Locations"
+					/>
+				</DialogContent>
+			</Box>
+		</Dialog>
+	);
 };
 
 export default CreateRouteForm;

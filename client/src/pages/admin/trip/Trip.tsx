@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Box, Tabs, Tab } from "@mui/material";
-import TripList from "./components/TripList";
+import TripList from "./components/trip/TripList";
 import RouteList from "./components/route/Routelist";
-import TripDetailsDrawer from "./components/TripDetailsDrawer";
+import TripDetailsDrawer from "./components/trip/TripDetailsDrawer";
 import TabPanel from "@components/common/TabPanel";
 
 const Trip: React.FC = () => {

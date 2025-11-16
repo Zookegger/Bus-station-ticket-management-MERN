@@ -1,5 +1,3 @@
-import { Box } from "@mui/system";
-
 interface TabPanelProps {
 	children?: React.ReactNode;
 	index: number;
@@ -17,7 +15,7 @@ const TabPanel = (props: TabPanelProps) => {
 			aria-labelledby={`tab-${index}`}
 			{...other}
         >
-            {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+            {value === index && <>{children}</>}
         </div>
 	);
 };

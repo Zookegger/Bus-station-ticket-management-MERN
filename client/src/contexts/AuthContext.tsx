@@ -199,6 +199,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		}
 	};
 
+	const deleteAccount = async (): Promise<boolean> => {
+		if (user) {
+			try {
+				const response = await axios.delete(
+					API_ENDPOINTS.USERS.DELETE_PROFILE(user.id)
+				);
+				if (response.status === 200) {
+					setCsrfToken(null);
+					setUser(null);
+					// ✅ After deleting accouunt, get a fresh CSRF token for guest session
+					try {
+						const csrfResponse = await axios.get(
+							API_ENDPOINTS.AUTH.CSRF_TOKEN
+						);
+						setCsrfToken(csrfResponse.data.csrfToken);
+					} catch (csrfErr) {
+						// If we can't get a new token, clear it
+						setCsrfToken(null);
+						console.error(
+							"Failed to get CSRF token after logout:",
+							csrfErr
+						);
+					}
+				}
+				return true;
+			} catch (err) {
+				const message = handleAxiosError(err);
+				console.error("Logout failed:", message);
+				return false;
+			} finally {
+				setIsLoading(false);
+			}
+		}
+		return false;
+	};
+
 	const logout = async (): Promise<void> => {
 		try {
 			const response = await axios.post(API_ENDPOINTS.AUTH.LOGOUT);
@@ -288,6 +324,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				login,
 				logout,
 				register,
+				deleteAccount,
 				isLoading,
 				isAdmin,
 				isAuthenticated,

@@ -30,6 +30,8 @@ export const APP_CONFIG: AppConfig = {
 	author: "EasyRide Team",
 	apiBaseUrl:
 		import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:5000/api",
+	serverBaseUrl:
+		import.meta.env.VITE_SERVER_BASE_URL || "http://127.0.0.1:5000",
 } as const;
 
 /**
@@ -49,7 +51,7 @@ export const ROUTES = {
 	DASHBOARD_USER: "/dashboard/user",
 	DASHBOARD_SYSTEM: "/dashboard/system",
 	CHECK_IN: "/check-in/:orderId",
-	PROFILE: "/profile",
+	PROFILE: "/user/profile",
 	VERIFY_EMAIL: "/verify-email",
 	SETTINGS: "/settings",
 	LOGIN: "/login",
@@ -68,6 +70,10 @@ export const ROUTES = {
  * - All endpoints assume RESTful conventions; adjust for GraphQL if needed.
  */
 export const API_ENDPOINTS: ApiEndpoints = {
+	UPLOADS: {
+		AVATARS: (url: string) => `/uploads/avatars/${url}`,
+		COUPONS: (url: string) => `/uploads/coupons/${url}`,
+	},
 	AUTH: {
 		LOGIN: "/auth/login",
 		REGISTER: "/auth/register",
@@ -86,6 +92,9 @@ export const API_ENDPOINTS: ApiEndpoints = {
 	USERS: {
 		BASE: "/users",
 		PROFILE: (id: string) => `/users/profile/${id}`,
+		VERIFY_EMAIL: (id: string) => `/users/profile/verify-email/${id}`,
+		CHANGE_EMAIL: (id: string) => `/users/profile/change-email/${id}`,
+		DELETE_PROFILE: (id: string) => `/users/profile/${id}`,
 		UPDATE_PROFILE: (id: string) => `/users/profile/${id}`,
 		ADMIN_UPDATE: (id: string) => `/users/${id}`,
 		ADMIN_DELETE: (id: string) => `/users/${id}`,

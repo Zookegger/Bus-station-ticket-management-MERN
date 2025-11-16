@@ -1,37 +1,43 @@
-export interface VehicleType {
-  id: number;
-  name: string;
-  baseFare: number;
-  totalSeats: number;
-  totalFlooring: number;
-  totalRow: number;
-  totalColumn: number;
-  description?: string;
+import type {
+	CreateVehicleTypeDTO,
+	UpdateVehicleTypeDTO,
+	VehicleType,
+} from "@my-types/vehicleType";
+
+export type { VehicleType };
+
+export type SeatType = "available" | "aisle" | "disabled" | "occupied";
+export type SeatLayout = SeatType[][][];
+
+export interface CreateVehicleTypeFormProps {
+	open: boolean;
+	onClose: () => void;
+	onCreate: (data: CreateVehicleTypeDTO) => void;
 }
 
-export interface CreateVehicleTypeDTO {
-  name: string;
-  baseFare: number;
-  totalSeats: number;
-  totalFlooring: number;
-  totalRow: number;
-  totalColumn: number;
-  description?: string;
+export interface EditVehicleTypeFormProps {
+	open: boolean;
+	onClose: () => void;
+	onUpdate: (data: UpdateVehicleTypeDTO) => void;
+	vehicleType: VehicleType | null;
 }
 
-export interface UpdateVehicleTypeDTO {
-  name?: string;
-  baseFare?: number;
-  totalSeats?: number;
-  totalFlooring?: number;
-  totalRow?: number;
-  totalColumn?: number;
-  description?: string;
+export interface DeleteVehicleTypeDialogProps {
+	open: boolean;
+	onClose: () => void;
+	onConfirm: () => void;
+	vehicleType: VehicleType | null;
 }
 
-export interface Route {
-  id: number;
-  departure: string;
-  destination: string;
-  price: string;
+export interface VehicleTypeDetailsDrawerProps {
+	open: boolean;
+	onClose: () => void;
+	vehicleType: VehicleType | null;
+}
+
+export interface SeatLayoutEditorProps {
+	onLayoutChange: (layout: SeatLayout, totalSeats: number) => void;
+	onCancel?: () => void;
+	initialLayout?: string | null;
+	totalFloors?: number | null;
 }

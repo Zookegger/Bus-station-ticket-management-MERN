@@ -13,7 +13,10 @@ import {
 	type BoxProps,
 	Menu,
 	MenuItem,
+	Skeleton,
+	Avatar,
 } from "@mui/material";
+import { Link as RouterLink } from "react-router-dom";
 import { useNavigate, useLocation, redirect } from "react-router-dom";
 import {
 	Home as HomeIcon,
@@ -23,18 +26,22 @@ import {
 	Person as PersonIcon,
 	Settings as SettingsIcon,
 	Menu as MenuIcon,
+	Window as WindowIcon,
 	AccountCircle as AccountIcon,
 	KeyboardArrowDown as ArrowDownIcon,
 	CardGiftcard,
+	AccountBox,
+	Logout,
 } from "@mui/icons-material";
-import { APP_CONFIG } from "@constants/index";
+import { APP_CONFIG, ROUTES } from "@constants/index";
 import { useAuth } from "@hooks/useAuth";
+import buildAvatarUrl from "@utils/avatarImageHelper";
 
 const menuItemsData: MenuItem[] = [
 	{
 		id: 1,
-		label: "Home",
-		icon: "home",
+		label: "Dashboard",
+		icon: "dashboard",
 		tips: "View dashboard overview, key metrics, and recent activities",
 		path: "/dashboard/home",
 	},
@@ -84,7 +91,7 @@ interface MenuItem {
 }
 
 const iconMap: { [key: string]: React.ComponentType } = {
-	home: HomeIcon,
+	dashboard: WindowIcon,
 	car: CarIcon,
 	bus: BusIcon,
 	"map-pin": MapPinIcon,
@@ -111,21 +118,22 @@ const PositionedMenu: React.FC<PositionedMenuProps> = ({ isCollapsed, sx }) => {
 		setAnchorEl(e.currentTarget);
 	};
 
-	const handleClose = () => {
+	const handleMenuClose = () => {
 		setAnchorEl(null);
 	};
 
 	const handleLogout = async () => {
 		await logout();
-		console.log("Loading: ", isLoading);
-		console.log("Authenticated: ",isAuthenticated);
-		console.log("User: ",user);
 
 		if (isAuthenticated) {
 			console.error("Unable to logout of session");
 			return;
 		}
 		redirect("/login");
+	};
+
+	if (isLoading) {
+		return <Skeleton />;
 	}
 
 	return (
@@ -152,15 +160,29 @@ const PositionedMenu: React.FC<PositionedMenuProps> = ({ isCollapsed, sx }) => {
 						justifyContent: "center",
 					}}
 				>
-					<AccountIcon />
+					{user?.avatar ? (
+						<Avatar
+							src={buildAvatarUrl(user.avatar) ?? ""}
+							alt={user.firstName}
+							sx={{
+								width: "32px",
+								height: "32px",
+							}}
+						/>
+					) : (
+						<AccountIcon />
+					)}
 				</ListItemIcon>
 				{!isCollapsed && (
 					<>
 						<ListItemText
-							primary={`${user?.firstName}`}
+							primary={`${
+								user?.fullName ?? user?.firstName ?? "undefined"
+							}`}
 							sx={{
 								"& .MuiListItemText-primary": {
 									color: "white",
+									textTransform: "capitalize",
 								},
 							}}
 						/>
@@ -179,7 +201,7 @@ const PositionedMenu: React.FC<PositionedMenuProps> = ({ isCollapsed, sx }) => {
 			<Menu
 				anchorEl={anchorEl}
 				open={open}
-				onClose={handleClose}
+				onClose={handleMenuClose}
 				anchorOrigin={{
 					vertical: "top",
 					horizontal: "center",
@@ -199,19 +221,30 @@ const PositionedMenu: React.FC<PositionedMenuProps> = ({ isCollapsed, sx }) => {
 				}}
 			>
 				<MenuItem
-					onClick={handleClose}
+					onClick={handleMenuClose}
 					sx={{
 						color: "black",
 						"&:hover": {
 							backgroundColor: "rgba(255, 255, 255, 0.1)",
 						},
 					}}
+					component={RouterLink}
+					to={ROUTES.PROFILE}
 				>
+					<AccountBox sx={{ marginRight: 1 }} />
 					Profile
 				</MenuItem>
 				<MenuItem
+					onClick={handleMenuClose}
+					component={RouterLink}
+					to={ROUTES.HOME}
+				>
+					<HomeIcon sx={{ marginRight: 1 }} />
+					Home
+				</MenuItem>
+				<MenuItem
 					onClick={async () => {
-						handleClose();
+						handleMenuClose();
 						await handleLogout();
 					}}
 					sx={{
@@ -221,6 +254,7 @@ const PositionedMenu: React.FC<PositionedMenuProps> = ({ isCollapsed, sx }) => {
 						},
 					}}
 				>
+					<Logout sx={{ marginRight: 1 }} />
 					Logout
 				</MenuItem>
 			</Menu>
@@ -368,7 +402,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
 			</List>
 
 			{/* Account Section */}
-
 			<PositionedMenu
 				isCollapsed={isCollapsed}
 				sx={{

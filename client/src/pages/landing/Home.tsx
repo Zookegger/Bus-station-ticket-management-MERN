@@ -1,247 +1,467 @@
-import React, { useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
-  Container,
-  Card,
-  CardContent,
-  TextField,
-  Button,
-  Box,
-  Typography,
+	Container,
+	Box,
+	Typography,
+	Button,
+	TextField,
+	FormControl,
+	FormHelperText,
+	Popover,
+	List,
+	ListItem,
+	ListItemButton,
+	ListItemText,
 } from "@mui/material";
+import { Stack } from "@mui/system";
+import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import cover from "@assets/background.jpg";
+import type { Location } from "@my-types";
+import axios from "axios";
+import { API_ENDPOINTS } from "@constants";
+import { LocationOn, Search } from "@mui/icons-material";
 
-interface Trip {
-  route: string;
-  departure: string; // yyyy-mm-dd
-  departureTime: string; // hh:mm
-  arrival: string; // yyyy-mm-dd
-  arrivalTime: string; // hh:mm
-  price: string;
-}
+/**
+ * Landing home page skeleton component.
+ *
+ * This stripped-down version intentionally removes the previous temporary mock data,
+ * search form, and trip listing in order to prepare for a full UI/UX redesign.
+ *
+ * TODO (Structure): Replace current header Box with a dedicated <Hero /> component
+ *                   that supports background image, overlay gradient, and responsive typography.
+ * TODO (Accessibility): Ensure color contrast meets WCAG AA; add aria-labels for interactive elements.
+ * TODO (Internationalization): Externalize all static strings into i18n resource files.
+ * TODO (Search Flow): Introduce a multi-step search widget (origin, destination, date, passengers)
+ *                     with progressive disclosure and validation feedback.
+ * TODO (Real-time Data): Integrate WebSocket (via existing useWebsocket hook) to receive live
+ *                        seat availability + dynamic pricing updates after the search.
+ * TODO (Performance): Lazy-load below-the-fold sections (e.g., FeaturedRoutes, Promotions) using React.Suspense.
+ * TODO (Design System): Abstract repeated layout primitives into shared components (e.g., Section, FeatureCard).
+ * TODO (Animation): Add subtle entrance transitions (Framer Motion) for hero text & CTA buttons.
+ * TODO (Metrics): Add analytics event dispatch (search initiated, CTA clicked) via a tracking utility.
+ * TODO (SEO): Add meta tags & structured data (JSON-LD) for route discovery; confirm with server-side rendering strategy.
+ * TODO (Theming): Support light/dark theme toggle with persisted preference in context/localStorage.
+ * TODO (State Management): Evaluate moving transient UI state for search into a dedicated context or Zustand store.
+ */
 
-const popularTrips: Trip[] = [
-  {
-    route: "Thao Cam Vien Sai Gon - Cho Ben Thanh",
-    departure: "2023-06-01",
-    departureTime: "17:00",
-    arrival: "2023-06-01",
-    arrivalTime: "19:00",
-    price: "200.000 đ",
-  },
-  {
-    route: "Ho Tay - Vincom Mega Mall Royal City",
-    departure: "2023-06-02",
-    departureTime: "18:30",
-    arrival: "2023-06-02",
-    arrivalTime: "20:45",
-    price: "135.000 đ",
-  },
-  {
-    route: "Ho Tay - Bitexco Financial Tower",
-    departure: "2023-06-01",
-    departureTime: "14:20",
-    arrival: "2023-06-01",
-    arrivalTime: "15:20",
-    price: "6.050.000 đ",
-  },
-  // ... bạn có thể thêm nhiều trip khác
-];
+type LocationPopoverProps = {
+	anchor: HTMLElement | null;
+	target: "departure" | "destination" | null;
+	locations: Location[];
+	isLoading: boolean;
+	onClose: () => void;
+	onSelect: (location: Location) => void;
+};
+
+const LocationPopover: React.FC<LocationPopoverProps> = ({
+	anchor,
+	target,
+	locations,
+	isLoading,
+	onClose,
+	onSelect,
+}) => {
+	const open = Boolean(anchor);
+	const [anchorWidth, setAnchorWidth] = useState<number>(300);
+
+	useEffect(() => {
+		if (!anchor) return;
+
+		const updateWidth = () => {
+			const baseWidth = anchor.offsetWidth || 300;
+			setAnchorWidth(baseWidth - 32); // Subtract padding (16px * 2)
+		};
+
+		// Set initial width
+		updateWidth();
+
+		// Update width on resize
+		window.addEventListener("resize", updateWidth);
+		return () => window.removeEventListener("resize", updateWidth);
+	}, [anchor]);
+
+	return (
+		<Popover
+			open={open}
+			anchorEl={anchor}
+			onClose={onClose}
+			disableScrollLock
+			// Keep focus on the input that opened the popover; prevents the popover
+			// from stealing focus when it mounts.
+			disableAutoFocus
+			disableEnforceFocus
+			closeAfterTransition
+			anchorOrigin={{
+				vertical: "bottom",
+				horizontal: "left",
+			}}
+			transformOrigin={{
+				vertical: "top",
+				horizontal: "left",
+			}}
+		>
+			<Box
+				sx={{
+					p: 2,
+					width: anchorWidth,
+					maxHeight: 400,
+					overflow: "auto",
+				}}
+			>
+				<Typography variant="subtitle1" gutterBottom>
+					Select {target}
+				</Typography>
+				<List>
+					{isLoading ? (
+						<Typography
+							variant="body2"
+							sx={{ p: 2, textAlign: "center" }}
+						>
+							Loading locations...
+						</Typography>
+					) : !Array.isArray(locations) || locations.length === 0 ? (
+						<Typography
+							variant="body2"
+							sx={{ p: 2, textAlign: "center" }}
+						>
+							No locations available
+						</Typography>
+					) : (
+						locations.map((location) => (
+							<ListItem key={location.id} disablePadding>
+								<ListItemButton
+									onClick={() => onSelect(location)}
+								>
+									<ListItemText
+										primary={location.name}
+										secondary={location.address}
+									/>
+								</ListItemButton>
+							</ListItem>
+						))
+					)}
+				</List>
+			</Box>
+		</Popover>
+	);
+};
+
+type TripSearchFormState = {
+	departure: string;
+	destination: string;
+	date: Date;
+};
+
+type FormErrorState = Partial<
+	Record<keyof TripSearchFormState | "general", string>
+>;
 
 const Home: React.FC = () => {
-  const [searchForm, setSearchForm] = useState({
-    from: "",
-    to: "",
-    date: "",
-  });
+	// Flow: Render a minimal hero area and a placeholder for future sections.
+	// Future expansion will progressively enhance this shell while keeping initial paint lightweight.
+	const [departure, setDeparturePoint] = useState<string>();
+	const [destination, setDestinationPoint] = useState<string>();
+	// Refs to keep inputs focused while popover is open
+	const departureInputRef = useRef<HTMLInputElement | null>(null);
+	const destinationInputRef = useRef<HTMLInputElement | null>(null);
+	const [locations, setLocations] = useState<Location[]>([]);
+	const [isLoadingLocations, setIsLoadingLocations] =
+		useState<boolean>(false);
+	const [date, setDate] = useState<Date>();
+	// Form validation errors - setErrors reserved for future validation
+	const [errors] = useState<FormErrorState>({});
 
-  const [filteredTrips, setFilteredTrips] = useState<Trip[]>(popularTrips);
+	useEffect(() => {
+		const fetchLocations = async () => {
+			setIsLoadingLocations(true);
+			try {
+				const response = await axios.get(API_ENDPOINTS.LOCATION.SEARCH);
+				if (response.status === 200) {
+					// Handle different response structures
+					const data = response.data;
+					if (Array.isArray(data)) {
+						setLocations(data);
+					} else if (
+						data?.locations &&
+						Array.isArray(data.locations)
+					) {
+						setLocations(data.locations);
+					} else if (data?.data && Array.isArray(data.data)) {
+						setLocations(data.data);
+					} else {
+						console.warn("Unexpected response structure:", data);
+						setLocations([]);
+					}
+				}
+			} catch (error) {
+				console.error("Failed to fetch locations:", error);
+				setLocations([]);
+			} finally {
+				setIsLoadingLocations(false);
+			}
+		};
+		fetchLocations();
+	}, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setSearchForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+	const [popoverAnchor, setPopoverAnchor] = useState<HTMLElement | null>(
+		null
+	);
+	const [popoverTarget, setPopoverTarget] = useState<
+		"departure" | "destination" | null
+	>(null);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const { from, to, date } = searchForm;
+	const handlePopoverClose = () => {
+		setPopoverAnchor(null);
+		setPopoverTarget(null);
+	};
 
-    const filtered = popularTrips.filter((trip) => {
-      const routeLower = trip.route.toLowerCase();
-      const fromMatch = from ? routeLower.includes(from.toLowerCase()) : true;
-      const toMatch = to ? routeLower.includes(to.toLowerCase()) : true;
-      const dateMatch = date ? trip.departure === date : true;
+	// Keep the input focused while the popover is open so it appears active
+	useEffect(() => {
+		if (!popoverAnchor || !popoverTarget) return;
 
-      return fromMatch && toMatch && dateMatch;
-    });
+		const ref =
+			popoverTarget === "departure"
+				? departureInputRef
+				: destinationInputRef;
 
-    setFilteredTrips(filtered);
-  };
+		// Focus the input after popover opens; we use setTimeout to ensure
+		// the popover mounts first so focusing doesn't get stolen by the popover.
+		const id = window.setTimeout(() => ref.current?.focus(), 0);
+		return () => window.clearTimeout(id);
+	}, [popoverAnchor, popoverTarget]);
 
-  const handleReset = () => {
-    setSearchForm({ from: "", to: "", date: "" });
-    setFilteredTrips(popularTrips);
-  };
+	const handleLocationSelect = (location: Location) => {
+		if (popoverTarget === "departure") {
+			setDeparturePoint(location.name);
+		} else if (popoverTarget === "destination") {
+			setDestinationPoint(location.name);
+		}
+		handlePopoverClose();
+	};
 
-  return (
-    <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      {/* Header Section */}
-      <Box
-        sx={{
-          backgroundColor: "#d4e6d4",
-          flex: "0 0 50%",
-          position: "relative",
-          display: "flex",
-          alignItems: "center",
-          py: 1,
-        }}
-      >
-        <Container maxWidth="lg">
-          <Box textAlign="center" maxWidth={{ lg: 800 }} mx="auto" my={5}>
-            <Typography
-              variant="h4"
-              color="primary"
-              fontWeight={700}
-              sx={{ mb: 1 }}
-            >
-              Book Your Bus Ticket Online
-            </Typography>
-            <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 2 }}>
-              Fast, easy, and secure travel reservations
-            </Typography>
+	return (
+		<Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+			{/* HERO SECTION */}
+			<Box
+				sx={{
+					position: "relative",
+					overflow: "hidden",
+					flex: { xs: "0 0 auto", md: "0 0 50%" },
+					display: "flex",
+					py: { xs: 4, md: 8 },
 
-            <Box component="form" onSubmit={handleSearch}>
-              <Box
-                display="grid"
-                gridTemplateColumns={{ xs: "1fr", md: "repeat(3, 1fr)" }}
-                gap={1.5}
-                sx={{ mb: 1.5 }}
-              >
-                <TextField
-                  fullWidth
-                  name="from"
-                  value={searchForm.from}
-                  onChange={handleInputChange}
-                  placeholder="From"
-                  size="small"
-                />
-                <TextField
-                  fullWidth
-                  name="to"
-                  value={searchForm.to}
-                  onChange={handleInputChange}
-                  placeholder="To"
-                  size="small"
-                />
-                <TextField
-                  fullWidth
-                  name="date"
-                  value={searchForm.date}
-                  onChange={handleInputChange}
-                  type="date"
-                  size="small"
-                />
-              </Box>
-              <Box display="flex" justifyContent="center" gap={1}>
-                <Button type="submit" variant="contained" size="small">
-                  Search
-                </Button>
-                <Button type="button" variant="outlined" size="small" onClick={handleReset}>
-                  Reset
-                </Button>
-              </Box>
-            </Box>
-          </Box>
-        </Container>
-      </Box>
+					"::before": {
+						position: "absolute",
+						content: '""',
+						inset: 0,
+						zIndex: -2,
+						backgroundImage: `url(${cover})`,
+						backgroundRepeat: "no-repeat",
+						backgroundPosition: {
+							xs: "center 25%",
+							md: "center 90%",
+						},
+						backgroundSize: "cover",
+						filter: "blur(4px)",
+						transform: "scale(1.05)",
+					},
+					"::after": {
+						content: '""',
+						position: "absolute",
+						inset: 0,
+						zIndex: -1,
+						background:
+							"linear-gradient(rgba(90, 90, 90, 0.03), rgba(0, 0, 0, 0.6))",
+					},
+				}}
+			>
+				<Container maxWidth="md" sx={{ zIndex: 1 }}>
+					<Box textAlign="center" maxWidth={{ lg: 800 }} mx="auto">
+						<Typography
+							variant="h3"
+							fontWeight={"bold"}
+							sx={{ mb: 2, color: `#e0e0e0` }}
+						>
+							Book Your Bus Ticket Online
+						</Typography>
+						<Typography
+							variant="subtitle1"
+							fontWeight={"bold"}
+							sx={{ mb: 3, color: `#e0e0e0` }}
+						>
+							Fast, easy, and secure travel reservations
+						</Typography>
 
-      {/* Popular Trips Section */}
-      <Container
-        maxWidth="lg"
-        sx={{
-          flex: 1,
-          py: 1.5,
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <Typography variant="h5" fontWeight={700} sx={{ mb: 1.5 }}>
-          Popular Trips
-        </Typography>
-        <Box
-          display="grid"
-          gridTemplateColumns={{ xs: "1fr", md: "repeat(3, 1fr)" }}
-          gap={2}
-          sx={{
-            flex: 1,
-            minHeight: 0,
-            overflowY: "auto",
-            alignContent: "start",
-            gridAutoRows: { xs: "auto", md: 240 },
-          }}
-        >
-          {filteredTrips.map((trip, index) => (
-            <Card
-              key={index}
-              sx={{
-                height: { xs: "auto", md: 240 },
-                display: "flex",
-                flexDirection: "column",
-                bgcolor: "#fff !important",
-              }}
-            >
-              <CardContent sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
-                <Typography variant="h6" fontWeight={600} gutterBottom>
-                  {trip.route}
-                </Typography>
-                <Box mb={2} sx={{ flex: 1, overflow: "hidden" }}>
-                  <Box display="flex" justifyContent="space-between" mb={1}>
-                    <Typography variant="caption" color="text.secondary">
-                      Departure:
-                    </Typography>
-                    <Typography variant="body2">
-                      {trip.departure} {trip.departureTime}
-                    </Typography>
-                  </Box>
-                  <Box display="flex" justifyContent="space-between" mb={1}>
-                    <Typography variant="caption" color="text.secondary">
-                      Arrival:
-                    </Typography>
-                    <Typography variant="body2">
-                      {trip.arrival} {trip.arrivalTime}
-                    </Typography>
-                  </Box>
-                  <Box display="flex" justifyContent="space-between">
-                    <Typography variant="caption" color="text.secondary">
-                      Price:
-                    </Typography>
-                    <Typography variant="subtitle1" color="success.main" fontWeight={700}>
-                      {trip.price}
-                    </Typography>
-                  </Box>
-                </Box>
-                <Button
-                  variant="contained"
-                  size="small"
-                  fullWidth
-                  sx={{
-                    mt: "auto",
-                    bgcolor: "#1976d2 !important",
-                    color: "#fff !important",
-                    "&:hover": { bgcolor: "#1565c0 !important" },
-                  }}
-                >
-                  SELECT SEAT
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </Box>
-      </Container>
-    </Box>
-  );
+						<LocalizationProvider dateAdapter={AdapterDateFns}>
+							<Box component={"form"} mb={4}>
+								<Stack
+									direction={{ xs: "column", md: "row" }}
+									gap={3}
+								>
+									<FormControl
+										fullWidth
+										required
+										error={!!errors.departure}
+									>
+										<TextField
+											label="Departure"
+											variant="filled"
+											placeholder="Select departure location"
+											value={departure || ""}
+											sx={{
+												backgroundColor: "white",
+												cursor: "pointer",
+												"& .MuiInputBase-input": {
+													cursor: "pointer",
+												},
+											}}
+											onClick={(e) => {
+												setPopoverAnchor(
+													e.currentTarget
+												);
+												setPopoverTarget("departure");
+											}}
+											inputRef={departureInputRef}
+											slotProps={{
+												input: {
+													readOnly: true,
+													"aria-haspopup": "listbox",
+													"aria-expanded": Boolean(
+														popoverAnchor &&
+															popoverTarget ===
+																"departure"
+													),
+													endAdornment: <LocationOn/>
+												},
+											}}
+										/>
+									</FormControl>
+									<FormControl
+										fullWidth
+										required
+										error={!!errors.destination}
+									>
+										<TextField
+											label="Destination"
+											variant="filled"
+											placeholder="Select destination location"
+											sx={{
+												backgroundColor: "white",
+												cursor: "pointer",
+												"& .MuiInputBase-input": {
+													cursor: "pointer",
+												},
+											}}
+											value={destination || ""}
+											onClick={(e) => {
+												setPopoverAnchor(
+													e.currentTarget
+												);
+												setPopoverTarget("destination");
+											}}
+											inputRef={destinationInputRef}
+											slotProps={{
+												input: {
+													readOnly: true,
+													"aria-haspopup": "listbox",
+													"aria-expanded": Boolean(
+														popoverAnchor &&
+															popoverTarget ===
+																"destination"
+													),
+													endAdornment: <LocationOn/>
+												},
+											}}
+										/>
+									</FormControl>
+									<FormControl
+										fullWidth
+										required
+										error={!!errors.date}
+									>
+										<DateTimePicker
+											label="Start period"
+											format="dd/MM/yyyy - hh:mm aa"
+											value={date}
+											disablePast
+											sx={{
+												backgroundColor: "white",
+											}}
+											onChange={(value) => {
+												if (
+													value &&
+													value > new Date(Date.now())
+												) {
+													setDate(
+														new Date(
+															value.toString()
+														)
+													);
+												}
+											}}
+											slotProps={{
+												textField: {
+													variant: "filled",
+												},
+											}}
+										/>
+
+										{errors.date && (
+											<FormHelperText>
+												{errors.date}
+											</FormHelperText>
+										)}
+									</FormControl>
+								</Stack>
+							</Box>
+						</LocalizationProvider>
+
+						<Button
+							variant="contained"
+							size="large"
+							sx={{
+								// TODO: Promote primary CTA styling from shared design system
+								px: 4,
+							}}
+							startIcon={<Search/>}
+						>
+							Start Your Search
+						</Button>
+						{/* TODO: Secondary CTA (e.g., View Promotions) below primary button */}
+					</Box>
+					<LocationPopover
+						anchor={popoverAnchor}
+						target={popoverTarget}
+						locations={locations}
+						isLoading={isLoadingLocations}
+						onClose={handlePopoverClose}
+						onSelect={handleLocationSelect}
+					/>
+				</Container>
+			</Box>
+
+			{/* PLACEHOLDER: Future sections (Featured Routes, Promo Banner, Trust Badges) */}
+			<Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+				<Container maxWidth="lg" sx={{ py: 4 }}>
+					<Typography variant="h5" fontWeight={600} sx={{ mb: 2 }}>
+						{/* TODO: Replace with dynamic component pulling curated routes from API */}
+						Coming Soon: Curated Routes & Deals
+					</Typography>
+					<Typography
+						variant="body2"
+						color="text.secondary"
+						sx={{ mb: 3 }}
+					>
+						This area will showcase personalized recommendations,
+						promotions, and live route insights.
+					</Typography>
+					{/* TODO: Insert <FeaturedRoutes /> + <LivePricingTicker /> + <PromoCarousel /> components */}
+					{/* TODO: Defer loading of heavy imagery using native lazy and intersection observers */}
+				</Container>
+			</Box>
+		</Box>
+	);
 };
 
 export default Home;

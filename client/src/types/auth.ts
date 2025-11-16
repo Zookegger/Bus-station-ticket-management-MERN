@@ -66,6 +66,7 @@ export interface RegisterResponse {
 }
 
 export interface AuthUser {
+	id: string;
 	userName: string;
 	fullName: string;
 	firstName: string;
@@ -126,6 +127,7 @@ interface AuthContextType {
 	login: (dto: LoginDTO) => Promise<LoginResponse>;
 	logout: () => Promise<void>;
 	register: (dto: RegisterDTO) => Promise<RegisterResponse>;
+	deleteAccount: () => Promise<boolean>
 	isLoading: boolean;
 	isAuthenticated: boolean;
 	isAdmin: boolean;
