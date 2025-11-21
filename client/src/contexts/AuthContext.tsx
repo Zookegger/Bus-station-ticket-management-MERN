@@ -305,6 +305,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		}
 	};
 
+	const loginWithGoogle = () => {
+		window.location.href = `${API_BASE_URL}/auth/google`;
+	};
+
+	const loginWithFacebook = () => {
+		window.location.href = `${API_BASE_URL}/auth/facebook`;
+	};
+
 	/**
 	 * Whether a user is currently authenticated.
 	 * @returns {boolean} True if user is logged in, false otherwise
@@ -325,6 +333,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				logout,
 				register,
 				deleteAccount,
+				loginWithGoogle,
+				loginWithFacebook,
 				isLoading,
 				isAdmin,
 				isAuthenticated,

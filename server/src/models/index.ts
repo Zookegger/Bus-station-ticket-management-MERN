@@ -27,6 +27,7 @@ import { CouponUsage } from "@models/couponUsage";
 import { Setting } from "@models/setting";
 import { Order } from "@models/orders";
 import { RouteStop } from "./routeStop";
+import { FederatedCredential } from "./federatedCredential";
 
 /**
  * Interface describing the shape of the 'db' object, which
@@ -36,6 +37,7 @@ export interface DbModels {
     sequelize: Sequelize;
     Setting: typeof Setting;
     User: typeof User;
+	FederatedCredential: typeof FederatedCredential;
     Notification: typeof Notification;
     Driver: typeof Driver;
     Location: typeof Location;
@@ -58,6 +60,7 @@ export interface DbModels {
 const models = {
 	Setting,
 	User,
+	FederatedCredential,
 	Notification,
 	Driver,
 	Location,
