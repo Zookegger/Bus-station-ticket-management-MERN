@@ -21,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 import type { TripItemDTO, ApiTripDTO } from "@my-types/TripDTOs";
 import axios from "axios";
 import { DataGridPageLayout } from "@components/admin";
+import { API_ENDPOINTS } from "@constants";
 
 
 interface TripListProps {
@@ -43,7 +44,7 @@ const TripList: React.FC<TripListProps> = ({ onOpenDetails }) => {
 		const fetchTrips = async () => {
 			try {
 				// Replace with your auth token retrieval (e.g., from context)
-				const response = await axios.get("/api/trips");
+				const response = await axios.get(API_ENDPOINTS.TRIP.BASE);
 				if (response.status === 200) {
 					const data = response.data;
 					// Assuming API returns { trips: [...] } or direct array

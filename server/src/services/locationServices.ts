@@ -9,7 +9,6 @@
 import { Op } from "sequelize";
 import db from "@models/index";
 import { Location, LocationAttributes } from "@models/location";
-import { CreateLocationDTO, UpdateLocationDTO } from "@my_types/location";
 
 /**
  * Configuration options for location listing and filtering.
@@ -38,87 +37,6 @@ interface ListOptions {
     long?: number;
     lat?: number;
 }
-
-/**
- * Creates a new location record.
- *
- * Validates that the location doesn't already exist before creation.
- * Checks for duplicates based on name, address, and coordinates.
- * Throws an error if a duplicate location is found.
- *
- * @param dto - Data transfer object containing location creation data
- * @returns Promise resolving to the created location
- * @throws {Object} Error with status 409 if location already exists
- */
-export const addLocation = async (
-	dto: CreateLocationDTO
-): Promise<Location | null> => {
-	const existing_location = await db.Location.findOne({
-		where: {
-			[Op.or]: [{ name: dto.name }, { address: dto.address }],
-			[Op.and]: [
-				{ longitude: dto.longitude },
-				{ latitude: dto.latitude },
-			],
-		},
-	});
-
-	if (existing_location)
-		throw { status: 409, message: "Location already exist." };
-
-	const location = await db.Location.create(dto);
-	return location;
-};
-
-/**
- * Updates an existing location record.
- *
- * Finds the location by ID and applies the provided updates.
- * Only updates fields that are provided in the DTO.
- *
- * @param id - Unique identifier of the location to update
- * @param dto - Data transfer object containing update data
- * @returns Promise resolving to the updated location
- * @throws {Object} Error with status 404 if location not found
- */
-export const updateLocation = async (
-	id: number,
-	dto: UpdateLocationDTO
-): Promise<Location | null> => {
-	const location = await getLocationById(id);
-
-	if (!location)
-		throw { status: 404, message: `No location found with this Id ${id}.` };
-
-	await location.update(dto);
-	return location;
-};
-
-/**
- * Removes a location record from the database.
- *
- * Permanently deletes the location after verifying it exists.
- * Verifies deletion was successful by checking if the record still exists.
- * Consider adding cascade delete logic if locations have dependencies.
- *
- * @param id - Unique identifier of the location to remove
- * @returns Promise resolving when deletion is complete
- * @throws {Object} Error with status 404 if location not found
- * @throws {Object} Error with status 500 if deletion verification fails
- */
-export const removeLocation = async (id: number): Promise<void> => {
-	const location = await getLocationById(id);
-
-	if (!location)
-		throw { status: 404, message: `No location found with this Id ${id}.` };
-
-	await location.destroy();
-
-	const deletedLocation = await getLocationById(id);
-	if (deletedLocation) {
-		throw { status: 500, message: "Location deletion failed - location still exists." };
-	}
-};
 
 /**
  * Retrieves a location by its unique identifier.

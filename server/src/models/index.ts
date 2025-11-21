@@ -26,6 +26,7 @@ import { PaymentMethod } from "@models/paymentMethod";
 import { CouponUsage } from "@models/couponUsage";
 import { Setting } from "@models/setting";
 import { Order } from "@models/orders";
+import { RouteStop } from "./routeStop";
 
 /**
  * Interface describing the shape of the 'db' object, which
@@ -39,6 +40,7 @@ export interface DbModels {
     Driver: typeof Driver;
     Location: typeof Location;
     Route: typeof Route;
+	RouteStop: typeof RouteStop;
     RefreshToken: typeof RefreshToken;
     Vehicle: typeof Vehicle;
     VehicleType: typeof VehicleType;
@@ -60,6 +62,7 @@ const models = {
 	Driver,
 	Location,
 	Route,
+	RouteStop,
 	RefreshToken,
 	Vehicle,
 	VehicleType,

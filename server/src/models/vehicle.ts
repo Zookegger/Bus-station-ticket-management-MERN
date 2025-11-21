@@ -25,11 +25,10 @@ export enum VehicleStatus {
  * Interface for the attributes of a Vehicle.
  * @interface VehicleAttributes
  * @property {number} id - The unique identifier for the vehicle.
- * @property {string} licensePlate - The license plate of the vehicle.
- * @property {string} model - The model of the vehicle.
- * @property {number} year - The manufacturing year of the vehicle.
- * @property {VehicleStatus} status - The current status of the vehicle.
+ * @property {string} numberPlate - The license plate of the vehicle.
  * @property {number} vehicleTypeId - The ID of the vehicle type.
+ * @property {string} manufacturer - The license plate of the vehicle.
+ * @property {string} model - The model of the vehicle.
  * @property {Date} [createdAt] - The date and time the vehicle was created.
  * @property {Date} [updatedAt] - The date and time the vehicle was last updated.
  */

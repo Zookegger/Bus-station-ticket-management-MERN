@@ -3,17 +3,23 @@ import {
 	DataTypes,
 	Optional,
 	Sequelize,
-	BelongsToGetAssociationMixin,
 	HasManyGetAssociationsMixin,
 } from "sequelize";
-import { Location } from "./location";
 import { Trip } from "./trip";
-import { DbModels } from "@models";;
+import { DbModels } from "@models";
 
+/**
+ * @interface RouteAttributes
+ * @property {number} id - Primary key of the route.
+ * @property {number | null} [distance] - Total distance of the route in kilometers.
+ * @property {number | null} [duration] - Total duration of the route in hours.
+ * @property {number | null} [price] - Base price of the route.
+ * @property {Date} [createdAt] - Timestamp when the record was created.
+ * @property {Date} [updatedAt] - Timestamp when the record was last updated.
+ */
 export interface RouteAttributes {
 	id: number;
-	startId: number;
-	destinationId: number;
+	name: string;
 	distance?: number | null;
 	duration?: number | null;
 	price?: number | null;
@@ -44,15 +50,11 @@ export interface RouteCreationAttributes
  * @extends Model
  * @implements {RouteAttributes}
  * @property {number} id - Primary key of the route.
- * @property {number} startId - Foreign key referencing the starting location.
- * @property {number} destinationId - Foreign key referencing the destination location.
- * @property {number | null} [distance] - Distance of the route in kilometers.
- * @property {number | null} [duration] - Duration of the route in hours.
- * @property {number | null} [price] - Price of the route.
+ * @property {number} [distance] - Distance of the route in meters.
+ * @property {number} [duration] - Duration of the route in seconds.
+ * @property {number} [price] - Price of the route.
  * @property {Date} createdAt - Timestamp when the route record was created.
  * @property {Date} updatedAt - Timestamp when the route record was last updated.
- * @property {Location} [startLocation] - Associated starting Location instance.
- * @property {Location} [destinationLocation] - Associated destination Location instance.
  * @property {Trip[]} [trips] - Associated Trip instances.
  */
 export class Route
@@ -63,14 +65,11 @@ export class Route
 	 * @property {number} id - Primary key of the route.
 	 */
 	public id!: number;
+
 	/**
-	 * @property {number} startId - Foreign key referencing the starting location.
+	 * @property {number} id - Name of the route.
 	 */
-	public startId!: number;
-	/**
-	 * @property {number} destinationId - Foreign key referencing the destination location.
-	 */
-	public destinationId!: number;
+	public name!: string;
 	/**
 	 * @property {number | null} distance - Distance of the route in kilometers.
 	 */
@@ -94,18 +93,6 @@ export class Route
 	public readonly updatedAt!: Date;
 
 	// Association properties
-	public getStartLocation!: BelongsToGetAssociationMixin<Location>;
-	/**
-	 * @property {Location} [startLocation] - Associated starting Location instance.
-	 */
-	public readonly startLocation?: Location;
-
-	public getDestinationLocation!: BelongsToGetAssociationMixin<Location>;
-	/**
-	 * @property {Location} [destinationLocation] - Associated destination Location instance.
-	 */
-	public readonly destinationLocation?: Location;
-
 	public getTrips!: HasManyGetAssociationsMixin<Trip>;
 	/**
 	 * @property {Trip[]} [trips] - Associated Trip instances.
@@ -126,12 +113,7 @@ export class Route
 					primaryKey: true,
 					autoIncrement: true,
 				},
-				startId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, field: 'startId' },
-				destinationId: {
-					type: DataTypes.INTEGER.UNSIGNED,
-					allowNull: false,
-					field: 'destinationId'
-				},
+				name: { type: DataTypes.STRING, allowNull: false },
 				distance: { type: DataTypes.FLOAT, allowNull: true },
 				duration: { type: DataTypes.FLOAT, allowNull: true },
 				price: { type: DataTypes.DECIMAL(10, 2), allowNull: true },
@@ -140,7 +122,7 @@ export class Route
 				sequelize,
 				tableName: "routes",
 				timestamps: true,
-				underscored: false
+				underscored: false,
 			}
 		);
 	}
@@ -152,17 +134,15 @@ export class Route
 	 * @returns {void}
 	 */
 	static associate(models: DbModels) {
-		Route.belongsTo(models.Location, {
-			foreignKey: "startId",
-			as: "startLocation",
-		});
-		Route.belongsTo(models.Location, {
-			foreignKey: "destinationId",
-			as: "destinationLocation",
-		});
 		Route.hasMany(models.Trip, {
 			foreignKey: "routeId",
 			as: "trips",
+			onDelete: "CASCADE",
+		});
+		Route.hasMany(models.RouteStop, {
+			foreignKey: "routeId",
+			as: "stops",
+			onDelete: "CASCADE",
 		});
 	}
 }

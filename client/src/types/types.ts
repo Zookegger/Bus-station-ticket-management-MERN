@@ -84,7 +84,6 @@ export interface ApiEndpoints {
 	};
 	readonly ROUTE: {
 		readonly BASE: string;
-		readonly SEARCH: string;
 		readonly BY_ID: string;
 		readonly CREATE: string;
 		readonly UPDATE: (id: number) => string;

@@ -19,6 +19,7 @@ import {
 	TextField,
 	CircularProgress,
 	Typography,
+	InputAdornment,
 } from "@mui/material";
 import { RouteMap } from "@components/map";
 import { useAutoRoute } from "@hooks/map";
@@ -30,6 +31,8 @@ axios.defaults.withCredentials = true;
  */
 type EditRouteFormState = Partial<UpdateRouteDTO> & {
 	price: number;
+	startId?: number;
+	destinationId?: number;
 };
 
 /**
@@ -58,6 +61,7 @@ const EditRouteForm: React.FC<EditRouteFormProps> = ({
 	onClose,
 	onEdited,
 	route,
+	routeId,
 }) => {
 	const [errors, setErrors] = useState<FormErrorState>({});
 	const [formData, setFormData] = useState<EditRouteFormState>({
@@ -65,12 +69,17 @@ const EditRouteForm: React.FC<EditRouteFormProps> = ({
 	});
 	const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 	const [serverError, setServerError] = useState<string | null>(null);
+	const [fetchedRoute, setFetchedRoute] = useState<any | null>(null);
+	const [isRouteFetching, setIsRouteFetching] = useState<boolean>(false);
+
+	// Prefer fetched route (by id) over passed-in prop for freshest data
+	const activeRoute: any | null = fetchedRoute ?? route ?? null;
 
 	// Auto-calculate route if we have valid coordinates
-	const startLat = route?.startLocation?.latitude ?? null;
-	const startLon = route?.startLocation?.longitude ?? null;
-	const endLat = route?.destination?.latitude ?? null;
-	const endLon = route?.destination?.longitude ?? null;
+	const startLat = activeRoute?.startLocation?.latitude ?? null;
+	const startLon = activeRoute?.startLocation?.longitude ?? null;
+	const endLat = activeRoute?.destination?.latitude ?? null;
+	const endLon = activeRoute?.destination?.longitude ?? null;
 
 	const {
 		route: calculatedRoute,
@@ -84,16 +93,16 @@ const EditRouteForm: React.FC<EditRouteFormProps> = ({
 		}
 
 		// Populate form when editing an existing route
-		if (route) {
+		if (activeRoute) {
 			setFormData({
-				startId: route.startId,
-				destinationId: route.destinationId,
-				distance: route.distance ?? undefined,
-				duration: route.duration ?? undefined,
-				price: route.price ?? 0,
+				startId: activeRoute.startId,
+				destinationId: activeRoute.destinationId,
+				distance: activeRoute.distance ?? undefined,
+				duration: activeRoute.duration ?? undefined,
+				price: activeRoute.price ?? 0,
 			});
 		}
-	}, [route, open]);
+	}, [activeRoute, open]);
 
 	// Auto-populate distance and duration from calculated route
 	useEffect(() => {
@@ -105,6 +114,28 @@ const EditRouteForm: React.FC<EditRouteFormProps> = ({
 			}));
 		}
 	}, [calculatedRoute, open]);
+
+	// Fetch route by id when provided from list
+	useEffect(() => {
+		const fetchById = async (id: number) => {
+			try {
+				setIsRouteFetching(true);
+				const { data } = await axios.get(API_ENDPOINTS.ROUTE.UPDATE(id));
+				setFetchedRoute(data);
+			} catch (err: unknown) {
+				console.error("Failed to fetch route", handleAxiosError(err));
+			} finally {
+				setIsRouteFetching(false);
+			}
+		};
+
+		if (open && routeId && routeId > 0) {
+			fetchById(routeId);
+		}
+		if (!open) {
+			setFetchedRoute(null);
+		}
+	}, [open, routeId]);
 
 	/**
 	 * Resets the form state whenever the dialog closes so the next open starts fresh.
@@ -118,6 +149,12 @@ const EditRouteForm: React.FC<EditRouteFormProps> = ({
 	/**
 	 * Generic handler that keeps local state in sync with text, number, or boolean inputs.
 	 */
+	/**
+	 * Generic handler keeping local state in sync for simple inputs.
+	 * Clears field-specific and server errors when user edits.
+	 * @param field Field key in form state.
+	 * @param value New value (string | number | undefined).
+	 */
 	const handleInputChange = (
 		field: keyof EditRouteFormState,
 		value: string | number | undefined
@@ -127,6 +164,7 @@ const EditRouteForm: React.FC<EditRouteFormProps> = ({
 			[field]: value,
 		}));
 
+		// Clear field-specific validation error on change
 		if (errors[field]) {
 			setErrors((prev) => {
 				const next = { ...prev };
@@ -135,6 +173,7 @@ const EditRouteForm: React.FC<EditRouteFormProps> = ({
 			});
 		}
 
+		// Reset general server error when user starts editing
 		if (serverError) {
 			setServerError(null);
 		}
@@ -142,6 +181,11 @@ const EditRouteForm: React.FC<EditRouteFormProps> = ({
 
 	/**
 	 * Validates the current form snapshot before attempting submission.
+	 */
+	/**
+	 * Validates form data snapshot before submission.
+	 * Ensures price is a positive number.
+	 * @returns {boolean} True when valid.
 	 */
 	const validateForm = (): boolean => {
 		const nextErrors: FormErrorState = {};
@@ -157,6 +201,11 @@ const EditRouteForm: React.FC<EditRouteFormProps> = ({
 	/**
 	 * Handles the submit event by validating inputs and calling the backend API.
 	 */
+	/**
+	 * Form submit handler. Validates then performs PUT update.
+	 * Propagates field & server errors, resets form on success.
+	 * @param event Form submit event.
+	 */
 	const handleSubmit = async (
 		event: FormEvent<HTMLFormElement>
 	): Promise<void> => {
@@ -170,7 +219,7 @@ const EditRouteForm: React.FC<EditRouteFormProps> = ({
 			setIsSubmitting(true);
 			setServerError(null);
 
-			const payload: UpdateRouteDTO = {
+			const payload: any = {
 				startId: formData.startId,
 				destinationId: formData.destinationId,
 				distance: formData.distance ?? null,
@@ -179,7 +228,7 @@ const EditRouteForm: React.FC<EditRouteFormProps> = ({
 			};
 
 			const response = await axios.put(
-				API_ENDPOINTS.ROUTE.UPDATE(route!.id),
+				API_ENDPOINTS.ROUTE.UPDATE((activeRoute ?? route)!.id),
 				payload
 			);
 
@@ -206,7 +255,9 @@ const EditRouteForm: React.FC<EditRouteFormProps> = ({
 
 	return (
 		<Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-			<DialogTitle>Edit Route</DialogTitle>
+			<DialogTitle>
+				<Typography variant="h5" component="div" fontWeight={600}>Edit Route</Typography>
+			</DialogTitle>
 			<DialogContent>
 				<Box component="form" p={1} onSubmit={handleSubmit}>
 					{serverError && (
@@ -221,11 +272,11 @@ const EditRouteForm: React.FC<EditRouteFormProps> = ({
 								Departure Location
 							</Typography>
 							<Typography variant="body1">
-								{route?.startLocation?.name ?? "Unknown"}
+								{activeRoute?.startLocation?.name ?? "Unknown"}
 							</Typography>
-							{route?.startLocation?.address && (
+							{activeRoute?.startLocation?.address && (
 								<Typography variant="body2" color="text.secondary">
-									{route.startLocation.address}
+									{activeRoute.startLocation.address}
 								</Typography>
 							)}
 						</Grid>
@@ -235,11 +286,11 @@ const EditRouteForm: React.FC<EditRouteFormProps> = ({
 								Destination Location
 							</Typography>
 							<Typography variant="body1">
-								{route?.destination?.name ?? "Unknown"}
+								{activeRoute?.destination?.name ?? "Unknown"}
 							</Typography>
-							{route?.destination?.address && (
+							{activeRoute?.destination?.address && (
 								<Typography variant="body2" color="text.secondary">
-									{route.destination.address}
+									{activeRoute.destination.address}
 								</Typography>
 							)}
 						</Grid>
@@ -326,20 +377,35 @@ const EditRouteForm: React.FC<EditRouteFormProps> = ({
 
 						<Grid size={12}>
 							<FormControl fullWidth required error={!!errors.price}>
-								<TextField
-									label="Price (VND)"
-									type="number"
-									value={formData.price ?? ""}
-									onChange={(e) =>
-										handleInputChange(
-											"price",
-											e.target.value ? Number(e.target.value) : 0
-										)
-									}
-									slotProps={{
-										htmlInput: { min: 0, step: 1000 },
-									}}
-								/>
+								{/** Localized display formatting for price */}
+								{(() => {
+									const displayPrice = Number(formData.price ?? 0).toLocaleString("vi-VN");
+									return (
+										<TextField
+											label="Price"
+											type="text"
+											value={displayPrice}
+											onChange={(e) => {
+												// Strip non-digits & parse
+												const raw = e.target.value.replace(/[^\d]/g, "");
+												const next = raw ? Number(raw) : 0;
+												handleInputChange("price", next);
+											}}
+											helperText={errors.price}
+											error={!!errors.price}
+											placeholder="Enter price (e.g., 100000)"
+											slotProps={{
+												input: {
+													endAdornment: (
+														<InputAdornment position="end">đ</InputAdornment>
+													),
+													inputMode: "numeric",
+												},
+												htmlInput: { min: 0, step: 1000 },
+											}}
+										/>
+									);
+								})()}
 								{errors.price && (
 									<FormHelperText>{errors.price}</FormHelperText>
 								)}
@@ -382,7 +448,11 @@ const EditRouteForm: React.FC<EditRouteFormProps> = ({
 						<Button
 							type="submit"
 							variant="contained"
-							disabled={isSubmitting}
+							disabled={
+								isSubmitting ||
+								!formData.price ||
+								Number(formData.price) <= 0
+							}
 						>
 							{isSubmitting ? "Saving..." : "Save Changes"}
 						</Button>

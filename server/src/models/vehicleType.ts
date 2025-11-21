@@ -113,6 +113,11 @@ export class VehicleType
 				price: {
 					type: DataTypes.DECIMAL(10, 2),
 					allowNull: true,
+					get() {
+						const rawValue = this.getDataValue('price');
+						if (rawValue === null || rawValue === undefined) return null;
+						return typeof rawValue === 'string' ? parseFloat(rawValue) : rawValue;
+					},
 				},
 				totalFloors: {
 					type: DataTypes.INTEGER.UNSIGNED,

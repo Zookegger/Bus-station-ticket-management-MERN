@@ -85,7 +85,7 @@ export const SearchVehicleTypes = async (
 		const vehicle_types = await vehicleTypeServices.listVehicleTypes(
 			options
 		);
-		res.status(200).json(vehicle_types);
+		res.status(200).json(vehicle_types.rows);
 	} catch (err) {
 		next(err);
 	}

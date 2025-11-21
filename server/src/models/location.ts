@@ -5,8 +5,8 @@ import {
 	Sequelize,
 	HasManyGetAssociationsMixin,
 } from "sequelize";
-import { Route } from "./route";
-import { DbModels } from "@models";;
+import { DbModels } from "@models";import { RouteStop } from "./routeStop";
+;
 
 /**
  * Sequelize model for Location entity.
@@ -95,17 +95,12 @@ export class Location extends Model<LocationAttributes, LocationCreationAttribut
     public readonly updatedAt!: Date
 
     // Association properties
-    public getRoutesStartingHere!: HasManyGetAssociationsMixin<Route>;
+    public getRouteStops!: HasManyGetAssociationsMixin<RouteStop>;
+    
     /**
-     * @property {Route[]} [routesStartingHere] - Associated Route instances starting from this location.
+     * @property {Route[]} [routesEndingHere] - Associated Route Stop locations along the route.
      */
-    public readonly routesStartingHere?: Route[];
-
-    public getRoutesEndingHere!: HasManyGetAssociationsMixin<Route>;
-    /**
-     * @property {Route[]} [routesEndingHere] - Associated Route instances ending at this location.
-     */
-    public readonly routesEndingHere?: Route[];
+    public readonly routeStops?: RouteStop[];
 
     /**
 	 * Initializes the Sequelize model definition for Location.
@@ -137,13 +132,9 @@ export class Location extends Model<LocationAttributes, LocationCreationAttribut
 	 * @returns {void}
 	 */
 	static associate(models: DbModels) {
-		Location.hasMany(models.Route, {
-			as: "routesStartingHere",
-			foreignKey: "startId",
-		});
-		Location.hasMany(models.Route, {
-			as: "routesEndingHere",
-			foreignKey: "destinationId",
-		});
+        Location.hasMany(models.RouteStop, {
+            foreignKey: "locationId",
+            as: "routeStops"
+        })
 	}
 }

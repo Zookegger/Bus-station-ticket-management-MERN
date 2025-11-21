@@ -146,7 +146,6 @@ export const API_ENDPOINTS: ApiEndpoints = {
 	},
 	ROUTE: {
 		BASE: "/routes",
-		SEARCH: "/routes/search",
 		BY_ID: "/routes/:id",
 		CREATE: "/routes",
 		UPDATE: (id: number) => `/routes/${id}`,

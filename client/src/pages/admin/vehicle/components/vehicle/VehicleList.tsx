@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
 	Box,
 	Button,
@@ -25,6 +25,8 @@ import EditVehicleForm from "./EditVehicleForm";
 import CreateVehicleForm from "./CreateVehicleForm";
 import RemoveVehicleForm from "./RemoveVehicleForm";
 import type { UpdateVehicleDTO } from "@my-types/vehicle";
+import callApi from "@utils/apiCaller";
+import { API_ENDPOINTS } from "@constants";
 
 const VehicleList: React.FC = () => {
 	const [vehicles, setVehicles] = useState<VehicleWithType[]>([]);
@@ -187,6 +189,26 @@ const VehicleList: React.FC = () => {
 			},
 		},
 	];
+
+	useEffect(() => {
+		const fetchApi = async () => {
+			try {
+				const { status, data } = await callApi(
+					{ method: "GET", url: API_ENDPOINTS.VEHICLE.BASE },
+					{ returnFullResponse: true }
+				);
+
+				if (status === 304 || status === 200) {
+					setVehicles(data.rows);
+				}
+
+
+			} catch (err) {
+				console.error(err);
+			}
+		};
+		fetchApi();
+	}, []);
 
 	return (
 		<DataGridPageLayout

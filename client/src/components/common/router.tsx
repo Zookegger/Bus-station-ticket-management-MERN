@@ -20,7 +20,6 @@ const RequireAuth: React.FC<{ children: React.ReactElement }> = ({
 };
 
 export const router = createBrowserRouter([
-	// Default routes with separate layout (no header/footer)
 	{
 		path: "/",
 		element: (
@@ -30,9 +29,11 @@ export const router = createBrowserRouter([
 				</Suspense>
 			</Layout>
 		),
+		handle: { title: "EasyRide - Bus Ticket Booking" },
 		children: [
 			{
 				path: ROUTES.HOME,
+				handle: { title: "Home • EasyRide" },
 				lazy: async () => {
 					const { default: Home } = await import(
 						"@pages/landing/Home"
@@ -42,6 +43,7 @@ export const router = createBrowserRouter([
 			},
 			{
 				path: ROUTES.LOGIN,
+				handle: { title: "Login • EasyRide" },
 				lazy: async () => {
 					const { default: Login } = await import(
 						"@pages/landing/Login"
@@ -51,6 +53,7 @@ export const router = createBrowserRouter([
 			},
 			{
 				path: ROUTES.REGISTER,
+				handle: { title: "Register • EasyRide" },
 				lazy: async () => {
 					const { default: Register } = await import(
 						"@pages/landing/Register"
@@ -60,6 +63,7 @@ export const router = createBrowserRouter([
 			},
 			{
 				path: ROUTES.VERIFY_EMAIL,
+				handle: { title: "Verify Email • EasyRide" },
 				lazy: async () => {
 					const { default: ConfirmEmail } = await import(
 						"@pages/common/ConfirmEmail"
@@ -68,17 +72,8 @@ export const router = createBrowserRouter([
 				},
 			},
 			{
-				path: ROUTES.NOT_FOUND,
-				lazy: async () => {
-					const { default: NotFound } = await import(
-						"@pages/common/NotFound"
-					);
-					return { Component: NotFound };
-				},
-			},
-
-			{
 				path: ROUTES.PRIVACY_POLICY,
+				handle: { title: "Privacy Policy • EasyRide" },
 				lazy: async () => {
 					const { default: PrivacyPolicy } = await import(
 						"@pages/common/PrivacyPolicy"
@@ -86,9 +81,9 @@ export const router = createBrowserRouter([
 					return { Component: PrivacyPolicy };
 				},
 			},
-
 			{
 				path: ROUTES.CHECK_IN,
+				handle: { title: "Check In • EasyRide" },
 				lazy: async () => {
 					const { default: CheckIn } = await import(
 						"@pages/common/CheckInPage"
@@ -97,9 +92,16 @@ export const router = createBrowserRouter([
 				},
 			},
 			{
-				path: "*",
-				element: <Navigate to={ROUTES.NOT_FOUND} replace />,
+				path: ROUTES.NOT_FOUND,
+				handle: { title: "Not Found • EasyRide" },
+				lazy: async () => {
+					const { default: NotFound } = await import(
+						"@pages/common/NotFound"
+					);
+					return { Component: NotFound };
+				},
 			},
+			{ path: "*", element: <Navigate to={ROUTES.NOT_FOUND} replace /> },
 		],
 	},
 	{
@@ -113,9 +115,11 @@ export const router = createBrowserRouter([
 				</Layout>
 			</RequireAuth>
 		),
+		handle: { title: "Account • EasyRide" },
 		children: [
 			{
 				path: ROUTES.PROFILE,
+				handle: { title: "Profile • EasyRide" },
 				lazy: async () => {
 					const { default: Profile } = await import(
 						"@pages/user/Profile"
@@ -123,13 +127,9 @@ export const router = createBrowserRouter([
 					return { Component: Profile };
 				},
 			},
-			{
-				path: "*",
-				element: <Navigate to={ROUTES.NOT_FOUND} replace />,
-			},
+			{ path: "*", element: <Navigate to={ROUTES.NOT_FOUND} replace /> },
 		],
 	},
-	// Dashboard routes with separate layout (no header/footer)
 	{
 		path: "/dashboard",
 		element: (
@@ -141,13 +141,12 @@ export const router = createBrowserRouter([
 				</DashboardLayout>
 			</RequireAuth>
 		),
+		handle: { title: "Dashboard • EasyRide" },
 		children: [
-			{
-				path: "",
-				element: <Navigate to="home" replace />,
-			},
+			{ path: "", element: <Navigate to="home" replace /> },
 			{
 				path: "home",
+				handle: { title: "Dashboard • EasyRide" },
 				lazy: async () => {
 					const { default: Home } = await import(
 						"@pages/admin/home/Dashboard"
@@ -157,6 +156,7 @@ export const router = createBrowserRouter([
 			},
 			{
 				path: "vehicle",
+				handle: { title: "Vehicles • EasyRide" },
 				children: [
 					{
 						path: "",
@@ -171,6 +171,7 @@ export const router = createBrowserRouter([
 			},
 			{
 				path: "trip",
+				handle: { title: "Trips • EasyRide" },
 				children: [
 					{
 						path: "",
@@ -185,6 +186,7 @@ export const router = createBrowserRouter([
 			},
 			{
 				path: "user",
+				handle: { title: "Users • EasyRide" },
 				lazy: async () => {
 					const { default: User } = await import(
 						"@pages/admin/user/User"
@@ -194,6 +196,7 @@ export const router = createBrowserRouter([
 			},
 			{
 				path: "coupon",
+				handle: { title: "Coupons • EasyRide" },
 				children: [
 					{
 						path: "",
@@ -208,6 +211,7 @@ export const router = createBrowserRouter([
 			},
 			{
 				path: "system",
+				handle: { title: "System • EasyRide" },
 				lazy: async () => {
 					const { default: System } = await import(
 						"@pages/admin/system/System"

@@ -25,7 +25,7 @@ export const errorHandler = (
 	res: Response,
     _next: NextFunction
 ) => {
-	logger.debug({
+	logger.error({
         err,
         method: req.method,
         path: req.originalUrl,

@@ -22,6 +22,7 @@ import axios, { isAxiosError } from "axios";
 import type { CreateVehicleDTO } from "@my-types/vehicle";
 import { APP_CONFIG, API_ENDPOINTS } from "@constants/index";
 import type { VehicleType } from "@my-types/vehicleType";
+import callApi from "@utils/apiCaller";
 
 interface CreateVehicleFormProps {
 	open: boolean;
@@ -36,46 +37,50 @@ const CreateVehicleForm: React.FC<CreateVehicleFormProps> = ({
 	const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
 	const [formData, setFormData] = useState<CreateVehicleDTO>({
 		numberPlate: "",
-		vehicleTypeId: 0,
-		model: "",
 		manufacturer: "",
+		model: "",
+		vehicleTypeId: 0,
 	});
 
 	useEffect(() => {
 		const getVehicleTypes = async () => {
 			try {
-				const response = await axios.get(`${APP_CONFIG.apiBaseUrl}${API_ENDPOINTS.VEHICLE_TYPE.BASE}`);
-				const rows: VehicleType[] = response.data.rows;
-				const count: number = response.data.count;
-				if (rows.length !== count) {
-					throw new Error("Data inconsistency: number of rows does not match count");
-				}
-				
-				if (rows && rows.length <= 0) {
-					throw new Error("Server returned empty set");
-				}
+				const { data, status } = await callApi(
+					{
+						method: "GET",
+						url: API_ENDPOINTS.VEHICLE_TYPE.BASE,
+					},
+					{ returnFullResponse: true }
+				);
 
-				if (Array.isArray(rows)) {
-					setVehicleTypes(rows);
-				} else {
-					throw new Error("Invalid data format from server");
-				}
+				if (status === 200 || status === 304) {
+					if (data && data.length <= 0) {
+						throw new Error("Server returned empty set");
+					}
 
+					if (Array.isArray(data)) {
+						setVehicleTypes(data);
+					} else {
+						throw new Error("Invalid data format from server");
+					}
+					return;
+				}
+				throw new Error("Server Error");
 			} catch (err: unknown) {
 				// Fixed: Use 'unknown' instead of specific type or 'any'
 				// Narrow the type safely
 				let errorMessage = "Failed to load vehicle types.";
-	
+
 				if (isAxiosError(err) && err.response?.data?.message) {
 					errorMessage = err.response.data.message; // Now TypeScript knows it's a string
 				} else if (err instanceof Error) {
 					errorMessage = err.message; // Fallback for other Errors
 				} // Else: Use the default message for non-Error throws (e.g., strings)
-	
+
 				setErrors({ general: errorMessage }); // Or merge: setErrors((prev) => ({ ...prev, general: errorMessage }));
 				console.error("Vehicle type fetch error:", err);
 			}
-		}
+		};
 
 		getVehicleTypes();
 	}, []);
@@ -127,7 +132,10 @@ const CreateVehicleForm: React.FC<CreateVehicleFormProps> = ({
 		console.log("Creating vehicle:", formData);
 
 		try {
-			const response = await axios.post(`${APP_CONFIG.apiBaseUrl}${API_ENDPOINTS.VEHICLE.BASE}`, formData);
+			const response = await axios.post(
+				`${APP_CONFIG.apiBaseUrl}${API_ENDPOINTS.VEHICLE.BASE}`,
+				formData
+			);
 			console.log("Vehicle created:", response.data);
 			alert("Vehicle created successfully!");
 			onClose(); // Close dialog on success
@@ -159,7 +167,10 @@ const CreateVehicleForm: React.FC<CreateVehicleFormProps> = ({
 					<Grid container spacing={3}>
 						{/* Vehicle Type */}
 						<Grid size={{ xs: 12 }}>
-							<FormControl fullWidth error={!!errors.vehicleTypeId}>
+							<FormControl
+								fullWidth
+								error={!!errors.vehicleTypeId}
+							>
 								<InputLabel>Select a vehicle type</InputLabel>
 								<Select
 									value={formData.vehicleTypeId}
@@ -189,18 +200,21 @@ const CreateVehicleForm: React.FC<CreateVehicleFormProps> = ({
 							</FormControl>
 						</Grid>
 
-						{/* Vehicle Name */}
+						{/* Manufacturer */}
 						<Grid size={{ xs: 12 }}>
 							<TextField
 								fullWidth
-								label="Vehicle Name"
+								label="Manufacturer"
 								value={formData.manufacturer}
 								onChange={(e) =>
-									handleInputChange("manufacturer", e.target.value)
+									handleInputChange(
+										"manufacturer",
+										e.target.value
+									)
 								}
 								error={!!errors.manufacturer}
 								helperText={errors.manufacturer}
-								placeholder="Enter vehicle name"
+								placeholder="Enter manufacturer name"
 							/>
 						</Grid>
 
@@ -267,6 +281,17 @@ const CreateVehicleForm: React.FC<CreateVehicleFormProps> = ({
 						},
 						minWidth: 120,
 					}}
+					disabled={
+						// Disable when any required field is empty or no vehicle type selected
+						!(
+							formData.manufacturer &&
+							formData.manufacturer.trim() &&
+							formData.model &&
+							formData.model.trim() &&
+							formData.numberPlate.trim() &&
+							formData.vehicleTypeId > 0
+						)
+					}
 					onClick={handleSubmit}
 				>
 					Create
