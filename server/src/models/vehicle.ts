@@ -13,11 +13,13 @@ import { DbModels } from "@models";
  * @enum {string}
  * @property {string} ACTIVE - The vehicle is active and available for trips.
  * @property {string} INACTIVE - The vehicle is inactive and not available for trips.
+ * @property {string} BUSY - The vehicle is inactive and not available for trips.
  * @property {string} MAINTENANCE - The vehicle is under maintenance.
  */
 export enum VehicleStatus {
 	ACTIVE = "ACTIVE",
 	INACTIVE = "INACTIVE",
+	BUSY = "BUSY",
 	MAINTENANCE = "MAINTENANCE",
 }
 
@@ -35,6 +37,7 @@ export enum VehicleStatus {
 export interface VehicleAttributes {
 	id: number;
 	numberPlate: string;
+	status: string;
 	vehicleTypeId: number;
 	manufacturer?: string | null;
 	model?: string | null;
@@ -71,6 +74,8 @@ export class Vehicle
 {
 	/** Unique identifier of the vehicle */
 	public id!: number;
+
+	public status!: VehicleStatus;
 
 	/** Unique license plate number of the vehicle */
 	public numberPlate!: string;
@@ -112,6 +117,11 @@ export class Vehicle
 					type: DataTypes.INTEGER.UNSIGNED,
 					primaryKey: true,
 					autoIncrement: true,
+				},
+				status: {
+					type: DataTypes.ENUM(...Object.values(VehicleStatus)),
+					allowNull: false,
+					defaultValue: VehicleStatus.ACTIVE,
 				},
 				numberPlate: {
 					type: DataTypes.STRING,

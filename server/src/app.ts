@@ -67,7 +67,7 @@ app.use(passport.initialize());
 applyPassportStrategy();
 
 // Server uploads statically
-const uploadsPath = path.resolve(__dirname, "../../uploads");
+const uploadsPath = path.resolve(__dirname, "../uploads");
 app.use(
 	"/uploads",
 	express.static(uploadsPath, {

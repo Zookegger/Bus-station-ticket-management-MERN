@@ -1,3 +1,5 @@
+import { VehicleStatus } from "@models/vehicle";
+
 /**
  * Data Transfer Object for creating a new Vehicle.
  *
@@ -12,6 +14,7 @@
  */
 export interface CreateVehicleDTO {
 	numberPlate: string;
+	status: VehicleStatus;
 	vehicleTypeId: number;
 	manufacturer?: string | null;
 	model?: string | null;
@@ -33,6 +36,7 @@ export interface CreateVehicleDTO {
 export interface UpdateVehicleDTO {
 	id: number;
 	numberPlate?: string;
+	status?: VehicleStatus;
 	vehicleTypeId?: number;
 	manufacturer?: string | null;
 	model?: string | null;

@@ -19,6 +19,20 @@ const RequireAuth: React.FC<{ children: React.ReactElement }> = ({
 	return children;
 };
 
+/**
+ * Component to protect routes that require authentication.
+ * Redirects to login if the user is not authenticated.
+ */
+const RequireAdminAuth: React.FC<{ children: React.ReactElement }> = ({
+	children,
+}) => {
+	const { isLoading, isAuthenticated, isAdmin } = useAuth();
+	if (isLoading) return <LoadingSkeleton />;
+	if (!isAuthenticated) return <Navigate to={ROUTES.LOGIN} replace />;
+	if (!isAdmin) return <Navigate to={ROUTES.NOT_FOUND} replace />;
+	return children;
+};
+
 export const router = createBrowserRouter([
 	{
 		path: "/",
@@ -133,13 +147,13 @@ export const router = createBrowserRouter([
 	{
 		path: "/dashboard",
 		element: (
-			<RequireAuth>
+			<RequireAdminAuth>
 				<DashboardLayout>
 					<Suspense fallback={<LoadingSkeleton />}>
 						<Outlet />
 					</Suspense>
 				</DashboardLayout>
-			</RequireAuth>
+			</RequireAdminAuth>
 		),
 		handle: { title: "Dashboard • EasyRide" },
 		children: [

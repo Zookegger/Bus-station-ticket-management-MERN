@@ -51,14 +51,22 @@ export interface VehicleWithType extends Omit<Vehicle, 'vehicleTypeId'> {
  * @interface VehicleTypeSummary
  * @property {number} id - Unique identifier of the vehicle type.
  * @property {string} name - Display name of the vehicle type (e.g., "Luxury Bus").
- * @property {number | null} [price] - Base price associated with this vehicle type.
- * @property {number | null} [totalSeats] - Total seat count for this vehicle type.
+ * @property {number} price - Base price associated with this vehicle type.
+ * @property {number} totalFloors - Number of floors in the vehicle.
+ * @property {number} totalSeats - Total seat count for this vehicle type.
+ * @property {string} seatLayout - JSON string representing the seat layout.
+ * @property {string} createdAt - Timestamp when the vehicle type was created.
+ * @property {string} updatedAt - Timestamp when the vehicle type was last updated.
  */
 export interface VehicleTypeSummary {
 	id: number;
 	name: string;
-	price?: number | null;
-	totalSeats?: number | null;
+	price: number;
+	totalFloors: number;
+	totalSeats: number;
+	seatLayout: string;
+	createdAt: string;
+	updatedAt: string;
 }
 
 /**

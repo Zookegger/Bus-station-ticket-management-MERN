@@ -18,6 +18,8 @@ import {
 import { SeatStatus } from "@my_types/seat";
 import { VehicleType } from "@models/vehicleType";
 import { tripSchedulingQueue } from "@utils/queues/tripSchedulingQueue";
+import { enqueueVehicleStatus } from "@utils/queues/vehicleStatusQueue";
+import { VehicleStatus } from "@models/vehicle";
 import { SchedulingStrategies } from "@utils/schedulingStrategy";
 
 /**
@@ -405,6 +407,12 @@ export const addTrip = async (dto: CreateTripDTO): Promise<Trip | null> => {
             tripId: trip.id,
             strategy
         });
+
+		// Schedule vehicle status transition to BUSY at trip start time
+		const delay = createData.startTime.getTime() - Date.now();
+		if (delay > 0) {
+			await enqueueVehicleStatus({ vehicleId: vehicle.id, status: VehicleStatus.BUSY }, delay);
+		}
 	}
 
 	return trip;

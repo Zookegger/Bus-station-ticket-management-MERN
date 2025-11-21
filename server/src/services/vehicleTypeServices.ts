@@ -34,6 +34,7 @@ import {
  */
 interface ListOptions {
     keywords?: string;
+    items?: string[],
     orderBy?: string;
     sortOrder?: "ASC" | "DESC";
     page?: number;
@@ -106,6 +107,7 @@ export const listVehicleTypes = async (options: ListOptions = {}
         orderBy = "createdAt", 
         sortOrder = "DESC",
         page,
+        items,
         limit,
         minPrice,
         maxPrice,
@@ -148,6 +150,10 @@ export const listVehicleTypes = async (options: ListOptions = {}
         where: Object.keys(where).length > 0 ? where : undefined,
         order: [[orderBy, sortOrder]]
     };
+    
+    if (items && items !== null && items.length > 0) {
+        queryOptions.attributes = items;
+    }
 
     // Add pagination if provided
     if (page !== undefined && limit !== undefined) {
