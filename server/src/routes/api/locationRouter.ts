@@ -12,7 +12,6 @@ import * as locationValidators from "@middlewares/validators/locationValidator";
 import * as locationController from "@controllers/locationController";
 import { errorHandler } from "@middlewares/errorHandler";
 import { handleValidationResult } from "@middlewares/validateRequest";
-import { csrfAdminProtectionRoute } from "@middlewares/csrf";
 
 /**
  * Location router instance.
@@ -55,37 +54,6 @@ locationRouter.get(
 	locationValidators.getLocationByCoordinatesValidation,
 	handleValidationResult,
 	locationController.GetLocationByCoordinates,
-	errorHandler
-);
-
-// POST /locations - Create a new location (Admin only)
-locationRouter.post(
-	"/",
-	csrfAdminProtectionRoute,
-	locationValidators.createLocationValidation,
-	handleValidationResult,
-	locationController.AddLocation,
-	errorHandler
-);
-
-// PUT /locations/:id - Update an existing location (Admin only)
-locationRouter.put(
-	"/:id",
-	csrfAdminProtectionRoute,
-	locationValidators.validateLocationIdParam,
-	locationValidators.updateLocationValidation,
-	handleValidationResult,
-	locationController.UpdateLocation,
-	errorHandler
-);
-
-// DELETE /locations/:id - Delete a location by ID (Admin only)
-locationRouter.delete(
-	"/:id",
-	csrfAdminProtectionRoute,
-	locationValidators.validateLocationIdParam,
-	handleValidationResult,
-	locationController.DeleteLocation,
 	errorHandler
 );
 

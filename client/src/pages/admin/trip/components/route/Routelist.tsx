@@ -76,7 +76,7 @@ const RouteList: React.FC = () => {
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
-				const response = await axios.get(API_ENDPOINTS.ROUTE.SEARCH);
+				const response = await axios.get(API_ENDPOINTS.ROUTE.BASE);
 				if (response.status !== 200)
 					throw new Error("Failed to fetch data");
 				const data = response.data as any;
@@ -123,7 +123,7 @@ const RouteList: React.FC = () => {
 						size="small"
 						variant="outlined"
 						disabled={!raw || !hasCoords}
-						onClick={(e) => {
+						onClick={(e) => {	
 							e.stopPropagation();
 							if (!raw) return;
 							if (
@@ -131,10 +131,9 @@ const RouteList: React.FC = () => {
 								raw.startLocation?.longitude
 							) {
 								setMapStart({
-									lat: raw.startLocation.latitude,
-									lon: raw.startLocation.longitude,
-									display_name:
-										raw.startLocation.name ?? "Start",
+									latitude: raw.startLocation.latitude,
+									longitude: raw.startLocation.longitude,
+									name: raw.startLocation.name ?? "Start",
 								});
 							}
 							if (
@@ -142,9 +141,9 @@ const RouteList: React.FC = () => {
 								raw.destination?.longitude
 							) {
 								setMapEnd({
-									lat: raw.destination.latitude,
-									lon: raw.destination.longitude,
-									display_name: raw.destination.name ?? "End",
+									latitude: raw.destination.latitude,
+									longitude: raw.destination.longitude,
+									name: raw.destination.name ?? "End",
 								});
 							}
 							setMapOpen(true);
@@ -200,6 +199,7 @@ const RouteList: React.FC = () => {
 
 			<EditRouteForm
 				route={selectedRoute}
+				routeId={selectedRoute ? selectedRoute.id : undefined}
 				key={selectedRoute ? selectedRoute.id : "new"}
 				open={editOpen}
 				onClose={() => setEditOpen(false)}

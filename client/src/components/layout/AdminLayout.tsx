@@ -1,12 +1,41 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Box } from "@mui/material";
 import Sidebar from "./Sidebar";
 import { useAuth } from "@hooks/useAuth";
-import { redirect } from "react-router-dom";
+import { redirect, useMatches } from "react-router-dom";
 
 interface AdminLayoutProps {
 	children: React.ReactNode;
 }
+
+const PageTitleUpdater = () => {
+	const matches = useMatches();
+	const default_title = "EasyRide - Bus Ticket Booking";
+
+	const title = useMemo(() => {
+		// find the deepest route with a handle.title
+		const match = [...matches].reverse().find((match) => {
+			return (match as any).handle;
+		});
+
+		if (match) {
+			const h = (match as any).handle;
+
+			return typeof h.title === "function"
+				? h.title(match.data)
+				: h.title;
+		}
+
+		return default_title;
+	}, [matches]);
+
+	useEffect(() => {
+		document.title = title;
+	}, [title]);
+
+	return null;
+};
+
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -35,6 +64,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 					maxWidth: sidebarCollapsed ? "calc(100vw - 70px)" : "calc(100vw - 200px)"
 				}}
 			>
+				<PageTitleUpdater/>
 				{children}
 			</Box>
 		</Box>

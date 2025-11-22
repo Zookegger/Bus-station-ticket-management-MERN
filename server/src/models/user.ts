@@ -252,17 +252,7 @@ export class User
 						if (!user.userName) {
 							user.userName = user.email;
 						}
-						if (user.firstName && user.lastName) {
-							// @ts-ignore
-							user.fullName = `${user.firstName} ${user.lastName}`;
-						}
 					},
-					beforeUpdate: (user: User) => {
-						if (user.changed('firstName') || user.changed('lastName')) {
-							// @ts-ignore
-							user.fullName = `${user.firstName} ${user.lastName}`;
-						}
-					}
 				},
 				indexes: [
 					{ fields: ["email"], unique: true },

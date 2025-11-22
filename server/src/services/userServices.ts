@@ -139,8 +139,7 @@ export const generateDefaultAdminAccount = async (): Promise<User | null> => {
 		emailConfirmed: true,
 		userName: "admin",
 		firstName: "admin",
-		lastName: "admin",
-		fullName: "admin",
+		lastName: "user",
 		passwordHash,
 	});
 };

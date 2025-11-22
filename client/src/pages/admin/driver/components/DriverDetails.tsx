@@ -46,7 +46,7 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({ driver, onClose }) => {
         variant="h6"
         sx={{ fontWeight: 700, color: "#1e88e5", mb: 2 }}
       >
-        Driver Details
+        Chi tiết tài xế
       </Typography>
 
       {/* Avatar + Info */}
@@ -89,20 +89,20 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({ driver, onClose }) => {
       {/* Thông tin cá nhân */}
       <Paper variant="outlined" sx={{ mb: 2 }}>
         <Box sx={{ p: 1.5, background: "#e3f2fd" }}>
-          <Typography sx={{ fontWeight: 700 }}>Personal information</Typography>
+          <Typography sx={{ fontWeight: 700 }}>Thông tin cá nhân</Typography>
         </Box>
         <Box sx={{ p: 2 }}>
           <Stack spacing={1.5}>
             <Stack direction="row" spacing={1.5} alignItems="center">
               <EventRounded fontSize="small" />
               <Typography variant="body2">
-                Date of Birth:{" "}
+                Ngày sinh:{" "}
                 {new Date(driver.dateOfBirth).toLocaleDateString("vi-VN")}
               </Typography>
             </Stack>
             <Stack direction="row" spacing={1.5} alignItems="center">
               <HomeRounded fontSize="small" />
-              <Typography variant="body2">Address: {driver.address}</Typography>
+              <Typography variant="body2">Địa chỉ: {driver.address}</Typography>
             </Stack>
           </Stack>
         </Box>
@@ -117,7 +117,9 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({ driver, onClose }) => {
           <Stack spacing={1.5}>
             <Stack direction="row" spacing={1.5} alignItems="center">
               <PhoneIphoneRounded fontSize="small" />
-              <Typography variant="body2">Phone: {driver.phone}</Typography>
+              <Typography variant="body2">
+                Số điện thoại: {driver.phone}
+              </Typography>
             </Stack>
             <Stack direction="row" spacing={1.5} alignItems="center">
               <MailOutlineRounded fontSize="small" />
@@ -130,27 +132,27 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({ driver, onClose }) => {
       {/* Bằng lái */}
       <Paper variant="outlined" sx={{ mb: 2 }}>
         <Box sx={{ p: 1.5, background: "#e3f2fd" }}>
-          <Typography sx={{ fontWeight: 700 }}>Driver's License</Typography>
+          <Typography sx={{ fontWeight: 700 }}>Giấy phép lái xe</Typography>
         </Box>
         <Box sx={{ p: 2 }}>
           <Stack spacing={1.5}>
             <Stack direction="row" spacing={1.5} alignItems="center">
               <BadgeRounded fontSize="small" />
               <Typography variant="body2">
-                License Number: {driver.licenseNumber}
+                Số bằng lái: {driver.licenseNumber}
               </Typography>
             </Stack>
             <Stack direction="row" spacing={1.5} alignItems="center">
               <Typography variant="body2" sx={{ ml: 4 }}>
-                License Class: {driver.licenseClass}
+                Hạng bằng lái: {driver.licenseClass}
               </Typography>
             </Stack>
             <Stack direction="row" spacing={1.5} alignItems="center">
               <CalendarTodayRounded fontSize="small" />
               <Typography variant="body2">
-                Issue Date:{" "}
-                {new Date(driver.issueDate).toLocaleDateString("vi-VN")} -
-                Expiry Date:{" "}
+                Ngày cấp:{" "}
+                {new Date(driver.issueDate).toLocaleDateString("vi-VN")} - Ngày
+                hết hạn:{" "}
                 {new Date(driver.expiryDate).toLocaleDateString("vi-VN")}
               </Typography>
             </Stack>
@@ -161,18 +163,18 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({ driver, onClose }) => {
       {/* Thống kê */}
       <Paper variant="outlined" sx={{ mb: 2 }}>
         <Box sx={{ p: 1.5, background: "#e3f2fd" }}>
-          <Typography sx={{ fontWeight: 700 }}>Activity Statistics</Typography>
+          <Typography sx={{ fontWeight: 700 }}>Thống kê hoạt động</Typography>
         </Box>
         <Box sx={{ p: 2 }}>
           <Stack spacing={1.5}>
             <Typography variant="body2">
-              Total Trips: {driver.totalTrips}
+              Tổng số chuyến đi: {driver.totalTrips}
             </Typography>
             <Typography variant="body2">
-              Total Earnings: {currency(driver.totalEarnings)}
+              Tổng thu nhập: {currency(driver.totalEarnings)}
             </Typography>
             <Typography variant="body2">
-              Rating: ⭐ {driver.rating.toFixed(1)}
+              Đánh giá: ⭐ {driver.rating.toFixed(1)}
             </Typography>
           </Stack>
         </Box>
@@ -182,7 +184,7 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({ driver, onClose }) => {
 
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
         <Button variant="outlined" fullWidth onClick={onClose}>
-          Back to List
+          Quay lại danh sách
         </Button>
       </Stack>
     </Box>

@@ -5,14 +5,13 @@ import {
 	Typography,
 	IconButton,
 	Divider,
-	List,
-	ListItem,
-	ListItemIcon,
-	ListItemText,
 	Button,
 	Chip,
 	Grid,
+	Paper,
+	type ChipPropsColorOverrides,
 } from "@mui/material";
+import type { OverridableStringUnion } from "@mui/types";
 import {
 	Close as CloseIcon,
 	DirectionsBus as BusIcon,
@@ -33,6 +32,53 @@ interface VehicleTypeDetailsDrawerProps {
 	onEdit: (vehicleType: VehicleType) => void;
 	onDelete: (vehicleType: VehicleType) => void;
 }
+
+interface ItemPanelProps {
+	labelName: string;
+	iconItem: React.ReactNode;
+	content: any;
+	chipColor?: OverridableStringUnion<
+		| "primary"
+		| "secondary"
+		| "error"
+		| "info"
+		| "success"
+		| "warning"
+		| "default",
+		ChipPropsColorOverrides
+	>;
+}
+
+const ItemPanel: React.FC<ItemPanelProps> = ({
+	labelName,
+	iconItem,
+	content,
+	chipColor,
+}) => {
+	return (
+		<Grid size={{ xs: 6 }} flexGrow={1}>
+			<Paper sx={{ height: "100%", display: "flex" }}>
+				<Box
+					display={"flex"}
+					flexDirection={"column"}
+					alignItems={"center"}
+					justifyContent={"center"}
+					flexGrow={1}
+					paddingY={3}
+				>
+					{iconItem}
+					<Typography>{labelName}</Typography>
+					<Chip
+						label={content ?? "N/A"}
+						color={chipColor}
+						size="small"
+						sx={{ fontWeight: "bold", mt: 1 }}
+					/>
+				</Box>
+			</Paper>
+		</Grid>
+	);
+};
 
 const VehicleTypeDetailsDrawer: React.FC<VehicleTypeDetailsDrawerProps> = ({
 	open,
@@ -55,10 +101,12 @@ const VehicleTypeDetailsDrawer: React.FC<VehicleTypeDetailsDrawerProps> = ({
 			anchor="right"
 			open={open}
 			onClose={onClose}
-			PaperProps={{
-				sx: {
-					width: 400,
-					bgcolor: "#f8f9fa",
+			slotProps={{
+				paper: {
+					sx: {
+						width: 400,
+						bgcolor: "#f8f9fa",
+					},
 				},
 			}}
 		>
@@ -79,105 +127,54 @@ const VehicleTypeDetailsDrawer: React.FC<VehicleTypeDetailsDrawerProps> = ({
 				<Divider sx={{ mb: 3 }} />
 
 				{/* Vehicle Information */}
-				<Box sx={{ bgcolor: "white", p: 3, borderRadius: 2, mb: 3 }}>
-					<Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
-						Vehicle Information
-					</Typography>
-
-					<List dense>
-						<ListItem sx={{ px: 0 }}>
-							<ListItemIcon>
-								<BusIcon color="primary" />
-							</ListItemIcon>
-							<ListItemText
-								primary="Name"
-								secondary={
-									<Typography
-										variant="body1"
-										sx={{ fontWeight: "medium" }}
-									>
-										{vehicleType.name}
-									</Typography>
-								}
-							/>
-						</ListItem>
-
-						<ListItem sx={{ px: 0 }}>
-							<ListItemIcon>
-								<MoneyIcon color="success" />
-							</ListItemIcon>
-							<ListItemText
-								primary="Price"
-								secondary={
-									<Typography
-										variant="body1"
-										sx={{ fontWeight: "medium" }}
-									>
-										{vehicleType.price
-											? formatCurrency(vehicleType.price)
-											: "N/A"}
-									</Typography>
-								}
-							/>
-						</ListItem>
-
-						<ListItem sx={{ px: 0 }}>
-							<ListItemIcon>
-								<SeatIcon color="info" />
-							</ListItemIcon>
-							<ListItemText
-								primary="Total Seats"
-								secondary={
-									<Chip
-										label={vehicleType.totalSeats}
-										color="info"
-										size="small"
-										sx={{ fontWeight: "bold" }}
-									/>
-								}
-							/>
-						</ListItem>
-
-						<ListItem sx={{ px: 0 }}>
-							<ListItemIcon>
-								<FloorIcon color="error" />
-							</ListItemIcon>
-							<ListItemText
-								primary="Total Floors"
-								secondary={
-									<Typography
-										variant="body1"
-										sx={{ fontWeight: "medium" }}
-									>
-										{vehicleType.totalFloors}
-									</Typography>
-								}
-							/>
-						</ListItem>
-					</List>
-				</Box>
+				<Paper sx={{ p: 0, borderRadius: 2, mb: 3 }} elevation={0}>
+					<Grid container gap={1}>
+						<ItemPanel
+							content={vehicleType.name ?? "N/A"}
+							chipColor="info"
+							labelName={"Name"}
+							iconItem={
+								<BusIcon fontSize={"large"} color="primary" />
+							}
+						/>
+						<ItemPanel
+							content={formatCurrency(vehicleType.price) ?? "N/A"}
+							chipColor="success"
+							labelName={"Price"}
+							iconItem={
+								<MoneyIcon fontSize={"large"} color="success" />
+							}
+						/>
+						<ItemPanel
+							content={vehicleType.totalSeats ?? "N/A"}
+							chipColor="secondary"
+							labelName={"Total Seats"}
+							iconItem={
+								<SeatIcon
+									fontSize={"large"}
+									color="secondary"
+								/>
+							}
+						/>
+						<ItemPanel
+							content={vehicleType.totalFloors ?? "N/A"}
+							chipColor="error"
+							labelName={"Total Floors"}
+							iconItem={
+								<FloorIcon fontSize={"large"} color="error" />
+							}
+						/>
+					</Grid>
+				</Paper>
 
 				{/* Seat Layout Preview */}
-				<Box sx={{ bgcolor: "white", p: 3, borderRadius: 2, mb: 3 }}>
-					<Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
-						Seat Layout
-					</Typography>
-					<Grid container spacing={2}>
-						<Grid size={{ xs: 12 }}>
-							<Typography variant="subtitle1">
-								Total Seats:
-							</Typography>
-							<Typography variant="body1">
-								{vehicleType?.totalSeats ?? "N/A"}
-							</Typography>
-						</Grid>
-					</Grid>
-					<Divider sx={{ my: 2 }} />
-					<Typography variant="h6" gutterBottom>
-						Seat Layout
-					</Typography>
+				<Paper sx={{ p: 0, borderRadius: 2, mb: 3 }}>
 					<SeatLayoutPreview seatLayout={vehicleType?.seatLayout} />
-				</Box>
+					<Divider sx={{ my: 2 }} />
+					<Typography variant="subtitle1" fontWeight={"bold"} textAlign={"center"} paddingBottom={2}>
+						Total Seats: {vehicleType.totalSeats}
+					</Typography>
+				</Paper>
 
 				{/* Action Buttons */}
 				<Box sx={{ display: "flex", gap: 2, flexDirection: "column" }}>

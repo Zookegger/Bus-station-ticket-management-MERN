@@ -79,14 +79,14 @@ const AssignmentList: React.FC = () => {
         mb={2}
       >
         <Typography variant="h5" sx={{ fontWeight: 700, color: "#2E7D32" }}>
-          Driver Assignment
+          Phân công tài xế
         </Typography>
         <Button
           variant="contained"
           onClick={() => navigate("assignment/create")}
           sx={{ textTransform: "none" }}
         >
-          + Assign
+          + Phân công mới
         </Button>
       </Stack>
 
@@ -94,8 +94,8 @@ const AssignmentList: React.FC = () => {
       <Paper variant="outlined" sx={{ p: 2 }}>
         {assignments.length === 0 ? (
           <Alert severity="info">
-            No trips available for assignment. All have been assigned or are in
-            "Standby" status.
+            Không có chuyến đi nào có thể phân công. Tất cả đã được phân công
+            hoặc đang ở trạng thái "Chờ".
           </Alert>
         ) : (
           <>
@@ -106,16 +106,16 @@ const AssignmentList: React.FC = () => {
               mb={2}
               alignItems="center"
             >
-              <Typography variant="body2">Show</Typography>
+              <Typography variant="body2">Hiển thị</Typography>
               <Chip
-                label={rowsPerPage === -1 ? "All" : rowsPerPage}
+                label={rowsPerPage === -1 ? "Tất cả" : rowsPerPage}
                 size="small"
               />
-              <Typography variant="body2">records</Typography>
+              <Typography variant="body2">bản ghi</Typography>
               <Box sx={{ flex: 1 }} />
               <TextField
                 size="small"
-                placeholder="Search..."
+                placeholder="Tìm kiếm..."
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -130,11 +130,11 @@ const AssignmentList: React.FC = () => {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Trip</TableCell>
-                    <TableCell>Time</TableCell>
-                    <TableCell>Driver</TableCell>
-                    <TableCell>Assigned Date</TableCell>
-                    <TableCell align="right">Actions</TableCell>
+                    <TableCell>Chuyến đi</TableCell>
+                    <TableCell>Thời gian</TableCell>
+                    <TableCell>Tài xế</TableCell>
+                    <TableCell>Ngày phân công</TableCell>
+                    <TableCell align="right">Trạng thái</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -186,7 +186,7 @@ const AssignmentList: React.FC = () => {
               sx={{ display: "flex", justifyContent: "space-between", pt: 1 }}
             >
               <Typography variant="caption">
-                {filtered.length} of {assignments.length} records
+                {filtered.length} of {assignments.length} bản ghi
               </Typography>
               <TablePagination
                 component="div"
@@ -212,13 +212,13 @@ const AssignmentList: React.FC = () => {
         onClose={() => setMenuAnchor(null)}
       >
         <MenuItem onClick={() => selectedId && openDetails(selectedId)}>
-          View Details
+          Xem chi tiết
         </MenuItem>
         <MenuItem>
-          <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
+          <EditIcon fontSize="small" sx={{ mr: 1 }} /> Sửa
         </MenuItem>
         <MenuItem sx={{ color: "error.main" }}>
-          <DeleteIcon fontSize="small" sx={{ mr: 1 }} /> Cancel Assignment
+          <DeleteIcon fontSize="small" sx={{ mr: 1 }} /> Hủy phân công
         </MenuItem>
       </Menu>
 

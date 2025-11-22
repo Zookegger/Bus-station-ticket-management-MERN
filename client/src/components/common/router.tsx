@@ -20,7 +20,6 @@ const RequireAuth: React.FC<{ children: React.ReactElement }> = ({
 };
 
 export const router = createBrowserRouter([
-  // Default routes with separate layout (no header/footer)
   {
     path: "/",
     element: (
@@ -30,23 +29,19 @@ export const router = createBrowserRouter([
         </Suspense>
       </Layout>
     ),
+    handle: { title: "EasyRide - Bus Ticket Booking" },
     children: [
       {
         path: ROUTES.HOME,
+        handle: { title: "Home • EasyRide" },
         lazy: async () => {
           const { default: Home } = await import("@pages/landing/Home");
           return { Component: Home };
         },
       },
       {
-        path: ROUTES.PROFILE,
-        lazy: async () => {
-          const { default: Profile } = await import("@pages/landing/Profile");
-          return { Component: Profile };
-        },
-      },
-      {
         path: ROUTES.LOGIN,
+        handle: { title: "Login • EasyRide" },
         lazy: async () => {
           const { default: Login } = await import("@pages/landing/Login");
           return { Component: Login };
@@ -54,6 +49,7 @@ export const router = createBrowserRouter([
       },
       {
         path: ROUTES.REGISTER,
+        handle: { title: "Register • EasyRide" },
         lazy: async () => {
           const { default: Register } = await import("@pages/landing/Register");
           return { Component: Register };
@@ -61,6 +57,7 @@ export const router = createBrowserRouter([
       },
       {
         path: ROUTES.VERIFY_EMAIL,
+        handle: { title: "Verify Email • EasyRide" },
         lazy: async () => {
           const { default: ConfirmEmail } = await import(
             "@pages/common/ConfirmEmail"
@@ -69,15 +66,8 @@ export const router = createBrowserRouter([
         },
       },
       {
-        path: ROUTES.NOT_FOUND,
-        lazy: async () => {
-          const { default: NotFound } = await import("@pages/common/NotFound");
-          return { Component: NotFound };
-        },
-      },
-
-      {
         path: ROUTES.PRIVACY_POLICY,
+        handle: { title: "Privacy Policy • EasyRide" },
         lazy: async () => {
           const { default: PrivacyPolicy } = await import(
             "@pages/common/PrivacyPolicy"
@@ -85,9 +75,9 @@ export const router = createBrowserRouter([
           return { Component: PrivacyPolicy };
         },
       },
-
       {
         path: ROUTES.CHECK_IN,
+        handle: { title: "Check In • EasyRide" },
         lazy: async () => {
           const { default: CheckIn } = await import(
             "@pages/common/CheckInPage"
@@ -96,8 +86,40 @@ export const router = createBrowserRouter([
         },
       },
       {
-        path: "*",
-        element: <Navigate to={ROUTES.NOT_FOUND} replace />,
+        path: ROUTES.NOT_FOUND,
+        handle: { title: "Not Found • EasyRide" },
+        lazy: async () => {
+          const { default: NotFound } = await import("@pages/common/NotFound");
+          return { Component: NotFound };
+        },
+      },
+      { path: "*", element: <Navigate to={ROUTES.NOT_FOUND} replace /> },
+      {
+        path: ROUTES.MY_RATINGS,
+        lazy: async () => {
+          const { default: MyRatings } = await import(
+            "@pages/landing/MyRatings"
+          );
+          return { Component: MyRatings };
+        },
+      },
+      {
+        path: ROUTES.RATING_NEW,
+        lazy: async () => {
+          const { default: NewRating } = await import(
+            "@pages/landing/RateOrEditRating.tsx"
+          );
+          return { Component: NewRating };
+        },
+      },
+      {
+        path: ROUTES.RATING_EDIT,
+        lazy: async () => {
+          const { default: EditRating } = await import(
+            "@pages/landing/RateOrEditRating.tsx"
+          );
+          return { Component: EditRating };
+        },
       },
     ],
   },
@@ -112,21 +134,19 @@ export const router = createBrowserRouter([
         </Layout>
       </RequireAuth>
     ),
+    handle: { title: "Account • EasyRide" },
     children: [
       {
         path: ROUTES.PROFILE,
+        handle: { title: "Profile • EasyRide" },
         lazy: async () => {
           const { default: Profile } = await import("@pages/user/Profile");
           return { Component: Profile };
         },
       },
-      {
-        path: "*",
-        element: <Navigate to={ROUTES.NOT_FOUND} replace />,
-      },
+      { path: "*", element: <Navigate to={ROUTES.NOT_FOUND} replace /> },
     ],
   },
-  // Dashboard routes with separate layout (no header/footer)
   {
     path: "/dashboard",
     element: (
@@ -138,13 +158,12 @@ export const router = createBrowserRouter([
       </DashboardLayout>
       // </RequireAuth>
     ),
+    handle: { title: "Dashboard • EasyRide" },
     children: [
-      {
-        path: "",
-        element: <Navigate to="home" replace />,
-      },
+      { path: "", element: <Navigate to="home" replace /> },
       {
         path: "home",
+        handle: { title: "Dashboard • EasyRide" },
         lazy: async () => {
           const { default: Home } = await import("@pages/admin/home/Dashboard");
           return { Component: Home };
@@ -152,6 +171,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "vehicle",
+        handle: { title: "Vehicles • EasyRide" },
         children: [
           {
             path: "",
@@ -166,57 +186,13 @@ export const router = createBrowserRouter([
       },
       {
         path: "trip",
+        handle: { title: "Trips • EasyRide" },
         children: [
           {
             path: "",
             lazy: async () => {
               const { default: Trip } = await import("@pages/admin/trip/Trip");
               return { Component: Trip };
-            },
-          },
-          {
-            path: "create",
-            lazy: async () => {
-              const { default: CreateTrip } = await import(
-                "@pages/admin/trip/components/trip/CreateTrip"
-              );
-              return { Component: CreateTrip };
-            },
-          },
-          {
-            path: "edit/:id",
-            lazy: async () => {
-              const { default: EditTrip } = await import(
-                "@pages/admin/trip/components/trip/EditTrip"
-              );
-              return { Component: EditTrip };
-            },
-          },
-          {
-            path: "delete/:id",
-            lazy: async () => {
-              const { default: DeleteTrip } = await import(
-                "@pages/admin/trip/components/trip/DeleteTrip"
-              );
-              return { Component: DeleteTrip };
-            },
-          },
-          {
-            path: "createRoute",
-            lazy: async () => {
-              const { default: CreateRouteForm } = await import(
-                "@pages/admin/trip/components/route/CreateRouteForm"
-              );
-              return { Component: CreateRouteForm };
-            },
-          },
-          {
-            path: "editRoute",
-            lazy: async () => {
-              const { default: EditRouteForm } = await import(
-                "@pages/admin/trip/components/route/EditRouteForm"
-              );
-              return { Component: EditRouteForm };
             },
           },
           {
@@ -231,54 +207,44 @@ export const router = createBrowserRouter([
           {
             path: "assignment/create",
             lazy: async () => {
-              const { default: AssignmentCreate } = await import(
+              const { default: CreateAssignment } = await import(
                 "@pages/admin/assignment/components/AssignmentCreate"
               );
-              return { Component: AssignmentCreate };
+              return { Component: CreateAssignment };
             },
           },
           {
-            path: "assignment/:id",
+            path: "create",
             lazy: async () => {
-              const { default: AssignmentDetail } = await import(
-                "@pages/admin/assignment/components/AssignmentDetail"
+              const { default: CreateTrip } = await import(
+                "@pages/admin/trip/components/trip/CreateTrip"
               );
-              return { Component: AssignmentDetail };
+              return { Component: CreateTrip };
             },
           },
         ],
       },
-
       {
         path: "user",
+        handle: { title: "Users • EasyRide" },
         lazy: async () => {
           const { default: User } = await import("@pages/admin/user/User");
           return { Component: User };
         },
       },
       {
-        path: "coupon",
-        children: [
-          {
-            path: "",
-            lazy: async () => {
-              const { default: Coupon } = await import(
-                "@pages/admin/coupon/CouponPage"
-              );
-              return { Component: Coupon };
-            },
-          },
-        ],
-      },
-      {
-        path: "order",
+        path: "ratings",
+        handle: { title: "Ratings • EasyRide" },
         lazy: async () => {
-          const { default: Order } = await import("@pages/admin/order/Order");
-          return { Component: Order };
+          const { default: Ratings } = await import(
+            "@pages/admin/rating/RatingManagement"
+          );
+          return { Component: Ratings };
         },
       },
       {
         path: "coupon",
+        handle: { title: "Coupons • EasyRide" },
         children: [
           {
             path: "",
@@ -293,11 +259,20 @@ export const router = createBrowserRouter([
       },
       {
         path: "system",
+        handle: { title: "System • EasyRide" },
         lazy: async () => {
           const { default: System } = await import(
             "@pages/admin/system/System"
           );
           return { Component: System };
+        },
+      },
+      {
+        path: "order",
+        handle: { title: "Order • EasyRide" },
+        lazy: async () => {
+          const { default: Order } = await import("@pages/admin/order/Order");
+          return { Component: Order };
         },
       },
     ],

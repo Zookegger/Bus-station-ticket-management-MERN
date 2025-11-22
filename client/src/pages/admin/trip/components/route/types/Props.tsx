@@ -8,6 +8,7 @@ export interface CreateRouteFormProps {
 
 export interface EditRouteFormProps {
 	route: Route | null;
+	routeId?: number | null;
 	open: boolean;
 	onClose: () => void;
 	onEdited?: (updated_route: Route) => void;

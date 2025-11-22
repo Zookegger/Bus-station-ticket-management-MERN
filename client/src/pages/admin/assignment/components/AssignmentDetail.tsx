@@ -31,7 +31,7 @@ const AssignmentDetail: React.FC<AssignmentDetailProps> = ({
   if (!assignment || !trip) {
     return (
       <Box sx={{ p: 3 }}>
-        <Typography color="error">No assignment found</Typography>
+        <Typography color="error">Không tìm thấy phân công</Typography>
       </Box>
     );
   }
@@ -42,7 +42,7 @@ const AssignmentDetail: React.FC<AssignmentDetailProps> = ({
         variant="h5"
         sx={{ fontWeight: 700, color: "#2E7D32", mb: 2 }}
       >
-        Trip Assignment Details
+        Chi tiết phân công
       </Typography>
 
       <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
@@ -50,14 +50,14 @@ const AssignmentDetail: React.FC<AssignmentDetailProps> = ({
           {/* Cột trái */}
           <Box sx={{ flex: 1 }}>
             <Typography variant="h6" gutterBottom>
-              Trip Information
+              Thông tin chuyến đi
             </Typography>
             <Stack spacing={2}>
               <Stack direction="row" spacing={1} alignItems="flex-start">
                 <LocationOnIcon color="success" />
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Start Point
+                    Điểm đi
                   </Typography>
                   <Typography variant="body2">{trip.startPoint}</Typography>
                 </Box>
@@ -66,7 +66,7 @@ const AssignmentDetail: React.FC<AssignmentDetailProps> = ({
                 <LocationOnIcon color="error" />
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    End Point
+                    Điểm đến
                   </Typography>
                   <Typography variant="body2">{trip.endPoint}</Typography>
                 </Box>
@@ -82,7 +82,7 @@ const AssignmentDetail: React.FC<AssignmentDetailProps> = ({
             <Divider sx={{ my: 2 }} />
 
             <Typography variant="h6" gutterBottom>
-              Driver & Vehicle
+              Tài xế & Phương tiện
             </Typography>
             <Stack spacing={2}>
               <Stack direction="row" spacing={2} alignItems="center">
@@ -99,7 +99,7 @@ const AssignmentDetail: React.FC<AssignmentDetailProps> = ({
               <Stack direction="row" spacing={1} alignItems="center">
                 <DirectionsCarIcon fontSize="small" />
                 <Typography variant="body2">
-                  Vehicle: {assignment.vehicle}
+                  Phương tiện: {assignment.vehicle}
                 </Typography>
               </Stack>
             </Stack>
@@ -121,11 +121,11 @@ const AssignmentDetail: React.FC<AssignmentDetailProps> = ({
               align="center"
               sx={{ pt: 8 }}
             >
-              [Google Maps will be displayed here]
+              [Google Maps sẽ được hiển thị ở đây]
             </Typography>
             <Box sx={{ mt: 2, textAlign: "center" }}>
-              <Chip label="Distance: 12.5 km" size="small" />
-              <Chip label="Duration: ~22 minutes" size="small" sx={{ ml: 1 }} />
+              <Chip label="Khoảng cách: 12.5 km" size="small" />
+              <Chip label="Thời gian: ~22 phút" size="small" sx={{ ml: 1 }} />
             </Box>
           </Box>
         </Stack>
@@ -133,9 +133,9 @@ const AssignmentDetail: React.FC<AssignmentDetailProps> = ({
 
       <Stack direction="row" spacing={2} justifyContent="flex-end">
         <Button variant="outlined" onClick={onClose}>
-          Back to list
+          Quay lại danh sách
         </Button>
-        <Button variant="contained">Edit Assignment</Button>
+        <Button variant="contained">Chỉnh sửa phân công</Button>
       </Stack>
     </Box>
   );

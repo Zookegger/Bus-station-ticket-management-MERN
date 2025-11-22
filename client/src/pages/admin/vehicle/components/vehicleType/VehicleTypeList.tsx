@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
 	Box,
 	Button,
@@ -10,7 +10,6 @@ import {
 import {
 	Add as AddIcon,
 	Search as SearchIcon,
-	Visibility as VisibilityIcon,
 	Edit as EditIcon,
 	Delete as DeleteIcon,
 } from "@mui/icons-material";
@@ -21,6 +20,9 @@ import VehicleTypeDetailsDrawer from "./VehicleTypeDetailsDrawer";
 import DeleteVehicleTypeDialog from "./DeleteVehicleTypeDialog";
 import CreateVehicleTypeForm from "./CreateVehicleTypeForm";
 import EditVehicleTypeForm from "./EditVehicleTypeForm";
+import callApi from "@utils/apiCaller";
+import { API_ENDPOINTS } from "@constants";
+// import axios from "axios";
 
 const VehicleTypeList: React.FC = () => {
 	const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
@@ -40,6 +42,32 @@ const VehicleTypeList: React.FC = () => {
 			currency: "VND",
 		}).format(amount);
 	};
+
+	useEffect(() => {
+		const fetchVehicleTypes = async () => {
+			try {
+				// const response = await axios.get(API_ENDPOINTS.VEHICLE_TYPE.BASE);
+				const response = await callApi(
+					{ method: "GET", url: API_ENDPOINTS.VEHICLE_TYPE.BASE },
+					{ returnFullResponse: true }
+				);
+
+				// Broaden check or handle errors
+				if (
+					(response.status >= 200 && response.status < 300) ||
+					response.status === 304
+				) {
+					setVehicleTypes(response.data);
+				} else {
+					console.warn("API returned non-success status:", status);
+				}
+			} catch (error) {
+				console.error("3. API Crash:", error);
+			}
+		};
+
+		fetchVehicleTypes();
+	}, []);
 
 	// Filter vehicle types based on search term
 	const filteredVehicleTypes = vehicleTypes.filter((vt) =>
@@ -105,10 +133,10 @@ const VehicleTypeList: React.FC = () => {
 			headerName: "Name",
 			flex: 1,
 			minWidth: 150,
-			renderCell: (params) => (params.value),
+			renderCell: (params) => params.value,
 		},
 		{
-			field: "baseFare",
+			field: "price",
 			headerName: "Base Fare",
 			width: 150,
 			renderCell: (params) => formatCurrency(params.value as number),
@@ -119,18 +147,8 @@ const VehicleTypeList: React.FC = () => {
 			width: 120,
 		},
 		{
-			field: "totalFlooring",
+			field: "totalFloors",
 			headerName: "Total Flooring",
-			width: 130,
-		},
-		{
-			field: "totalRow",
-			headerName: "Total Row",
-			width: 110,
-		},
-		{
-			field: "totalColumn",
-			headerName: "Total Column",
 			width: 130,
 		},
 		{
@@ -142,16 +160,6 @@ const VehicleTypeList: React.FC = () => {
 				const vehicleType = params.row as VehicleType;
 				return (
 					<Box onClick={(e) => e.stopPropagation()}>
-						<IconButton
-							size="small"
-							onClick={(e) => {
-								e.stopPropagation();
-								handleViewDetails(vehicleType);
-							}}
-							title="View Details"
-						>
-							<VisibilityIcon />
-						</IconButton>
 						<IconButton
 							size="small"
 							color="primary"
@@ -245,7 +253,7 @@ const VehicleTypeList: React.FC = () => {
 				onConfirm={handleConfirmDelete}
 				id={vehicleTypeToDelete?.id}
 			/>
-			
+
 			<CreateVehicleTypeForm
 				open={createOpen}
 				onClose={() => setCreateOpen(false)}

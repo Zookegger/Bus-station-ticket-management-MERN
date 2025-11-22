@@ -139,7 +139,7 @@ const RouteMap: React.FC<RouteMapProps> = ({
 						<Popup>
 							<strong>Start:</strong>
 							<br />
-							{route.startLocation.display_name}
+							{route.startLocation.displayName}
 						</Popup>
 					</Marker>
 				)}
@@ -156,7 +156,7 @@ const RouteMap: React.FC<RouteMapProps> = ({
 						<Popup>
 							<strong>End:</strong>
 							<br />
-							{route.endLocation.display_name}
+							{route.endLocation.displayName}
 						</Popup>
 					</Marker>
 				)}

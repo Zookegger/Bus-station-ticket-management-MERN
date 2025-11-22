@@ -49,28 +49,27 @@ export const SearchRoute = async (
 			sortOrder = "DESC",
 			page,
 			limit,
-			startId,
-			destinationId,
+			startName,
+			destinationName,
 			minPrice,
 			maxPrice,
 		} = req.query;
 
 		const options: any = {
-			keywords: keywords as string,
-			orderBy: orderBy as string,
-			sortOrder: sortOrder as "ASC" | "DESC",
-		};
+            keywords: keywords as string,
+            orderBy: orderBy as string,
+            sortOrder: sortOrder as "ASC" | "DESC",
+            startName: startName as string,
+            destinationName: destinationName as string,
+        };
 
 		if (page !== undefined) options.page = parseInt(page as string);
 		if (limit !== undefined) options.limit = parseInt(limit as string);
-		if (startId !== undefined) options.startId = parseInt(startId as string);
-		if (destinationId !== undefined)
-			options.destinationId = parseInt(destinationId as string);
 		if (minPrice !== undefined) options.minPrice = parseFloat(minPrice as string);
 		if (maxPrice !== undefined) options.maxPrice = parseFloat(maxPrice as string);
 
 		const routes = await routeServices.searchRoute(options);
-		res.status(200).json(routes);
+		res.status(200).json(routes.rows);
 	} catch (err) {
 		next(err);
 	}
@@ -97,10 +96,10 @@ export const AddRoute = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
-		const new_route: CreateRouteDTO = req.body;
+		const dto: CreateRouteDTO = req.body; 
 
-		const route = await routeServices.addRoute(new_route);
-		if (!route) {
+		const new_route = await routeServices.addRoute(dto);
+		if (!new_route) {
 			throw {
 				status: 500,
 				message: "No route added, Something went wrong.",
@@ -108,7 +107,7 @@ export const AddRoute = async (
 		}
 
 		res.status(201).json({
-			route,
+			route: new_route,
 			message: "Route added successfully.",
 		});
 	} catch (err) {
@@ -142,13 +141,6 @@ export const UpdateRoute = async (
 		const updated_route: UpdateRouteDTO = req.body;
 
 		const route = await routeServices.updateRoute(id, updated_route);
-		if (!route) {
-			throw {
-				status: 500,
-				message:
-					"No route updated, Something went wrong or no new changes.",
-			};
-		}
 
 		res.status(200).json({
 			route,

@@ -73,13 +73,13 @@ const DriverCreate: React.FC = () => {
         variant="h5"
         sx={{ fontWeight: 700, color: "#2E7D32", mb: 3 }}
       >
-        Add New Driver
+        Thêm tài xế mới
       </Typography>
 
       <Paper variant="outlined" sx={{ p: 3 }}>
         {success && (
           <Alert severity="success" sx={{ mb: 2 }}>
-            Driver added successfully! Redirecting to the list...
+            Thêm tài xế thành công! Đang chuyển hướng về danh sách...
           </Alert>
         )}
 
@@ -90,7 +90,7 @@ const DriverCreate: React.FC = () => {
               variant="subtitle1"
               sx={{ fontWeight: 600, color: "#1565c0" }}
             >
-              Personal Information
+              Thông tin cá nhân
             </Typography>
 
             <Controller
@@ -99,7 +99,7 @@ const DriverCreate: React.FC = () => {
               render={({ field }) => (
                 <TextField
                   {...field}
-                  label="Full Name"
+                  label="Họ và tên"
                   fullWidth
                   error={!!errors.fullName}
                   helperText={errors.fullName?.message}
@@ -113,10 +113,10 @@ const DriverCreate: React.FC = () => {
                 control={control}
                 render={({ field }) => (
                   <FormControl fullWidth error={!!errors.gender}>
-                    <InputLabel>Gender</InputLabel>
-                    <Select {...field} label="Gender">
-                      <MenuItem value="Male">Male</MenuItem>
-                      <MenuItem value="Female">Female</MenuItem>
+                    <InputLabel>Giới tính</InputLabel>
+                    <Select {...field} label="Giới tính">
+                      <MenuItem value="Male">Nam</MenuItem>
+                      <MenuItem value="Female">Nữ</MenuItem>
                     </Select>
                     <FormHelperText>{errors.gender?.message}</FormHelperText>
                   </FormControl>
@@ -129,7 +129,7 @@ const DriverCreate: React.FC = () => {
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="Date of Birth"
+                    label="Ngày sinh"
                     type="date"
                     fullWidth
                     InputLabelProps={{ shrink: true }}
@@ -146,7 +146,7 @@ const DriverCreate: React.FC = () => {
               render={({ field }) => (
                 <TextField
                   {...field}
-                  label="Address"
+                  label="Địa chỉ"
                   fullWidth
                   error={!!errors.address}
                   helperText={errors.address?.message}
@@ -161,7 +161,7 @@ const DriverCreate: React.FC = () => {
               variant="subtitle1"
               sx={{ fontWeight: 600, color: "#1565c0" }}
             >
-              Contact Information
+              Thông tin liên hệ
             </Typography>
 
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
@@ -186,7 +186,7 @@ const DriverCreate: React.FC = () => {
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="Phone Number"
+                    label="Số điện thoại"
                     fullWidth
                     error={!!errors.phone}
                     helperText={errors.phone?.message || "VD: 0901234567"}
@@ -212,7 +212,7 @@ const DriverCreate: React.FC = () => {
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="License Number"
+                    label="Số bằng lái"
                     fullWidth
                     error={!!errors.licenseNumber}
                     helperText={errors.licenseNumber?.message}
@@ -225,8 +225,8 @@ const DriverCreate: React.FC = () => {
                 control={control}
                 render={({ field }) => (
                   <FormControl fullWidth error={!!errors.licenseClass}>
-                    <InputLabel>License Class</InputLabel>
-                    <Select {...field} label="License Class">
+                    <InputLabel>Hạng bằng lái</InputLabel>
+                    <Select {...field} label="Hạng bằng lái">
                       <MenuItem value="B1">B1</MenuItem>
                       <MenuItem value="B2">B2</MenuItem>
                       <MenuItem value="C">C</MenuItem>
@@ -248,7 +248,7 @@ const DriverCreate: React.FC = () => {
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="Issue Date"
+                    label="Ngày cấp"
                     type="date"
                     fullWidth
                     InputLabelProps={{ shrink: true }}
@@ -264,7 +264,7 @@ const DriverCreate: React.FC = () => {
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="Expiry Date"
+                    label="Ngày hết hạn"
                     type="date"
                     fullWidth
                     InputLabelProps={{ shrink: true }}
@@ -291,7 +291,7 @@ const DriverCreate: React.FC = () => {
                 disabled={loading}
                 startIcon={loading && <CircularProgress size={20} />}
               >
-                {loading ? "Saving..." : "Add Driver"}
+                {loading ? "Đang lưu..." : "Thêm tài xế"}
               </Button>
             </Stack>
           </Stack>

@@ -6,7 +6,7 @@
  * and enforces business rules for route entities.
  */
 
-import { Op } from "sequelize";
+import { Op, Sequelize } from "sequelize";
 import db from "@models/index";
 import { Route } from "@models/route";
 import { CreateRouteDTO, UpdateRouteDTO } from "@my_types/route";
@@ -22,8 +22,8 @@ import { CreateRouteDTO, UpdateRouteDTO } from "@my_types/route";
  * @property {"ASC"|"DESC"} [sortOrder="DESC"] - Sort direction
  * @property {number} [page] - Page number for pagination (1-based)
  * @property {number} [limit] - Number of records per page
- * @property {number} [startId] - Filter by starting location ID
- * @property {number} [destinationId] - Filter by destination location ID
+ * @property {string} [startName] - Filter by starting location name
+ * @property {string} [destinationName] - Filter by destination location name
  * @property {number} [minPrice] - Filter by minimum price
  * @property {number} [maxPrice] - Filter by maximum price
  */
@@ -33,8 +33,8 @@ interface ListOptions {
 	sortOrder?: "ASC" | "DESC";
 	page?: number;
 	limit?: number;
-	startId?: number;
-	destinationId?: number;
+	startName?: string;
+	destinationName?: string;
 	minPrice?: number;
 	maxPrice?: number;
 }
@@ -45,10 +45,22 @@ interface ListOptions {
  * @param id - Unique identifier of the route
  * @returns Promise resolving to the route or null if not found
  */
-export const getRouteById = async (
-	id: number
-): Promise<Route | null> => {
-	return await db.Route.findByPk(id);
+export const getRouteById = async (id: number): Promise<Route | null> => {
+	return await db.Route.findByPk(id, {
+		include: [
+			{
+				model: db.RouteStop,
+				as: "stops",
+				include: [
+					{
+						model: db.Location,
+						as: "location",
+					},
+				],
+			},
+		],
+		order: [["stops", "stopOrder", "ASC"]],
+	});
 };
 
 /**
@@ -96,29 +108,52 @@ export const searchRoute = async (
 		sortOrder = "DESC",
 		page,
 		limit,
-		startId,
-		destinationId,
+		startName,
+		destinationName,
 		minPrice,
 		maxPrice,
 	} = options;
 
-	const where: any = {};
-
-	if (keywords) {
-		where[Op.or] = [
-			{ "$StartLocation.name$": { [Op.like]: `%${keywords}%` } },
-			{ "$DestinationLocation.name$": { [Op.like]: `%${keywords}%` } },
-		];
-	}
+	const where: any = {
+		[Op.and]: [],
+	};
 
 	// Filter by starting location
-	if (startId !== undefined) {
-		where.startId = startId;
+	if (startName) {
+		where[Op.and].push(
+			Sequelize.literal(
+				`EXISTS (
+                    SELECT 1
+                    FROM route_stops rs
+                    JOIN locations l ON rs.location_id = l.id
+                    WHERE
+                        rs.route_id = "Route"."id" AND
+                        rs.stop_order = 0 AND
+                        l.name = :startName
+                )`
+			)
+		);
 	}
 
 	// Filter by destination location
-	if (destinationId !== undefined) {
-		where.destinationId = destinationId;
+	if (destinationName) {
+		where[Op.and].push(
+			Sequelize.literal(
+				`EXISTS (
+                    SELECT 1
+                    FROM route_stops rs
+                    JOIN locations l ON rs.location_id = l.id
+                    WHERE
+                        rs.route_id = "Route"."id" AND
+                        l.name = :destinationName AND
+                        rs.stop_order = (
+                            SELECT MAX(stop_order)
+                            FROM route_stops
+                            WHERE route_id = "Route"."id"
+                        )
+                )`
+			)
+		);
 	}
 
 	// Filter by price range
@@ -132,18 +167,48 @@ export const searchRoute = async (
 		}
 	}
 
-	const queryOptions: any = {
-		where: Object.keys(where).length > 0 ? where : undefined,
-		order: [[orderBy, sortOrder]],
+	const query_options: any = {
+		// Use the constructed where clause. If it's empty, it will be ignored.
+		where: where[Op.and].length > 0 ? where : undefined,
+		// Replacements are used to safely inject values into the literal subqueries
+		replacements: {
+			startName,
+			destinationName,
+		},
+		// Include all stops and their locations in the final result
+		include: [
+			{
+				model: db.RouteStop,
+				as: "stops",
+				include: [
+					{
+						model: db.Location,
+						as: "location",
+						// Keyword search on any location name within the route
+						where: keywords
+							? { name: { [Op.like]: `%${keywords}%` } }
+							: undefined,
+						required: !!keywords, // Make include required only if keywords are present
+					},
+				],
+			},
+		],
+		order: [
+			// Order the main route results
+			[orderBy, sortOrder],
+			// Ensure the included stops are always ordered correctly
+			["stops", "stopOrder", "ASC"],
+		],
+		distinct: true, // Prevent duplicate routes when filtering by keywords
 	};
 
 	// Add pagination if provided
 	if (page !== undefined && limit !== undefined) {
-		queryOptions.offset = (page - 1) * limit;
-		queryOptions.limit = limit;
+		query_options.offset = (page - 1) * limit;
+		query_options.limit = limit;
 	}
 
-	return await db.Route.findAndCountAll(queryOptions);
+	return await db.Route.findAndCountAll(query_options);
 };
 
 /**
@@ -157,34 +222,71 @@ export const searchRoute = async (
  * @throws {Object} Error with status 400 if route with same start and destination already exists
  * @throws {Object} Error with status 400 if start and destination are the same
  */
-export const addRoute = async (
-	dto: CreateRouteDTO
-): Promise<Route | null> => {
-	// Validate that start and destination are different
-	if (dto.startId === dto.destinationId) {
+export const addRoute = async (dto: CreateRouteDTO): Promise<Route | null> => {
+	// 1. Validate that there are at least two stops (a start and a destination).
+	if (!dto.stops || dto.stops.length < 2) {
 		throw {
 			status: 400,
-			message: "Start and destination locations must be different.",
+			message: "A route must have at least a start and a destination.",
 		};
 	}
 
-	// Check if route already exists
-	const existing_route = await db.Route.findOne({
-		where: {
-			startId: dto.startId,
-			destinationId: dto.destinationId,
-		},
-	});
+	// 2. Start a database transaction to ensure atomicity.
+	const transaction = await db.sequelize.transaction();
+	try {
+		const location_ids: number[] = [];
 
-	if (existing_route) {
-		throw {
-			status: 400,
-			message: "Route with this start and destination already exists.",
-		};
+		// 3. Process each stop: find the location or create it if it doesn't exist.
+		for (const stop_data of dto.stops) {
+			// Use findOrCreate to prevent duplicate locations. It finds a location by name
+			// or creates a new one if it's not found.
+			const [location] = await db.Location.findOrCreate({
+				where: { name: stop_data.name },
+				defaults: stop_data,
+				transaction,
+			});
+			location_ids.push(location.id);
+		}
+
+		// 4. Create the main route record.
+		const route = await db.Route.create(
+			{
+				name: dto.name,
+				distance: dto.distance!,
+				duration: dto.duration!,
+				price: dto.price!,
+			},
+			{ transaction }
+		);
+
+		// 5. Prepare and bulk-create the RouteStop entries.
+		const route_stops_to_create = location_ids.map(
+			(location_id, index) => ({
+				routeId: route.id,
+				locationId: location_id,
+				stopOrder: index,
+			})
+		);
+
+		await db.RouteStop.bulkCreate(route_stops_to_create, { transaction });
+
+		// 6. Commit the transaction if all operations succeed.
+		await transaction.commit();
+
+		// Retrieve and return the complete route data.
+		const new_route = await getRouteById(route.id);
+		if (!new_route) {
+			// This should not happen if the transaction was successful.
+			throw {
+				status: 500,
+				message: "Failed to retrieve newly created route.",
+			};
+		}
+		return new_route;
+	} catch (err) {
+		await transaction.rollback();
+		throw err;
 	}
-
-	const route = await db.Route.create(dto);
-	return route;
 };
 
 /**
@@ -204,25 +306,93 @@ export const updateRoute = async (
 	id: number,
 	dto: UpdateRouteDTO
 ): Promise<Route | null> => {
-	const route = await getRouteById(id);
+	const transaction = await db.sequelize.transaction();
+	try {
+		const route = await db.Route.findByPk(id, { transaction });
 
-	if (!route) {
-		throw { status: 404, message: `No route found with id ${id}` };
+		if (!route) {
+			throw { status: 404, message: `No route found with id ${id}` };
+		}
+
+		// Update the route's direct properties if they are provided.
+		await route.update(
+			{
+				name: dto.name ?? route.name,
+				distance: dto.distance!,
+				duration: dto.duration!,
+				price: dto.price!,
+			},
+			{
+				transaction,
+			}
+		);
+
+		if (dto.stops && dto.stops.length > 0) {
+			// This block handles the logic for updating the route's stops.
+			// It ensures that we only perform database writes if the stops have actually changed.
+
+			// Step 1: Process the incoming DTO stops to get their corresponding location IDs.
+			// For each stop, we find an existing location by name or create a new one.
+			const new_location_ids: number[] = [];
+			for (const stop_data of dto.stops) {
+				const [location] = await db.Location.findOrCreate({
+					where: { name: stop_data.name },
+					defaults: stop_data, // Use the provided data if creating a new location.
+					transaction,
+				});
+				new_location_ids.push(location.id);
+			}
+
+			// Step 2: Fetch the current stops for the route in their correct order.
+			const current_stops = await db.RouteStop.findAll({
+				where: { routeId: id },
+				order: [["stopOrder", "ASC"]],
+				transaction,
+			});
+
+			// Step 3: Extract the location IDs from the current stops.
+			const current_location_ids = current_stops.map(
+				(stop) => stop.locationId
+			);
+
+			// Step 4: Compare the current list of location IDs with the new list.
+			// We convert both to JSON strings for a simple, order-sensitive comparison.
+			const are_stops_the_same =
+				JSON.stringify(current_location_ids) ===
+				JSON.stringify(new_location_ids);
+
+			if (!are_stops_the_same) {
+				// First, remove all existing stops associated with this route.
+				await db.RouteStop.destroy({
+					where: { routeId: id },
+					transaction,
+				});
+
+				// Then, create the new RouteStop entries.
+				const route_stops_to_create = new_location_ids.map(
+					(location_id, index) => ({
+						routeId: id,
+						locationId: location_id,
+						stopOrder: index,
+					})
+				);
+				await db.RouteStop.bulkCreate(route_stops_to_create, {
+					transaction,
+				});
+			}
+		}
+
+		await transaction.commit();
+
+		const updated_route = await getRouteById(id);
+		if (!updated_route) {
+			throw { status: 500, message: "Failed to retrieve updated route." };
+		}
+		return updated_route;
+	} catch (err) {
+		await transaction.rollback();
+		throw err;
 	}
-
-	// Validate that start and destination are different if both are being updated
-	const newStartId = dto.startId ?? route.startId;
-	const newDestinationId = dto.destinationId ?? route.destinationId;
-
-	if (newStartId === newDestinationId) {
-		throw {
-			status: 400,
-			message: "Start and destination locations must be different.",
-		};
-	}
-
-	await route.update(dto);
-	return route;
 };
 
 /**
@@ -238,20 +408,26 @@ export const updateRoute = async (
  * @throws {Object} Error with status 500 if deletion verification fails
  */
 export const deleteRoute = async (id: number): Promise<void> => {
-	const route = await getRouteById(id);
+	const transaction = await db.sequelize.transaction();
+	try {
+		const route_to_delete = await db.Route.findByPk(id, { transaction });
 
-	if (!route) {
-		throw { status: 404, message: `No route found with id ${id}` };
-	}
+		if (!route_to_delete) {
+			throw { status: 404, message: `No route found with id ${id}` };
+		}
 
-	await route.destroy();
+		await route_to_delete.destroy({ transaction });
 
-	// Verify deletion was successful
-	const deletedRoute = await getRouteById(id);
-	if (deletedRoute) {
-		throw {
-			status: 500,
-			message: "Route deletion failed - route still exists.",
-		};
+		// Verify deletion was successful
+		const deletedRoute = await getRouteById(id);
+		if (deletedRoute) {
+			throw {
+				status: 500,
+				message: "Route deletion failed - route still exists.",
+			};
+		}
+	} catch (err) {
+		await transaction.rollback();
+		throw err;
 	}
 };

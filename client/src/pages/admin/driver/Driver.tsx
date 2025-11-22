@@ -126,12 +126,12 @@ const Driver: React.FC = () => {
         variant="h5"
         sx={{ fontWeight: 700, color: "#2E7D32", mb: 2 }}
       >
-        Driver Management
+        Quản lý tài xế
       </Typography>
 
       <Link to="driver/create">
         <Button variant="contained" sx={{ textTransform: "none", mb: 2 }}>
-          + Add Driver
+          + Thêm tài xế
         </Button>
       </Link>
 
@@ -150,10 +150,10 @@ const Driver: React.FC = () => {
             </Typography>
             <Chip
               size="small"
-              label={rowsPerPage === -1 ? "All" : rowsPerPage}
+              label={rowsPerPage === -1 ? "Tất cả" : rowsPerPage}
             />
             <Typography variant="body2" color="text.secondary">
-              records
+              bản ghi
             </Typography>
           </Stack>
 
@@ -163,19 +163,19 @@ const Driver: React.FC = () => {
             sx={{ width: { xs: "100%", sm: "auto" } }}
           >
             <FormControl size="small" sx={{ minWidth: 140 }}>
-              <InputLabel>Status</InputLabel>
+              <InputLabel>Trạng thái</InputLabel>
               <Select
                 value={statusFilter}
-                label="Status"
+                label="Trạng thái"
                 onChange={(e) => {
                   setStatusFilter(e.target.value as any);
                   setPage(0);
                 }}
               >
-                <MenuItem value="all">All</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-                <MenuItem value="suspended">Suspended</MenuItem>
+                <MenuItem value="all">Tất cả</MenuItem>
+                <MenuItem value="active">Hoạt động</MenuItem>
+                <MenuItem value="inactive">Không hoạt động</MenuItem>
+                <MenuItem value="suspended">Bị đình chỉ</MenuItem>
               </Select>
             </FormControl>
 
@@ -203,7 +203,7 @@ const Driver: React.FC = () => {
                     direction={orderBy === "fullName" ? order : "asc"}
                     onClick={() => handleSort("fullName")}
                   >
-                    Name & Information
+                    Tên & Thông tin
                   </TableSortLabel>
                 </TableCell>
                 <TableCell>
@@ -221,7 +221,7 @@ const Driver: React.FC = () => {
                     direction={orderBy === "phone" ? order : "asc"}
                     onClick={() => handleSort("phone")}
                   >
-                    Phone Number
+                    Số điện thoại
                   </TableSortLabel>
                 </TableCell>
                 <TableCell align="right">
@@ -230,10 +230,10 @@ const Driver: React.FC = () => {
                     direction={orderBy === "rating" ? order : "asc"}
                     onClick={() => handleSort("rating")}
                   >
-                    Rating
+                    Đánh giá
                   </TableSortLabel>
                 </TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell align="right">Hành động</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -264,7 +264,13 @@ const Driver: React.FC = () => {
                             sx={{ height: 20, fontSize: 11 }}
                           />
                           <Chip
-                            label={d.status}
+                            label={
+                              d.status === "active"
+                                ? "Hoạt động"
+                                : d.status === "suspended"
+                                ? "Bị đình chỉ"
+                                : "Không hoạt động"
+                            }
                             size="small"
                             color={
                               d.status === "active"
@@ -309,12 +315,12 @@ const Driver: React.FC = () => {
         >
           <Typography variant="caption">
             {filtered.length === 0
-              ? "0 record"
+              ? "0 bản ghi"
               : `${page * rowsPerPage + 1} - ${Math.min(
                   filtered.length,
                   page * rowsPerPage +
                     (rowsPerPage > 0 ? rowsPerPage : filtered.length)
-                )} of ${filtered.length} records`}
+                )} trong tổng số ${filtered.length} bản ghi`}
           </Typography>
           <TablePagination
             component="div"
@@ -326,8 +332,8 @@ const Driver: React.FC = () => {
               setRowsPerPage(parseInt(e.target.value, 10));
               setPage(0);
             }}
-            rowsPerPageOptions={[5, 9, 25, { label: "All", value: -1 }]}
-            labelRowsPerPage="Rows per page:"
+            rowsPerPageOptions={[5, 9, 25, { label: "Tất cả", value: -1 }]}
+            labelRowsPerPage="Số hàng mỗi trang:"
           />
         </Box>
       </Paper>
@@ -339,7 +345,7 @@ const Driver: React.FC = () => {
         onClose={handleCloseMenu}
       >
         <MenuItem onClick={() => selectedDriver && openDetails(selectedDriver)}>
-          View Details
+          Xem chi tiết
         </MenuItem>
       </Menu>
 

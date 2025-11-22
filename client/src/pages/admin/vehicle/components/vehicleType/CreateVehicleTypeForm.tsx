@@ -16,6 +16,8 @@ import {
 import type { CreateVehicleTypeDTO } from "@my-types/vehicleType";
 import SeatLayoutEditor from "./SeatLayoutEditor";
 import type { CreateVehicleTypeFormProps, SeatLayout } from "./types";
+import callApi from "@utils/apiCaller";
+import { API_ENDPOINTS } from "@constants";
 
 type CreateVehicleTypeErrors = Partial<
 	Record<keyof CreateVehicleTypeDTO, string>
@@ -37,7 +39,8 @@ const CreateVehicleTypeForm: React.FC<CreateVehicleTypeFormProps> = ({
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const handleInputChange =
-		(key: keyof CreateVehicleTypeDTO) => (event: React.ChangeEvent<HTMLInputElement>) => {
+		(key: keyof CreateVehicleTypeDTO) =>
+		(event: React.ChangeEvent<HTMLInputElement>) => {
 			const { value } = event.target;
 			setFormData((prev) => ({ ...prev, [key]: value }));
 
@@ -72,14 +75,28 @@ const CreateVehicleTypeForm: React.FC<CreateVehicleTypeFormProps> = ({
 		return Object.keys(newErrors).length === 0;
 	};
 
-	const handleSubmit = (e: React.FormEvent) => {
+	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!validateForm()) return;
 
 		setIsSubmitting(true);
-		onCreate(formData as CreateVehicleTypeDTO);
-		setIsSubmitting(false);
-		onClose();
+		try {
+			const { data, status } = await callApi({
+				method: "POST",
+				url: `${API_ENDPOINTS.VEHICLE_TYPE.CREATE}`,
+				data: formData,
+			}, { returnFullResponse: true });
+
+			if (status === 200) {
+				alert(data.message);
+			}
+
+			onCreate(formData as CreateVehicleTypeDTO);
+			onClose();
+		} catch (err) {
+		} finally {
+			setIsSubmitting(false);
+		}
 	};
 
 	const handleLayoutChange = useCallback(
