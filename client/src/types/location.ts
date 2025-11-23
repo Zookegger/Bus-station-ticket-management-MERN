@@ -9,9 +9,9 @@
 export interface Location {
 	id: number;
 	name: string;
-	address?: string | null;
-	latitude?: number | null;
-	longitude?: number | null;
+	address: string;
+	latitude: number;
+	longitude: number;
 	createdAt: string; // ISO Date string
 	updatedAt: string; // ISO Date string
 }
@@ -21,9 +21,9 @@ export interface Location {
  */
 export interface CreateLocationDTO {
 	name: string;
-	address?: string | null;
-	latitude?: number | null;
-	longitude?: number | null;
+	address: string;
+	latitude: number;
+	longitude: number;
 }
 
 /**

@@ -10,6 +10,8 @@ import { Op } from "sequelize";
 import db from "@models/index";
 import { Vehicle, VehicleAttributes } from "@models/vehicle";
 import { CreateVehicleDTO, UpdateVehicleDTO } from "@my_types/vehicle";
+import { VehicleType } from "@models/vehicleType";
+import { VehicleStatus } from "@models/vehicle";
 
 /**
  * Configuration options for vehicle listing and filtering.
@@ -122,9 +124,12 @@ export const listVehicles = async (
 		where.model = { [Op.like]: `%${model}%` };
 	}
 
+	const includeOptions = { model: VehicleType, as: "vehicleType"}
+	
 	const queryOptions: any = {
 		where: Object.keys(where).length > 0 ? where : undefined,
 		order: [[orderBy, sortOrder]],
+		include: [includeOptions]
 	};
 
 	// Add pagination if provided
@@ -185,6 +190,22 @@ export const updateVehicle = async (
 
 	await vehicle.update(dto);
 	return vehicle;
+};
+
+/**
+ * Sets the status of a vehicle if it exists.
+ * Performs no action when vehicle is missing.
+ * @param vehicleId - Target vehicle ID.
+ * @param status - New VehicleStatus value.
+ */
+export const setVehicleStatus = async (
+	vehicleId: number,
+	status: VehicleStatus
+): Promise<void> => {
+	const vehicle = await getVehicleById(vehicleId);
+	if (!vehicle) return;
+	if (vehicle.status === status) return; // Idempotent
+	await vehicle.update({ status });
 };
 
 /**

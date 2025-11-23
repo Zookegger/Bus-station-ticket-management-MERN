@@ -13,6 +13,9 @@ import { getCsrfToken, isValidCsrfToken } from "@middlewares/csrf";
 import { CONFIG, COMPUTED, CSRF_CONFIG } from "@constants";
 import logger from "@utils/logger";
 import { decryptToken, encryptToken } from "@utils/encryption";
+import { User } from "@models/user";
+import { add } from "date-fns";
+import db from "@models/index";
 
 /**
  * Helper function to set access and refresh tokens in secure, httpOnly cookies.
@@ -510,3 +513,43 @@ export const ChangePassword = async (
 		next(err);
 	}
 };
+
+export const OAuthCallback = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+): Promise<void> => {
+	try {
+		// Passport attaches the authenticated user to req.user
+		const user = req.user as User;
+
+		if (!user) {
+			// Safety fallback
+            return res.redirect(`${process.env.CLIENT_URL}:${process.env.CLIENT_PORT}/login?error=auth_failed`);
+		}
+		
+		// 1. Generate Tokens
+		const accessToken = authServices.generateAccessToken({
+			id: user.id,
+			role: user.role,
+		});
+
+		const refreshToken = authServices.generateRefreshTokenValue();
+		
+		const expiresAt = add(new Date(), { seconds: COMPUTED.REFRESH_TOKEN_EXPIRY_SECONDS });
+        
+        await db.RefreshToken.create({
+            token: refreshToken.hashed,
+            userId: user.id,
+            expiresAt,
+        });
+
+		setCookieTokens(res, accessToken, refreshToken.value, true);
+
+		res.redirect(`${process.env.CLIENT_URL}:${process.env.CLIENT_PORT}`);
+	} catch (err) {
+        // If code crashes, redirect to login with error
+        res.redirect(`${process.env.CLIENT_URL}:${process.env.CLIENT_PORT}/login?error=server_error`);
+        next(err);
+    }
+}

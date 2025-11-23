@@ -27,7 +27,7 @@ const seatTypes: {
 	type: SeatType;
 	label: string;
 	icon: JSX.Element;
-	color: "primary" | "default" | "secondary" | "error";
+	color: "primary" | "default" | "warning" | "error";
 }[] = [
 	{
 		type: "available",
@@ -45,7 +45,7 @@ const seatTypes: {
 		type: "disabled",
 		label: "Disabled",
 		icon: <AccessibleIcon />,
-		color: "secondary",
+		color: "warning",
 	},
 ];
 

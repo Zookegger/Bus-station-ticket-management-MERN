@@ -131,6 +131,8 @@ interface AuthContextType {
 	isLoading: boolean;
 	isAuthenticated: boolean;
 	isAdmin: boolean;
+	loginWithGoogle: () => void;
+    loginWithFacebook: () => void;
 }
 
 export type { AuthContextType };

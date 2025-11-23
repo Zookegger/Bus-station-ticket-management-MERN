@@ -18,7 +18,7 @@ import { AccountBox, Logout, Window } from "@mui/icons-material";
 import buildAvatarUrl from "@utils/avatarImageHelper";
 
 const Header: React.FC = () => {
-	const { isAuthenticated, user, logout, isLoading } = useAuth();
+	const { isAuthenticated, isAdmin, user, logout, isLoading } = useAuth();
 
 	const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -75,7 +75,10 @@ const Header: React.FC = () => {
 										alignItems={"center"}
 									>
 										<Avatar
-											src={buildAvatarUrl(user.avatar) ?? ""}
+											src={
+												buildAvatarUrl(user.avatar) ??
+												""
+											}
 											alt={user.firstName}
 											sx={{
 												width: "32px",
@@ -111,14 +114,16 @@ const Header: React.FC = () => {
 										<AccountBox sx={{ marginRight: 1 }} />
 										Profile
 									</MenuItem>
-									<MenuItem
-										onClick={handleMenuClose}
-										component={RouterLink}
-										to={ROUTES.DASHBOARD_HOME}
-									>
-										<Window sx={{ marginRight: 1 }} />
-										Dashboard
-									</MenuItem>
+									{isAdmin && (
+										<MenuItem
+											onClick={handleMenuClose}
+											component={RouterLink}
+											to={ROUTES.DASHBOARD_HOME}
+										>
+											<Window sx={{ marginRight: 1 }} />
+											Dashboard
+										</MenuItem>
+									)}
 									<MenuItem
 										onClick={async () => {
 											handleMenuClose();

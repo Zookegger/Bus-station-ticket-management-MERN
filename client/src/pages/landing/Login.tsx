@@ -36,7 +36,7 @@ import { useAuth } from "@hooks/useAuth";
 import type { LoginDTO } from "@my-types/auth";
 
 const LoginPage: React.FC = () => {
-	const { login } = useAuth();
+	const { login, loginWithGoogle, loginWithFacebook } = useAuth();
 	const navigate = useNavigate();
 	const [formData, setFormData] = useState({
 		login: "",
@@ -307,6 +307,7 @@ const LoginPage: React.FC = () => {
 												backgroundColor: "red",
 											},
 										}}
+										onClick={loginWithGoogle}
 									>
 										Google
 									</Button>
@@ -326,6 +327,7 @@ const LoginPage: React.FC = () => {
 												backgroundColor: "#184fa1ff",
 											},
 										}}
+										onClick={loginWithFacebook}
 									>
 										Facebook
 									</Button>

@@ -31,7 +31,7 @@ interface ResetPasswordJwtPayload {
  * Creates a signed JWT access token.
  * Keep access tokens short-lived (15m–1h) to limit risk if stolen.
  */
-const generateAccessToken = (payload: AuthJwtPayload): string => {
+export const generateAccessToken = (payload: AuthJwtPayload): string => {
 	return jwt.sign(payload, JWT_SECRET, { expiresIn: COMPUTED.JWT_EXPIRY });
 };
 
@@ -39,7 +39,7 @@ const generateAccessToken = (payload: AuthJwtPayload): string => {
  * Generates a cryptographically strong refresh token string.
  * In production, you should store a hash (e.g., SHA-256) instead of the raw token in DB.
  */
-const generateRefreshTokenValue = (): { value: string; hashed: string } => {
+export const generateRefreshTokenValue = (): { value: string; hashed: string } => {
 	const token = crypto
 		.randomBytes(TOKEN_CONFIG.REFRESH_TOKEN_BYTES)
 		.toString("hex");
@@ -495,3 +495,4 @@ export const forgotPassword = async (email: string): Promise<void> => {
 		);
 	}
 };
+
