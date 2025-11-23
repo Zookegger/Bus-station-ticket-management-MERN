@@ -10,6 +10,7 @@
 import db from "@models/index";
 import { Seat } from "@models/seat";
 import { UpdateSeatDTO, SeatFilterDTO, SeatStatus } from "@my_types/seat";
+import { emitSeatUpdate } from "./realtimeEvents";
 
 /**
  * Configuration options for seat listing and filtering.
@@ -184,8 +185,15 @@ export const updateSeat = async (
 
 	// If status is being set to 'available', ensure current status allows it
 	if (dto.status === "available") {
-		if (seat.status === SeatStatus.DISABLED || seat.status === SeatStatus.MAINTENANCE) {
-			throw { status: 400, message: "Cannot mark a disabled/maintenance seat as available." };
+		if (
+			seat.status === SeatStatus.DISABLED ||
+			seat.status === SeatStatus.MAINTENANCE
+		) {
+			throw {
+				status: 400,
+				message:
+					"Cannot mark a disabled/maintenance seat as available.",
+			};
 		}
 	}
 
@@ -193,6 +201,23 @@ export const updateSeat = async (
 	if (dto.status !== undefined) allowed.status = dto.status;
 	if (dto.tripId !== undefined) allowed.tripId = dto.tripId;
 
-	await seat.update(allowed);
-	return await getSeatById(id); // Return updated seat with associations
+	const updated = await seat.update(allowed);
+
+	if (!updated) {
+		throw {
+			status: 500,
+			message: "Failed to update seat.",
+		};
+	}
+
+	emitSeatUpdate({
+		id: updated.id,
+		tripId: updated.tripId!,
+		number: updated.number!,
+		reservedBy: updated.reservedBy!,
+		reservedUntil: updated.reservedUntil!,
+		status: updated.status!,
+	});
+
+	return updated;
 };

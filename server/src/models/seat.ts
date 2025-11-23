@@ -9,7 +9,7 @@ import {
 import { Trip } from "./trip";
 import { SeatStatus } from "@my_types/seat";
 import { Ticket } from "./ticket";
-import { DbModels } from "@models";;
+import { DbModels } from "@models";
 
 /**
  * Attributes representing a Seat in the system.
@@ -37,10 +37,10 @@ export interface SeatAttributes {
 	row?: number | null;
 	column?: number | null;
 	floor?: number | null;
-	status?: SeatStatus;
+	status: SeatStatus;
 	reservedBy?: string | null;
 	reservedUntil?: Date | null;
-	tripId?: number | null;
+	tripId: number | null;
 	createdAt?: Date;
 	updatedAt?: Date;
 }
@@ -114,7 +114,7 @@ export class Seat
 	/**
 	 * @property {SeatStatus} status - Lifecycle status for the seat (available, reserved, booked, etc.).
 	 */
-	public status?: SeatStatus;
+	public status!: SeatStatus;
 	/**
 	 * @property {string | null} reservedBy - Identifier of the user who reserved the seat (if reserved).
 	 */
@@ -126,7 +126,7 @@ export class Seat
 	/**
 	 * @property {number | null} tripId - Foreign key referencing the associated Trip.
 	 */
-	public tripId?: number | null;
+	public tripId!: number | null;
 
 	/**
 	 * @property {Date} createdAt - Timestamp when the seat record was created.
@@ -182,36 +182,29 @@ export class Seat
 				tripId: {
 					type: DataTypes.INTEGER.UNSIGNED,
 					allowNull: true,
-					field: 'tripId'
+					field: "tripId",
 				},
-				// New lifecycle/status field
 				status: {
-					type: DataTypes.ENUM(
-						"available",
-						"reserved",
-						"booked",
-						"maintenance",
-						"disabled"
-					),
+					type: DataTypes.ENUM(...Object.values(SeatStatus)),
 					allowNull: false,
-					defaultValue: "available",
+					defaultValue: SeatStatus.AVAILABLE,
 				},
 				reservedBy: {
 					type: DataTypes.STRING,
 					allowNull: true,
-					field: 'reservedBy'
+					field: "reservedBy",
 				},
 				reservedUntil: {
 					type: DataTypes.DATE,
 					allowNull: true,
-					field: 'reservedUntil'
+					field: "reservedUntil",
 				},
 			},
 			{
 				sequelize,
 				tableName: "seats",
 				timestamps: true,
-				underscored: false
+				underscored: false,
 			}
 		);
 	}
@@ -226,10 +219,12 @@ export class Seat
 		Seat.belongsTo(models.Trip, {
 			foreignKey: "tripId",
 			as: "trip",
+			onDelete: "SET NULL",
 		});
 		Seat.hasOne(models.Ticket, {
 			foreignKey: "seatId",
 			as: "ticket",
+			onDelete: "RESTRICT",
 		});
 	}
 }

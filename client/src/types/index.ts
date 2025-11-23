@@ -25,6 +25,6 @@ export * from "./TripDTOs";
 export * from "./types";
 export * from "./assignment";
 export * from "./dashboard";
-export * from "./room";
+export * from "./realtime";
 export type { Vehicle as VehicleList, VehicleWithType, VehicleTypeSummary, VehicleDetail, VehicleListQuery, VehicleListResponse } from "./vehicleList";
 export * from "./websocket";

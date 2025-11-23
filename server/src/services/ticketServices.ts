@@ -13,6 +13,8 @@ import { COMPUTED } from "@constants/config";
 import { OrderStatus } from "@models/orders";
 import { PaymentStatus } from "@my_types/payments";
 import * as couponServices from "@services/couponServices";
+import { emitBulkSeatUpdates, emitSeatUpdate } from "./realtimeEvents";
+import { SeatPayload } from "@my_types/realtime";
 
 export const updateTicketAdmin = async (
 	ticket_id: number,
@@ -153,6 +155,31 @@ export const updateTicketAdmin = async (
 		}
 
 		await transaction.commit();
+
+		// Emit seat states (old + new) if changed
+		if (ticket.seatId) {
+			const oldSeat = await db.Seat.findByPk(ticket.seatId);
+			if (oldSeat)
+				emitSeatUpdate({
+					id: oldSeat.id,
+					number: oldSeat.number,
+					status: oldSeat.status!,
+					tripId: oldSeat.tripId ?? null,
+					reservedBy: oldSeat.reservedBy ?? null,
+					reservedUntil: oldSeat.reservedUntil ?? null,
+				});
+		}
+		const newSeat = await db.Seat.findByPk(ticket.seatId);
+		if (newSeat)
+			emitSeatUpdate({
+				id: newSeat.id,
+				number: newSeat.number,
+				status: newSeat.status!,
+				tripId: newSeat.tripId ?? null,
+				reservedBy: newSeat.reservedBy ?? null,
+				reservedUntil: newSeat.reservedUntil ?? null,
+			});
+
 		return ticket;
 	} catch (err) {
 		await transaction.rollback();
@@ -278,14 +305,40 @@ export const cleanUpExpiredTickets = async (): Promise<void> => {
 
 					// 3. Release associated Seats
 					if (seatIds.length > 0) {
-						await db.Seat.update(
+						const result = await db.Seat.update(
 							{
 								status: SeatStatus.AVAILABLE,
 								reservedBy: null,
 								reservedUntil: null,
 							},
-							{ where: { id: seatIds }, transaction }
+							{
+								where: { id: seatIds },
+								transaction,
+								returning: true,
+							}
 						);
+
+						const releasedSeats = result[1];
+						const groupedByTrip: Record<number, SeatPayload[]> = {};
+
+						for (const s of releasedSeats) {
+							if (!s.tripId) continue;
+							groupedByTrip[s.tripId] ||= [];
+							groupedByTrip[s.tripId]!.push({
+								id: s.id,
+								number: s.number,
+								status: s.status,
+								tripId: s.tripId,
+								reservedBy: s.reservedBy ?? null,
+								reservedUntil: s.reservedUntil ?? null,
+							});
+						}
+
+						for (const [tripId, payloads] of Object.entries(
+							groupedByTrip
+						)) {
+							emitBulkSeatUpdates(Number(tripId), payloads);
+						}
 					}
 
 					// 4. Release coupon usage

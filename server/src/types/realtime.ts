@@ -1,5 +1,5 @@
-import type { Notification } from "./notifications";
-import type { Seat } from "./seat";
+import { Notification } from "@models/notification";
+import { Seat } from "@models/seat";
 import type { DashboardStats } from "./dashboard";
 import type { TripStatus } from "./trip";
 
@@ -9,11 +9,12 @@ export interface NotificationPayload
 		| "id"
 		| "userId"
 		| "title"
-		| "message"
+		| "content"
 		| "readAt"
 		| "type"
 		| "priority"
 		| "status"
+		| "metadata"
 		| "createdAt"
 		| "updatedAt"
 	> {

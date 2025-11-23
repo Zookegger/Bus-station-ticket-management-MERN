@@ -9,6 +9,10 @@ import {
 } from "@my_types/notifications";
 import { notificationQueue } from "@utils/queues/notificationQueue";
 import { WhereOptions } from "sequelize";
+import {
+	emitNotification,
+	emitBulkNotifications,
+} from "@services/realtimeEvents";
 
 /**
  * Creates a single notification for a specific user.
@@ -30,6 +34,19 @@ export const createNotification = async (
 
 	if (!notification)
 		throw { status: 500, message: "Failed to create new notification" };
+
+	emitNotification({
+		id: notification.id,
+		userId: notification.userId,
+		title: notification.title,
+		content: notification.content,
+		type: notification.type,
+		priority: notification.priority,
+		status: notification.status,
+		metadata: notification.metadata ?? {},
+		createdAt: notification.createdAt,
+		updatedAt: notification.updatedAt,
+	});
 
 	return notification;
 };
@@ -206,7 +223,26 @@ export const broadcastNotification = async (
 			status: NotificationStatuses.UNREAD,
 		}));
 
-		await db.Notification.bulkCreate(notificationsToCreate);
+		// create all notifications once and retrieve created instances
+		const created = await db.Notification.bulkCreate(notificationsToCreate, { returning: true });
+
+		// emit each created notification to its respective user socket
+		created.forEach((n) => {
+			const payload = {
+				id: n.id,
+				userId: n.userId,
+				title: n.title,
+				content: n.content,
+				type: n.type,
+				priority: n.priority,
+				status: n.status,
+				metadata: n.metadata ?? {},
+				createdAt: n.createdAt,
+				updatedAt: n.updatedAt,
+			};
+			// emit notification for a single user using an array with one id
+			emitBulkNotifications([n.userId], payload);
+		});
 
 		return {
 			message: "Broadcast sent successfully.",
