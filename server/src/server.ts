@@ -7,13 +7,14 @@
  */
 
 import dotenv from "dotenv";
+import http from "http";
 
 // Load environment variables from .env file
 dotenv.config();
 
 // Register TypeScript path mappings for production
-if (process.env.NODE_ENV === 'production') {
-	require('tsconfig-paths/register');
+if (process.env.NODE_ENV === "production") {
+	require("tsconfig-paths/register");
 }
 
 import logger from "@utils/logger";
@@ -21,10 +22,12 @@ import { configService } from "@services/settingServices";
 import { connectToDatabase } from "@models";
 import { generateDefaultAdminAccount } from "@services/userServices";
 import { initializePaymentGateways } from "@services/gateways";
+import { closeSocket, initSocket } from "@utils/socket";
+import { closeAllWorkers, initializeWorkersAndSchedules } from "@utils/workerManager";
+
 
 // Server port configuration with fallback to 5000
 const PORT = process.env.PORT || 5000;
-
 
 /**
  * Initializes and starts the HTTP server with Socket.IO integration.
@@ -41,50 +44,21 @@ const startServer = async (): Promise<void> => {
 	try {
 		await connectToDatabase();
 		await configService.initialize();
-		
-		const { app } = await import("./app");
-		
-		// Import here for graceful shutdown
-		const emailWorker = await import("@utils/workers/emailWorker");
-		const ticketWorker = await import("@utils/workers/ticketWorker");
-		const tripSchedulingWorker = await import("@utils/workers/tripSchedulingWorker");
-		const paymentWorker = await import("@utils/workers/paymentWorker");
-		// Refresh token worker is initialized via bootstrap; no direct usage here
+		initializePaymentGateways();
 
-		const { initializeWorkersAndSchedules } = await import("@utils/workerBootstrap");
-        const http = await import("http");
-        const { Server } = await import("socket.io");
+		const { app } = await import("./app");
 
 		// Initialize workers and schedule maintenance jobs via bootstrap
-		logger.info("Initializing background workers and schedules via bootstrap...");
+		logger.info(
+			"Initializing background workers and schedules via bootstrap..."
+		);
 		await initializeWorkersAndSchedules();
 		logger.info("✓ Workers ready and schedules initialized");
-		
-		initializePaymentGateways();
 
 		// Create HTTP server with Express app
 		const server = http.createServer(app);
-
-		// Initialize Socket.IO server with CORS settings
-		const io = new Server(server, {
-			cors: {
-				origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
-				methods: ["GET", "POST"],
-				credentials: true,
-			},
-			connectionStateRecovery: {
-				maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutes
-			},
-		});
-
-		// Handle Socket.IO connections
-		io.on("connection", (socket) => {
-			logger.debug("A user connected:", socket.id);
-
-			socket.on("disconnect", () => {
-				logger.debug("User disconnected:", socket.id);
-			});
-		});
+		
+		initSocket(server);
 
 		await generateDefaultAdminAccount();
 
@@ -94,27 +68,18 @@ const startServer = async (): Promise<void> => {
 		// Graceful shutdown handler
 		const gracefulShutdown = async (signal: string) => {
 			logger.info(`${signal} received. Starting graceful shutdown...`);
-			
+
 			// Close HTTP server first (stop accepting new connections)
 			server.close(async () => {
 				logger.info("HTTP server closed");
-				
+
 				try {
 					// Close all workers
-					logger.info("Closing background workers...");
-					await Promise.all([
-						emailWorker.default.close(),
-						ticketWorker.default.close(),
-						tripSchedulingWorker.default.close(),
-						paymentWorker.default.close(),
-					]);
-					logger.info("All workers closed successfully");
-					
+					await closeAllWorkers();
+
 					// Close Socket.IO
-					io.close(() => {
-						logger.info("Socket.IO connections closed");
-					});
-					
+					await closeSocket();
+
 					process.exit(0);
 				} catch (err) {
 					logger.error("Error during graceful shutdown:", err);
@@ -132,7 +97,6 @@ const startServer = async (): Promise<void> => {
 		// Register shutdown handlers
 		process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 		process.on("SIGINT", () => gracefulShutdown("SIGINT"));
-		
 	} catch (err) {
 		logger.error("Failed to start server:", err);
 		console.error(err);

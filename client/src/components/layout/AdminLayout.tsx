@@ -61,7 +61,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 					minHeight: "100vh",
 					backgroundColor: "#fafafa",
 					transition: "margin-left 0.3s ease",
-					maxWidth: sidebarCollapsed ? "calc(100vw - 70px)" : "calc(100vw - 200px)"
+					maxWidth: sidebarCollapsed ? "calc(100vw - 70px)" : "calc(100vw - 200px)",
+					overflowX: "hidden"
 				}}
 			>
 				<PageTitleUpdater/>

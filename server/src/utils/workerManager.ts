@@ -1,4 +1,9 @@
 import logger from "@utils/logger";
+import emailWorker from "@utils/workers/emailWorker";
+import paymentWorker from "@utils/workers/paymentWorker";
+import ticketWorker from "@utils/workers/ticketWorker";
+import tripSchedulingWorker from "@utils/workers/tripSchedulingWorker";
+import notificationWorker from "@utils/workers/notificationWorker";
 
 /**
  * Initializes all background workers and schedules recurring maintenance jobs.
@@ -68,22 +73,28 @@ export const initializeWorkersAndSchedules = async (): Promise<void> => {
 		);
 
 		// Enqueue an immediate ticket cleanup job at startup
-		await addTicketCleanupJob({ batchSize: 100, dryRun: false }, { delay: 0 });
+		await addTicketCleanupJob(
+			{ batchSize: 100, dryRun: false },
+			{ delay: 0 }
+		);
 		logger.info("✓ Enqueued initial ticket cleanup job");
 
 		// Schedule periodic ticket cleanup using interval (configurable)
-		const t_minutes = Number(
-			process.env.TICKET_CLEANUP_INTERVAL_MIN || 30
-		);
+		const t_minutes = Number(process.env.TICKET_CLEANUP_INTERVAL_MIN || 30);
 		const t_interval_ms = Math.max(1, t_minutes) * 60 * 1000;
 
 		setInterval(async () => {
 			try {
-				await addTicketCleanupJob({ batchSize: 100, dryRun: false }, { delay: 0 });
+				await addTicketCleanupJob(
+					{ batchSize: 100, dryRun: false },
+					{ delay: 0 }
+				);
 				logger.info("→ Periodic ticket cleanup job enqueued");
 			} catch (e) {
 				logger.error(
-					`✗ Failed to enqueue periodic ticket cleanup: ${(e as Error).message}`
+					`✗ Failed to enqueue periodic ticket cleanup: ${
+						(e as Error).message
+					}`
 				);
 			}
 		}, t_interval_ms);
@@ -139,4 +150,23 @@ export const initializeWorkersAndSchedules = async (): Promise<void> => {
 	}
 };
 
-export default initializeWorkersAndSchedules;
+/**
+ * Gracefully closes all background workers.
+ */
+export const closeAllWorkers = async () => {
+	logger.info("Closing background workers...");
+
+	try {
+		await Promise.all([
+			emailWorker.close(),
+			ticketWorker.close(),
+			tripSchedulingWorker.close(),
+			paymentWorker.close(),
+			notificationWorker.close(),
+		]);
+		logger.info("All workers closed successfully");
+	} catch (err) {
+		logger.error("Error closing workers:", err);
+		throw err;
+	}
+};

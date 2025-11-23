@@ -1,3 +1,5 @@
+import { Notification } from "@models/notification";
+
 /**
  * Constant object defining the available notification types.
  * @constant {Object.<string, string>}
@@ -8,11 +10,11 @@
  * @property {string} PROMOTION - Promotional notifications.
  */
 export const NotificationTypes = {
-    BOOKING: "booking",
-    PAYMENT: "payment",
-    TRIP: "trip",
-    SYSTEM: "system",
-    PROMOTION: "promotion",
+	BOOKING: "booking",
+	PAYMENT: "payment",
+	TRIP: "trip",
+	SYSTEM: "system",
+	PROMOTION: "promotion",
 } as const;
 
 /**
@@ -20,7 +22,7 @@ export const NotificationTypes = {
  * @type {string}
  */
 export type NotificationType =
-    (typeof NotificationTypes)[keyof typeof NotificationTypes];
+	(typeof NotificationTypes)[keyof typeof NotificationTypes];
 
 /**
  * Constant object defining the available notification statuses.
@@ -30,9 +32,9 @@ export type NotificationType =
  * @property {string} ARCHIVED - The notification has been archived.
  */
 export const NotificationStatuses = {
-    UNREAD: "unread",
-    READ: "read",
-    ARCHIVED: "archived",
+	UNREAD: "unread",
+	READ: "read",
+	ARCHIVED: "archived",
 } as const;
 
 /**
@@ -40,7 +42,7 @@ export const NotificationStatuses = {
  * @type {string}
  */
 export type NotificationStatus =
-    (typeof NotificationStatuses)[keyof typeof NotificationStatuses];
+	(typeof NotificationStatuses)[keyof typeof NotificationStatuses];
 
 /**
  * Constant object defining the available notification priorities.
@@ -50,9 +52,9 @@ export type NotificationStatus =
  * @property {string} HIGH - High priority notification.
  */
 export const NotificationPriorities = {
-    LOW: "low",
-    MEDIUM: "medium",
-    HIGH: "high",
+	LOW: "low",
+	MEDIUM: "medium",
+	HIGH: "high",
 } as const;
 
 /**
@@ -60,4 +62,41 @@ export const NotificationPriorities = {
  * @type {string}
  */
 export type NotificationPriority =
-    (typeof NotificationPriorities)[keyof typeof NotificationPriorities];
+	(typeof NotificationPriorities)[keyof typeof NotificationPriorities];
+
+export interface CreateNotificationDTO {
+	userId: string;
+	title: string;
+	content: string;
+	type: NotificationType;
+	priority: NotificationPriority;
+	metadata?: Record<string, any>;
+}
+
+export interface BroadcastNotificationDTO {
+	title: string;
+	content: string;
+	type: NotificationType;
+	priority: NotificationPriority;
+	metadata?: Record<string, any>;
+	filter?: {
+		role?: string; // e.g., 'driver', 'user'
+		isVerified?: boolean;
+	};
+}
+
+export interface NotificationQueryOptions {
+	page?: number;
+	per_page?: number;
+	status?: NotificationStatus;
+}
+
+export interface PaginatedNotifications {
+	data: Notification[];
+	pagination: {
+		total: number;
+		currentPage: number;
+		totalPages: number;
+		perPage: number;
+	};
+}

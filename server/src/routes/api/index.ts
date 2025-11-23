@@ -23,6 +23,7 @@ import orderRouter from "@routes/api/orderRouter";
 import checkInRouter from "@routes/api/checkInRouter";
 import couponRouter from "@routes/api/couponRouter";
 import debugRouter from "@routes/api/debugRouter";
+import dashboardRouter from "@routes/api/dashboardRouter";
 
 /**
  * Main API router instance.
@@ -79,6 +80,7 @@ apiRouter.use("/payment-methods", apiRateLimiter, paymentMethodRoute);
 apiRouter.use("/settings", apiRateLimiter, settingsRouter);
 apiRouter.use("/orders", apiRateLimiter, orderRouter);
 apiRouter.use("/coupons", apiRateLimiter, couponRouter);
+apiRouter.use("/dashboard", apiRateLimiter, dashboardRouter);
 apiRouter.use("/check-in", checkInRouter);
 
 // Debug routes (admin only, for development/testing)

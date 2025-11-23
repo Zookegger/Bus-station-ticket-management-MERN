@@ -1,8 +1,8 @@
 
-import { configService } from "@services/settingServices";
+import { configService, getAllSettings } from "@services/settingServices";
 import { NextFunction, Request, Response } from "express";
 
-export const getAllSettings = (_req: Request, res: Response, next: NextFunction): void => {
+export const GetAllCachedSettings = (_req: Request, res: Response, next: NextFunction): void => {
     try {
         const settings = configService.getAll();
         res.status(200).json(settings);
@@ -11,7 +11,16 @@ export const getAllSettings = (_req: Request, res: Response, next: NextFunction)
     }
 };
 
-export const updateSetting = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const GetAllSettings = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const settings = await getAllSettings();
+        res.status(200).json(settings);
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const UpdateSetting = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { key } = req.params;
         const { value, description } = req.body;

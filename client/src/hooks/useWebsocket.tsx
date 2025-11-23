@@ -8,6 +8,7 @@ import {
 import { WEBSOCKET_CONNECTION_STATES } from "@constants";
 import type { WebsocketOptions } from "@my-types/websocket";
 import axios from "axios";
+
 /**
  * Custom WebSocket Hook for Real-Time Features
  *
@@ -38,7 +39,7 @@ import axios from "axios";
 
 // Singleton WebSocket instance for performance
 let global_socket: Socket | null = null;
-let global_connection_state: string = "disconnected";
+let global_connection_state: string = WEBSOCKET_CONNECTION_STATES.DISCONNECTED;
 let global_reconnect_attempts: number = 0;
 const global_event_handlers = new Map(); // Track all event handlers
 let authentication_attempted: boolean = false; // Track if authentication has been attempted
@@ -69,19 +70,25 @@ const useWebsocket = (options: WebsocketOptions) => {
 
 	// Store events in a ref to avoid dependency issues
 	const events_ref = useRef(events);
-	const debug_ref = useRef(debug);
 	events_ref.current = events;
+
+	const debug_ref = useRef(debug);
 	debug_ref.current = debug;
 
 	// Debug logging helper
-	const debugLog = useCallback((message: string, ...args: unknown[]) => {
-		if (debug_ref.current) {
-			console.log(
-				`🔌 [WebSocket-${component_id.current.slice(-6)}] ${message}`,
-				...args
-			);
-		}
-	}, []);
+	const debugLog = useCallback(
+		(message: string, ...args: unknown[]) => {
+			if (debug_ref.current) {
+				console.log(
+					`🔌 [WebSocket-${component_id.current.slice(
+						-6
+					)}] ${message}`,
+					...args
+				);
+			}
+		},
+		[debug_ref]
+	);
 
 	// Update global state and sync with all components
 	const updateConnectionStatus = useCallback(
@@ -382,15 +389,18 @@ const useWebsocket = (options: WebsocketOptions) => {
 		authenticateSocket,
 	]);
 
-	const emitEvent = useCallback((event_name: string, data: any) => {
-		if (socket_ref.current && socket_ref.current.connected) {
-			socket_ref.current.emit(event_name, data);
-			return true;
-		}
+	const emitEvent = useCallback(
+		(event_name: string, data: any) => {
+			if (socket_ref.current && socket_ref.current.connected) {
+				socket_ref.current.emit(event_name, data);
+				return true;
+			}
 
-		debugLog(`Cannot emit '${event_name}' - WebSocket not connected`);
-		return false;
-	}, [debugLog]);
+			debugLog(`Cannot emit '${event_name}' - WebSocket not connected`);
+			return false;
+		},
+		[debugLog]
+	);
 
 	const disconnectSocket = useCallback(() => {
 		if (socket_ref.current) {
@@ -403,7 +413,7 @@ const useWebsocket = (options: WebsocketOptions) => {
 		if (socket_ref.current) {
 			socket_ref.current.connect();
 		}
-	}, [])
+	}, []);
 
 	// Return hook interface
 	return {
