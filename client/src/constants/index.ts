@@ -45,6 +45,7 @@ export const APP_CONFIG: AppConfig = {
 export const ROUTES = {
 	HOME: "/",
 	DASHBOARD_HOME: "/dashboard/home",
+	DASHBOARD_SeatBooking: "/dashboard/SEAT_BOOKING",
 	DASHBOARD_VEHICLE: "/dashboard/vehicle",
 	DASHBOARD_VEHICLE_TYPE: "/dashboard/vehicle-type",
 	DASHBOARD_TRIP: "/dashboard/trip",
@@ -58,6 +59,7 @@ export const ROUTES = {
 	REGISTER: "/register",
 	NOT_FOUND: "/404",
 	PRIVACY_POLICY: "/privacy",
+	SEAT_BOOKING: "/seat-booking/", 
 } as const;
 
 /**

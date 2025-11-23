@@ -56,6 +56,15 @@ export const router = createBrowserRouter([
 				},
 			},
 			{
+               path: ROUTES.SEAT_BOOKING,
+               lazy: async () => {
+                   const { default: SeatBooking } = await import(
+					   "@pages/landing/SeatBooking"
+				    );
+                    return { Component: SeatBooking };
+               },
+            },
+			{
 				path: ROUTES.LOGIN,
 				handle: { title: "Login • EasyRide" },
 				lazy: async () => {
@@ -208,6 +217,15 @@ export const router = createBrowserRouter([
 					return { Component: User };
 				},
 			},
+			{
+                path: "seat-booking",
+                lazy: async () => {
+                   const { default: SeatBooking } = await import(
+					"@pages/landing/SeatBooking"
+				   );
+                   return { Component: SeatBooking };
+                },
+            },
 			{
 				path: "coupon",
 				handle: { title: "Coupons • EasyRide" },
