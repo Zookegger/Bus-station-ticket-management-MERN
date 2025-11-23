@@ -27,15 +27,18 @@ import {
 	PersonAdd,
 } from "@mui/icons-material";
 import type { Gender } from "@my-types/user";
-import axios, { isAxiosError } from "axios";
-import { API_ENDPOINTS, APP_CONFIG, ROUTES } from "@constants/index";
+import { isAxiosError } from "axios";
+import { ROUTES } from "@constants/index";
 import { useNavigate } from "react-router-dom";
 import { useDeviceType } from "@utils/deviceHooks";
+import { useAuth } from "@hooks/useAuth";
+import type { RegisterDTO } from "@my-types/auth";
 
 const Register: React.FC = () => {
+	const { register } = useAuth();
 	const navigate = useNavigate();
 	const genderOptions: Gender[] = ["male", "female", "other"];
-	const [formData, setFormData] = useState({
+	const [formData, setFormData] = useState<RegisterDTO>({
 		firstName: "",
 		lastName: "",
 		email: "",
@@ -77,33 +80,15 @@ const Register: React.FC = () => {
 		setErrors({}); // Clear previous errors
 
 		try {
-			const response = await axios.post(
-				APP_CONFIG.apiBaseUrl + API_ENDPOINTS.AUTH.REGISTER,
-				formData, // Use the full form data
-				{
-					headers: {
-						"Content-Type": "application/json",
-					},
-					timeout: 7000,
-					timeoutErrorMessage: "Connection timeout, try again",
-				}
-			);
+			const dto: RegisterDTO = formData;
 
-			if (
-				!response.data.csrfToken ||
-				!response.data.user
-			) {
-				console.log("Registration failed: ", response.data);
-				setErrors({ general: "Registration failed: Invalid server response." });
-				return;
-			}
-
-			setMessage(response.data.message);
+			const { user, message } = await register(dto);
+			setMessage(message);
 
 			// Handle successful registration, maybe store tokens and user data
 			// For now, just navigate after a delay
 			setTimeout(() => {
-				if (response.data.user.role === "Admin") {
+				if (user.role === "Admin") {
 					navigate(ROUTES.DASHBOARD_HOME);
 				} else {
 					navigate(ROUTES.HOME);

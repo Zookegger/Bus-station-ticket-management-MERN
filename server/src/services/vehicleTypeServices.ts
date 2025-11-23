@@ -34,6 +34,7 @@ import {
  */
 interface ListOptions {
     keywords?: string;
+    items?: string[],
     orderBy?: string;
     sortOrder?: "ASC" | "DESC";
     page?: number;
@@ -106,6 +107,7 @@ export const listVehicleTypes = async (options: ListOptions = {}
         orderBy = "createdAt", 
         sortOrder = "DESC",
         page,
+        items,
         limit,
         minPrice,
         maxPrice,
@@ -148,6 +150,10 @@ export const listVehicleTypes = async (options: ListOptions = {}
         where: Object.keys(where).length > 0 ? where : undefined,
         order: [[orderBy, sortOrder]]
     };
+    
+    if (items && items !== null && items.length > 0) {
+        queryOptions.attributes = items;
+    }
 
     // Add pagination if provided
     if (page !== undefined && limit !== undefined) {
@@ -180,6 +186,11 @@ export const addVehicleType = async (
 	if (existing_vehicle_type)
 		throw { status: 409, message: "Vehicle type already exist." };
 
+	// Serialize seatLayout to JSON string if it's an object
+	if (dto.seatLayout && typeof dto.seatLayout === 'object') {
+		dto.seatLayout = JSON.stringify(dto.seatLayout);
+	}
+
 	const vehicle_type = await db.VehicleType.create(dto);
 	return vehicle_type;
 };
@@ -203,6 +214,11 @@ export const updateVehicleType = async (
 
 	if (!vehicle_type)
 		throw { status: 404, message: `No vehicle type found with id ${id}` };
+
+	// Serialize seatLayout to JSON string if it's an object
+	if (dto.seatLayout && typeof dto.seatLayout === 'object') {
+		dto.seatLayout = JSON.stringify(dto.seatLayout);
+	}
 
 	await vehicle_type.update(dto);
 	return vehicle_type;

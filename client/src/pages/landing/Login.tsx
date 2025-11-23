@@ -33,9 +33,10 @@ import { isAxiosError } from "axios";
 import { ROUTES } from "@constants/index";
 import ForgotPasswordDialog from "./ForgotPasswordDialog";
 import { useAuth } from "@hooks/useAuth";
+import type { LoginDTO } from "@my-types/auth";
 
 const LoginPage: React.FC = () => {
-	const { login } = useAuth();
+	const { login, loginWithGoogle, loginWithFacebook } = useAuth();
 	const navigate = useNavigate();
 	const [formData, setFormData] = useState({
 		login: "",
@@ -83,9 +84,10 @@ const LoginPage: React.FC = () => {
 		setMessage(null);
 
 		try {
-			const dto = {
+			const dto: LoginDTO = {
 				login: formData.login,
 				password: formData.password,
+				rememberMe: formData.rememberMe,
 			};
 
 			const { user, message } = await login(dto);
@@ -305,6 +307,7 @@ const LoginPage: React.FC = () => {
 												backgroundColor: "red",
 											},
 										}}
+										onClick={loginWithGoogle}
 									>
 										Google
 									</Button>
@@ -324,6 +327,7 @@ const LoginPage: React.FC = () => {
 												backgroundColor: "#184fa1ff",
 											},
 										}}
+										onClick={loginWithFacebook}
 									>
 										Facebook
 									</Button>

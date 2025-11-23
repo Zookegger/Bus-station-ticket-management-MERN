@@ -14,7 +14,7 @@ export const getAllSettings = (_req: Request, res: Response, next: NextFunction)
 export const updateSetting = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { key } = req.params;
-        const { value } = req.body;
+        const { value, description } = req.body;
 
         if (key === undefined) {
             throw { status: 400, message: "Key is required." };
@@ -23,7 +23,7 @@ export const updateSetting = async (req: Request, res: Response, next: NextFunct
         if (value === undefined) {
             throw { status: 400, message: "Value is required." };
         }
-        const updatedSetting = await configService.set(key, value);
+        const updatedSetting = await configService.set(key, value, description);
         
         res.status(200).json(updatedSetting);
     } catch (err) {

@@ -18,7 +18,6 @@ import * as routeValidator from "@middlewares/validators/routeValidator";
  *
  * Handles route-related operations with full CRUD support:
  * - GET /: Advanced search and filtering with pagination
- * - GET /search: Alternative search endpoint
  * - GET /:id: Retrieve specific route by ID
  * - POST /: Create new route
  * - PUT /:id: Update existing route
@@ -28,9 +27,6 @@ const routeRouter = Router();
 
 // GET /routes - Advanced search with filtering and pagination
 routeRouter.get("/", routeController.SearchRoute, errorHandler);
-
-// GET /routes/search - Alternative search endpoint
-routeRouter.get("/search", routeController.SearchRoute, errorHandler);
 
 // GET /routes/:id - Get route by ID
 routeRouter.get(

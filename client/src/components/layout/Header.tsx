@@ -14,9 +14,11 @@ import {
 import { Link as RouterLink } from "react-router-dom";
 import { APP_CONFIG, ROUTES } from "@constants";
 import { useAuth } from "@hooks/useAuth";
+import { AccountBox, Logout, Window } from "@mui/icons-material";
+import buildAvatarUrl from "@utils/avatarImageHelper";
 
 const Header: React.FC = () => {
-	const { isAuthenticated, user, logout, isLoading } = useAuth();
+	const { isAuthenticated, isAdmin, user, logout, isLoading } = useAuth();
 
 	const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -50,21 +52,21 @@ const Header: React.FC = () => {
 					<Box>
 						{isLoading ? (
 							<Skeleton
-                                variant="rectangular"
-                                width={120}
-                                height={40}
-                                sx={{
-                                    bgcolor: "rgba(255, 255, 255, 0.2)",
-                                    borderRadius: 1,
-                                }}
-                            />
+								variant="rectangular"
+								width={120}
+								height={40}
+								sx={{
+									bgcolor: "rgba(255, 255, 255, 0.2)",
+									borderRadius: 1,
+								}}
+							/>
 						) : isAuthenticated && user ? (
 							<>
 								<Button
 									onClick={handleMenuClick}
 									color="inherit"
 									sx={{
-										textTransform: 'none'
+										textTransform: "none",
 									}}
 								>
 									<Box
@@ -73,7 +75,10 @@ const Header: React.FC = () => {
 										alignItems={"center"}
 									>
 										<Avatar
-											src={user.avatar ?? ''}
+											src={
+												buildAvatarUrl(user.avatar) ??
+												""
+											}
 											alt={user.firstName}
 											sx={{
 												width: "32px",
@@ -89,11 +94,45 @@ const Header: React.FC = () => {
 									anchorEl={anchorEl}
 									open={menuOpen}
 									onClose={handleMenuClose}
-									anchorOrigin={{ vertical: 'bottom', horizontal: 'center'}}
-									transformOrigin={{ vertical: 'top', horizontal: 'center'}}
+									anchorOrigin={{
+										vertical: "bottom",
+										horizontal: "center",
+									}}
+									transformOrigin={{
+										vertical: "top",
+										horizontal: "center",
+									}}
+									slotProps={{
+										paper: { style: { width: 150 } },
+									}}
 								>
-									<MenuItem onClick={handleMenuClose}>Profile</MenuItem>
-									<MenuItem onClick={() => { handleMenuClose(); logout(); }}>Logout</MenuItem>
+									<MenuItem
+										onClick={handleMenuClose}
+										component={RouterLink}
+										to={ROUTES.PROFILE}
+									>
+										<AccountBox sx={{ marginRight: 1 }} />
+										Profile
+									</MenuItem>
+									{isAdmin && (
+										<MenuItem
+											onClick={handleMenuClose}
+											component={RouterLink}
+											to={ROUTES.DASHBOARD_HOME}
+										>
+											<Window sx={{ marginRight: 1 }} />
+											Dashboard
+										</MenuItem>
+									)}
+									<MenuItem
+										onClick={async () => {
+											handleMenuClose();
+											await logout();
+										}}
+									>
+										<Logout sx={{ marginRight: 1 }} />
+										Logout
+									</MenuItem>
 								</Menu>
 							</>
 						) : (

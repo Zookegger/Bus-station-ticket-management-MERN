@@ -9,38 +9,36 @@
 export interface VehicleType {
 	id: number;
 	name: string;
-	price?: number | null;
-	totalFloors?: number | null;
-	totalColumns?: number | null;
-	totalSeats?: number | null;
-	rowsPerFloor?: string | null; // JSON string
-	seatsPerFloor?: string | null; // JSON string
-	createdAt: string; // ISO Date string
-	updatedAt: string; // ISO Date string
+	price: number;
+	totalFloors: number;
+	totalSeats: number;
+	seatLayout: string;
+	createdAt: string;
+	updatedAt: string;
 }
+
+export type SeatType = "available" | "aisle" | "disabled" | "occupied";
+export type SeatLayout = SeatType[][][];
 
 /**
  * DTO for creating a new Vehicle Type.
  */
 export interface CreateVehicleTypeDTO {
 	name: string;
-	price?: number | null;
-	totalFloors?: number | null;
-	totalColumns?: number | null;
-	totalSeats?: number | null;
-	rowsPerFloor?: string | null; // JSON string
-	seatsPerFloor?: string | null; // JSON string
+	price: number;
+	totalFloors: number;
+	totalSeats: number;
+	seatLayout: string;
 }
 
 /**
  * DTO for updating an existing Vehicle Type.
  */
 export interface UpdateVehicleTypeDTO {
+	id: number;
 	name?: string;
-	price?: number | null;
-	totalFloors?: number | null;
-	totalColumns?: number | null;
-	totalSeats?: number | null;
-	rowsPerFloor?: string | null; // JSON string
-	seatsPerFloor?: string | null; // JSON string
+	price?: number;
+	totalFloors?: number;
+	totalSeats?: number;
+	seatLayout?: string;
 }

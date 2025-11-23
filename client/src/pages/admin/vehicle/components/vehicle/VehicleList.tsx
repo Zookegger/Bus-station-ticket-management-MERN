@@ -1,13 +1,7 @@
-import React, { useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
 	Box,
 	Button,
-	Table,
-	TableBody,
-	TableCell,
-	TableContainer,
-	TableHead,
-	TableRow,
 	Paper,
 	FormControl,
 	InputLabel,
@@ -16,28 +10,31 @@ import {
 	TextField,
 	InputAdornment,
 	IconButton,
-	TablePagination,
-	Dialog,
-	DialogTitle,
-	DialogContent,
-	DialogActions,
 } from "@mui/material";
 import {
 	Add as AddIcon,
 	Search as SearchIcon,
-	Visibility as VisibilityIcon,
+	Edit as EditIcon,
 	Delete as DeleteIcon,
 } from "@mui/icons-material";
-// import type { UpdateVehicleDTO } from "@my-types/vehicle";
+import { DataGrid, type GridColDef } from "@mui/x-data-grid";
+import { DataGridPageLayout } from "@components/admin";
 import type { VehicleWithType, VehicleDetail } from "@my-types/vehicleList";
 import VehicleDetailsDrawer from "./VehicleDetailsDrawer";
 import EditVehicleForm from "./EditVehicleForm";
 import CreateVehicleForm from "./CreateVehicleForm";
+import RemoveVehicleForm from "./RemoveVehicleForm";
 import type { UpdateVehicleDTO } from "@my-types/vehicle";
+import callApi from "@utils/apiCaller";
+import { API_ENDPOINTS } from "@constants";
+
+interface VehicleTypeFilter {
+	id: number;
+	name: string;
+}
 
 const VehicleList: React.FC = () => {
 	const [vehicles, setVehicles] = useState<VehicleWithType[]>([]);
-	const [vehicleDetails, setVehicleDetails] = useState<VehicleDetail[]>([]);
 	const [selectedVehicle, setSelectedVehicle] =
 		useState<VehicleDetail | null>(null);
 	const [drawerOpen, setDrawerOpen] = useState(false);
@@ -48,29 +45,44 @@ const VehicleList: React.FC = () => {
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [typeFilter, setTypeFilter] = useState("");
-	const [page, setPage] = useState(0);
-	const [rowsPerPage, setRowsPerPage] = useState(5);
+	const [vehicleTypeFilter, SetVehicleTypeFilter] = useState<
+		VehicleTypeFilter[] | null
+	>(null);
 
-	const filteredVehicles = vehicles.filter((v) => {
-		const matchesType = !typeFilter || v.vehicleType.name === typeFilter;
-		const displayName =
-			v.manufacturer && v.model
-				? `${v.manufacturer} ${v.model}`
-				: v.numberPlate;
-		const matchesSearch =
-			!searchTerm ||
-			displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			v.numberPlate.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			v.vehicleType.name.toLowerCase().includes(searchTerm.toLowerCase());
-		return matchesType && matchesSearch;
-	});
+	// Memoized filter to avoid recalculating on every render
+	const filteredVehicles = useMemo(() => {
+		return vehicles.filter((v) => {
+			const matchesType = !typeFilter || v.vehicleType.name === typeFilter;
+			const displayName =
+				v.manufacturer && v.model
+					? `${v.manufacturer} ${v.model}`
+					: v.numberPlate;
+			const lowerSearch = searchTerm.toLowerCase();
+			const matchesSearch =
+				!searchTerm ||
+				displayName.toLowerCase().includes(lowerSearch) ||
+				v.numberPlate.toLowerCase().includes(lowerSearch) ||
+				v.vehicleType.name.toLowerCase().includes(lowerSearch);
+			return matchesType && matchesSearch;
+		});
+	}, [vehicles, typeFilter, searchTerm]);
+
+	// Memoized mapping for DataGrid rows
+	const rows = useMemo(
+		() =>
+			filteredVehicles.map((v) => ({
+				...v,
+				displayName:
+					v.manufacturer && v.model
+						? `${v.manufacturer} ${v.model}`
+						: `Vehicle ${v.id}`,
+			})),
+		[filteredVehicles]
+	);
 
 	const handleViewDetails = (vehicle: VehicleWithType) => {
-		const detail = vehicleDetails.find((v) => v.id === vehicle.id);
-		if (detail) {
-			setSelectedVehicle(detail);
-			setDrawerOpen(true);
-		}
+		setSelectedVehicle(vehicle);
+		setDrawerOpen(true);
 	};
 
 	const handleCloseDrawer = () => {
@@ -84,19 +96,6 @@ const VehicleList: React.FC = () => {
 	};
 
 	const handleSaveEdit = (updated: UpdateVehicleDTO) => {
-		// For now, we'll update the mock data. In a real app, this would call an API
-		setVehicleDetails((prev) =>
-			prev.map((v) =>
-				v.id === updated.id
-					? {
-							...v,
-							numberPlate: updated.numberPlate || v.numberPlate,
-							// Note: vehicleTypeId mapping would need proper vehicle type lookup
-							// manufacturer and model would be added to VehicleDetail if needed
-					  }
-					: v
-			)
-		);
 		setVehicles((prev) =>
 			prev.map((v) =>
 				v.id === updated.id
@@ -117,9 +116,6 @@ const VehicleList: React.FC = () => {
 
 	const handleConfirmDelete = () => {
 		if (!vehicleToDelete) return;
-		setVehicleDetails((prev) =>
-			prev.filter((v) => v.id !== vehicleToDelete.id)
-		);
 		setVehicles((prev) => prev.filter((v) => v.id !== vehicleToDelete.id));
 		setVehicleToDelete(null);
 		setDeleteOpen(false);
@@ -127,119 +123,192 @@ const VehicleList: React.FC = () => {
 		setDrawerOpen(false);
 	};
 
+	// Define DataGrid columns
+	const columns: GridColDef[] = [
+		{
+			field: "displayName",
+			headerName: "Name",
+			flex: 1,
+			minWidth: 150,
+		},
+		{
+			field: "numberPlate",
+			headerName: "License Plate",
+			flex: 1,
+			minWidth: 150,
+		},
+		{
+			field: "vehicleType",
+			headerName: "Vehicle Type",
+			flex: 1,
+			minWidth: 150,
+			valueGetter: (value: VehicleWithType["vehicleType"]) => value.name,
+		},
+		{
+			field: "updatedAt",
+			headerName: "Updated At",
+			width: 190,
+			valueFormatter: (value: Date) => {
+				return value
+					? `${new Date(value).toLocaleDateString()} - ${new Date(
+							value
+					  ).toLocaleTimeString()}`
+					: "N/A";
+			},
+		},
+		{
+			field: "createdAt",
+			headerName: "Created At",
+			width: 190,
+			valueFormatter: (value: Date) => {
+				return value
+					? `${new Date(value).toLocaleDateString()} - ${new Date(
+							value
+					  ).toLocaleTimeString()}`
+					: "N/A";
+			},
+		},
+		{
+			field: "actions",
+			headerName: "Actions",
+			width: 120,
+			sortable: false,
+			renderCell: (params) => {
+				const vehicle = params.row as VehicleWithType & {
+					displayName: string;
+				};
+				return (
+					<Box onClick={(e) => e.stopPropagation()}>
+						<IconButton
+							size="small"
+							color="primary"
+							onClick={(e) => {
+								e.stopPropagation();
+								handleOpenEdit(vehicle);
+							}}
+							title="Edit"
+						>
+							<EditIcon />
+						</IconButton>
+						<IconButton
+							size="small"
+							color="error"
+							onClick={(e) => {
+								e.stopPropagation();
+								handleOpenDelete(vehicle);
+							}}
+							title="Delete"
+						>
+							<DeleteIcon />
+						</IconButton>
+					</Box>
+				);
+			},
+		},
+	];
+
+	useEffect(() => {
+		const fetchVehicles = async () => {
+			try {
+				const { status, data } = await callApi(
+					{ method: "GET", url: API_ENDPOINTS.VEHICLE.BASE },
+					{ returnFullResponse: true }
+				);
+
+				if (status === 304 || status === 200) {
+					setVehicles(data.rows);
+				}
+			} catch (err) {
+				console.error(err);
+			}
+		};
+
+		const fetchVehicleTypes = async () => {
+			try {
+				const { status, data } = await callApi(
+					{
+						method: "GET",
+						url: `${API_ENDPOINTS.VEHICLE_TYPE.BASE}?items=id&items=name`,
+					},
+					{ returnFullResponse: true }
+				);
+
+				if (status === 304 || status === 200) {
+					SetVehicleTypeFilter(data);
+				}
+			} catch (err) {
+				console.error(err);
+			}
+		};
+
+		fetchVehicleTypes();
+		fetchVehicles();
+	}, []);
+
 	return (
-		<Box sx={{ p: 3 }}>
-			<Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
-				<Button
-					variant="contained"
-					startIcon={<AddIcon />}
-					onClick={() => setCreateOpen(true)}
-				>
-					Add Vehicle
-				</Button>
-				<FormControl size="small" sx={{ minWidth: 150 }}>
-					<InputLabel>Type</InputLabel>
-					<Select
-						value={typeFilter}
-						onChange={(e) => setTypeFilter(e.target.value)}
+		<DataGridPageLayout
+			title="Vehicle Management"
+			actionBar={
+				<Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+					<Button
+						variant="contained"
+						startIcon={<AddIcon />}
+						onClick={() => setCreateOpen(true)}
 					>
-						<MenuItem value="">All</MenuItem>
-						{/* TODO: Fetch vehicle type from API */}
-					</Select>
-				</FormControl>
-				<TextField
-					size="small"
-					placeholder="Search"
-					value={searchTerm}
-					onChange={(e) => setSearchTerm(e.target.value)}
-					slotProps={{
-						input: {
-							startAdornment: (
-								<InputAdornment position="start">
-									<SearchIcon />
-								</InputAdornment>
-							),
+						Add Vehicle
+					</Button>
+					<FormControl size="small" sx={{ minWidth: 150 }}>
+						<InputLabel>Type</InputLabel>
+						<Select
+							value={typeFilter}
+							onChange={(e) => setTypeFilter(e.target.value)}
+						>
+							<MenuItem value="">All</MenuItem>
+							{vehicleTypeFilter &&
+								vehicleTypeFilter.map((element) => (
+									<MenuItem
+										key={element.id}
+										value={`${element.name}`}
+									>
+										{element.name}
+									</MenuItem>
+								))}
+						</Select>
+					</FormControl>
+					<TextField
+						size="small"
+						placeholder="Search"
+						value={searchTerm}
+						onChange={(e) => setSearchTerm(e.target.value)}
+						slotProps={{
+							input: {
+								startAdornment: (
+									<InputAdornment position="start">
+										<SearchIcon />
+									</InputAdornment>
+								),
+							},
+						}}
+					/>
+				</Box>
+			}
+		>
+			<Paper elevation={3} sx={{ width: "100%" }}>
+				<DataGrid
+					rows={rows}
+					columns={columns}
+					rowHeight={35}
+					pagination
+					initialState={{
+						pagination: {
+							paginationModel: { pageSize: 10, page: 0 },
 						},
 					}}
+					onRowClick={(params) => handleViewDetails(params.row)}
+					pageSizeOptions={[5, 10, 20, 50]}
+					sx={{ border: "none" }}
 				/>
-			</Box>
-			<TableContainer component={Paper}>
-				<Table>
-					<TableHead>
-						<TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-							<TableCell>Name</TableCell>
-							<TableCell>License Plate</TableCell>
-							<TableCell>Vehicle Type</TableCell>
-							<TableCell>Actions</TableCell>
-						</TableRow>
-					</TableHead>
-					<TableBody>
-						{filteredVehicles
-							.slice(
-								page * rowsPerPage,
-								page * rowsPerPage + rowsPerPage
-							)
-							.map((vehicle) => {
-								const displayName =
-									vehicle.manufacturer && vehicle.model
-										? `${vehicle.manufacturer} ${vehicle.model}`
-										: `Vehicle ${vehicle.id}`;
-								return (
-									<TableRow key={vehicle.id} hover>
-										<TableCell>{displayName}</TableCell>
-										<TableCell>
-											{vehicle.numberPlate}
-										</TableCell>
-										<TableCell>
-											{vehicle.vehicleType.name}
-										</TableCell>
-										<TableCell>
-											<IconButton
-												size="small"
-												onClick={() =>
-													handleViewDetails(vehicle)
-												}
-												title="View Details"
-											>
-												<VisibilityIcon />
-											</IconButton>
-											<IconButton
-												size="small"
-												color="error"
-												onClick={() => {
-													const detail =
-														vehicleDetails.find(
-															(v) =>
-																v.id ===
-																vehicle.id
-														);
-													if (detail)
-														handleOpenDelete(
-															detail
-														);
-												}}
-												title="Delete Vehicle"
-											>
-												<DeleteIcon />
-											</IconButton>
-										</TableCell>
-									</TableRow>
-								);
-							})}
-					</TableBody>
-				</Table>
-			</TableContainer>{" "}
-			<TablePagination
-				component="div"
-				count={filteredVehicles.length}
-				page={page}
-				onPageChange={(_e, newPage) => setPage(newPage)}
-				rowsPerPage={rowsPerPage}
-				onRowsPerPageChange={(e) =>
-					setRowsPerPage(Number(e.target.value))
-				}
-				rowsPerPageOptions={[5, 10, 20, 50]}
-			/>
+			</Paper>
 			{/* TODO: Update VehicleDetailsDrawer to use VehicleDetail from vehicleList.ts */}
 			<VehicleDetailsDrawer
 				open={drawerOpen}
@@ -256,32 +325,19 @@ const VehicleList: React.FC = () => {
 					onSave={handleSaveEdit}
 				/>
 			)}
-			{/* Delete Confirmation Dialog */}
-			<Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)}>
-				<DialogTitle>Delete Vehicle</DialogTitle>
-				<DialogContent>
-					Are you sure you want to delete{" "}
-					<strong>
-						{vehicleToDelete
-							? vehicleToDelete.displayName ||
-							  vehicleToDelete.numberPlate
-							: "this vehicle"}
-					</strong>
-					?
-				</DialogContent>
-				<DialogActions>
-					<Button onClick={() => setDeleteOpen(false)}>Cancel</Button>
-					<Button color="error" onClick={handleConfirmDelete}>
-						Delete
-					</Button>
-				</DialogActions>
-			</Dialog>
+			{/* Delete Vehicle Form */}
+			<RemoveVehicleForm
+				open={deleteOpen}
+				id={vehicleToDelete?.id}
+				onConfirm={handleConfirmDelete}
+				onClose={() => setDeleteOpen(false)}
+			/>
 			{/* Create Vehicle Dialog */}
 			<CreateVehicleForm
 				open={createOpen}
 				onClose={() => setCreateOpen(false)}
 			/>
-		</Box>
+		</DataGridPageLayout>
 	);
 };
 

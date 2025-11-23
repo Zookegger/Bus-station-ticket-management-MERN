@@ -1,11 +1,21 @@
 import { Request, Response, NextFunction } from "express";
 import * as authServices from "@services/authServices";
 import * as verificationServices from "@services/verificationServices";
-import { ChangePasswordDTO, RegisterDTO, ResetPasswordDTO } from "@my_types/user";
+import {
+	ChangePasswordDTO,
+	ResetPasswordDTO,
+} from "@my_types/user";
+import {
+	LoginDTO,
+	RegisterDTO,
+} from "@my_types/auth";
 import { getCsrfToken, isValidCsrfToken } from "@middlewares/csrf";
-import { CONFIG, COMPUTED } from "@constants";
+import { CONFIG, COMPUTED, CSRF_CONFIG } from "@constants";
 import logger from "@utils/logger";
-import { encryptToken } from "@utils/encryption";
+import { decryptToken, encryptToken } from "@utils/encryption";
+import { User } from "@models/user";
+import { add } from "date-fns";
+import db from "@models/index";
 
 /**
  * Helper function to set access and refresh tokens in secure, httpOnly cookies.
@@ -14,6 +24,7 @@ const setCookieTokens = (
 	res: Response,
 	accessToken: string,
 	refreshToken: string,
+	rememberMe?: boolean,
 ) => {
 	if (!accessToken) {
 		throw { status: 500, message: "Access token was not provided." };
@@ -30,18 +41,24 @@ const setCookieTokens = (
 	};
 
 	const accessMaxAge = (CONFIG.JWT_EXPIRY_HOURS || 1) * 60 * 60 * 1000;
-	const encryptedSecret = process.env.COOKIE_ENCRYPTION_KEY || "cookie_encryption_key";
-	const encryptedAccessToken = encryptToken(accessToken, encryptedSecret);
+	const refreshMaxAge = rememberMe
+        ? COMPUTED.REFRESH_TOKEN_REMEMBER_EXPIRY_SECONDS * 1000
+        : COMPUTED.REFRESH_TOKEN_EXPIRY_SECONDS * 1000; // Default expiry
+
 	
+	const encryptedSecret =
+		process.env.COOKIE_ENCRYPTION_KEY || "cookie_encryption_key";
+	const encryptedAccessToken = encryptToken(accessToken, encryptedSecret);
+
 	res.cookie("accessToken", encryptedAccessToken, {
 		...cookieOptions,
 		maxAge: accessMaxAge,
 	});
-	
+
 	const encryptedRefreshToken = encryptToken(refreshToken, encryptedSecret);
 	res.cookie("refreshToken", encryptedRefreshToken, {
 		...cookieOptions,
-		maxAge: COMPUTED.REFRESH_TOKEN_EXPIRY_SECONDS * 1000,
+		maxAge: refreshMaxAge,
 	});
 };
 
@@ -63,14 +80,19 @@ const setCookieTokens = (
 export const Register = async (
 	req: Request,
 	res: Response,
-	next: NextFunction,
+	next: NextFunction
 ): Promise<void> => {
 	try {
 		const dto: RegisterDTO = req.body;
 
 		const result = await authServices.register(dto);
 
-		if (!result) throw { status: 500, message: "Failed to create a new account due to a server error.",};
+		if (!result)
+			throw {
+				status: 500,
+				message:
+					"Failed to create a new account due to a server error.",
+			};
 
 		setCookieTokens(res, result.accessToken, result.refreshToken);
 
@@ -105,13 +127,14 @@ export const Register = async (
 export const Login = async (
 	req: Request,
 	res: Response,
-	next: NextFunction,
+	next: NextFunction
 ): Promise<void> => {
 	try {
-		const { login, password } = req.body;
+		const { login, password, rememberMe }: LoginDTO = req.body;
 		const result = await authServices.login({
-			username: login,
+			login,
 			password,
+			rememberMe,
 		});
 
 		if (!result) {
@@ -154,7 +177,7 @@ export const Login = async (
 export const RefreshToken = async (
 	req: Request,
 	res: Response,
-	next: NextFunction,
+	next: NextFunction
 ) => {
 	try {
 		const incomingRefresh =
@@ -175,12 +198,8 @@ export const RefreshToken = async (
 		// The service returns the raw refresh token value, not the object
 		setCookieTokens(res, result.accessToken, result.refreshToken.value);
 
-		// Also return a new CSRF token to ensure the client stays in sync
-		const csrfToken = getCsrfToken(req, res);
-
 		res.status(200).json({
 			message: "Access token refreshed successfully.",
-			csrfToken,
 		});
 	} catch (err) {
 		next(err);
@@ -205,20 +224,37 @@ export const RefreshToken = async (
 export const Logout = async (
 	req: Request,
 	res: Response,
-	next: NextFunction,
+	next: NextFunction
 ): Promise<void> => {
 	try {
 		// Prefer refresh token from cookie; fallback to body
 		const incomingRefresh =
 			(req as any).cookies?.refreshToken || req.body.refreshToken;
+
 		if (!incomingRefresh) {
-			throw { status: 400, message: "Refresh token is required for logout." };
+			throw {
+				status: 400,
+				message: "Refresh token is required for logout.",
+			};
 		}
-		const result = await authServices.revokeRefreshToken(incomingRefresh);
+		const encryptedSecret =
+			process.env.COOKIE_ENCRYPTION_KEY || "cookie_encryption_key";
+
+		const refreshToken = decryptToken(incomingRefresh, encryptedSecret);
+		if (!refreshToken) {
+			throw {
+				status: 400,
+				message: "Refresh token is required for logout.",
+			};
+		}
+		const result = await authServices.revokeRefreshToken(refreshToken);
+
 		if (result === 0) {
 			// This can happen if the token is already revoked, which is not a critical error.
 			// Proceed to clear cookies anyway.
-			logger.warn("Logout attempt with an invalid or already revoked token.");
+			logger.warn(
+				"Logout attempt with an invalid or already revoked token."
+			);
 		}
 
 		// Clear cookies client-side
@@ -228,10 +264,11 @@ export const Logout = async (
 			sameSite: "lax" as const,
 			path: "/",
 		};
+
 		res.clearCookie("accessToken", cookieOptions as any);
 		res.clearCookie("refreshToken", cookieOptions as any);
 		// Also clear the CSRF secret cookie
-		res.clearCookie("psifi.x-csrf-token", cookieOptions as any);
+		res.clearCookie(CSRF_CONFIG.COOKIE_NAME, cookieOptions as any);
 
 		res.status(200).json({ message: "Logged out successfully." });
 	} catch (err) {
@@ -257,7 +294,7 @@ export const Logout = async (
 export const GetMe = async (
 	req: Request,
 	res: Response,
-	next: NextFunction,
+	next: NextFunction
 ): Promise<void> => {
 	try {
 		const userId = (req as any).user?.id;
@@ -273,9 +310,8 @@ export const GetMe = async (
 			throw { status: 404, message: "User profile not found." };
 		}
 
-		// Return user profile and a fresh CSRF token
-		const csrfToken = getCsrfToken(req, res);
-		res.status(200).json({ user, csrfToken });
+		// Return user profile
+		res.status(200).json({ user });
 	} catch (err) {
 		next(err);
 	}
@@ -299,7 +335,7 @@ export const GetMe = async (
 export const VerifyEmail = async (
 	req: Request,
 	res: Response,
-	next: NextFunction,
+	next: NextFunction
 ): Promise<void> => {
 	try {
 		const { token } = req.body;
@@ -317,7 +353,8 @@ export const VerifyEmail = async (
 		} else {
 			throw {
 				status: 400,
-				message: "Email verification failed. The token may be invalid or expired.",
+				message:
+					"Email verification failed. The token may be invalid or expired.",
 			};
 		}
 	} catch (err) {
@@ -343,7 +380,7 @@ export const VerifyEmail = async (
 export const ForgotPassword = async (
 	req: Request,
 	res: Response,
-	next: NextFunction,
+	next: NextFunction
 ): Promise<void> => {
 	try {
 		const { email } = req.body;
@@ -366,7 +403,7 @@ export const ForgotPassword = async (
 export const ResetPassword = async (
 	req: Request,
 	res: Response,
-	next: NextFunction,
+	next: NextFunction
 ): Promise<void> => {
 	try {
 		const { token } = req.params;
@@ -385,16 +422,21 @@ export const ResetPassword = async (
 		// The service needs the token to find the correct user/request
 		await authServices.resetPassword({ ...payload, token });
 
-		res.status(200).json({ message: "Password has been reset successfully." });
+		res.status(200).json({
+			message: "Password has been reset successfully.",
+		});
 	} catch (err) {
 		next(err);
 	}
 };
 
+/**
+ * Generates CSRF token - call ONCE on app initialization or after login
+ */
 export const GetCsrfToken = (
 	req: Request,
 	res: Response,
-	next: NextFunction,
+	next: NextFunction
 ): void => {
 	try {
 		const csrfToken = getCsrfToken(req, res);
@@ -407,7 +449,7 @@ export const GetCsrfToken = (
 export const VerifyCsrfToken = (
 	req: Request,
 	res: Response,
-	next: NextFunction,
+	next: NextFunction
 ): void => {
 	try {
 		const isValid = isValidCsrfToken(req);
@@ -427,7 +469,7 @@ export const VerifyCsrfToken = (
 export const ChangePassword = async (
 	req: Request,
 	res: Response,
-	next: NextFunction,
+	next: NextFunction
 ): Promise<void> => {
 	try {
 		const { id: userIdFromParams } = req.params;
@@ -441,19 +483,28 @@ export const ChangePassword = async (
 		) {
 			throw {
 				status: 403,
-				message: "Access denied. You can only change your own password.",
+				message:
+					"Access denied. You can only change your own password.",
 			};
 		}
 
-		if (!dto.currentPassword || !dto.newPassword || !dto.newConfirmPassword) {
+		if (
+			!dto.currentPassword ||
+			!dto.newPassword ||
+			!dto.newConfirmPassword
+		) {
 			throw {
 				status: 400,
-				message: "Current password, new password, and confirmation are required.",
+				message:
+					"Current password, new password, and confirmation are required.",
 			};
 		}
 
 		// The service should handle the logic of verifying the old password
-		await authServices.changePassword({ ...dto, userId: authenticatedUserId });
+		await authServices.changePassword({
+			...dto,
+			userId: authenticatedUserId,
+		});
 
 		res.status(200).json({
 			message: "Your password has been changed successfully.",
@@ -462,3 +513,43 @@ export const ChangePassword = async (
 		next(err);
 	}
 };
+
+export const OAuthCallback = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+): Promise<void> => {
+	try {
+		// Passport attaches the authenticated user to req.user
+		const user = req.user as User;
+
+		if (!user) {
+			// Safety fallback
+            return res.redirect(`${process.env.CLIENT_URL}:${process.env.CLIENT_PORT}/login?error=auth_failed`);
+		}
+		
+		// 1. Generate Tokens
+		const accessToken = authServices.generateAccessToken({
+			id: user.id,
+			role: user.role,
+		});
+
+		const refreshToken = authServices.generateRefreshTokenValue();
+		
+		const expiresAt = add(new Date(), { seconds: COMPUTED.REFRESH_TOKEN_EXPIRY_SECONDS });
+        
+        await db.RefreshToken.create({
+            token: refreshToken.hashed,
+            userId: user.id,
+            expiresAt,
+        });
+
+		setCookieTokens(res, accessToken, refreshToken.value, true);
+
+		res.redirect(`${process.env.CLIENT_URL}:${process.env.CLIENT_PORT}`);
+	} catch (err) {
+        // If code crashes, redirect to login with error
+        res.redirect(`${process.env.CLIENT_URL}:${process.env.CLIENT_PORT}/login?error=server_error`);
+        next(err);
+    }
+}

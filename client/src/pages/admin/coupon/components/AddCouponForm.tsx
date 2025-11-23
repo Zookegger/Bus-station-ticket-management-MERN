@@ -275,18 +275,15 @@ const AddCouponForm: React.FC<AddCouponFormProps> = ({
 
 			let response;
 
-			// If a file is selected, send multipart/form-data so multer can read req.file
+			// If a file is selected, send multipart/form-data so multer can read req.file (field name must match server: 'image')
 			if (imageFile) {
-				const formData = new FormData();
-				Object.entries(payload).forEach(([k, v]) =>
-					formData.append(k, v)
-				);
-
-				formData.append("file", imageFile, imageFile.name);
-
-				response = await axios.post(API_ENDPOINTS.COUPON.ADD, {
-					headers: { "Content-Type": "multipart/form-data" },
+				const fd = new FormData();
+				Object.entries(payload).forEach(([k, v]) => {
+					// FormData values must be strings or Blob
+					fd.append(k, String(v));
 				});
+				fd.append("image", imageFile, imageFile.name);
+				response = await axios.post(API_ENDPOINTS.COUPON.ADD, fd);
 			} else {
 				response = await axios.post(API_ENDPOINTS.COUPON.ADD, payload);
 			}

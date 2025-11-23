@@ -13,11 +13,13 @@ import { DbModels } from "@models";
  * @enum {string}
  * @property {string} ACTIVE - The vehicle is active and available for trips.
  * @property {string} INACTIVE - The vehicle is inactive and not available for trips.
+ * @property {string} BUSY - The vehicle is inactive and not available for trips.
  * @property {string} MAINTENANCE - The vehicle is under maintenance.
  */
 export enum VehicleStatus {
 	ACTIVE = "ACTIVE",
 	INACTIVE = "INACTIVE",
+	BUSY = "BUSY",
 	MAINTENANCE = "MAINTENANCE",
 }
 
@@ -25,17 +27,17 @@ export enum VehicleStatus {
  * Interface for the attributes of a Vehicle.
  * @interface VehicleAttributes
  * @property {number} id - The unique identifier for the vehicle.
- * @property {string} licensePlate - The license plate of the vehicle.
- * @property {string} model - The model of the vehicle.
- * @property {number} year - The manufacturing year of the vehicle.
- * @property {VehicleStatus} status - The current status of the vehicle.
+ * @property {string} numberPlate - The license plate of the vehicle.
  * @property {number} vehicleTypeId - The ID of the vehicle type.
+ * @property {string} manufacturer - The license plate of the vehicle.
+ * @property {string} model - The model of the vehicle.
  * @property {Date} [createdAt] - The date and time the vehicle was created.
  * @property {Date} [updatedAt] - The date and time the vehicle was last updated.
  */
 export interface VehicleAttributes {
 	id: number;
 	numberPlate: string;
+	status: string;
 	vehicleTypeId: number;
 	manufacturer?: string | null;
 	model?: string | null;
@@ -72,6 +74,8 @@ export class Vehicle
 {
 	/** Unique identifier of the vehicle */
 	public id!: number;
+
+	public status!: VehicleStatus;
 
 	/** Unique license plate number of the vehicle */
 	public numberPlate!: string;
@@ -113,6 +117,11 @@ export class Vehicle
 					type: DataTypes.INTEGER.UNSIGNED,
 					primaryKey: true,
 					autoIncrement: true,
+				},
+				status: {
+					type: DataTypes.ENUM(...Object.values(VehicleStatus)),
+					allowNull: false,
+					defaultValue: VehicleStatus.ACTIVE,
 				},
 				numberPlate: {
 					type: DataTypes.STRING,

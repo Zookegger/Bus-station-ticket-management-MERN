@@ -18,6 +18,8 @@ import {
 import { SeatStatus } from "@my_types/seat";
 import { VehicleType } from "@models/vehicleType";
 import { tripSchedulingQueue } from "@utils/queues/tripSchedulingQueue";
+import { enqueueVehicleStatus } from "@utils/queues/vehicleStatusQueue";
+import { VehicleStatus } from "@models/vehicle";
 import { SchedulingStrategies } from "@utils/schedulingStrategy";
 
 /**
@@ -60,190 +62,79 @@ async function generateSeatsForTrip(
 	}> = [];
 
 	// Check if vehicle type has seat layout information
-	if (!vehicleType.totalSeats || vehicleType.totalSeats <= 0) {
+	if (!vehicleType.seatLayout) {
 		throw {
 			status: 400,
 			message: `Vehicle type ${vehicleType.name} does not have seat layout configured.`,
 		};
 	}
 
-	// Parse seat layout if available
-	let seatsPerFloorLayout: any[][] | null = null;
-	let rowsPerFloorConfig: number[] | null = null;
-
-	if (vehicleType.seatsPerFloor) {
-		try {
-			const parsed = JSON.parse(vehicleType.seatsPerFloor);
-			seatsPerFloorLayout = Array.isArray(parsed) ? parsed : null;
-		} catch (e) {
-			logger.warn(
-				`Failed to parse seatsPerFloor for vehicle type ${vehicleType.name}`
-			);
-		}
+	// Parse seat layout
+	let seatLayout: (string | number)[][][] = [];
+	try {
+		seatLayout = JSON.parse(vehicleType.seatLayout);
+	} catch (e) {
+		logger.error(`Failed to parse seatLayout for vehicle type ${vehicleType.name}`);
+		throw {
+			status: 500,
+			message: "Failed to parse seat layout."
+		};
 	}
 
-	if (vehicleType.rowsPerFloor) {
-		try {
-			const parsed = JSON.parse(vehicleType.rowsPerFloor);
-			rowsPerFloorConfig = Array.isArray(parsed)
-				? parsed.map((r: any) => Number(r) || 0)
-				: null;
-		} catch (e) {
-			logger.warn(
-				`Failed to parse rowsPerFloor for vehicle type ${vehicleType.name}`
-			);
-		}
+	if (!Array.isArray(seatLayout)) {
+		throw {
+			status: 400,
+			message: "Invalid seat layout format."
+		};
 	}
 
-	const totalFloors = vehicleType.totalFloors || 1;
-	const totalColumns = vehicleType.totalColumns || 4;
-
+	let seatNumber = 1;
 	// Generate seats based on layout data
-	if (seatsPerFloorLayout && Array.isArray(seatsPerFloorLayout)) {
-		// Validate rowsPerFloorConfig against detailed layout if provided
-		if (rowsPerFloorConfig && rowsPerFloorConfig.length > 0) {
-			for (
-				let floorIndex = 0;
-				floorIndex < seatsPerFloorLayout.length;
-				floorIndex++
-			) {
-				const floorData = seatsPerFloorLayout[floorIndex];
-				if (Array.isArray(floorData)) {
-					const actualRows = floorData.length;
-					const expectedRows = rowsPerFloorConfig[floorIndex] || 0;
-					if (expectedRows && actualRows !== expectedRows) {
-						logger.warn(
-							`rowsPerFloor mismatch on floor ${
-								floorIndex + 1
-							}: expected ${expectedRows}, layout has ${actualRows}`
-						);
-					}
+	for (let floorIndex = 0; floorIndex < seatLayout.length; floorIndex++) {
+		const floorLayout = seatLayout[floorIndex];
+		const floor = floorIndex + 1;
+
+		if (!Array.isArray(floorLayout)) continue;
+
+		for (let rowIndex = 0; rowIndex < floorLayout.length; rowIndex++) {
+			const rowLayout = floorLayout[rowIndex];
+			const row = rowIndex + 1;
+
+			if (!Array.isArray(rowLayout)) continue;
+
+			for (let colIndex = 0; colIndex < rowLayout.length; colIndex++) {
+				const seatType = rowLayout[colIndex];
+				const column = colIndex + 1;
+
+				let status: SeatStatus;
+				switch (seatType) {
+					case 'available':
+						status = SeatStatus.AVAILABLE;
+						break;
+					case 'disabled':
+						status = SeatStatus.DISABLED;
+						break;
+					case 'aisle':
+					case 'occupied':
+						continue; // Skip non-seat cells
+					default:
+						continue;
 				}
-			}
-		}
 
-		// Use detailed layout data
-		for (
-			let floorIndex = 0;
-			floorIndex < seatsPerFloorLayout.length;
-			floorIndex++
-		) {
-			const floorData = seatsPerFloorLayout[floorIndex];
-			const floor = floorIndex + 1;
-
-			if (Array.isArray(floorData)) {
-				// Floor data is an array of rows
-				for (
-					let rowIndex = 0;
-					rowIndex < floorData.length;
-					rowIndex++
-				) {
-					const rowData = floorData[rowIndex];
-					const row = rowIndex + 1;
-
-					if (Array.isArray(rowData)) {
-						// Row data is an array of seat positions
-						for (
-							let colIndex = 0;
-							colIndex < rowData.length;
-							colIndex++
-						) {
-							const seatExists = rowData[colIndex];
-							if (seatExists) {
-								const column = colIndex + 1;
-								seats.push({
-									number: `${String.fromCharCode(
-										64 + row
-									)}${column}`,
-									row,
-									column,
-									floor,
-									status: SeatStatus.AVAILABLE,
-									reservedBy: null,
-									reservedUntil: null,
-									tripId,
-								});
-							}
-						}
-					}
-				}
-			}
-		}
-	} else {
-		// Simple seat generation based on total count
-		const totalSeats = vehicleType.totalSeats;
-		const seatsPerFloorCount = Math.ceil(totalSeats / totalFloors);
-
-		// Build rowsPerFloorConfig if not provided: derive from seatsPerFloor and totalColumns
-		const effectiveRowsPerFloor: number[] =
-			rowsPerFloorConfig && rowsPerFloorConfig.length >= totalFloors
-				? rowsPerFloorConfig.slice(0, totalFloors)
-				: Array.from({ length: totalFloors }, (_, floorIdx) => {
-						const seatsOnFloor =
-							floorIdx === totalFloors - 1
-								? totalSeats - seatsPerFloorCount * floorIdx
-								: seatsPerFloorCount;
-						return Math.ceil(seatsOnFloor / totalColumns);
-				  });
-
-		for (let floorIdx = 0; floorIdx < totalFloors; floorIdx++) {
-			const floor = floorIdx + 1;
-			const seatsOnThisFloor =
-				floorIdx === totalFloors - 1
-					? totalSeats - seatsPerFloorCount * floorIdx
-					: seatsPerFloorCount;
-
-			const rowsForThisFloor =
-				effectiveRowsPerFloor[floorIdx] ||
-				Math.ceil(seatsOnThisFloor / totalColumns);
-			const columnsForThisFloor = Math.ceil(
-				seatsOnThisFloor / rowsForThisFloor
-			);
-
-			let placed = 0;
-			for (
-				let rowIdx = 0;
-				rowIdx < rowsForThisFloor && placed < seatsOnThisFloor;
-				rowIdx++
-			) {
-				const row = rowIdx + 1;
-				for (
-					let col = 1;
-					col <= columnsForThisFloor && placed < seatsOnThisFloor;
-					col++
-				) {
-					const seatLabel = `${String.fromCharCode(64 + row)}${col}`;
-					const floorPrefix = totalFloors > 1 ? `F${floor}-` : "";
-
-					const seatData: {
-						number: string;
-						row: number;
-						column: number;
-						floor?: number;
-						status: SeatStatus;
-						reservedBy: null;
-						reservedUntil: null;
-						tripId: number;
-					} = {
-						number: `${floorPrefix}${seatLabel}`,
-						row,
-						column: col,
-						status: SeatStatus.AVAILABLE,
-						reservedBy: null,
-						reservedUntil: null,
-						tripId,
-					};
-
-					if (totalFloors > 1) {
-						seatData.floor = floor;
-					}
-
-					seats.push(seatData);
-					placed++;
-				}
+				seats.push({
+					number: `${seatNumber++}`,
+					row,
+					column,
+					floor,
+					status,
+					reservedBy: null,
+					reservedUntil: null,
+					tripId,
+				});
 			}
 		}
 	}
+
 
 	// Bulk create seats
 	if (seats.length > 0) {
@@ -516,6 +407,12 @@ export const addTrip = async (dto: CreateTripDTO): Promise<Trip | null> => {
             tripId: trip.id,
             strategy
         });
+
+		// Schedule vehicle status transition to BUSY at trip start time
+		const delay = createData.startTime.getTime() - Date.now();
+		if (delay > 0) {
+			await enqueueVehicleStatus({ vehicleId: vehicle.id, status: VehicleStatus.BUSY }, delay);
+		}
 	}
 
 	return trip;

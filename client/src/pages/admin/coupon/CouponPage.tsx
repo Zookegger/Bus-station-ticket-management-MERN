@@ -1,11 +1,9 @@
 import { API_ENDPOINTS } from "@constants";
-import { Button, Paper, Typography } from "@mui/material";
+import { Button, InputAdornment, Paper, TextField } from "@mui/material";
 import type { Coupon } from "@my-types";
 import { handleAxiosError } from "@utils/handleError";
 import axios from "axios";
-import { useEffect, useState } from "react";
-import { format } from "date-fns";
-import { Box } from "@mui/system";
+import { useEffect, useMemo, useState } from "react";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import {
 	AddCouponForm,
@@ -13,20 +11,25 @@ import {
 	DeleteCouponForm,
 } from "./components";
 import EditCouponForm from "./components/EditCouponForm";
+import { DataGridPageLayout } from "@components/admin";
+import callApi from "@utils/apiCaller";
+import { Search as SearchIcon } from "@mui/icons-material";
+import { Box } from "@mui/system";
 
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 
 const CouponPage: React.FC = () => {
-	const [_isLoading, setIsLoading] = useState(true);
-	const [coupons, setCoupons] = useState<Coupon[] | null>(null);
+	const [isLoading, setIsLoading] = useState(true);
+	const [coupons, setCoupons] = useState<Coupon[]>([]);
 	const [addOpen, setAddOpen] = useState<boolean>(false);
 	const [editOpen, setEditOpen] = useState<boolean>(false);
 	const [deleteOpen, setDeleteOpen] = useState<boolean>(false);
 	const [detailOpen, setDetailOpen] = useState<boolean>(false);
 	const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
+	const [searchTerm, setSearchTerm] = useState<string>("");
 
 	const handleOpenDrawer = (id: number) => {
-		if (coupons === null) {
+		if (coupons === null || typeof coupons === "undefined") {
 			return;
 		}
 
@@ -38,7 +41,7 @@ const CouponPage: React.FC = () => {
 	};
 
 	const handleOpenEdit = (id: number) => {
-		if (coupons === null) {
+		if (coupons === null || typeof coupons === "undefined") {
 			return;
 		}
 
@@ -51,7 +54,7 @@ const CouponPage: React.FC = () => {
 	};
 
 	const handleOpenDelete = (id: number) => {
-		if (coupons === null) {
+		if (coupons === null || typeof coupons === "undefined") {
 			return;
 		}
 
@@ -68,126 +71,163 @@ const CouponPage: React.FC = () => {
 		setSelectedCoupon(null);
 	};
 
+	const columns: GridColDef[] = [
+		{
+			field: "title",
+			headerName: "Title",
+			minWidth: 160,
+			flex: 1,
+		},
+		{
+			field: "code",
+			headerName: "Code",
+			flex: 1,
+			minWidth: 140,
+			width: 160,
+		},
+		{
+			field: "maxUsage",
+			headerName: "Max Usage",
+			width: 120,
+		},
+		{
+			field: "type",
+			headerName: "Type",
+			width: 120,
+			valueFormatter: (value: string) => {
+				return (
+					value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()
+				);
+			},
+		},
+		{
+			field: "updatedAt",
+			headerName: "Updated At",
+			width: 190,
+			valueFormatter: (value: Date) => {
+				return value
+					? `${new Date(value).toLocaleDateString()} - ${new Date(
+							value
+					  ).toLocaleTimeString()}`
+					: "N/A";
+			},
+		},
+		{
+			field: "createdAt",
+			headerName: "Created At",
+			width: 190,
+			valueFormatter: (value: Date) => {
+				return value
+					? `${new Date(value).toLocaleDateString()} - ${new Date(
+							value
+					  ).toLocaleTimeString()}`
+					: "N/A";
+			},
+		},
+	];
+
+	const filteredCoupon = useMemo(() => {
+		return coupons.filter((c) => {
+			const term = searchTerm.toLowerCase();
+			const matchesSearch =
+				!term ||
+				c.code.toLowerCase().includes(term) ||
+				(c.title && c.title.toLowerCase().includes(term)) ||
+				(c.createdAt && c.createdAt.includes(term)) ||
+				(c.updatedAt && c.updatedAt.includes(term));
+
+			return matchesSearch;
+		});
+	}, [coupons, searchTerm]);
+
 	useEffect(() => {
+		let mounted = true;
+
+		if (!isLoading) return;
+
 		const fetchData = async () => {
 			try {
-				const response = await axios.get(
-					`${API_ENDPOINTS.COUPON.SEARCH}`
-				);
-				if (response.status !== 200) {
-					throw new Error("Failed to fetch data");
+				const response = await callApi<{ coupons: Coupon[] }>({
+					method: "GET",
+					url: API_ENDPOINTS.COUPON.BASE,
+				});
+
+				if (response) {
+					const couponPayload =
+						(response as any).coupons ??
+						(response as any).data?.coupons ??
+						(response as any);
+					// Only update state if the component is still mounted.
+					// The `mounted` flag is set to false in the cleanup function
+					// to avoid calling `setState` on an unmounted component
+					// which would otherwise trigger a React warning.
+					if (mounted) {
+						setCoupons(
+							Array.isArray(couponPayload) ? couponPayload : []
+						);
+					}
 				}
-
-				const coupon_response = response.data;
-
-				setCoupons(coupon_response);
 			} catch (err) {
 				const message = handleAxiosError(err);
 				console.error(message);
 			} finally {
-				setIsLoading(false);
+				if (mounted) {
+					setIsLoading(false);
+				}
 			}
 		};
 
 		fetchData();
-	}, []);
+		return () => {
+			mounted = false;
+		};
+	}, [isLoading]);
+
+	const actionBar = (
+		<Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+			<Button
+				onClick={() => {
+					setAddOpen(true);
+				}}
+				variant="contained"
+			>
+				Add new coupon
+			</Button>
+			{/* Search Field */}
+			<TextField
+				size="small"
+				placeholder="Search by name, email..."
+				value={searchTerm}
+				onChange={(e) => setSearchTerm(e.target.value)}
+				slotProps={{
+					input: {
+						startAdornment: (
+							<InputAdornment position="start">
+								<SearchIcon color="action" />
+							</InputAdornment>
+						),
+					},
+				}}
+				sx={{ minWidth: 250 }}
+			/>
+		</Box>
+	);
 
 	return (
-		<Box>
-			<Box sx={{ p: 3, paddingBottom: 0 }}>
-				<Typography
-					variant="h4"
-					sx={{
-						fontWeight: "bold",
-						color: "#2E7D32",
-					}}
-				>
-					Coupon Management
-				</Typography>
-			</Box>
-
-			<Box p="24px">
-				<Box sx={{ marginBottom: 2 }}>
-					<Button
-						onClick={() => {
-							setAddOpen(true);
-						}}
-						variant="contained"
-					>
-						Add new coupon
-					</Button>
-				</Box>
-				{coupons ? (
-					<Paper elevation={3} sx={{ width: "100%" }}>
-						<DataGrid
-							sx={{ maxWidth: "100%" }}
-							rows={coupons.map((c) => ({
-								id: c.id,
-								code: c.code,
-								maxUsage: c.maxUsage ?? null,
-								description: c.description,
-								type: c.type,
-								updatedAt: format(
-									new Date(c.updatedAt),
-									"dd/MM/yyyy - HH:mm:ss"
-								).toString(),
-								createdAt: format(
-									new Date(c.createdAt),
-									"dd/MM/yyyy - HH:mm:ss"
-								).toString(),
-							}))}
-							onRowClick={(e) =>
-								handleOpenDrawer(
-									Number.parseInt(e.id.toString())
-								)
-							}
-							columns={
-								[
-									{
-										field: "code",
-										headerName: "Code",
-										flex: 1,
-									},
-									{
-										field: "maxUsage",
-										headerName: "Max Usage",
-										width: 120,
-									},
-									{
-										field: "description",
-										headerName: "Description",
-										flex: 2,
-									},
-									{
-										field: "type",
-										headerName: "Type",
-										width: 120,
-										valueFormatter: (value: string) => {
-											return (
-												value.charAt(0).toUpperCase() +
-												value.slice(1).toLowerCase()
-											);
-										},
-									},
-									{
-										field: "updatedAt",
-										headerName: "Updated At",
-										width: 190,
-									},
-									{
-										field: "createdAt",
-										headerName: "Created At",
-										width: 190,
-									},
-								] as GridColDef[]
-							}
-							pagination
-						/>
-					</Paper>
-				) : (
-					<Typography>Empty set</Typography>
-				)}
-			</Box>
+		<DataGridPageLayout title="Coupon Management" actionBar={actionBar}>
+			<Paper elevation={3} sx={{ width: "100%" }}>
+				<DataGrid
+					sx={{ maxWidth: "100%" }}
+					rows={filteredCoupon}
+					onRowClick={(e) =>
+						handleOpenDrawer(Number.parseInt(e.id.toString()))
+					}
+					rowHeight={35}
+					columns={columns}
+					loading={isLoading}
+					pagination
+				/>
+			</Paper>
 			<EditCouponForm
 				coupon={selectedCoupon}
 				key={selectedCoupon ? selectedCoupon.id : "new"}
@@ -209,18 +249,27 @@ const CouponPage: React.FC = () => {
 						coupon={selectedCoupon}
 						open={detailOpen}
 						onClose={handleCloseDrawer}
-						onDelete={() => handleOpenDelete(selectedCoupon.id)}
-						onEdit={() => handleOpenEdit(selectedCoupon.id)}
+						onDelete={() => {
+							handleOpenDelete(selectedCoupon.id);
+							setIsLoading(false);
+						}}
+						onEdit={() => {
+							handleOpenEdit(selectedCoupon.id);
+							setIsLoading(false);
+						}}
 					/>
 					<DeleteCouponForm
 						id={selectedCoupon.id}
 						open={deleteOpen}
-						onClose={() => setDeleteOpen(false)}
+						onClose={() => {
+							setDeleteOpen(false);
+							setIsLoading(false);
+						}}
 						onConfirm={() => setIsLoading(true)}
 					/>
 				</>
 			)}
-		</Box>
+		</DataGridPageLayout>
 	);
 };
 

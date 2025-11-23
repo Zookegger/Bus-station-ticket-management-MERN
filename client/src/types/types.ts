@@ -4,9 +4,14 @@ export interface AppConfig {
 	readonly description: string;
 	readonly author: string;
 	readonly apiBaseUrl: string;
+	readonly serverBaseUrl: string;
 }
 
 export interface ApiEndpoints {
+	readonly UPLOADS: {
+		readonly AVATARS: (url: string) => string;
+		readonly COUPONS: (url: string) => string;
+	}
 	readonly AUTH: {
 		readonly LOGIN: string;
 		readonly REGISTER: string;
@@ -25,7 +30,10 @@ export interface ApiEndpoints {
 	readonly USERS: {
 		readonly BASE: string;
 		readonly PROFILE: (id: string) => string;
+		readonly VERIFY_EMAIL: (id: string) => string;
+		readonly CHANGE_EMAIL: (id: string) => string;
 		readonly UPDATE_PROFILE: (id: string) => string;
+		readonly DELETE_PROFILE: (id: string) => string;
 		readonly ADMIN_UPDATE: (id: string) => string;
 		readonly ADMIN_DELETE: (id: string) => string;
 	};
@@ -76,7 +84,6 @@ export interface ApiEndpoints {
 	};
 	readonly ROUTE: {
 		readonly BASE: string;
-		readonly SEARCH: string;
 		readonly BY_ID: string;
 		readonly CREATE: string;
 		readonly UPDATE: (id: number) => string;
@@ -128,21 +135,21 @@ export interface ApiEndpoints {
 }
 
 export interface StorageKeys {
-	readonly TOKEN: string;
-	readonly USER: string;
-	readonly THEME: string;
-	readonly LANGUAGE: string;
+  readonly TOKEN: string;
+  readonly USER: string;
+  readonly THEME: string;
+  readonly LANGUAGE: string;
 }
 
 export interface Pagination {
-	readonly DEFAULT_PAGE: number;
-	readonly DEFAULT_LIMIT: number;
-	readonly LIMIT_OPTIONS: readonly number[];
+  readonly DEFAULT_PAGE: number;
+  readonly DEFAULT_LIMIT: number;
+  readonly LIMIT_OPTIONS: readonly number[];
 }
 
 export interface ValidationRules {
-	readonly EMAIL_REGEX: RegExp;
-	readonly PASSWORD_MIN_LENGTH: number;
-	readonly NAME_MIN_LENGTH: number;
-	readonly NAME_MAX_LENGTH: number;
+  readonly EMAIL_REGEX: RegExp;
+  readonly PASSWORD_MIN_LENGTH: number;
+  readonly NAME_MIN_LENGTH: number;
+  readonly NAME_MAX_LENGTH: number;
 }

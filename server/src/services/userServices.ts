@@ -2,7 +2,10 @@ import db from "@models/index";
 import bcrypt from "bcrypt";
 import { UpdateProfileDTO } from "@my_types/user";
 import { Role, User, UserAttributes } from "@models/user";
+import * as verificationServices from "@services/verificationServices";
 import { CONFIG } from "@constants/config";
+import { Op } from "sequelize";
+import logger from "@utils/logger";
 
 /**
  * Service layer encapsulating business logic for user management.
@@ -64,7 +67,7 @@ export const listUsers = async (
 export const updateUserProfile = async (
 	userId: string,
 	dto: UpdateProfileDTO
-): Promise<void> => {
+): Promise<User | null> => {
 	const user = await db.User.findByPk(userId);
 	if (!user) throw { status: 404, message: "User not found" };
 
@@ -74,7 +77,7 @@ export const updateUserProfile = async (
 		if (exist) throw { status: 400, message: "Email already in use" };
 	}
 
-	await user.update(dto);
+	return await user.update(dto);
 };
 
 /**
@@ -108,7 +111,8 @@ export const changeRole = async (
  * const adminCount = await countTotalAdmin();
  */
 export const countTotalAdmin = async (): Promise<number> => {
-	return (await db.User.findAndCountAll({ where: { role: Role.ADMIN } })).count;
+	return (await db.User.findAndCountAll({ where: { role: Role.ADMIN } }))
+		.count;
 };
 
 /**
@@ -134,7 +138,8 @@ export const generateDefaultAdminAccount = async (): Promise<User | null> => {
 		phoneNumber: "0902040312",
 		emailConfirmed: true,
 		userName: "admin",
-		fullName: "admin",
+		firstName: "admin",
+		lastName: "user",
 		passwordHash,
 	});
 };
@@ -150,7 +155,7 @@ export const generateDefaultAdminAccount = async (): Promise<User | null> => {
 export const updateUser = async (
 	userId: string,
 	updateData: Partial<UserAttributes>
-): Promise<void> => {
+): Promise<User | null> => {
 	const user = await db.User.findByPk(userId);
 	if (!user) throw { status: 404, message: "User not found" };
 
@@ -162,7 +167,7 @@ export const updateUser = async (
 		if (exist) throw { status: 400, message: "Email already in use" };
 	}
 
-	await user.update(updateData);
+	return await user.update(updateData);
 };
 
 /**
@@ -187,4 +192,54 @@ export const deleteUser = async (userId: string): Promise<void> => {
  */
 export const getAllUsers = async (): Promise<User[]> => {
 	return await db.User.findAll();
+};
+
+export const verifyEmail = async (dto: {
+	id: string;
+	email: string;
+}): Promise<void> => {
+	const user = await db.User.findOne({
+		where: { [Op.or]: [{ id: dto.id, email: dto.email }] },
+	});
+
+	if (!user) throw { status: 404, message: "User not found" };
+	if (user.emailConfirmed)
+		throw { status: 500, message: "Email already verified" };
+
+	await verificationServices.sendVerificationEmail(
+		user.id,
+		user.email,
+		user.userName
+	);
+};
+
+export const changeEmail = async (dto: {
+	id: string;
+	current_email: string;
+	new_email: string;
+}) => {
+	logger.debug(`ID: ${dto.id}`);
+	logger.debug(`Current email: ${dto.current_email}`);
+	logger.debug(`New email: ${dto.new_email}`);
+
+	const user = await db.User.findOne({
+		where: {
+			[Op.and]: [{ id: dto.id }, { email: dto.current_email }],
+		},
+	});
+
+	const existing_user = await db.User.findOne({
+		where: { email: dto.new_email },
+	});
+
+	if (existing_user) throw { status: 409, message: "Email already taken" };
+
+	if (!user) throw { status: 404, message: "User not found" };
+
+	const updated = await user.update({ email: dto.new_email });
+	if (updated) {
+		await user.update({ emailConfirmed: false });
+	}
+
+	return updated;
 };

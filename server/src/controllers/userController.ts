@@ -44,14 +44,30 @@ export const UpdateProfile = async (
 		}
 
 		const newProfile: UpdateProfileDTO = req.body;
-		const profile = await userServices.getUserById(authenticatedUserId);
+		const avatarFile = req.file;
+
+		if (avatarFile) {
+			const avatarUrl = `/uploads/avatars/${avatarFile.filename}`;
+			newProfile.avatar = avatarUrl;
+		}
+
+		const profile = await userServices.getUserById(
+			authenticatedUserId,
+			"id"
+		);
 		if (!profile) {
 			throw { status: 404, message: "User profile not found" };
 		}
 
-		await userServices.updateUserProfile(authenticatedUserId, newProfile);
+		const updated_profile = await userServices.updateUserProfile(
+			authenticatedUserId,
+			newProfile
+		);
 
-		res.status(200).json({ message: "Profile updated successfully" });
+		res.status(200).json({
+			updated_profile,
+			message: "Profile updated successfully",
+		});
 	} catch (err) {
 		next(err);
 	}
@@ -90,19 +106,29 @@ export const GetProfile = async (
 			throw { status: 403, message: "Access denied" };
 		}
 
-		const profile = await userServices.getUserById(authenticatedUserId);
+		const profile = await userServices.getUserById(
+			authenticatedUserId,
+			"firstName",
+			"lastName",
+			"fullName",
+			"email",
+			"phoneNumber",
+			"address",
+			"avatar",
+			"address",
+			"dateOfBirth",
+			"createdAt",
+			"updatedAt"
+		);
 		if (!profile) {
 			throw { status: 404, message: "User profile not found" };
 		}
 
-		res.status(200).json({ profile });
+		res.status(200).json(profile);
 	} catch (err) {
 		next(err);
 	}
-}
-
-
-
+};
 
 /**
  * Retrieves all users (Admin only).
@@ -145,7 +171,12 @@ export const UpdateUser = async (
 	try {
 		const targetUserId = getParamStringId(req);
 		const updateData = req.body;
-		await userServices.updateUser(targetUserId, updateData);
+		const user = await userServices.updateUser(targetUserId, updateData);
+		if (!user)
+			throw {
+				status: 500,
+				message: "An error has occured while updating user info",
+			};
 		res.status(200).json({ message: "User updated successfully" });
 	} catch (err) {
 		next(err);
@@ -168,9 +199,112 @@ export const DeleteUser = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
+		const authenticatedUserId: string | undefined =
+			(req as any).user?.userId ?? (req as any).user?.id;
+		if (!authenticatedUserId) {
+			throw { status: 401, message: "Unauthorized request" };
+		}
+
+		const targetUserId = getParamStringId(req);
+		if (authenticatedUserId !== targetUserId) {
+			throw { status: 403, message: "Access denied" };
+		}
+
+		await userServices.deleteUser(targetUserId);
+		res.status(200).json({ message: "User deleted successfully" });
+	} catch (err) {
+		next(err);
+	}
+};
+
+/**
+ * Deletes a user by ID (Admin only).
+ *
+ * @param req - Express request object containing user ID
+ * @param res - Express response object
+ * @param next - Express next function for error handling
+ *
+ * @route DELETE /users/:id
+ * @access Admin
+ */
+export const DeleteUserAdmin = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+): Promise<void> => {
+	try {
 		const targetUserId = getParamStringId(req);
 		await userServices.deleteUser(targetUserId);
 		res.status(200).json({ message: "User deleted successfully" });
+	} catch (err) {
+		next(err);
+	}
+};
+
+export const SendVerificationEmail = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+): Promise<void> => {
+	try {
+		const id = getParamStringId(req);
+		const { email } = req.body;
+
+		const dto: {
+			id: string;
+			email: string;
+		} = { id, email };
+
+		await userServices.verifyEmail(dto);
+
+		res.status(200);
+	} catch (err) {
+		next(err);
+	}
+};
+
+export const ChangeEmail = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+): Promise<void> => {
+	try {
+		const authenticatedUserId: string | undefined =
+			(req as any).user?.userId ?? (req as any).user?.id;
+		if (!authenticatedUserId) {
+			throw { status: 401, message: "Unauthorized request" };
+		}
+
+		const targetUserId = getParamStringId(req);
+		if (authenticatedUserId !== targetUserId) {
+			throw { status: 403, message: "Access denied" };
+		}
+		const { current_email, new_email } = req.body;
+
+		if (current_email === new_email)
+			throw {
+				status: 400,
+				message: "New email must be different from current email",
+			};
+
+		const change_email_dto: {
+			id: string;
+			current_email: string;
+			new_email: string;
+		} = { id: targetUserId, current_email: current_email, new_email: new_email };
+
+		await userServices.changeEmail(change_email_dto);
+
+		const verify_dto: {
+			id: string;
+			email: string;
+		} = { id: targetUserId, email: new_email };
+
+		await userServices.verifyEmail(verify_dto);
+
+		res.status(200).json({
+			message: "Verification email sent to the new address",
+		});
 	} catch (err) {
 		next(err);
 	}

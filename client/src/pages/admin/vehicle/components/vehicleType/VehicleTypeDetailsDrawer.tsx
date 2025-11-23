@@ -4,26 +4,28 @@ import {
 	Box,
 	Typography,
 	IconButton,
-	Divider,
-	List,
-	ListItem,
-	ListItemIcon,
-	ListItemText,
 	Button,
 	Chip,
+	Grid,
+	Paper,
+	type ChipPropsColorOverrides,
+	Card,
+	CardHeader,
+	CardContent,
+	CardActions,
 } from "@mui/material";
+import type { OverridableStringUnion } from "@mui/types";
 import {
 	Close as CloseIcon,
 	DirectionsBus as BusIcon,
 	AttachMoney as MoneyIcon,
 	EventSeat as SeatIcon,
 	Layers as FloorIcon,
-	ViewColumn as ColumnIcon,
-	TableRows as RowIcon,
 	Edit as EditIcon,
-	ArrowBack as ArrowBackIcon,
+	Delete as DeleteIcon,
 } from "@mui/icons-material";
-import type { VehicleType } from "./types";
+import type { VehicleType } from "@my-types/vehicleType";
+import SeatLayoutPreview from "./SeatLayoutPreview";
 
 interface VehicleTypeDetailsDrawerProps {
 	open: boolean;
@@ -32,6 +34,53 @@ interface VehicleTypeDetailsDrawerProps {
 	onEdit: (vehicleType: VehicleType) => void;
 	onDelete: (vehicleType: VehicleType) => void;
 }
+
+interface ItemPanelProps {
+	labelName: string;
+	iconItem: React.ReactNode;
+	content: any;
+	chipColor?: OverridableStringUnion<
+		| "primary"
+		| "secondary"
+		| "error"
+		| "info"
+		| "success"
+		| "warning"
+		| "default",
+		ChipPropsColorOverrides
+	>;
+}
+
+const ItemPanel: React.FC<ItemPanelProps> = ({
+	labelName,
+	iconItem,
+	content,
+	chipColor,
+}) => {
+	return (
+		<Grid size={{ xs: 4 }} flexGrow={1}>
+			<Paper sx={{ height: "100%", display: "flex" }}>
+				<Box
+					display={"flex"}
+					flexDirection={"column"}
+					alignItems={"center"}
+					justifyContent={"center"}
+					flexGrow={1}
+					paddingY={3}
+				>
+					{iconItem}
+					<Typography>{labelName}</Typography>
+					<Chip
+						label={content ?? "N/A"}
+						color={chipColor}
+						size="small"
+						sx={{ fontWeight: "bold", mt: 1 }}
+					/>
+				</Box>
+			</Paper>
+		</Grid>
+	);
+};
 
 const VehicleTypeDetailsDrawer: React.FC<VehicleTypeDetailsDrawerProps> = ({
 	open,
@@ -54,184 +103,121 @@ const VehicleTypeDetailsDrawer: React.FC<VehicleTypeDetailsDrawerProps> = ({
 			anchor="right"
 			open={open}
 			onClose={onClose}
-			PaperProps={{
-				sx: {
-					width: 400,
-					bgcolor: "#f8f9fa",
+			slotProps={{
+				paper: {
+					sx: {
+						width: 400,
+						bgcolor: "#f8f9fa",
+					},
 				},
 			}}
 		>
-			<Box sx={{ p: 3 }}>
+			<Card
+				sx={{
+					p: 1,
+					height: "100%",
+					display: "flex",
+					flexDirection: "column",
+				}}
+			>
 				{/* Header */}
-				<Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-					<Typography
-						variant="h5"
-						sx={{ fontWeight: "bold", flexGrow: 1 }}
-					>
-						Vehicle Type Details
-					</Typography>
-					<IconButton onClick={onClose}>
-						<CloseIcon />
-					</IconButton>
-				</Box>
+				<CardHeader
+					sx={{ display: "flex", alignItems: "center" }}
+					title={
+						<Typography
+							variant="h5"
+							sx={{ fontWeight: "bold", flexGrow: 1 }}
+						>
+							Vehicle Type Details
+						</Typography>
+					}
+					action={
+						<IconButton onClick={onClose}>
+							<CloseIcon />
+						</IconButton>
+					}
+				/>
 
-				<Divider sx={{ mb: 3 }} />
-
-				{/* Vehicle Information */}
-				<Box sx={{ bgcolor: "white", p: 3, borderRadius: 2, mb: 3 }}>
-					<Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
-						Vehicle Information
-					</Typography>
-
-					<List dense>
-						<ListItem sx={{ px: 0 }}>
-							<ListItemIcon>
-								<BusIcon color="primary" />
-							</ListItemIcon>
-							<ListItemText
-								primary="Name"
-								secondary={
-									<Typography
-										variant="body1"
-										sx={{ fontWeight: "medium" }}
-									>
-										{vehicleType.name}
-									</Typography>
-								}
-							/>
-						</ListItem>
-
-						<ListItem sx={{ px: 0 }}>
-							<ListItemIcon>
-								<MoneyIcon color="success" />
-							</ListItemIcon>
-							<ListItemText
-								primary="Price"
-								secondary={
-									<Typography
-										variant="body1"
-										sx={{ fontWeight: "medium" }}
-									>
-										{formatCurrency(vehicleType.baseFare)}
-									</Typography>
-								}
-							/>
-						</ListItem>
-
-						<ListItem sx={{ px: 0 }}>
-							<ListItemIcon>
-								<SeatIcon color="info" />
-							</ListItemIcon>
-							<ListItemText
-								primary="Total Seats"
-								secondary={
-									<Chip
-										label={vehicleType.totalSeats}
-										color="info"
-										size="small"
-										sx={{ fontWeight: "bold" }}
+				<CardContent sx={{ flex: 1, overflow: "auto" }}>
+					{/* Vehicle Information */}
+					<Paper sx={{ p: 0, borderRadius: 2, mb: 3 }} elevation={0}>
+						<Grid container gap={1}>
+							<ItemPanel
+								content={vehicleType.name ?? "N/A"}
+								chipColor="info"
+								labelName={"Name"}
+								iconItem={
+									<BusIcon
+										fontSize={"large"}
+										color="primary"
 									/>
 								}
 							/>
-						</ListItem>
-
-						<ListItem sx={{ px: 0 }}>
-							<ListItemIcon>
-								<ColumnIcon color="secondary" />
-							</ListItemIcon>
-							<ListItemText
-								primary="Total Columns"
-								secondary={
-									<Typography
-										variant="body1"
-										sx={{ fontWeight: "medium" }}
-									>
-										{vehicleType.totalColumn}
-									</Typography>
+							<ItemPanel
+								content={
+									formatCurrency(vehicleType.price) ?? "N/A"
+								}
+								chipColor="success"
+								labelName={"Price"}
+								iconItem={
+									<MoneyIcon
+										fontSize={"large"}
+										color="success"
+									/>
 								}
 							/>
-						</ListItem>
-
-						<ListItem sx={{ px: 0 }}>
-							<ListItemIcon>
-								<RowIcon color="warning" />
-							</ListItemIcon>
-							<ListItemText
-								primary="Total Rows"
-								secondary={
-									<Typography
-										variant="body1"
-										sx={{ fontWeight: "medium" }}
-									>
-										{vehicleType.totalRow}
-									</Typography>
+							<ItemPanel
+								content={vehicleType.totalSeats ?? "N/A"}
+								chipColor="secondary"
+								labelName={"Total Seats"}
+								iconItem={
+									<SeatIcon
+										fontSize={"large"}
+										color="secondary"
+									/>
 								}
 							/>
-						</ListItem>
-
-						<ListItem sx={{ px: 0 }}>
-							<ListItemIcon>
-								<FloorIcon color="error" />
-							</ListItemIcon>
-							<ListItemText
-								primary="Total Flooring"
-								secondary={
-									<Typography
-										variant="body1"
-										sx={{ fontWeight: "medium" }}
-									>
-										{vehicleType.totalFlooring}
-									</Typography>
+							<ItemPanel
+								content={vehicleType.totalFloors ?? "N/A"}
+								chipColor="error"
+								labelName={"Total Floors"}
+								iconItem={
+									<FloorIcon
+										fontSize={"large"}
+										color="error"
+									/>
 								}
 							/>
-						</ListItem>
+						</Grid>
+					</Paper>
 
-						{vehicleType.description && (
-							<ListItem sx={{ px: 0 }}>
-								<ListItemText
-									primary="Description"
-									secondary={
-										<Typography
-											variant="body2"
-											color="text.secondary"
-										>
-											{vehicleType.description}
-										</Typography>
-									}
-								/>
-							</ListItem>
-						)}
-					</List>
-				</Box>
-
+					{/* Seat Layout Preview */}
+					<Paper sx={{ p: 0, borderRadius: 2, pb: 3 }}>
+						<SeatLayoutPreview
+							seatLayout={vehicleType?.seatLayout}
+						/>
+					</Paper>
+				</CardContent>
 				{/* Action Buttons */}
-				<Box sx={{ display: "flex", gap: 2, flexDirection: "column" }}>
+				<CardActions sx={{ gap: 1 }}>
 					<Button
 						variant="contained"
 						startIcon={<EditIcon />}
 						onClick={() => onEdit(vehicleType)}
-						sx={{ bgcolor: "#1976d2" }}
+						sx={{ bgcolor: "#1976d2", flex: 1 }}
 					>
 						Edit
 					</Button>
 					<Button
 						variant="contained"
-						startIcon={<EditIcon />}
+						startIcon={<DeleteIcon />}
 						onClick={() => onDelete(vehicleType)}
-						sx={{ bgcolor: "#1976d2" }}
+						sx={{ bgcolor: "#d32f2f", flex: 1 }}
 					>
 						Delete
 					</Button>
-					<Button
-						variant="outlined"
-						startIcon={<ArrowBackIcon />}
-						onClick={onClose}
-						sx={{ color: "#666", borderColor: "#ddd" }}
-					>
-						Back to List
-					</Button>
-				</Box>
-			</Box>
+				</CardActions>
+			</Card>
 		</Drawer>
 	);
 };

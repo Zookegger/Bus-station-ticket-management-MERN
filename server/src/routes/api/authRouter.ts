@@ -13,7 +13,9 @@ import * as authValidator from "@middlewares/validators/authValidator";
 import * as authController from "@controllers/authController";
 import { handleValidationResult } from "@middlewares/validateRequest";
 import { authRateLimiter } from "@middlewares/rateLimiter";
-import { csrfUserProtectionRoute } from "@middlewares/csrf";
+import { csrfGuestOrUserProtectionRoute, csrfUserProtectionRoute } from "@middlewares/csrf";
+import { OAuthCallback } from "@controllers/authController";
+import passport from "passport";
 
 /**
  * Authentication router instance.
@@ -26,7 +28,7 @@ const authRouter = Router();
 // CSRF token endpoint
 authRouter.get(
 	"/csrf-token",
-	csrfUserProtectionRoute,
+	csrfGuestOrUserProtectionRoute,
 	authValidator.getCsrfTokenValidator,
 	authController.GetCsrfToken,
 	errorHandler,
@@ -34,7 +36,7 @@ authRouter.get(
 
 authRouter.post(
 	"/csrf-token",
-	csrfUserProtectionRoute,
+	csrfGuestOrUserProtectionRoute,
 	authController.VerifyCsrfToken,
 	errorHandler,
 );
@@ -141,6 +143,30 @@ authRouter.post(
 	handleValidationResult,
 	authController.ResetPassword,
 	errorHandler,
+);
+
+// Google
+authRouter.get(
+	"/google",
+	passport.authenticate("google", { scope: ["profile", "email"], session: false })
+);
+
+authRouter.get(
+    "/google/callback",
+    passport.authenticate("google", { session: false, failureRedirect: "/login" }),
+    OAuthCallback
+);
+
+// Facebook
+authRouter.get(
+	"/facebook",
+	passport.authenticate("facebook", { scope: ["email"], session: false })
+);
+
+authRouter.get(
+    "/facebook/callback",
+    passport.authenticate("facebook", { session: false, failureRedirect: "/login" }),
+    OAuthCallback
 );
 
 export default authRouter;

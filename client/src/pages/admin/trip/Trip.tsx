@@ -1,10 +1,13 @@
 import React, { useState } from "react";
 import { Box, Tabs, Tab } from "@mui/material";
-import TripList from "./components/TripList";
-import RouteList from "./route/Routelist";
-import TripDetailsDrawer from "./components/TripDetailsDrawer";
+import Driver from "../driver/Driver";
+import { AssignmentList } from "../assignment";
+import TabPanel from "@components/common/TabPanel";
+import TripList from "./components/trip/TripList";
+import RouteList from "./components/route/Routelist";
+import TripDetailsDrawer from "./components/trip/TripDetailsDrawer";
 
-const Vehicle: React.FC = () => {
+const Trip: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<any>(null);
@@ -14,26 +17,37 @@ const Vehicle: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box>
       <Tabs
         value={activeTab}
         onChange={handleTabChange}
         sx={{ borderBottom: 1, borderColor: "divider" }}
       >
-        <Tab label="Trip List" />
-        <Tab label="Route List" />
+        <Tab label="Trips" />
+        <Tab label="Routes" />
+        <Tab label="Driver List" />
+        <Tab label="Assignment List " />
       </Tabs>
 
-      {activeTab === 0 && (
+      <TabPanel value={activeTab} index={0}>
         <TripList
           onOpenDetails={(trip) => {
             setSelected(trip);
             setOpen(true);
           }}
         />
-      )}
+      </TabPanel>
+      <TabPanel value={activeTab} index={1}>
+        <RouteList />
+      </TabPanel>
 
-      {activeTab === 1 && <RouteList />}
+      <TabPanel value={activeTab} index={2}>
+        <Driver />
+      </TabPanel>
+
+      <TabPanel value={activeTab} index={3}>
+        <AssignmentList />
+      </TabPanel>
 
       {/* Drawer chi tiết chuyến đi */}
       <TripDetailsDrawer
@@ -45,4 +59,4 @@ const Vehicle: React.FC = () => {
   );
 };
 
-export default Vehicle;
+export default Trip;

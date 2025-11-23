@@ -2,8 +2,6 @@ import { createTempConnection, sequelize } from "@config/database";
 import { QueryTypes } from "sequelize";
 import logger from "@utils/logger";
 
-const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
-
 /**
  * Creates the database if it doesn't exist.
  *
@@ -64,10 +62,7 @@ export const connectToDatabase = async (): Promise<void> => {
 		logger.info("Database connected");
 		logger.info("Synchronizing models...");
 
-		await sequelize.sync({
-			alter: IS_DEVELOPMENT ? true : false,
-			// force: IS_DEVELOPMENT ? true : false,
-		});
+		await sequelize.sync();
 		
 		logger.info("Models synchronized to Database");
 	} catch (err) {

@@ -83,7 +83,7 @@ export const SearchTrip = async (
 			options.maxPrice = parseFloat(maxPrice as string);
 
 		const trips = await tripServices.searchTrip(options);
-		res.status(200).json(trips);
+		res.status(200).json(trips.rows);
 	} catch (err) {
 		next(err);
 	}

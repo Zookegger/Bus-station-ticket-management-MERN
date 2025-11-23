@@ -48,6 +48,4 @@ emailWorker.on("failed", (job, err) => {
 	logger.info(`Job ${job?.id} failed:`, err);
 });
 
- 
-
 export default emailWorker;

@@ -182,8 +182,13 @@ export class User
 					allowNull: true,
 				},
 				fullName: {
-					type: DataTypes.STRING,
-					allowNull: true,
+					type: DataTypes.VIRTUAL,
+					get() {
+						return `${this.firstName} ${this.lastName}`;
+					},
+					set(_value: string) {
+						throw new Error("Do not try to set the `fullName` value directly. It is a virtual field.");
+					}
 				},
 				userName: {
 					type: DataTypes.STRING,
