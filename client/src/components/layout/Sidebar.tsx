@@ -68,13 +68,20 @@ const menuItemsData: MenuItem[] = [
 	},
 	{
 		id: 5,
+		label: "Order",
+		icon: "coupon",
+		tips: "View and manage customer orders, bookings, and payment statuses",
+		path: "/dashboard/order",
+	},
+	{
+		id: 6,
 		label: "Coupon",
 		icon: "coupon",
 		tips: "Create, edit, and manage discount coupons for promotions",
 		path: "/dashboard/coupon",
 	},
 	{
-		id: 6,
+		id: 7,
 		label: "System",
 		icon: "gear",
 		tips: "Configure system settings, maintenance, and administrative options",
@@ -101,7 +108,7 @@ const iconMap: { [key: string]: React.ComponentType } = {
 };
 
 interface SidebarProps {
-	onToggle?: (collapsed: boolean) => void;
+  onToggle?: (collapsed: boolean) => void;
 }
 
 interface PositionedMenuProps {
@@ -263,19 +270,19 @@ const PositionedMenu: React.FC<PositionedMenuProps> = ({ isCollapsed, sx }) => {
 };
 
 const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
-	const navigate = useNavigate();
-	const location = useLocation();
-	const [isCollapsed, setIsCollapsed] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
-	const handleMenuClick = (path: string | null) => {
-		if (path) navigate(path);
-	};
+  const handleMenuClick = (path: string | null) => {
+    if (path) navigate(path);
+  };
 
-	const toggleSidebar = () => {
-		const newCollapsedState = !isCollapsed;
-		setIsCollapsed(newCollapsedState);
-		onToggle?.(newCollapsedState);
-	};
+  const toggleSidebar = () => {
+    const newCollapsedState = !isCollapsed;
+    setIsCollapsed(newCollapsedState);
+    onToggle?.(newCollapsedState);
+  };
 
 	return (
 		<Box
@@ -324,11 +331,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
 				</IconButton>
 			</Box>
 
-			{/* Navigation Menu */}
-			<List sx={{ flexGrow: 1, pt: 2 }}>
-				{menuItemsData.map((item: MenuItem) => {
-					const IconComponent = iconMap[item.icon];
-					const isActive = location.pathname === item.path;
+      {/* Navigation Menu */}
+      <List sx={{ flexGrow: 1, pt: 2 }}>
+        {menuItemsData.map((item: MenuItem) => {
+          const IconComponent = iconMap[item.icon];
+          const isActive = location.pathname === item.path;
 
 					return (
 						<React.Fragment key={item.id}>

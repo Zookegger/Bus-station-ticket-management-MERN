@@ -137,13 +137,13 @@ const EditTrip: React.FC = () => {
             </Typography>
             <Box
               sx={{
-                height: 220,
+                height: 420,
                 borderRadius: 1,
                 overflow: "hidden",
                 border: "1px solid #e0e0e0",
               }}
             >
-              <Map height={220} />
+              <Map height={420} />
             </Box>
           </Paper>
         </Grid>
