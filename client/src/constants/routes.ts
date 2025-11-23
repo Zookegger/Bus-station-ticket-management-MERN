@@ -8,6 +8,7 @@
  */
 export const ROUTES = {
 	HOME: "/",
+	SEAT_BOOKING: "/book",
 	DASHBOARD_HOME: "/dashboard/home",
 	DASHBOARD_VEHICLE: "/dashboard/vehicle",
 	DASHBOARD_VEHICLE_TYPE: "/dashboard/vehicle-type",

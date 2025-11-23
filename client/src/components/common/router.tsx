@@ -11,12 +11,12 @@ import { useAuth } from "@hooks/useAuth";
  * Redirects to login if the user is not authenticated.
  */
 const RequireAuth: React.FC<{ children: React.ReactElement }> = ({
-  children,
+	children,
 }) => {
-  const { isLoading, isAuthenticated } = useAuth();
-  if (isLoading) return <LoadingSkeleton />;
-  if (!isAuthenticated) return <Navigate to={ROUTES.LOGIN} replace />;
-  return children;
+	const { isLoading, isAuthenticated } = useAuth();
+	if (isLoading) return <LoadingSkeleton />;
+	if (!isAuthenticated) return <Navigate to={ROUTES.LOGIN} replace />;
+	return children;
 };
 
 /**
@@ -56,14 +56,14 @@ export const router = createBrowserRouter([
 				},
 			},
 			{
-               path: ROUTES.SEAT_BOOKING,
-               lazy: async () => {
-                   const { default: SeatBooking } = await import(
-					   "@pages/landing/SeatBooking"
-				    );
-                    return { Component: SeatBooking };
-               },
-            },
+				path: ROUTES.SEAT_BOOKING,
+				lazy: async () => {
+					const { default: SeatBooking } = await import(
+						"@pages/landing/SeatBooking"
+					);
+					return { Component: SeatBooking };
+				},
+			},
 			{
 				path: ROUTES.LOGIN,
 				handle: { title: "Login • EasyRide" },
@@ -217,15 +217,6 @@ export const router = createBrowserRouter([
 					return { Component: User };
 				},
 			},
-			{
-                path: "seat-booking",
-                lazy: async () => {
-                   const { default: SeatBooking } = await import(
-					"@pages/landing/SeatBooking"
-				   );
-                   return { Component: SeatBooking };
-                },
-            },
 			{
 				path: "coupon",
 				handle: { title: "Coupons • EasyRide" },
