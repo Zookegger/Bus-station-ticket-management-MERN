@@ -1,6 +1,22 @@
-import type { Ticket } from "@my-types/ticket";
-import type { Payment } from "@my-types/payment";
-import type { PaymentMethodCode } from "@my-types/payment";
+export interface Customer {
+  name: string;
+  email: string | null;
+  phone: string;
+  isGuest: boolean;
+}
+
+export interface Vehicle {
+  plate: string;
+  type: string;
+}
+
+export interface Ticket {
+  id: string;
+  seat: string;
+  vehicle: Vehicle;
+  driver: string;
+  status: "confirmed" | "pending" | "cancelled";
+}
 
 /**
  * Client-side type definitions for Orders.
@@ -8,103 +24,35 @@ import type { PaymentMethodCode } from "@my-types/payment";
  */
 
 export type OrderStatus =
-	| "PENDING"
-	| "CONFIRMED"
-	| "CANCELLED"
-	| "PARTIALLY_REFUNDED"
-	| "REFUNDED"
-	| "EXPIRED";
+  | "PENDING"
+  | "CONFIRMED"
+  | "CANCELLED"
+  | "PARTIALLY_REFUNDED"
+  | "REFUNDED"
+  | "EXPIRED";
 
 /**
  * Information for guest purchasers.
  */
 export interface GuestPurchaserInfo {
-	email?: string;
-	name?: string;
-	phone?: string;
+  email?: string;
+  name?: string;
+  phone?: string;
 }
 
-/**
- * Represents the structure of an order on the client-side.
- */
 export interface Order {
-	id: string;
-	userId: string | null;
-	guestPurchaserEmail: string | null;
-	guestPurchaserName: string | null;
-	guestPurchaserPhone: string | null;
-	totalBasePrice: number;
-	totalDiscount: number;
-	totalFinalPrice: number;
-	status: OrderStatus;
-	createdAt: string; // ISO Date string
-	updatedAt: string; // ISO Date string
-	tickets?: Ticket[];
-	payment?: Payment;
-}
-
-/**
- * DTO for creating a new Order.
- */
-export interface CreateOrderDTO {
-	seatIds: number[];
-	userId?: string | null;
-	guestInfo?: GuestPurchaserInfo | null;
-	paymentMethodCode: PaymentMethodCode;
-	couponCode?: string | null;
-	additionalData?: Record<string, any> | null;
-}
-
-/**
- * DTO for refunding one or more tickets within an order.
- */
-export interface RefundTicketDTO {
-	orderId: string;
-	ticketIds: number[];
-	refundReason?: string;
-}
-
-/**
- * Result returned after creating an order.
- */
-export interface CreateOrderResult {
-	order: {
-		id: string;
-		status: OrderStatus;
-		totalFinalPrice: number;
-		tickets: Ticket[];
-	};
-	paymentUrl?: string;
-}
-
-/**
- * Options for querying orders.
- */
-export interface OrderQueryOptions {
-	status?: OrderStatus;
-	dateFrom?: string; // ISO Date string
-	dateTo?: string; // ISO Date string
-	updatedFrom?: string; // ISO Date string
-	updatedTo?: string; // ISO Date string
-	limit?: number;
-	offset?: number;
-	sortBy?: 'id' | 'status' | 'totalFinalPrice' | 'createdAt' | 'updatedAt';
-	sortOrder?: "ASC" | "DESC";
-	include?: ("tickets" | "payment" | "couponUsage")[];
-}
-
-/**
- * Defines the shape of the request body for the check-in operation.
- */
-export interface OrderCheckInRequest {
-	orderId: string;
-	token: string;
-}
-
-/**
- * Defines the shape of the successful response from the check-in operation.
- */
-export interface OrderCheckInResponse {
-	message: string;
-	order: Order;
+  id: string;
+  customer: Customer;
+  createdAt: string;
+  departureDate: string;
+  departureTime: string;
+  departure: string; // Thêm
+  destination: string; // Thêm
+  tripCode: string;
+  quantity: number;
+  total: number;
+  status: "paid" | "pending" | "cancelled";
+  paymentMethod: string;
+  transactionId: string | null;
+  tickets: Ticket[];
 }

@@ -1,17 +1,17 @@
 import type {
-	AppConfig,
-	ApiEndpoints,
-	StorageKeys,
-	Pagination,
-	ValidationRules,
+  AppConfig,
+  ApiEndpoints,
+  StorageKeys,
+  Pagination,
+  ValidationRules,
 } from "@my-types/types";
 
 export const CSRF_CONFIG = {
-	COOKIE_NAME:
-		import.meta.env.NODE_ENV === "production"
-			? "__Host-psifi.x-csrf-token"
-			: "psifi.x-csrf-token",
-	HEADER_NAME: "x-csrf-token",
+  COOKIE_NAME:
+    import.meta.env.NODE_ENV === "production"
+      ? "__Host-psifi.x-csrf-token"
+      : "psifi.x-csrf-token",
+  HEADER_NAME: "x-csrf-token",
 } as const;
 
 /**
@@ -207,10 +207,10 @@ export const API_ENDPOINTS: ApiEndpoints = {
  *   const user = localStorage.getItem(STORAGE_KEYS.USER);
  */
 export const STORAGE_KEYS: StorageKeys = {
-	TOKEN: "easyride_auth_token", // Prefixed
-	USER: "easyride_user_data",
-	THEME: "easyride_theme_preference",
-	LANGUAGE: "easyride_language_preference",
+  TOKEN: "easyride_auth_token", // Prefixed
+  USER: "easyride_user_data",
+  THEME: "easyride_theme_preference",
+  LANGUAGE: "easyride_language_preference",
 } as const;
 
 /**
@@ -222,9 +222,9 @@ export const STORAGE_KEYS: StorageKeys = {
  * - Persist selection via localStorage with STORAGE_KEYS.THEME.
  */
 export const THEMES = {
-	LIGHT: "light",
-	DARK: "dark",
-	AUTO: "auto",
+  LIGHT: "light",
+  DARK: "dark",
+  AUTO: "auto",
 } as const;
 
 /**
@@ -236,8 +236,8 @@ export const THEMES = {
  * - Integrate with libraries like react-i18next for full i18n support.
  */
 export const LANGUAGES = {
-	EN: "en",
-	VI: "vi",
+  EN: "en",
+  VI: "vi",
 } as const;
 
 /**
@@ -249,9 +249,9 @@ export const LANGUAGES = {
  * - Server-side pagination should align with these for consistency.
  */
 export const PAGINATION: Pagination = {
-	DEFAULT_PAGE: 1,
-	DEFAULT_LIMIT: 10,
-	LIMIT_OPTIONS: [5, 10, 20, 50],
+  DEFAULT_PAGE: 1,
+  DEFAULT_LIMIT: 10,
+  LIMIT_OPTIONS: [5, 10, 20, 50],
 } as const;
 
 /**
@@ -265,10 +265,10 @@ export const PAGINATION: Pagination = {
  *   const isValidEmail = VALIDATION_RULES.EMAIL_REGEX.test(email);
  */
 export const VALIDATION_RULES: ValidationRules = {
-	EMAIL_REGEX: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-	PASSWORD_MIN_LENGTH: 8,
-	NAME_MIN_LENGTH: 2,
-	NAME_MAX_LENGTH: 50,
+  EMAIL_REGEX: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+  PASSWORD_MIN_LENGTH: 8,
+  NAME_MIN_LENGTH: 2,
+  NAME_MAX_LENGTH: 50,
 } as const;
 
 /**
@@ -281,20 +281,20 @@ export const VALIDATION_RULES: ValidationRules = {
  *   const color = CONSTANTS.CHIP_COLORS.SUCCESS; // "success"
  */
 export const CHIP_COLORS = {
-	DEFAULT: "default",
-	PRIMARY: "primary",
-	SECONDARY: "secondary",
-	ERROR: "error",
-	INFO: "info",
-	SUCCESS: "success",
-	WARNING: "warning",
+  DEFAULT: "default",
+  PRIMARY: "primary",
+  SECONDARY: "secondary",
+  ERROR: "error",
+  INFO: "info",
+  SUCCESS: "success",
+  WARNING: "warning",
 } as const;
 
 export const WEBSOCKET_CONNECTION_STATES = {
-	DISCONNECTED: "disconnected",
-	CONNECTING: "connecting",
-	CONNECTED: "connected",
-	AUTHENTICATED: "authenticated",
-	RECONNECTING: "reconnecting",
-	ERROR: "error",
+  DISCONNECTED: "disconnected",
+  CONNECTING: "connecting",
+  CONNECTED: "connected",
+  AUTHENTICATED: "authenticated",
+  RECONNECTING: "reconnecting",
+  ERROR: "error",
 };
