@@ -170,8 +170,9 @@ const CreateRouteForm: React.FC<CreateRouteFormProps> = ({
 		try {
 			// The backend expects an array of Location objects
 			const payload = {
+				name: name,
 				stops: stops.map((s) => ({
-					name: s.name,
+					name: s.name, 
 					address: s.address ?? s.name, // Default address to name if not present
 					latitude: s.latitude,
 					longitude: s.longitude,

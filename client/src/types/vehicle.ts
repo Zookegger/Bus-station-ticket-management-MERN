@@ -37,8 +37,8 @@ export interface Vehicle {
 	vehicleTypeId: number;
 	manufacturer?: string | null;
 	model?: string | null;
-	createdAt: string; // ISO Date string
-	updatedAt: string; // ISO Date string
+	createdAt: Date | string; // Date on server, ISO string on client
+	updatedAt: Date | string; // Date on server, ISO string on client
 	vehicleType?: VehicleType;
 }
 
@@ -104,3 +104,17 @@ export interface UpdateVehicleDTO {
 	manufacturer?: string | null;
 	model?: string | null;
 }
+
+/** Model attributes for Vehicle */
+export interface VehicleAttributes {
+	id: number;
+	numberPlate: string;
+	status: VehicleStatus;
+	vehicleTypeId: number;
+	manufacturer?: string | null;
+	model?: string | null;
+	createdAt?: Date;
+	updatedAt?: Date;
+}
+
+export type VehicleCreationAttributes = Omit<Partial<VehicleAttributes>, 'id'> & Partial<Pick<VehicleAttributes, 'id'>>;

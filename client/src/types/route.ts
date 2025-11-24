@@ -2,31 +2,31 @@
  * Client-side type definitions for Routes.
  * Based on server/src/types/route.ts
  */
-
-import type { Location } from "@my-types/location";
-
 /**
  * Represents a route on the client-side.
  */
+
+import type { Location } from "./location";
 
 export interface RouteStop {
 	id: number;
 	routeId: number;
 	locationId: number;
 	stopOrder: number;
+	location?: Location;
 	createdAt?: Date;
 	updatedAt?: Date;
 }
 
 export interface Route {
 	id: number;
-    name: string;
-	stops: RouteStop;
+	name: string;
+	stops: RouteStop[];
 	distance?: number | null;
 	duration?: number | null;
 	price?: number | null;
-	createdAt: string; // ISO Date string
-	updatedAt: string; // ISO Date string
+	createdAt: Date | string; // Date on server, ISO string on client
+	updatedAt: Date | string; // Date on server, ISO string on client
 }
 
 /**
@@ -42,8 +42,8 @@ export interface Route {
  * @property {number | null} [price] - Price of the route.
  */
 export interface CreateRouteDTO {
-    name: string;
-	stops: Location[];
+	name: string;
+	stops: RouteStop[];
 	distance?: number | null;
 	duration?: number | null;
 	price?: number | null;
@@ -62,9 +62,22 @@ export interface CreateRouteDTO {
  * @property {number | null} [price] - Updated price.
  */
 export interface UpdateRouteDTO {
-    name?: string;
-	stops?: Location[];
+	name?: string;
+	stops?: RouteStop[];
 	distance?: number | null;
 	duration?: number | null;
 	price?: number | null;
 }
+
+/** Model attribute types for Route */
+export interface RouteAttributes {
+	id: number;
+	name: string;
+	distance?: number | null;
+	duration?: number | null;
+	price?: number | null;
+	createdAt?: Date;
+	updatedAt?: Date;
+}
+
+export type RouteCreationAttributes = Omit<Partial<RouteAttributes>, 'id'> & Partial<Pick<RouteAttributes, 'id'>>;

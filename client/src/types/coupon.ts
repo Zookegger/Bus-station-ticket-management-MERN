@@ -69,3 +69,23 @@ export interface PreviewCouponDTO {
 	orderTotal: number;
 	userId: string | null;
 }
+
+/** Model attribute interfaces for Coupon (server-aligned) */
+export interface CouponAttributes {
+	id: number;
+	code: string;
+	type: CouponType;
+	value: number;
+	maxUsage: number;
+	currentUsageCount: number;
+	startPeriod: Date | string;
+	endPeriod: Date | string;
+	isActive: boolean;
+	description?: string | null;
+	imgUrl?: string | null;
+	title?: string | null;
+	createdAt?: Date | string;
+	updatedAt?: Date | string;
+}
+
+export type CouponCreationAttributes = Omit<Partial<CouponAttributes>, 'id'> & Partial<Pick<CouponAttributes, 'id'>>;

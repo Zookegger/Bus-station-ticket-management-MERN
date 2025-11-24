@@ -57,6 +57,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowRotateRight } from "@fortawesome/free-solid-svg-icons";
 import { stopIcon, type LocationData, type RouteMetrics } from "./types";
 import SortableStopItem from "./SortableStopItem";
+import type { RouteStop } from "@my-types";
 
 // Local stop type with temporary ID used for drag/sort identification
 type LocalStop = LocationData & { tempId: string };
@@ -130,7 +131,7 @@ export interface RouteMapDialogProps {
 	open: boolean;
 	onClose: () => void;
 	onConfirm: (stops: LocationData[], metrics: RouteMetrics) => void;
-	initialStops?: LocationData[];
+	initialStops?: LocationData[] | RouteStop;
 	title?: string;
 }
 
@@ -239,16 +240,30 @@ const RouteMapDialog: React.FC<RouteMapDialogProps> = ({
 		if (open) {
 			// Ensure initialStops is an array and filter out any invalid stops,
 			// but also add a temporary id for drag/sort operations
-			const validInitialStops = Array.isArray(initialStops)
-				? initialStops
-						.filter(
-							(s) =>
-								s &&
-								typeof s.latitude === "number" &&
-								typeof s.longitude === "number"
-						)
-						.map((s) => ({ ...s, tempId: generateId() }))
-				: [];
+
+			const sourceStops = Array.isArray(initialStops) ? initialStops : [];
+
+			const validInitialStops = sourceStops
+				.map((s) => ({
+					...s,
+					// 2. FIX: Force convert to Number to handle string responses from API
+					latitude: Number(s.latitude),
+					longitude: Number(s.longitude),
+				}))
+				.filter(
+					(s) =>
+						// 3. FIX: Check for NaN instead of typeof === 'number'
+						!isNaN(s.latitude) &&
+						!isNaN(s.longitude) &&
+						s.latitude !== 0 &&
+						s.longitude !== 0
+				)
+				.map((s) => ({
+					...s,
+					// 4. FIX: Use existing tempId from parent if available to prevent Map flash/reset
+					tempId: (s as any).tempId || generateId(),
+				}));
+				
 			setStops(validInitialStops);
 
 			// Set search queries based on initial start/end stops
@@ -762,8 +777,10 @@ const RouteMapDialog: React.FC<RouteMapDialogProps> = ({
 												name: "",
 												address: "",
 												// FORCE CAST: Tell TS to allow undefined to clear the pin
-												latitude: undefined as unknown as number, 
-                								longitude: undefined as unknown as number,
+												latitude:
+													undefined as unknown as number,
+												longitude:
+													undefined as unknown as number,
 											};
 										}
 										return next;
@@ -992,8 +1009,10 @@ const RouteMapDialog: React.FC<RouteMapDialogProps> = ({
 												name: "",
 												address: "",
 												// FORCE CAST: Tell TS to allow undefined to clear the pin
-												latitude: undefined as unknown as number, 
-                								longitude: undefined as unknown as number,
+												latitude:
+													undefined as unknown as number,
+												longitude:
+													undefined as unknown as number,
 											};
 										}
 										return next;

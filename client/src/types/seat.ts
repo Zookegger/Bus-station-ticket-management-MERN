@@ -15,11 +15,11 @@ export interface Seat {
 	vehicleId: number;
 	number: string;
 	status: SeatStatus;
-	reservedUntil: string | null; // ISO Date string
+	reservedUntil: Date | string | null; // Date on server, ISO string on client
 	reservedBy: string | null;
 	tripId: number | null;
-	createdAt: string; // ISO Date string
-	updatedAt: string; // ISO Date string
+	createdAt: Date | string; // Date on server, ISO string on client
+	updatedAt: Date | string; // Date on server, ISO string on client
 	trip?: ApiTripDTO;
 }
 
@@ -39,3 +39,18 @@ export interface SeatFilterDTO {
 	vehicleId?: number;
 	status?: SeatStatus;
 }
+
+/** Model attribute interfaces for Seat */
+export interface SeatAttributes {
+	id: number;
+	vehicleId: number;
+	number: string;
+	status: SeatStatus;
+	reservedUntil?: Date | null;
+	reservedBy?: string | null;
+	tripId?: number | null;
+	createdAt?: Date;
+	updatedAt?: Date;
+}
+
+export type SeatCreationAttributes = Omit<Partial<SeatAttributes>, 'id'> & Partial<Pick<SeatAttributes, 'id'>>;

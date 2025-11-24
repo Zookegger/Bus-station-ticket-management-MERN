@@ -35,3 +35,19 @@ export interface PaymentMethodResponseDTO {
 	createdAt: string; // ISO Date string
 	updatedAt: string; // ISO Date string
 }
+
+/**
+ * Model attribute interface for PaymentMethod (server-aligned).
+ * Mirrors server `PaymentMethod` model attributes used by APIs and lists.
+ */
+export interface PaymentMethodAttributes {
+	id: string;
+	name: string;
+	code: string;
+	isActive: boolean;
+	configJson?: any | null;
+	createdAt?: Date | string;
+	updatedAt?: Date | string;
+}
+
+export type PaymentMethodCreationAttributes = Omit<Partial<PaymentMethodAttributes>, 'id'> & Partial<Pick<PaymentMethodAttributes, 'id'>>;

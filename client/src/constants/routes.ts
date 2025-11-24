@@ -8,6 +8,7 @@
  */
 export const ROUTES = {
 	HOME: "/",
+	SEARCH: "/search",
 	SEAT_BOOKING: "/book",
 	DASHBOARD_HOME: "/dashboard/home",
 	DASHBOARD_VEHICLE: "/dashboard/vehicle",
@@ -24,3 +25,7 @@ export const ROUTES = {
 	NOT_FOUND: "/404",
 	PRIVACY_POLICY: "/privacy",
 } as const;
+
+export const getSearchRoute = (q?: string) => {
+	q ? `${ROUTES.SEARCH}?q=${encodeURIComponent(q)}` : ROUTES.SEARCH;
+};

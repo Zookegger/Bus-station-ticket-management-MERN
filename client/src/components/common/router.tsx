@@ -56,6 +56,16 @@ export const router = createBrowserRouter([
 				},
 			},
 			{
+				path: ROUTES.SEARCH,
+				handle: { title: "Search result • EasyRide" },
+				lazy: async () => {
+					const { default: SearchPage } = await import(
+						"@pages/landing/Search"
+					);
+					return { Component: SearchPage };
+				},
+			},
+			{
 				path: ROUTES.SEAT_BOOKING,
 				lazy: async () => {
 					const { default: SeatBooking } = await import(

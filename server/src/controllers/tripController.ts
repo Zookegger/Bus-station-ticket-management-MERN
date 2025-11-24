@@ -48,11 +48,15 @@ export const SearchTrip = async (
 ): Promise<void> => {
 	try {
 		const {
+			from,
+			to,
+			date,
 			keywords,
 			orderBy = "createdAt",
 			sortOrder = "DESC",
-			page,
-			limit,
+			page = "1",
+			limit = "10",
+			vehicleTypeId,
 			vehicleId,
 			routeId,
 			status,
@@ -62,28 +66,55 @@ export const SearchTrip = async (
 			maxPrice,
 		} = req.query;
 
-		const options: any = {
+		// Validate status against allowed trip statuses and only include when valid
+		const allowed_statuses = [
+            "Scheduled",
+            "Departed",
+            "Completed",
+            "Cancelled",
+        ] as const;
+        type AllowedStatus = (typeof allowed_statuses)[number];
+        const status_value =
+            typeof status === "string" &&
+            (allowed_statuses as readonly string[]).includes(status)
+                ? (status as AllowedStatus)
+                : undefined;
+
+        // build options for service; map incoming params to service ListOptions fields
+        const options: tripServices.ListOptions = {
 			keywords: keywords as string,
-			orderBy: orderBy as string,
-			sortOrder: sortOrder as "ASC" | "DESC",
-		};
+            orderBy: orderBy as string,
+            sortOrder: sortOrder as "ASC" | "DESC",
+            page: parseInt(page as string),
+            limit: parseInt(limit as string),
+            ...(vehicleId && { vehicleId: parseInt(vehicleId as string) }),
+            // user filters by vehicle type rather than a specific vehicle
+            ...(vehicleTypeId && {
+                vehicleTypeId: parseInt(vehicleTypeId as string),
+            }),
+            ...(routeId && { routeId: parseInt(routeId as string) }),
+            ...(status_value && { status: status_value }),
+            ...(startDate && { startDate: startDate as string }),
+            ...(endDate && { endDate: endDate as string }),
+            ...(minPrice && { minPrice: parseFloat(minPrice as string) }),
+            ...(maxPrice && { maxPrice: parseFloat(maxPrice as string) }),
+            // from / to / date used for quick route/day filtering
+            ...(from && { from_location: from as string }),
+            ...(to && { to_location: to as string }),
+            ...(date && { date: date as string }),
+        };
 
-		if (page !== undefined) options.page = parseInt(page as string);
-		if (limit !== undefined) options.limit = parseInt(limit as string);
-		if (vehicleId !== undefined)
-			options.vehicleId = parseInt(vehicleId as string);
-		if (routeId !== undefined)
-			options.routeId = parseInt(routeId as string);
-		if (status !== undefined) options.status = status as string;
-		if (startDate !== undefined) options.startDate = startDate as string;
-		if (endDate !== undefined) options.endDate = endDate as string;
-		if (minPrice !== undefined)
-			options.minPrice = parseFloat(minPrice as string);
-		if (maxPrice !== undefined)
-			options.maxPrice = parseFloat(maxPrice as string);
-
-		const trips = await tripServices.searchTrip(options);
-		res.status(200).json(trips.rows);
+		const { rows, count } = await tripServices.searchTrip(options);
+		res.status(200).json({
+			success: true,
+			data: rows,
+			pagination: {
+				totalItems: count,
+				totalPages: Math.ceil(count / options.limit!),
+				currentPage: options.page,
+				itemsPerPage: options.limit,
+			},
+		});
 	} catch (err) {
 		next(err);
 	}

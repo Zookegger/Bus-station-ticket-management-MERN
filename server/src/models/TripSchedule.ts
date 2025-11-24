@@ -72,6 +72,9 @@ export class TripSchedule
 	 */
 	public readonly updatedAt?: Date;
 
+	public readonly trip?: import("./trip").Trip;
+	public readonly driver?: import("./driver").Driver;
+
 	/**
 	 * Initializes the TripSchedule model.
 	 * @param {Sequelize} sequelize - The Sequelize instance.

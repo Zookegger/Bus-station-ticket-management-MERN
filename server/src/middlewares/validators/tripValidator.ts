@@ -56,10 +56,10 @@ export const validateCreateTrip = [
 		.withMessage("Start time must be a valid ISO 8601 date")
 		.toDate(),
 
-	body("endTime")
+	body("returnStartTime")
 		.optional()
 		.isISO8601()
-		.withMessage("End time must be a valid ISO 8601 date")
+		.withMessage("Return start time must be a valid ISO 8601 date")
 		.toDate(),
 
 	body("price")
@@ -102,10 +102,10 @@ export const validateUpdateTrip = [
 		.withMessage("Start time must be a valid ISO 8601 date")
 		.toDate(),
 
-	body("endTime")
+	body("returnStartTime")
 		.optional()
 		.isISO8601()
-		.withMessage("End time must be a valid ISO 8601 date")
+		.withMessage("Return start time must be a valid ISO 8601 date")
 		.toDate(),
 
 	body("price")

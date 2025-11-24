@@ -1,3 +1,6 @@
+import type { Route } from "./route";
+import type { Vehicle } from "./vehicle";
+
 /**
  * Enum for the status of a trip.
  * @enum {string}
@@ -7,54 +10,33 @@
  * @property {string} CANCELLED - The trip has been cancelled.
  * @property {string} DELAYED - The trip is delayed.
  */
-export type TripStatus = {
-	/**
-	 * The trip is being created or drafted.
-	 * It is not yet visible to the public or open for booking.
-	 * This is typically the default state.
-	 */
-	PENDING: "PENDING",
+export const TripStatus = {
+    /** The trip is being created or drafted. */
+    PENDING: "PENDING",
+    /** The trip is published, visible to users, and open for booking. */
+    SCHEDULED: "SCHEDULED",
+    /** The trip has already started and is currently in progress. */
+    DEPARTED: "DEPARTED",
+    /** The trip has finished successfully. */
+    COMPLETED: "COMPLETED",
+    /** The trip has been cancelled before or during its run. */
+    CANCELLED: "CANCELLED",
+    /** The trip is delayed. */
+    DELAYED: "DELAYED",
+} as const;
 
-	/**
-	 * The trip is published, visible to users, and open for booking.
-	 * This is the main "active" state for a trip.
-	 */
-	SCHEDULED: "SCHEDULED",
+export type TripStatus = typeof TripStatus[keyof typeof TripStatus];
 
-	/**
-	 * The trip has already started and is currently in progress.
-	 * Bookings should be closed at this point.
-	 */
-	DEPARTED: "DEPARTED",
-
-	/**
-	 * The trip has finished successfully.
-	 * This is a final state, useful for historical records and reviews.
-	 */
-	COMPLETED: "COMPLETED",
-
-	/**
-	 * The trip has been cancelled before or during its run.
-	 * This state should trigger notifications and refunds for any
-	 * passengers who had booked seats.
-	 */
-	CANCELLED: "CANCELLED",
-
-	/**
-	 * The trip is delayed.
-	 * This indicates that the trip is scheduled but has been postponed.
-	 */
-	DELAYED: "DELAYED",
-}
-
-export type TripRepeatFrequency = {
+export const TripRepeatFrequency = {
 	NONE: "NONE",
 	DAILY: "DAILY",
 	WEEKLY: "WEEKLY",
 	WEEKDAY: "WEEKDAY",
 	MONTHLY: "MONTHLY",
 	YEARLY: "YEARLY",
-};
+} as const;
+
+export type TripRepeatFrequency = typeof TripRepeatFrequency[keyof typeof TripRepeatFrequency];
 
 /**
  * Enum for trip assignment mode.
@@ -62,12 +44,14 @@ export type TripRepeatFrequency = {
  * @property {string} AUTO - Driver was automatically assigned by the system.
  * @property {string} MANUAL - Driver was manually assigned by an admin/user.
  */
-export type AssignmentMode = {
+export const AssignmentMode = {
 	/** Driver was automatically assigned by the system. */
-    AUTO: "AUTO",
+	AUTO: "AUTO",
 	/** Driver was manually assigned by an admin/user. */
-    MANUAL: "MANUAL"
-};
+	MANUAL: "MANUAL",
+} as const;
+
+export type AssignmentMode = typeof AssignmentMode[keyof typeof AssignmentMode];
 
 /**
  * Data Transfer Object for creating a new Trip.
@@ -123,8 +107,31 @@ export interface UpdateTripDTO {
 	startTime?: Date;
 	endTime?: Date | null;
 	price?: number | null;
-	status?: "Scheduled" | "Departed" | "Completed" | "Cancelled";
+	status?: TripStatus;
 	isTemplate?: boolean;
 	repeatFrequency?: TripRepeatFrequency;
 	repeatEndDate?: Date;
 }
+
+/**
+ * Model attribute interfaces for Trip (matches server TripAttributes)
+ */
+export interface TripAttributes {
+	id: number;
+	routeId: number;
+	vehicleId: number;
+	route?: Route | null;
+	vehicle?: Vehicle | null;
+	startTime: Date;
+	endTime?: Date | null;
+	price: number;
+	status?: TripStatus;
+	isTemplate: boolean;
+	repeatFrequency?: TripRepeatFrequency | null;
+	repeatEndDate?: Date | null;
+	templateTripId?: number | null;
+	createdAt?: Date;
+	updatedAt?: Date;
+}
+
+export type TripCreationAttributes = Omit<Partial<TripAttributes>, 'id'> & Partial<Pick<TripAttributes, 'id'>>;

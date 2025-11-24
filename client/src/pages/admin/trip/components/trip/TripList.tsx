@@ -9,6 +9,12 @@ import {
 	TextField,
 	InputAdornment,
 	CircularProgress,
+	Dialog,
+	DialogTitle,
+	DialogContent,
+	DialogActions,
+	Drawer,
+	Typography,
 } from "@mui/material";
 import {
 	Add as AddIcon,
@@ -17,11 +23,12 @@ import {
 } from "@mui/icons-material";
 import { DataGrid as Grid } from "@mui/x-data-grid"; // Alias DataGrid as Grid per v7 guideline
 import type { GridColDef } from "@mui/x-data-grid";
-import { useNavigate } from "react-router-dom";
 import type { TripItemDTO, ApiTripDTO } from "@my-types/TripDTOs";
 import axios from "axios";
 import { DataGridPageLayout } from "@components/admin";
 import { API_ENDPOINTS } from "@constants";
+import TripDetailsDrawer from "./TripDetailsDrawer";
+import CreateTripForm from "./CreateTrip";
 
 
 interface TripListProps {
@@ -33,47 +40,50 @@ interface TripListProps {
  * Fetches trips, applies client-side search filtering, and renders them inside a shared DataGrid layout.
  */
 const TripList: React.FC<TripListProps> = ({ onOpenDetails }) => {
-	const navigate = useNavigate();
 	const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 	const [menuTrip, setMenuTrip] = useState<TripItemDTO | null>(null);
+	const [selectedTrip, setSelectedTrip] = useState<TripItemDTO | null>(null);
+
+	// Dialog / Drawer states
+	const [isAddOpen, setIsAddOpen] = useState(false);
+	const [isEditOpen, setIsEditOpen] = useState(false);
+	const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+	const [isDetailOpen, setIsDetailOpen] = useState(false);
 	const [search, setSearch] = useState("");
 	const [trips, setTrips] = useState<TripItemDTO[]>([]);
 	const [isLoading, setLoading] = useState(true);
 
-	useEffect(() => {
-		const fetchTrips = async () => {
-			try {
-				// Replace with your auth token retrieval (e.g., from context)
-				const response = await axios.get(API_ENDPOINTS.TRIP.BASE);
-				if (response.status === 200) {
-					const data = response.data;
-					// Assuming API returns { trips: [...] } or direct array
-					const tripsData = data.trips || data;
-					setTrips(
-						tripsData.map((t: ApiTripDTO) => ({
-							id: t.id,
-							route:
-								t.origin && t.destination
-									? `${t.origin} - ${t.destination}`
-									: "Unknown Route",
-							departure: t.departureTime,
-							arrival: t.arrivalTime,
-							price: `$${t.price}`,
-							status:
-								(t.status as TripItemDTO["status"]) ||
-								"Standby",
-						}))
-					);
-				} else {
-					console.error("Failed to fetch trips");
-				}
-			} catch (error) {
-				console.error("Error fetching trips:", error);
-			} finally {
-				setLoading(false);
-			}
-		};
 
+	const fetchTrips = async () => {
+		try {
+			const response = await axios.get(API_ENDPOINTS.TRIP.BASE);
+			if (response.status === 200) {
+				const data = response.data;
+				const tripsData = data.trips || data;
+				setTrips(
+					tripsData.map((t: ApiTripDTO) => ({
+						id: t.id,
+						route:
+							t.origin && t.destination
+								? `${t.origin} - ${t.destination}`
+								: "Unknown Route",
+						departure: t.departureTime,
+						arrival: t.arrivalTime,
+						price: `$${t.price}`,
+						status: (t.status as TripItemDTO["status"]) || "Standby",
+					}))
+				);
+			} else {
+				console.error("Failed to fetch trips");
+			}
+		} catch (error) {
+			console.error("Error fetching trips:", error);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	useEffect(() => {
 		fetchTrips();
 	}, []);
 
@@ -94,6 +104,43 @@ const TripList: React.FC<TripListProps> = ({ onOpenDetails }) => {
 	const handleCloseMenu = () => {
 		setAnchorEl(null);
 		setMenuTrip(null);
+	};
+
+	// Add / Edit / Delete / Detail handlers
+	const handleOpenAdd = () => setIsAddOpen(true);
+	const handleCloseAdd = () => setIsAddOpen(false);
+
+	const handleOpenEdit = (trip: TripItemDTO | null) => {
+		setSelectedTrip(trip);
+		setIsEditOpen(true);
+		handleCloseMenu();
+	};
+	const handleCloseEdit = () => {
+		setSelectedTrip(null);
+		setIsEditOpen(false);
+	};
+
+	const handleOpenDelete = (trip: TripItemDTO | null) => {
+		setSelectedTrip(trip);
+		setIsDeleteOpen(true);
+		handleCloseMenu();
+	};
+	const handleCloseDelete = () => {
+		setSelectedTrip(null);
+		setIsDeleteOpen(false);
+	};
+
+	const handleOpenDetailsLocal = (trip: TripItemDTO) => {
+		setSelectedTrip(trip);
+		setIsDetailOpen(true);
+		handleCloseMenu();
+		// still call external opener if provided
+		onOpenDetails?.(trip);
+	};
+
+	const handleCloseDetails = () => {
+		setSelectedTrip(null);
+		setIsDetailOpen(false);
 	};
 
 	// Define DataGrid columns
@@ -166,7 +213,7 @@ const TripList: React.FC<TripListProps> = ({ onOpenDetails }) => {
 			<Button
 				variant="contained"
 				startIcon={<AddIcon />}
-				onClick={() => navigate("create")}
+				onClick={handleOpenAdd}
 				sx={{
 					textTransform: "none",
 					backgroundColor: "#2E7D32",
@@ -214,31 +261,58 @@ const TripList: React.FC<TripListProps> = ({ onOpenDetails }) => {
 				open={Boolean(anchorEl)}
 				onClose={handleCloseMenu}
 			>
-				<MenuItem
-					onClick={() => {
-						if (menuTrip) onOpenDetails(menuTrip);
-						handleCloseMenu();
-					}}
-				>
-					View Details
-				</MenuItem>
-				<MenuItem
-					onClick={() => {
-						if (menuTrip) navigate(`edit/${menuTrip.id}`);
-						handleCloseMenu();
-					}}
-				>
-					Edit
-				</MenuItem>
-				<MenuItem
-					onClick={() => {
-						if (menuTrip) navigate(`delete/${menuTrip.id}`);
-						handleCloseMenu();
-					}}
-				>
-					Delete
-				</MenuItem>
+					<MenuItem
+						onClick={() => {
+							if (menuTrip) handleOpenDetailsLocal(menuTrip);
+						}}
+					>
+						View Details
+					</MenuItem>
+					<MenuItem onClick={() => handleOpenEdit(menuTrip)}>
+						Edit
+					</MenuItem>
+					<MenuItem onClick={() => handleOpenDelete(menuTrip)}>
+						Delete
+					</MenuItem>
 			</Menu>
+                
+			{/* Add Trip Dialog */}
+			<CreateTripForm
+				open={isAddOpen}
+				onClose={handleCloseAdd}
+				onCreated={() => {
+					setLoading(true);
+					fetchTrips();
+				}}
+			/>
+
+			{/* Edit Trip Dialog (placeholder) */}
+			<Dialog open={isEditOpen} onClose={handleCloseEdit} fullWidth maxWidth="md">
+				<DialogTitle>Edit Trip</DialogTitle>
+				<DialogContent>
+					<Typography variant="body2">Editing trip: {selectedTrip?.route || "-"}</Typography>
+				</DialogContent>
+				<DialogActions>
+					<Button onClick={handleCloseEdit}>Cancel</Button>
+					<Button onClick={handleCloseEdit} variant="contained">Save</Button>
+				</DialogActions>
+			</Dialog>
+
+			{/* Delete Confirmation Dialog */}
+			<Dialog open={isDeleteOpen} onClose={handleCloseDelete}>
+				<DialogTitle>Delete Trip</DialogTitle>
+				<DialogContent>
+					<Typography>Are you sure you want to delete this trip?</Typography>
+					<Typography variant="body2">{selectedTrip?.route}</Typography>
+				</DialogContent>
+				<DialogActions>
+					<Button onClick={handleCloseDelete}>Cancel</Button>
+					<Button color="error" onClick={handleCloseDelete} variant="contained">Delete</Button>
+				</DialogActions>
+			</Dialog>
+
+			{/* Trip Detail Drawer */}
+			<TripDetailsDrawer trip={selectedTrip} open={isDetailOpen} onClose={handleCloseDetails} />
 		</DataGridPageLayout>
 	);
 };

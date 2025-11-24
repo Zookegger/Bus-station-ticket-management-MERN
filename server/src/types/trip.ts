@@ -79,7 +79,7 @@ export enum AssignmentMode {
  * @property {number} vehicleId - ID of the vehicle assigned to the trip.
  * @property {number} routeId - ID of the route for the trip.
  * @property {Date} startTime - Scheduled start time of the trip.
- * @property {Date | null} [endTime] - Scheduled or actual end time of the trip.
+ * @property {Date} [returnStartTime] - Scheduled return start time (for round trips).
  * @property {number} price - Price of the trip.
  * @property {TripStatus} status - Status of the trip.
  * @property {boolean} [isTemplate] - Flag indicating whether the trip should be treated as a template.
@@ -90,7 +90,8 @@ export interface CreateTripDTO {
 	vehicleId: number;
 	routeId: number;
 	startTime: Date;
-	endTime?: Date | null;
+	returnStartTime?: Date;
+	isRoundTrip?: boolean;
 	price: number;
 	status: TripStatus;
 	isTemplate?: boolean;
@@ -109,7 +110,7 @@ export interface CreateTripDTO {
  * @property {number} [vehicleId] - Updated vehicle ID.
  * @property {number} [routeId] - Updated route ID.
  * @property {Date} [startTime] - Updated start time.
- * @property {Date | null} [endTime] - Updated end time.
+ * @property {Date} [returnStartTime] - Updated return start time.
  * @property {number | null} [price] - Updated price.
  * @property {'Scheduled' | 'Departed' | 'Completed' | 'Cancelled'} [status] - Updated status.
  * @property {boolean} [isTemplate] - Updated template flag.
@@ -121,7 +122,7 @@ export interface UpdateTripDTO {
 	vehicleId?: number;
 	routeId?: number;
 	startTime?: Date;
-	endTime?: Date | null;
+	returnStartTime?: Date;
 	price?: number | null;
 	status?: "Scheduled" | "Departed" | "Completed" | "Cancelled";
 	isTemplate?: boolean;

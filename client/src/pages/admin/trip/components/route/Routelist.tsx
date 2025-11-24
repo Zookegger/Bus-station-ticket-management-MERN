@@ -10,6 +10,7 @@ import { CreateRouteForm, RouteDetailsDrawer, DeleteRouteForm } from "./index";
 import EditRouteForm from "./EditRouteForm";
 import { DataGridPageLayout } from "@components/admin";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
+import { formatDistance } from "@utils/map";
 
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 
@@ -99,69 +100,20 @@ const RouteList: React.FC = () => {
 
 	// Columns definition outside JSX for clarity
 	const columns: GridColDef[] = [
-		{ field: "startLocation", headerName: "Departure", flex: 1 },
-		{ field: "destination", headerName: "Destination", flex: 1 },
+		{ field: "startLocation", headerName: "Departure", flex: 1, minWidth: 150  },
+		{ field: "destination", headerName: "Destination", flex: 1, minWidth: 150 },
 		{ field: "price", headerName: "Price", width: 150 },
-		{ field: "distance", headerName: "Distance", width: 120 },
-		{ field: "updatedAt", headerName: "Updated At", width: 190 },
-		{ field: "createdAt", headerName: "Created At", width: 190 },
-		{
-			field: "map",
-			headerName: "Map",
-			width: 100,
-			sortable: false,
-			renderCell: (params) => {
-				const raw = routes.find((r) => r.id === params.id);
-				const hasCoords = !!(
-					raw?.startLocation?.latitude &&
-					raw?.startLocation?.longitude &&
-					raw?.destination?.latitude &&
-					raw?.destination?.longitude
-				);
-				return (
-					<Button
-						size="small"
-						variant="outlined"
-						disabled={!raw || !hasCoords}
-						onClick={(e) => {	
-							e.stopPropagation();
-							if (!raw) return;
-							if (
-								raw.startLocation?.latitude &&
-								raw.startLocation?.longitude
-							) {
-								setMapStart({
-									latitude: raw.startLocation.latitude,
-									longitude: raw.startLocation.longitude,
-									name: raw.startLocation.name ?? "Start",
-								});
-							}
-							if (
-								raw.destination?.latitude &&
-								raw.destination?.longitude
-							) {
-								setMapEnd({
-									latitude: raw.destination.latitude,
-									longitude: raw.destination.longitude,
-									name: raw.destination.name ?? "End",
-								});
-							}
-							setMapOpen(true);
-						}}
-					>
-						Map
-					</Button>
-				);
-			},
-		},
+		{ field: "distance", headerName: "Distance", width: 100 },
+		{ field: "updatedAt", headerName: "Updated At", width: 160 },
+		{ field: "createdAt", headerName: "Created At", width: 160 },
 	];
 
 	const rows = routes.map((r) => ({
 		id: r.id,
-		startLocation: r.startLocation?.name ?? "Unknown",
-		destination: r.destination?.name ?? "Unknown",
+		startLocation: r.stops?.at(0)?.location?.name ?? "Unknown",
+		destination: r.stops?.at(r.stops.length - 1)?.location?.name ?? "Unknown",
 		price: r.price ? `${r.price.toLocaleString("vi-VN")} VND` : "N/A",
-		distance: r.distance ? `${r.distance.toFixed(2)} km` : "N/A",
+		distance: r.distance ? formatDistance(r.distance) : "N/A",
 		updatedAt: format(new Date(r.updatedAt), "dd/MM/yyyy - HH:mm:ss"),
 		createdAt: format(new Date(r.createdAt), "dd/MM/yyyy - HH:mm:ss"),
 	}));
@@ -234,8 +186,7 @@ const RouteList: React.FC = () => {
 			<RouteMapDialog
 				open={mapOpen}
 				onClose={() => setMapOpen(false)}
-				initialStart={mapStart ?? undefined}
-				initialEnd={mapEnd ?? undefined}
+				initialStops={mapStart ?? undefined}
 				onConfirm={(start, end) => {
 					// Currently just close; persistence can be added when API supports coordinate updates
 					setMapStart(start);

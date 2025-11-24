@@ -7,6 +7,7 @@ import {
 } from "sequelize";
 import { Trip } from "./trip";
 import { DbModels } from "@models";
+import { RouteStop } from "./routeStop";
 
 /**
  * @interface RouteAttributes
@@ -98,6 +99,12 @@ export class Route
 	 * @property {Trip[]} [trips] - Associated Trip instances.
 	 */
 	public readonly trips?: Trip[];
+
+	public getStops!: HasManyGetAssociationsMixin<RouteStop>;
+	/**
+	 * @property {RouteStop[]} [stops] - Associated RouteStop instances.
+	 */
+	public readonly stops?: RouteStop[];
 
 	/**
 	 * Initializes the Sequelize model definition for Route.

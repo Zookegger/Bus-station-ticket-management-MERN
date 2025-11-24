@@ -19,8 +19,8 @@ import { Driver } from "./driver";
  * @property {number} id - The unique identifier for the trip.
  * @property {number} routeId - The ID of the route for this trip.
  * @property {number} vehicleId - The ID of the vehicle for this trip.
- * @property {Date} departureTime - The departure time of the trip.
- * @property {Date} arrivalTime - The arrival time of the trip.
+ * @property {Date} startTime - The departure time of the trip.
+ * @property {Date} [returnStartTime] - The start time of the return trip (if round trip).
  * @property {TripStatus} status - The current status of the trip.
  * @property {number} basePrice - The base price for the trip.
  * @property {Date} [createdAt] - The date and time the trip was created.
@@ -35,8 +35,8 @@ export interface TripAttributes {
 	vehicleId: number;
 	/**The departure time of the trip. */
 	startTime: Date;
-	/**The arrival time of the trip. */
-	endTime?: Date | null;
+	/**The start time of the return trip (if round trip). */
+	returnStartTime?: Date | null;
 	/**The ticket price assigned to this trip. */
 	price: number;
 	/**The current status of the trip. */
@@ -49,6 +49,8 @@ export interface TripAttributes {
 	repeatEndDate?: Date | null;
 	/**If this trip is an instance, this links to its template. */
 	templateTripId?: number | null;
+	/**If this trip is a round trip, this links to the return trip. */
+	returnTripId?: number | null;
 	/**The date and time the trip was created. */
 	createdAt?: Date;
 	/**The date and time the trip was last updated. */
@@ -64,7 +66,7 @@ export interface TripCreationAttributes
 	extends Optional<
 		TripAttributes,
 		| "id"
-		| "endTime"
+		| "returnStartTime"
 		| "status"
 		| "isTemplate"
 		| "repeatFrequency"
@@ -82,8 +84,8 @@ export interface TripCreationAttributes
  * @property {number} id - The unique identifier for the trip.
  * @property {number} vehicleId - The ID of the vehicle for this trip.
  * @property {number} routeId - The ID of the route for this trip.
- * @property {Date} startTime - The scheduled departure time for the trip.
- * @property {Date | null} [endTime] - The actual or estimated arrival time.
+ * @property {Date} startTime - The departure time of the trip.
+ * @property {Date} [returnStartTime] - The start time of the return trip (if round trip).
  * @property {number} [price] - The ticket price for this specific trip.
  * @property {string} [status] - The current status of the trip.
  * @property {Date} [createdAt] - The date and time the trip was created.
@@ -105,8 +107,8 @@ export class Trip
 	public routeId!: number;
 	/**The departure time of the trip. */
 	public startTime!: Date;
-	/**The arrival time of the trip. */
-	public endTime?: Date | null;
+	/**The start time of the return trip (if round trip). */
+	public returnStartTime?: Date | null;
 	/**The ticket price assigned to this trip. */
 	public price!: number;
 	/**The current status of the trip. */
@@ -119,6 +121,8 @@ export class Trip
 	public repeatEndDate?: Date | null;
 	/**If this trip is an instance, this links to its template. */
 	public templateTripId?: number | null;
+	/**If this trip is a round trip, this links to the return trip. */
+	public returnTripId?: number | null;
 
 	/**The date and time the trip was created. */
 	public readonly createdAt!: Date;
@@ -160,10 +164,10 @@ export class Trip
 					allowNull: false,
 					field: "startTime",
 				},
-				endTime: {
+				returnStartTime: {
 					type: DataTypes.DATE,
 					allowNull: true,
-					field: "endTime",
+					field: "returnStartTime",
 				},
 				price: {
 					type: DataTypes.DECIMAL(10, 2),
@@ -201,6 +205,16 @@ export class Trip
 					field: "templateTripId",
 					comment:
 						"Self-referencing key. If this trip is an 'instance' (e.g., the 10AM trip for Nov 1st), this ID points to the 'template' trip (e.g., the 'Daily 10AM' schedule). This prevents duplicate generation by background workers and links instances for management.",
+				},
+				returnTripId: {
+					type: DataTypes.INTEGER.UNSIGNED,
+					allowNull: true,
+					references: {
+						model: "trips",
+						key: "id",
+					},
+					field: "returnTripId",
+					comment: "Self-referencing key. Links to the return trip.",
 				},
 			},
 			{
@@ -251,6 +265,16 @@ export class Trip
 		Trip.hasMany(models.Trip, {
 			foreignKey: "templateTripId",
 			as: "instances",
+		});
+
+		Trip.belongsTo(models.Trip, {
+			foreignKey: "returnTripId",
+			as: "returnTrip",
+		});
+		
+		Trip.hasOne(models.Trip, {
+			foreignKey: "returnTripId",
+			as: "outboundTrip",
 		});
 	}
 }

@@ -18,8 +18,8 @@ export interface Payment {
 	paymentStatus: PaymentStatus;
 	transactionId: string | null;
 	paymentGateway: string;
-	createdAt: string; // ISO Date string
-	updatedAt: string; // ISO Date string
+	createdAt: Date | string; // Date on server, ISO string on client
+	updatedAt: Date | string; // Date on server, ISO string on client
 }
 
 /**
@@ -92,3 +92,20 @@ export interface PaymentRefundResult {
     transactionId?: string;
 	gatewayResponseData?: any;
 }
+
+/** Model attribute interfaces for Payment (server-aligned) */
+export interface PaymentAttributes {
+	id: string;
+	orderId: string;
+	totalAmount: number;
+	paymentMethodId: string;
+	paymentStatus: PaymentStatus;
+	merchantOrderRef: string;
+	gatewayTransactionNo?: string | null;
+	gatewayResponseData?: any | null;
+	createdAt?: Date | string;
+	expiredAt?: Date | string;
+	updatedAt?: Date | string;
+}
+
+export type PaymentCreationAttributes = Omit<Partial<PaymentAttributes>, 'id'> & Partial<Pick<PaymentAttributes, 'id'>>;

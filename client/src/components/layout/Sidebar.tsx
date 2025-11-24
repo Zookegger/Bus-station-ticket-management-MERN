@@ -36,6 +36,10 @@ import {
 import { APP_CONFIG, ROUTES } from "@constants/index";
 import { useAuth } from "@hooks/useAuth";
 import buildAvatarUrl from "@utils/avatarImageHelper";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTicket } from "@fortawesome/free-solid-svg-icons";
+
+const TicketIcon: React.FC = () => <FontAwesomeIcon icon={faTicket} />;
 
 const menuItemsData: MenuItem[] = [
 	{
@@ -55,7 +59,7 @@ const menuItemsData: MenuItem[] = [
 	{
 		id: 3,
 		label: "Trip",
-		icon: "map-pin",
+		icon: "map",
 		tips: "Plan, schedule, and monitor bus trips, including driver assignments",
 		path: "/dashboard/trip",
 	},
@@ -69,7 +73,7 @@ const menuItemsData: MenuItem[] = [
 	{
 		id: 5,
 		label: "Order",
-		icon: "coupon",
+		icon: "ticket",
 		tips: "View and manage customer orders, bookings, and payment statuses",
 		path: "/dashboard/order",
 	},
@@ -101,7 +105,8 @@ const iconMap: { [key: string]: React.ComponentType } = {
 	dashboard: WindowIcon,
 	car: CarIcon,
 	bus: BusIcon,
-	"map-pin": MapPinIcon,
+	map: MapPinIcon,
+	ticket: TicketIcon,
 	person: PersonIcon,
 	coupon: CardGiftcard,
 	gear: SettingsIcon,

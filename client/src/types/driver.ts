@@ -129,3 +129,26 @@ export interface DriverRecord {
   rating: number;
   avatar?: string;
 }
+
+/**
+ * Model attribute interface for Driver (server-aligned).
+ * Use these when working with driver records returned by APIs or stored locally.
+ */
+export interface DriverAttributes {
+  id: number | string;
+  fullname?: string | null;
+  phoneNumber?: string | null;
+  avatar?: string | null;
+  hiredAt?: Date | string | null;
+  isActive: boolean;
+  licenseNumber?: string | null;
+  licenseCategory?: string | null;
+  licenseIssueDate?: Date | string | null;
+  licenseExpiryDate?: Date | string | null;
+  issuingAuthority?: string | null;
+  isSuspended?: boolean;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+}
+
+export type DriverCreationAttributes = Omit<Partial<DriverAttributes>, 'id'> & Partial<Pick<DriverAttributes, 'id'>>;

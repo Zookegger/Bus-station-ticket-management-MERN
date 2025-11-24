@@ -32,12 +32,12 @@ export interface User {
   address: string | null;
   gender: Gender | null;
   avatar: string | null;
-  dateOfBirth: string | null; // ISO Date string
+  dateOfBirth: Date | string | null; // Date on server, ISO string on client
   role: Role;
   emailConfirmed: boolean;
   lastLogin: string | null; // ISO Date string
-  createdAt: string; // ISO Date string
-  updatedAt: string; // ISO Date string
+  createdAt: Date | string; // Date on server, ISO string on client
+  updatedAt: Date | string; // Date on server, ISO string on client
 }
 
 /**
@@ -117,7 +117,7 @@ export interface UpdateProfileDTO {
   phoneNumber?: string | null;
   gender?: Gender | null;
   avatar?: string | null;
-  dateOfBirth?: string | null; // ISO Date string
+  dateOfBirth?: Date | string | null; // Date on server, ISO string on client
 }
 
 /**
@@ -157,3 +157,26 @@ export interface GetMeDTO {
     issuedAt?: string | null; // ISO Date string
   };
 }
+
+/** Model attribute interfaces for User (server-aligned) */
+export interface UserAttributes {
+  id: string;
+  email: string;
+  passwordHash?: string;
+  firstName?: string;
+  lastName?: string;
+  fullName?: string;
+  userName: string;
+  address?: string | null;
+  gender?: Gender | null;
+  avatar?: string | null;
+  dateOfBirth?: Date | null;
+  emailConfirmed?: boolean;
+  phoneNumber?: string | null;
+  phoneNumberConfirmed?: boolean;
+  role?: Role;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export type UserCreationAttributes = Omit<Partial<UserAttributes>, 'id'> & Partial<Pick<UserAttributes, 'id'>>;
