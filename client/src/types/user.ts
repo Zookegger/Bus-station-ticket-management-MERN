@@ -13,9 +13,9 @@ export type Role = "User" | "Admin";
 export type Gender = (typeof Gender)[keyof typeof Gender];
 
 export const Gender = {
-  MALE: "male",
-  FEMALE: "female",
-  OTHER: "other",
+  MALE: "MALE",
+  FEMALE: "FEMALE",
+  OTHER: "OTHER",
 } as const;
 
 /**
@@ -85,31 +85,7 @@ export interface LoginDTO {
  * @property {Date|null} [dateOfBirth] - The user's date of birth.
  * @property {string|null} [phoneNumber] - The user's phone number (include country code where applicable).
  */
-export interface UpdateProfileDTO {
-  fullName?: string | null;
-  address?: string | null;
-  gender?: Gender | null;
-  avatar?: string | null;
-  dateOfBirth?: Date | string | null;
-  phoneNumber?: string | null;
-  role?: string | null;
-  email?: string | null;
-}
 
-export interface UpdateAdminProfileDTO {
-  fullName?: string | null;
-  address?: string | null;
-  gender?: Gender | null;
-  avatar?: string | null;
-  dateOfBirth?: string | null;
-  phoneNumber?: string | null;
-  role?: string | null;
-  email?: string | null;
-}
-
-/**
- * DTO for updating a user's profile.
- */
 export interface UpdateProfileDTO {
   email?: string;
   fullName?: string;
@@ -118,6 +94,17 @@ export interface UpdateProfileDTO {
   gender?: Gender | null;
   avatar?: string | null;
   dateOfBirth?: Date | string | null; // Date on server, ISO string on client
+}
+
+export interface UpdateAdminProfileDTO {
+  fullName?: string | null;
+  address?: string | null;
+  gender?: Gender | null;
+  avatar?: string | null;
+  dateOfBirth?: Date | string | null;
+  phoneNumber?: string | null;
+  role?: string | null;
+  email?: string | null;
 }
 
 /**

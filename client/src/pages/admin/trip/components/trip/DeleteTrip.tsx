@@ -1,9 +1,28 @@
 import React from "react";
 import { Box, Button, Grid, Paper, Typography } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import axios from "axios";
+import { API_ENDPOINTS } from "@constants";
 
-const DeleteTrip: React.FC = () => {
+interface DeleteTripProps {
+  tripId?: number;
+}
+
+const DeleteTrip: React.FC<DeleteTripProps> = ({ tripId }) => {
   const navigate = useNavigate();
+  const params = useParams();
+  const id = tripId || (params.id ? Number(params.id) : undefined);
+
+  const handleDelete = async () => {
+    if (!id) return;
+    try {
+      await axios.delete(API_ENDPOINTS.TRIP.DELETE(id));
+      navigate("../");
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Failed to delete trip.");
+    }
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography
@@ -25,19 +44,7 @@ const DeleteTrip: React.FC = () => {
               <Typography sx={{ fontWeight: 600, mb: 1 }}>
                 Trip Information
               </Typography>
-              <Typography>
-                Route: Thảo Cầm Viên Sài Gòn ➝ Chợ Bến Thành
-              </Typography>
-              <Typography>Departure Time: 01/06/2025 12:00</Typography>
-              <Typography>Total Price: 280,000 đ</Typography>
-            </Paper>
-          </Grid>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Paper sx={{ p: 2 }}>
-              <Typography sx={{ fontWeight: 600, mb: 1 }}>Vehicle</Typography>
-              <Typography>City Runner</Typography>
-              <Typography>Arrival Time: 01/06/2025 18:00</Typography>
-              <Typography>Status: Standby</Typography>
+              <Typography>Trip ID: {id ?? "-"}</Typography>
             </Paper>
           </Grid>
         </Grid>
@@ -46,6 +53,7 @@ const DeleteTrip: React.FC = () => {
             variant="contained"
             color="error"
             sx={{ textTransform: "none" }}
+            onClick={handleDelete}
           >
             Delete Trip
           </Button>

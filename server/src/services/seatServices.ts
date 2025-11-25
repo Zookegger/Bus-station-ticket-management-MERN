@@ -184,7 +184,7 @@ export const updateSeat = async (
 	}
 
 	// If status is being set to 'available', ensure current status allows it
-	if (dto.status === "available") {
+	if (dto.status === SeatStatus.AVAILABLE) {
 		if (
 			seat.status === SeatStatus.DISABLED ||
 			seat.status === SeatStatus.MAINTENANCE

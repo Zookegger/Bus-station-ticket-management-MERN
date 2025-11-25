@@ -21,7 +21,7 @@ import axios from "axios";
 import { API_ENDPOINTS, ROUTES } from "@constants";
 import { LocationOn, Search } from "@mui/icons-material";
 import { createSearchParams, useNavigate } from "react-router-dom";
-import { format } from "date-fns";
+import { format, formatDate } from "date-fns";
 
 type TripSearchFormState = {
 	departure: string;
@@ -91,7 +91,7 @@ const Home: React.FC = () => {
 		const params = createSearchParams({
 			from: departure,
 			to: destination,
-			date: format(date, 'yyyy-MM-dd'),
+			date: format(date, "yyyy-MM-dd"),
 		}).toString();
 
 		navigate(`${ROUTES.SEARCH}?${params}`);
@@ -318,12 +318,11 @@ const Home: React.FC = () => {
 											disablePast
 											sx={{ backgroundColor: "white" }}
 											onChange={(val) => {
-												if (
-													val &&
-													val > new Date(Date.now())
-												) {
+												if (val) {
 													setDate(
-														new Date(val.toString())
+														new Date(
+															val.toString()
+														)
 													);
 												}
 											}}

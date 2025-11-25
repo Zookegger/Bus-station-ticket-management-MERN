@@ -6,7 +6,7 @@
 /**
  * Represents the types of coupons available.
  */
-export const COUPON_TYPES = ["percentage", "fixed"] as const;
+export const COUPON_TYPES = ["PERCENTAGE", "FIXED"] as const;
 export type CouponType = typeof COUPON_TYPES[number];
 
 /**

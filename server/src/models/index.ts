@@ -18,7 +18,7 @@ import { Route } from "@models/route";
 import { Trip } from "@models/trip";
 import { Seat } from "@models/seat";
 import { Ticket } from "@models/ticket";
-import { TripSchedule } from "@models/TripSchedule";
+import { TripSchedule } from "@models/tripSchedule";
 import { Notification } from "@models/notification";
 import { Coupon } from "@models/coupon";
 import { Payment } from "@models/payment";

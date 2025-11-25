@@ -112,7 +112,7 @@ export const updateTicketAdmin = async (
 					status: 400,
 					message: "Seat must belong to the same trip.",
 				};
-			if (target_seat.status !== "available")
+			if (target_seat.status !== SeatStatus.AVAILABLE)
 				throw { status: 409, message: "Target seat is not available." };
 
 			// Release old seat

@@ -5,8 +5,8 @@
  * @property {string} FIXED - A fixed amount discount coupon.
  */
 export enum CouponTypes {
-	PERCENTAGE = "percentage",
-	FIXED = "fixed",
+	PERCENTAGE = "PERCENTAGE",
+	FIXED = "FIXED",
 }
 
 /**

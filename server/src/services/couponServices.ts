@@ -39,13 +39,13 @@ export const addCoupon = async (dto: AddCouponDTO): Promise<Coupon | null> => {
 		throw { status: 400, message: "End date cannot be in the past." };
 	if (dto.maxUsage <= 0)
 		throw { status: 400, message: "Max usage must be greater than 0." };
-	if (dto.type === "percentage" && (dto.value < 0 || dto.value > 100)) {
+	if (dto.type === CouponTypes.PERCENTAGE && (dto.value < 0 || dto.value > 100)) {
 		throw {
 			status: 400,
 			message: "Percentage value must be between 0 and 100.",
 		};
 	}
-	if (dto.type === "fixed" && dto.value <= 0) {
+	if (dto.type === CouponTypes.FIXED && dto.value <= 0) {
 		throw { status: 400, message: "Fixed value must be greater than 0." };
 	}
 
@@ -104,14 +104,14 @@ export const updateCoupon = async (
 	const coupon_value = dto.value || coupon.value;
 
 	if (
-		coupon_type === "percentage" &&
+		coupon_type === CouponTypes.PERCENTAGE &&
 		(coupon_value < 0 || coupon_value > 100)
 	)
 		throw {
 			status: 400,
 			message: "Percentage value must be between 0 and 100.",
 		};
-	if (coupon_type === "fixed" && coupon_value <= 0)
+	if (coupon_type === CouponTypes.FIXED && coupon_value <= 0)
 		throw { status: 400, message: "Fixed value must be greater than 0." };
 
 	await coupon.update(dto);

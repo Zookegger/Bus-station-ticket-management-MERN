@@ -1,7 +1,7 @@
 // TODO: Implement auto driver assignment to trip, then set trip's status TripStatus.SCHEDULED
 
 import db from "@models/index";
-import { TripSchedule } from "@models/TripSchedule";
+import { TripSchedule } from "@models/tripSchedule";
 import { AssignmentMode, TripStatus } from "@my_types/trip";
 import { getDriverById } from "@services/driverServices";
 import {

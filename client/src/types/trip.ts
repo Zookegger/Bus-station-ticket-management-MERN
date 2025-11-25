@@ -75,11 +75,17 @@ export interface CreateTripDTO {
 	routeId: number;
 	startTime: Date;
 	endTime?: Date | null;
-	price: number;
+	price?: number;
 	status: TripStatus;
 	isTemplate?: boolean;
 	repeatFrequency?: TripRepeatFrequency;
 	repeatEndDate?: Date;
+	/** When creating a round-trip, set to true to instruct the server to create a return trip */
+	isRoundTrip?: boolean;
+	/** Return trip start time (required when `isRoundTrip` is true) */
+	returnStartTime?: Date;
+	/** Optional return trip end time */
+	returnEndTime?: Date | null;
 }
 
 /**

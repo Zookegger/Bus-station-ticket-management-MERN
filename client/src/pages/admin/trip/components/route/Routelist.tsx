@@ -5,7 +5,6 @@ import { handleAxiosError } from "@utils/handleError";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { RouteMapDialog, type LocationData } from "@components/map";
 import { CreateRouteForm, RouteDetailsDrawer, DeleteRouteForm } from "./index";
 import EditRouteForm from "./EditRouteForm";
 import { DataGridPageLayout } from "@components/admin";
@@ -16,7 +15,7 @@ axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 
 /**
  * Admin Route Management list.
- * Fetches routes, displays them in a Grid (v7), supports view/edit/delete dialogs.
+ * Fetches routes, displays them in a DataGrid.
  */
 const RouteList: React.FC = () => {
 	const [isLoading, setIsLoading] = useState(true);
@@ -26,16 +25,8 @@ const RouteList: React.FC = () => {
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [detailOpen, setDetailOpen] = useState(false);
 	const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
-	// Map dialog state
-	const [mapOpen, setMapOpen] = useState(false);
-	const [mapStart, setMapStart] = useState<LocationData | null>(null);
-	const [mapEnd, setMapEnd] = useState<LocationData | null>(null);
 
 	const handleOpenDrawer = (id: number) => {
-		if (routes === null) {
-			return;
-		}
-
 		const detail = routes.find((r) => r.id === id);
 		if (detail) {
 			setSelectedRoute(detail);
@@ -44,10 +35,6 @@ const RouteList: React.FC = () => {
 	};
 
 	const handleOpenEdit = (id: number) => {
-		if (routes === null) {
-			return;
-		}
-
 		const detail = routes.find((r) => r.id === id);
 		if (detail) {
 			setSelectedRoute(detail);
@@ -57,10 +44,6 @@ const RouteList: React.FC = () => {
 	};
 
 	const handleOpenDelete = (id: number) => {
-		if (routes === null) {
-			return;
-		}
-
 		const detail = routes.find((r) => r.id === id);
 		if (detail) {
 			setSelectedRoute(detail);
@@ -74,33 +57,33 @@ const RouteList: React.FC = () => {
 		setSelectedRoute(null);
 	};
 
-	useEffect(() => {
-		const fetchData = async () => {
-			try {
-				const response = await axios.get(API_ENDPOINTS.ROUTE.BASE);
-				if (response.status !== 200)
-					throw new Error("Failed to fetch data");
-				const data = response.data as any;
-				const normalized: Route[] = Array.isArray(data)
-					? data
-					: Array.isArray(data.routes)
-					? data.routes
-					: Array.isArray(data.data)
-					? data.data
-					: [];
-				setRoutes(normalized);
-			} catch (err) {
-				console.error(handleAxiosError(err));
-			} finally {
-				setIsLoading(false);
-			}
-		};
-		fetchData();
-	}, [isLoading]);
+    const fetchData = async () => {
+        try {
+            const response = await axios.get(API_ENDPOINTS.ROUTE.BASE);
+            if (response.status !== 200) throw new Error("Failed to fetch data");
+            
+            const data = response.data as any;
+            const normalized: Route[] = Array.isArray(data)
+                ? data
+                : Array.isArray(data.routes)
+                ? data.routes
+                : Array.isArray(data.data)
+                ? data.data
+                : [];
+            setRoutes(normalized);
+        } catch (err) {
+            console.error(handleAxiosError(err));
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-	// Columns definition outside JSX for clarity
+	useEffect(() => {
+		fetchData();
+	}, []);
+
 	const columns: GridColDef[] = [
-		{ field: "startLocation", headerName: "Departure", flex: 1, minWidth: 150  },
+		{ field: "startLocation", headerName: "Departure", flex: 1, minWidth: 150 },
 		{ field: "destination", headerName: "Destination", flex: 1, minWidth: 150 },
 		{ field: "price", headerName: "Price", width: 150 },
 		{ field: "distance", headerName: "Distance", width: 100 },
@@ -108,15 +91,22 @@ const RouteList: React.FC = () => {
 		{ field: "createdAt", headerName: "Created At", width: 160 },
 	];
 
-	const rows = routes.map((r) => ({
-		id: r.id,
-		startLocation: r.stops?.at(0)?.location?.name ?? "Unknown",
-		destination: r.stops?.at(r.stops.length - 1)?.location?.name ?? "Unknown",
-		price: r.price ? `${r.price.toLocaleString("vi-VN")} VND` : "N/A",
-		distance: r.distance ? formatDistance(r.distance) : "N/A",
-		updatedAt: format(new Date(r.updatedAt), "dd/MM/yyyy - HH:mm:ss"),
-		createdAt: format(new Date(r.createdAt), "dd/MM/yyyy - HH:mm:ss"),
-	}));
+	const rows = routes.map((r) => {
+        // Sort stops by order to ensure correct start/end logic
+        const sortedStops = [...(r.stops || [])].sort((a, b) => a.stopOrder - b.stopOrder);
+        const start = sortedStops.length > 0 ? sortedStops[0].location?.name : "Unknown";
+        const end = sortedStops.length > 1 ? sortedStops[sortedStops.length - 1].location?.name : "Unknown";
+
+        return {
+            id: r.id,
+            startLocation: start || "Unknown",
+            destination: end || "Unknown",
+            price: r.price ? `${r.price.toLocaleString("vi-VN")} VND` : "N/A",
+            distance: r.distance ? formatDistance(r.distance) : "N/A",
+            updatedAt: r.updatedAt ? format(new Date(r.updatedAt), "dd/MM/yyyy - HH:mm:ss") : "N/A",
+            createdAt: r.createdAt ? format(new Date(r.createdAt), "dd/MM/yyyy - HH:mm:ss") : "N/A",
+        };
+    });
 
 	const actionBar = (
 		<Button variant="contained" onClick={() => setAddOpen(true)}>
@@ -142,9 +132,7 @@ const RouteList: React.FC = () => {
 						}}
 						pageSizeOptions={[5, 10, 20, 50]}
 						sx={{ maxWidth: "100%", border: "none" }}
-						onRowClick={(params) =>
-							handleOpenDrawer(Number(params.id))
-						}
+						onRowClick={(params) => handleOpenDrawer(Number(params.id))}
 					/>
 				</Paper>
 			)}
@@ -158,12 +146,16 @@ const RouteList: React.FC = () => {
 				onEdited={() => {
 					setEditOpen(false);
 					setIsLoading(true);
+                    fetchData(); // Refresh list after edit
 				}}
 			/>
 			<CreateRouteForm
 				open={addOpen}
 				onClose={() => setAddOpen(false)}
-				onCreated={() => setIsLoading(true)}
+				onCreated={() => {
+                    setIsLoading(true);
+                    fetchData(); // Refresh list after create
+                }}
 			/>
 			{selectedRoute && (
 				<>
@@ -178,23 +170,14 @@ const RouteList: React.FC = () => {
 						id={selectedRoute.id}
 						open={deleteOpen}
 						onClose={() => setDeleteOpen(false)}
-						onConfirm={() => setIsLoading(true)}
+						onConfirm={() => {
+                            setDeleteOpen(false);
+                            setIsLoading(true);
+                            fetchData();
+                        }}
 					/>
 				</>
 			)}
-			{/* Map dialog for viewing/editing route coordinates */}
-			<RouteMapDialog
-				open={mapOpen}
-				onClose={() => setMapOpen(false)}
-				initialStops={mapStart ?? undefined}
-				onConfirm={(start, end) => {
-					// Currently just close; persistence can be added when API supports coordinate updates
-					setMapStart(start);
-					setMapEnd(end);
-					setMapOpen(false);
-				}}
-				title="Route Map"
-			/>
 		</DataGridPageLayout>
 	);
 };

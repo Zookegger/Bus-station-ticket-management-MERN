@@ -13,11 +13,11 @@
  * @property {string} PROMOTION - Promotional notifications.
  */
 export const NotificationTypes = {
-	BOOKING: "booking",
-	PAYMENT: "payment",
-	TRIP: "trip",
-	SYSTEM: "system",
-	PROMOTION: "promotion",
+	BOOKING: "BOOKING",
+	PAYMENT: "PAYMENT",
+	TRIP: "TRIP",
+	SYSTEM: "SYSTEM",
+	PROMOTION: "PROMOTION",
 } as const;
 
 /**

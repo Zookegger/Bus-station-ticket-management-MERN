@@ -169,8 +169,13 @@ const SortableStopItem: React.FC<SortableStopItemProps> = ({
 					<Typography
 						variant="caption"
 						color="text.secondary"
-						noWrap
-						sx={{ maxWidth: "95%" }}
+						sx={{
+							display: "block",
+							overflow: "hidden",
+							textOverflow: "ellipsis",
+							whiteSpace: "nowrap",
+							maxWidth: "100%",
+						}}
 					>
 						{stop.address || "No address provided"}
 					</Typography>

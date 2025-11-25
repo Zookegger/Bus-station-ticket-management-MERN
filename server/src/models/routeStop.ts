@@ -70,7 +70,7 @@ export class RouteStop
 			},
 			{
 				sequelize,
-				tableName: "routeStops",
+				tableName: "route_stops",
 				timestamps: true,
                 indexes: [
                     {

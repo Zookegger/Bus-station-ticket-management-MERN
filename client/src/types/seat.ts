@@ -5,7 +5,24 @@ import type { ApiTripDTO } from "@my-types/TripDTOs";
  * Based on server/src/types/seat.ts
  */
 
-export type SeatStatus = "available" | "reserved" | "booked" | "maintenance" | "disabled";
+export const SeatStatus = {
+	/** Seat is available for booking */
+	AVAILABLE: "AVAILABLE",
+
+	/** Seat is temporarily reserved (e.g., payment in progress) */
+	RESERVED: "RESERVED",
+
+	/** Seat is confirmed and paid for */
+	BOOKED: "BOOKED",
+
+	/** Seat is temporarily unavailable (e.g., under maintenance, damaged) */
+	MAINTENANCE: "MAINTENANCE",
+
+	/** Seat is permanently disabled and not for sale */
+	DISABLED: "DISABLED",
+} as const;
+
+export type SeatStatus = (typeof SeatStatus)[keyof typeof SeatStatus];
 
 /**
  * Represents a single seat on the client-side.
@@ -53,4 +70,5 @@ export interface SeatAttributes {
 	updatedAt?: Date;
 }
 
-export type SeatCreationAttributes = Omit<Partial<SeatAttributes>, 'id'> & Partial<Pick<SeatAttributes, 'id'>>;
+export type SeatCreationAttributes = Omit<Partial<SeatAttributes>, "id"> &
+	Partial<Pick<SeatAttributes, "id">>;

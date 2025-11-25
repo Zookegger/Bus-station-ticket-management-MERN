@@ -5,7 +5,7 @@ import {
 	Sequelize,
 	HasManyGetAssociationsMixin,
 } from "sequelize";
-import { TripSchedule } from "@models/TripSchedule";
+import { TripSchedule } from "@models/tripSchedule";
 import { DbModels } from "@models";;
 
 /**

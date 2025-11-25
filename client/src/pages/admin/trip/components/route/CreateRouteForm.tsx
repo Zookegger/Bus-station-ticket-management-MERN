@@ -18,8 +18,6 @@ import {
 	Typography,
 } from "@mui/material";
 import { RouteMapDialog, type LocationData } from "@components/map";
-import { handleAxiosError } from "@utils/handleError";
-import axios from "axios";
 import { API_ENDPOINTS } from "@constants";
 import type { Location } from "@my-types";
 import { formatDistance, formatDuration } from "@utils/map";
@@ -31,12 +29,21 @@ import {
 } from "@mui/icons-material";
 import { Stack } from "@mui/system";
 import SortableStopItem from "@components/map/SortableStopItem";
-import { closestCenter, DndContext, type DragEndEvent, useSensor, useSensors, PointerSensor, KeyboardSensor } from "@dnd-kit/core";
+import {
+	closestCenter,
+	DndContext,
+	type DragEndEvent,
+	useSensor,
+	useSensors,
+	PointerSensor,
+	KeyboardSensor,
+} from "@dnd-kit/core";
 import {
 	arrayMove,
 	SortableContext,
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import callApi from "@utils/apiCaller";
 
 type UILocation = Partial<Location> & { tempId: string };
 
@@ -87,7 +94,8 @@ const CreateRouteForm: React.FC<CreateRouteFormProps> = ({
 	// Inline comment: temp IDs are used for stable drag-and-drop identity
 	// while stops are not yet persisted in backend.
 	// NOTE: randomness minimizes collision risk across rapid creations.
-	const getTempStopId = (): string => `stop-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+	const getTempStopId = (): string =>
+		`stop-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
 	/**
 	 * Removes a stop from the list by its index.
@@ -105,8 +113,12 @@ const CreateRouteForm: React.FC<CreateRouteFormProps> = ({
 		const { active, over } = event;
 		if (over && active.id !== over.id) {
 			setStops((items) => {
-				const oldIndex = items.findIndex((item) => item.tempId === active.id);
-				const newIndex = items.findIndex((item) => item.tempId === over.id);
+				const oldIndex = items.findIndex(
+					(item) => item.tempId === active.id
+				);
+				const newIndex = items.findIndex(
+					(item) => item.tempId === over.id
+				);
 				if (oldIndex === -1 || newIndex === -1) return items;
 				return arrayMove(items, oldIndex, newIndex);
 			});
@@ -114,7 +126,10 @@ const CreateRouteForm: React.FC<CreateRouteFormProps> = ({
 	};
 
 	// DnD sensors (enable pointer + keyboard)
-	const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor));
+	const sensors = useSensors(
+		useSensor(PointerSensor),
+		useSensor(KeyboardSensor)
+	);
 
 	/**
 	 * Validates the current form snapshot before attempting submission.
@@ -125,7 +140,9 @@ const CreateRouteForm: React.FC<CreateRouteFormProps> = ({
 	 * @returns {boolean} True if form is valid; false otherwise.
 	 */
 	const validateForm = (): boolean => {
-		const newErrors: { stops: string[]; price?: string; name?: string } = { stops: [] };
+		const newErrors: { stops: string[]; price?: string; name?: string } = {
+			stops: [],
+		};
 		let isValid = true;
 
 		// Validate route name
@@ -172,7 +189,7 @@ const CreateRouteForm: React.FC<CreateRouteFormProps> = ({
 			const payload = {
 				name: name,
 				stops: stops.map((s) => ({
-					name: s.name, 
+					name: s.name,
 					address: s.address ?? s.name, // Default address to name if not present
 					latitude: s.latitude,
 					longitude: s.longitude,
@@ -182,12 +199,17 @@ const CreateRouteForm: React.FC<CreateRouteFormProps> = ({
 				duration: duration,
 			};
 
-			await axios.post(API_ENDPOINTS.ROUTE.BASE, payload);
+			const { status, data } = await callApi({
+				method: "POST",
+				url: API_ENDPOINTS.ROUTE.BASE,
+				data: payload,
+			}, { returnFullResponse: true });
+
+			if (status !== 200 || !data) throw new Error("Failed to create route");
 			onCreated?.();
 			onClose();
-		} catch (err: unknown) {
-			const handledError = handleAxiosError(err);
-			setServerError(handledError.message);
+		} catch (err: any) {
+			setServerError(err.message);
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -198,7 +220,10 @@ const CreateRouteForm: React.FC<CreateRouteFormProps> = ({
 	 */
 	useEffect(() => {
 		if (!open) {
-			setStops([{ tempId: getTempStopId() }, { tempId: getTempStopId() }]);
+			setStops([
+				{ tempId: getTempStopId() },
+				{ tempId: getTempStopId() },
+			]);
 			setPrice(null);
 			setDistance(null);
 			setDuration(null);

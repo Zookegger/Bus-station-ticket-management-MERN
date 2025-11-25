@@ -11,6 +11,7 @@ import { getParamNumericId } from "@utils/request";
 import { CreateTripDTO, UpdateTripDTO } from "@my_types/trip";
 import * as tripServices from "@services/tripServices";
 import * as tripSchedulingServices from "@services/tripSchedulingServices";
+import logger from "@utils/logger";
 
 /**
  * Retrieves all trips with comprehensive filtering, sorting, and pagination.
@@ -64,47 +65,69 @@ export const SearchTrip = async (
 			endDate,
 			minPrice,
 			maxPrice,
+			checkSeatAvailability, // Expecting "true" or "false" string
+			// minSeats,
 		} = req.query;
 
-		// Validate status against allowed trip statuses and only include when valid
-		const allowed_statuses = [
-            "Scheduled",
-            "Departed",
-            "Completed",
-            "Cancelled",
-        ] as const;
-        type AllowedStatus = (typeof allowed_statuses)[number];
-        const status_value =
-            typeof status === "string" &&
-            (allowed_statuses as readonly string[]).includes(status)
-                ? (status as AllowedStatus)
-                : undefined;
+		logger.debug(`From: ${from}`);
+		logger.debug(`To: ${to}`);
+		
+		if (date) {
+			logger.debug(`Date: ${new Date(date!.toString())}`);
+		}
 
-        // build options for service; map incoming params to service ListOptions fields
-        const options: tripServices.ListOptions = {
+		// Validate Status
+		const allowed_statuses = [
+			"Scheduled",
+			"Departed",
+			"Completed",
+			"Cancelled",
+		] as const;
+		type AllowedStatus = (typeof allowed_statuses)[number];
+		const status_value =
+			typeof status === "string" &&
+			(allowed_statuses as readonly string[]).includes(status)
+				? (status as AllowedStatus)
+				: undefined;
+
+		// Determine if we should check availability
+		// Default: FALSE for admin lists, TRUE for user searches (booking flow)
+		// If explicit param provided, use that. Else infer from context.
+		const isBookingSearch = !!(from || to || date);
+		const shouldCheckAvailability =
+			checkSeatAvailability !== undefined
+				? checkSeatAvailability === "true"
+				: isBookingSearch;
+
+		const options: tripServices.ListOptions = {
 			keywords: keywords as string,
-            orderBy: orderBy as string,
-            sortOrder: sortOrder as "ASC" | "DESC",
-            page: parseInt(page as string),
-            limit: parseInt(limit as string),
-            ...(vehicleId && { vehicleId: parseInt(vehicleId as string) }),
-            // user filters by vehicle type rather than a specific vehicle
-            ...(vehicleTypeId && {
-                vehicleTypeId: parseInt(vehicleTypeId as string),
-            }),
-            ...(routeId && { routeId: parseInt(routeId as string) }),
-            ...(status_value && { status: status_value }),
-            ...(startDate && { startDate: startDate as string }),
-            ...(endDate && { endDate: endDate as string }),
-            ...(minPrice && { minPrice: parseFloat(minPrice as string) }),
-            ...(maxPrice && { maxPrice: parseFloat(maxPrice as string) }),
-            // from / to / date used for quick route/day filtering
-            ...(from && { from_location: from as string }),
-            ...(to && { to_location: to as string }),
-            ...(date && { date: date as string }),
-        };
+			orderBy: orderBy as string,
+			sortOrder: sortOrder as "ASC" | "DESC",
+			page: parseInt(page as string),
+			limit: parseInt(limit as string),
+			...(vehicleId && { vehicleId: parseInt(vehicleId as string) }),
+			...(vehicleTypeId && {
+				vehicleTypeId: parseInt(vehicleTypeId as string),
+			}),
+			...(routeId && { routeId: parseInt(routeId as string) }),
+			...(status_value && { status: status_value }),
+			...(startDate && { startDate: startDate as string }),
+			...(endDate && { endDate: endDate as string }),
+			...(minPrice && { minPrice: parseFloat(minPrice as string) }),
+			...(maxPrice && { maxPrice: parseFloat(maxPrice as string) }),
+
+			// Location mappings
+			...(from && { from_location: from as string }),
+			...(to && { to_location: to as string }),
+			...(date && { date: date as string }),
+
+			// New Options
+			checkSeatAvailability: shouldCheckAvailability,
+			// minSeats: minSeats ? parseInt(minSeats as string) : 1,
+		};
 
 		const { rows, count } = await tripServices.searchTrip(options);
+
 		res.status(200).json({
 			success: true,
 			data: rows,
