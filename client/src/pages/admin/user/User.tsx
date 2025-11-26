@@ -84,6 +84,7 @@ const UserPage: React.FC = () => {
 
 	// DataGrid Columns
 	const columns: GridColDef[] = [
+		{ field: "id", headerName: "ID", width: 70, },
 		{
 			field: "fullName",
 			headerName: "Full Name",

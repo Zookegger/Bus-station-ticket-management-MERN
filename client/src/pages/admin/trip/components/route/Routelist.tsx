@@ -83,6 +83,7 @@ const RouteList: React.FC = () => {
 	}, []);
 
 	const columns: GridColDef[] = [
+		{ field: "id", headerName: "ID", width: 70 },
 		{ field: "startLocation", headerName: "Departure", flex: 1, minWidth: 150 },
 		{ field: "destination", headerName: "Destination", flex: 1, minWidth: 150 },
 		{ field: "price", headerName: "Price", width: 150 },

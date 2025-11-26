@@ -1,73 +1,94 @@
-import React from "react";
-import { Box, Button, Grid, Paper, Typography } from "@mui/material";
-import { useNavigate, useParams } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import {
+	Alert,
+	Button,
+	Dialog,
+	DialogActions,
+	DialogContent,
+	DialogContentText,
+	DialogTitle,
+} from "@mui/material";
+import { Warning } from "@mui/icons-material";
 import axios from "axios";
 import { API_ENDPOINTS } from "@constants";
+import { handleAxiosError } from "@utils/handleError";
+import type { TripAttributes } from "@my-types/trip";
 
 interface DeleteTripProps {
-  tripId?: number;
+	open: boolean;
+	onClose: () => void;
+	onDeleted: () => void;
+	trip: TripAttributes | null;
 }
 
-const DeleteTrip: React.FC<DeleteTripProps> = ({ tripId }) => {
-  const navigate = useNavigate();
-  const params = useParams();
-  const id = tripId || (params.id ? Number(params.id) : undefined);
+const DeleteTrip: React.FC<DeleteTripProps> = ({
+	open,
+	onClose,
+	onDeleted,
+	trip,
+}) => {
+	const [isDeleting, setIsDeleting] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
-  const handleDelete = async () => {
-    if (!id) return;
-    try {
-      await axios.delete(API_ENDPOINTS.TRIP.DELETE(id));
-      navigate("../");
-    } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to delete trip.");
-    }
-  };
+	useEffect(() => {
+		// Reset error state when the dialog opens with a valid trip
+		if (open && trip) {
+			setError(null);
+		}
+		// Set an error if the trip is missing when the dialog is open
+		if (open && !trip) {
+			setError("No trip selected for deletion.");
+		}
+	}, [trip, open]);
 
-  return (
-    <Box sx={{ p: 3 }}>
-      <Typography
-        variant="h5"
-        sx={{ fontWeight: "bold", color: "#c62828", mb: 2 }}
-      >
-        Delete Trip
-      </Typography>
-      <Paper
-        sx={{ p: 2, border: "1px solid #fde0dc", backgroundColor: "#fff8f6" }}
-      >
-        <Typography sx={{ mb: 2, color: "#bf360c" }}>
-          Are you sure you want to delete this trip? This action cannot be
-          undone.
-        </Typography>
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Paper sx={{ p: 2 }}>
-              <Typography sx={{ fontWeight: 600, mb: 1 }}>
-                Trip Information
-              </Typography>
-              <Typography>Trip ID: {id ?? "-"}</Typography>
-            </Paper>
-          </Grid>
-        </Grid>
-        <Box sx={{ mt: 2, display: "flex", gap: 1 }}>
-          <Button
-            variant="contained"
-            color="error"
-            sx={{ textTransform: "none" }}
-            onClick={handleDelete}
-          >
-            Delete Trip
-          </Button>
-          <Button
-            variant="outlined"
-            sx={{ textTransform: "none" }}
-            onClick={() => navigate("../")}
-          >
-            Back to List
-          </Button>
-        </Box>
-      </Paper>
-    </Box>
-  );
+	const handleDelete = async () => {
+		if (!trip) {
+			setError("Cannot delete: Trip data is missing.");
+			return;
+		}
+
+		setIsDeleting(true);
+		setError(null);
+
+		try {
+			await axios.delete(API_ENDPOINTS.TRIP.DELETE(trip.id));
+			onDeleted(); // Callback to refresh the list
+			onClose(); // Close the dialog on success
+		} catch (err: unknown) {
+			const axiosError = handleAxiosError(err);
+			setError(axiosError.message || "An unknown error occurred.");
+		} finally {
+			setIsDeleting(false);
+		}
+	};
+
+	return (
+		<Dialog open={open} onClose={onClose}>
+			<DialogTitle sx={{ display: "flex", alignItems: "center" }}>
+				<Warning color="error" sx={{ mr: 1 }} />
+				Delete Trip
+			</DialogTitle>
+			<DialogContent>
+				{error && <Alert severity="error">{error}</Alert>}
+				<DialogContentText sx={{ mt: error ? 2 : 0 }}>
+					{`Are you sure you want to delete Trip #${trip?.id}? This action cannot be undone.`}
+				</DialogContentText>
+			</DialogContent>
+			<DialogActions sx={{ px: 3, pb: 2 }}>
+				<Button onClick={onClose} color="inherit">
+					Cancel
+				</Button>
+				<Button
+					onClick={handleDelete}
+					variant="contained"
+					color="error"
+					disabled={isDeleting || !trip}
+				>
+					{isDeleting ? "Deleting..." : "Confirm Delete"}
+				</Button>
+			</DialogActions>
+		</Dialog>
+	);
 };
 
 export default DeleteTrip;

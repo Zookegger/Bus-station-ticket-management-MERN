@@ -14,7 +14,7 @@ import {
 	Save as SaveIcon,
 } from "@mui/icons-material";
 import type { EditVehicleTypeFormProps, SeatLayout } from "./types";
-import SeatLayoutEditor from "./SeatLayoutEditor";
+import SeatLayoutEditor from "@components/seatmap/SeatLayoutEditor";
 import type { UpdateVehicleTypeDTO } from "@my-types/vehicleType";
 
 const EditVehicleTypeForm: FC<EditVehicleTypeFormProps> = ({

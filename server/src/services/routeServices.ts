@@ -124,14 +124,14 @@ export const searchRoute = async (
 		where[Op.and].push(
 			Sequelize.literal(
 				`EXISTS (
-                    SELECT 1
-                    FROM route_stops rs
-                    JOIN locations l ON rs.location_id = l.id
-                    WHERE
-                        rs.route_id = "Route"."id" AND
-                        rs.stop_order = 0 AND
-                        l.name = :startName
-                )`
+					SELECT 1
+					FROM route_stops rs
+					JOIN locations l ON rs.locationId = l.id
+					WHERE
+						rs.routeId = "Route"."id" AND
+						rs.stopOrder = 0 AND
+						l.name = :startName
+				)`
 			)
 		);
 	}
@@ -141,18 +141,18 @@ export const searchRoute = async (
 		where[Op.and].push(
 			Sequelize.literal(
 				`EXISTS (
-                    SELECT 1
-                    FROM route_stops rs
-                    JOIN locations l ON rs.location_id = l.id
-                    WHERE
-                        rs.route_id = "Route"."id" AND
-                        l.name = :destinationName AND
-                        rs.stop_order = (
-                            SELECT MAX(stop_order)
-                            FROM route_stops
-                            WHERE route_id = "Route"."id"
-                        )
-                )`
+					SELECT 1
+					FROM route_stops rs
+					JOIN locations l ON rs.locationId = l.id
+					WHERE
+						rs.routeId = "Route"."id" AND
+						l.name = :destinationName AND
+						rs.stopOrder = (
+							SELECT MAX(stopOrder)
+							FROM routeStops
+							WHERE routeId = "Route"."id"
+						)
+				)`
 			)
 		);
 	}
@@ -470,21 +470,25 @@ export const getOrCreateReverseRoute = async (
 			},
 		],
 		where: Sequelize.literal(`
-            EXISTS (SELECT 1 FROM route_stops WHERE route_id = Route.id AND stop_order = 0 AND location_id = ${startLocationId})
+            EXISTS (SELECT 1 FROM route_stops WHERE routeId = Route.id AND stopOrder = 0 AND locationId = ${startLocationId})
             AND
-            EXISTS (SELECT 1 FROM route_stops WHERE route_id = Route.id AND stop_order = ${
+            EXISTS (SELECT 1 FROM route_stops WHERE routeId = Route.id AND stopOrder = ${
 				reversedLocationIds.length - 1
-			} AND location_id = ${endLocationId})
+			} AND locationId = ${endLocationId})
         `),
 	});
 
 	// Check for exact match
 	for (const route of potentialRoutes) {
 		if (!route.stops) continue;
-		const stops = route.stops.sort((a: RouteStop, b: RouteStop) => a.stopOrder - b.stopOrder);
+		const stops = route.stops.sort(
+			(a: RouteStop, b: RouteStop) => a.stopOrder - b.stopOrder
+		);
 		const locationIds = stops.map((s: RouteStop) => s.locationId);
 
-		if (JSON.stringify(locationIds) === JSON.stringify(reversedLocationIds)) {
+		if (
+			JSON.stringify(locationIds) === JSON.stringify(reversedLocationIds)
+		) {
 			return route;
 		}
 	}
@@ -502,11 +506,13 @@ export const getOrCreateReverseRoute = async (
 			{ transaction }
 		);
 
-		const routeStops = reversedLocationIds.map((locationId: number, index: number) => ({
-			routeId: newRoute.id,
-			locationId,
-			stopOrder: index,
-		}));
+		const routeStops = reversedLocationIds.map(
+			(locationId: number, index: number) => ({
+				routeId: newRoute.id,
+				locationId,
+				stopOrder: index,
+			})
+		);
 
 		await db.RouteStop.bulkCreate(routeStops, { transaction });
 

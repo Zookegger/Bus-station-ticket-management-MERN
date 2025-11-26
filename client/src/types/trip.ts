@@ -11,21 +11,21 @@ import type { Vehicle } from "./vehicle";
  * @property {string} DELAYED - The trip is delayed.
  */
 export const TripStatus = {
-    /** The trip is being created or drafted. */
-    PENDING: "PENDING",
-    /** The trip is published, visible to users, and open for booking. */
-    SCHEDULED: "SCHEDULED",
-    /** The trip has already started and is currently in progress. */
-    DEPARTED: "DEPARTED",
-    /** The trip has finished successfully. */
-    COMPLETED: "COMPLETED",
-    /** The trip has been cancelled before or during its run. */
-    CANCELLED: "CANCELLED",
-    /** The trip is delayed. */
-    DELAYED: "DELAYED",
+	/** The trip is being created or drafted. */
+	PENDING: "PENDING",
+	/** The trip is published, visible to users, and open for booking. */
+	SCHEDULED: "SCHEDULED",
+	/** The trip has already started and is currently in progress. */
+	DEPARTED: "DEPARTED",
+	/** The trip has finished successfully. */
+	COMPLETED: "COMPLETED",
+	/** The trip has been cancelled before or during its run. */
+	CANCELLED: "CANCELLED",
+	/** The trip is delayed. */
+	DELAYED: "DELAYED",
 } as const;
 
-export type TripStatus = typeof TripStatus[keyof typeof TripStatus];
+export type TripStatus = (typeof TripStatus)[keyof typeof TripStatus];
 
 export const TripRepeatFrequency = {
 	NONE: "NONE",
@@ -36,7 +36,8 @@ export const TripRepeatFrequency = {
 	YEARLY: "YEARLY",
 } as const;
 
-export type TripRepeatFrequency = typeof TripRepeatFrequency[keyof typeof TripRepeatFrequency];
+export type TripRepeatFrequency =
+	(typeof TripRepeatFrequency)[keyof typeof TripRepeatFrequency];
 
 /**
  * Enum for trip assignment mode.
@@ -51,7 +52,8 @@ export const AssignmentMode = {
 	MANUAL: "MANUAL",
 } as const;
 
-export type AssignmentMode = typeof AssignmentMode[keyof typeof AssignmentMode];
+export type AssignmentMode =
+	(typeof AssignmentMode)[keyof typeof AssignmentMode];
 
 /**
  * Data Transfer Object for creating a new Trip.
@@ -111,33 +113,66 @@ export interface UpdateTripDTO {
 	vehicleId?: number;
 	routeId?: number;
 	startTime?: Date;
-	endTime?: Date | null;
+	returnStartTime?: Date | null;
 	price?: number | null;
 	status?: TripStatus;
 	isTemplate?: boolean;
 	repeatFrequency?: TripRepeatFrequency;
-	repeatEndDate?: Date;
+	repeatEndDate?: Date | null;
+	isRoundTrip?: boolean;
 }
 
 /**
  * Model attribute interfaces for Trip (matches server TripAttributes)
  */
+/**
+ * Interface for the attributes of a Trip.
+ * @interface TripAttributes
+ * @property {number} id - The unique identifier for the trip.
+ * @property {number} routeId - The ID of the route for this trip.
+ * @property {number} vehicleId - The ID of the vehicle for this trip.
+ * @property {Date} startTime - The departure time of the trip.
+ * @property {Date} [returnStartTime] - The start time of the return trip (if round trip).
+ * @property {TripStatus} status - The current status of the trip.
+ * @property {number} basePrice - The base price for the trip.
+ * @property {Date} [createdAt] - The date and time the trip was created.
+ * @property {Date} [updatedAt] - The date and time the trip was last updated.
+ */
 export interface TripAttributes {
+	/**The unique identifier for the trip. */
 	id: number;
+	/**The ID of the route for this trip. */
 	routeId: number;
+
+	route: Route | null;
+	/**The ID of the vehicle for this trip. */
 	vehicleId: number;
-	route?: Route | null;
-	vehicle?: Vehicle | null;
+
+	vehicle: Vehicle | null;
+	/**The departure time of the trip. */
 	startTime: Date;
-	endTime?: Date | null;
+	/**The start time of the return trip (if round trip). */
+	returnStartTime?: Date | null;
+	/**The ticket price assigned to this trip. */
 	price: number;
+	/**The current status of the trip. */
 	status?: TripStatus;
+	/**Is this trip a template for repetition? */
 	isTemplate: boolean;
+	/** If the trip is a round trip */
+	isRoundTrip?: boolean;
+	/**How often should this trip repeat? */
 	repeatFrequency?: TripRepeatFrequency | null;
+	/**The date on which this repetition schedule should end. */
 	repeatEndDate?: Date | null;
+	/**If this trip is an instance, this links to its template. */
 	templateTripId?: number | null;
+	/**If this trip is a round trip, this links to the return trip. */
+	returnTripId?: number | null;
+	/**If this trip is an instance of a round trip, this links to the outbound trip. */
+	outboundTripId?: number | null;
+	/**The date and time the trip was created. */
 	createdAt?: Date;
+	/**The date and time the trip was last updated. */
 	updatedAt?: Date;
 }
-
-export type TripCreationAttributes = Omit<Partial<TripAttributes>, 'id'> & Partial<Pick<TripAttributes, 'id'>>;

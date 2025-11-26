@@ -28,7 +28,7 @@ import type { ChipColor } from "@my-types/ChipColor";
 import type { VehicleDetail } from "@my-types/vehicleList";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faIdCard } from "@fortawesome/free-solid-svg-icons";
-import { SeatLayoutPreview } from "../vehicleType";
+import { SeatLayoutPreview } from "@components/seatmap";
 
 interface VehicleDetailsDrawerProps {
 	open: boolean;

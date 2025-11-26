@@ -24,7 +24,7 @@ import { VehicleStatus, type CreateVehicleDTO } from "@my-types/vehicle";
 import { APP_CONFIG, API_ENDPOINTS } from "@constants/index";
 import type { VehicleType } from "@my-types/vehicleType";
 import callApi from "@utils/apiCaller";
-import { SeatLayoutPreview } from "../vehicleType";
+import { SeatLayoutPreview } from "@components/seatmap";
 
 interface CreateVehicleFormProps {
 	open: boolean;
@@ -35,13 +35,19 @@ const CreateVehicleForm: React.FC<CreateVehicleFormProps> = ({
 	open,
 	onClose,
 }) => {
-	const [errors, setErrors] = useState<Record<string, string>>({});
+	const [errors, setErrors] = useState<Record<string, string>>({
+		numberPlate: "",
+		vehicleTypeId: "",
+		manufacturer: "",
+		status: "",
+		model: "",
+	});
 	const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
 	const [formData, setFormData] = useState<CreateVehicleDTO>({
 		numberPlate: "",
 		manufacturer: "",
 		model: "",
-		status: "ACTIVE",
+		status: VehicleStatus.ACTIVE,
 		vehicleTypeId: 0,
 	});
 	const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -292,7 +298,11 @@ const CreateVehicleForm: React.FC<CreateVehicleFormProps> = ({
 										)
 									}
 								>
-									{VehicleStatus.map((status) => (
+									{(
+										Object.values(
+											VehicleStatus
+										) as CreateVehicleDTO["status"][]
+									).map((status) => (
 										<MenuItem key={status} value={status}>
 											{status.charAt(0).toUpperCase() +
 												status.slice(1).toLowerCase()}

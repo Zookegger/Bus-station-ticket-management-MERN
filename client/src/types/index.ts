@@ -21,7 +21,6 @@ export * from "./vehicle";
 export * from "./vehicleType";
 export * from "./verification";
 export * from "./ChipColor";
-export * from "./TripDTOs";
 export * from "./types";
 export * from "./assignment";
 export * from "./dashboard";

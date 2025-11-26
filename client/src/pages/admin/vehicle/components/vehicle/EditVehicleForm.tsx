@@ -21,11 +21,12 @@ import {
 	Edit as EditIcon,
 	Error as ErrorIcon,
 } from "@mui/icons-material";
-import type { UpdateVehicleDTO } from "@my-types/vehicle";
+import { VehicleStatus, type UpdateVehicleDTO } from "@my-types/vehicle";
 import type { VehicleDetail } from "@my-types/vehicleList";
 import type { VehicleType } from "@my-types/vehicleType";
 import { API_ENDPOINTS } from "@constants/index";
 import callApi from "@utils/apiCaller";
+import { SeatLayoutPreview } from "@components/seatmap";
 
 interface EditVehicleFormProps {
 	open: boolean;
@@ -44,18 +45,22 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 		numberPlate: vehicle?.numberPlate || "",
 		vehicleTypeId: vehicle?.vehicleType.id || 0,
 		manufacturer: vehicle?.manufacturer || "",
+		status: vehicle?.status || undefined,
 		model: vehicle?.model || "",
 	});
 	const [errors, setErrors] = useState<Record<string, string>>({
 		numberPlate: "",
 		vehicleTypeId: "",
 		manufacturer: "",
+		status: "",
 		model: "",
 	});
 	const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
 	const [loadingTypes, setLoadingTypes] = useState(false);
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState<boolean>(false);
+	const [selectedVehicleType, setSelectedVehicleType] =
+		useState<VehicleType | null>(null);
 
 	useEffect(() => {
 		if (vehicle) {
@@ -63,6 +68,7 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 				numberPlate: vehicle.numberPlate || "",
 				vehicleTypeId: vehicle.vehicleType.id || 0,
 				manufacturer: vehicle.manufacturer || "",
+				status: vehicle.status,
 				model: vehicle.model || "",
 			});
 		}
@@ -80,11 +86,22 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 					{ returnFullResponse: true }
 				);
 
-				if ((status === 200 || status === 304) && data === null) {
-					throw new Error("Server returned empty set");
+				// Support APIs that return { data: [...] } or plain array
+				const items = Array.isArray(data) ? data : data?.data || [];
+
+				if (!Array.isArray(items)) {
+					throw new Error("Invalid vehicle types payload");
 				}
 
-				setVehicleTypes(data);
+				setVehicleTypes(items);
+
+				// If we have an incoming vehicle, set the selected type
+				if (vehicle) {
+					const found = items.find(
+						(t: VehicleType) => t.id === vehicle.vehicleType.id
+					);
+					if (found) setSelectedVehicleType(found);
+				}
 			} catch (err: any) {
 				setErrorMessage(err.message);
 				console.error("Vehicle type fetch error:", err);
@@ -97,6 +114,16 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 			getVehicleTypes();
 		}
 	}, [open]);
+
+	// Keep selectedVehicleType in sync when vehicle prop changes
+	useEffect(() => {
+		if (!vehicle) {
+			setSelectedVehicleType(null);
+			return;
+		}
+		const found = vehicleTypes.find((t) => t.id === vehicle.vehicleType.id);
+		setSelectedVehicleType(found || null);
+	}, [vehicle, vehicleTypes]);
 
 	if (!vehicle) {
 		return (
@@ -181,16 +208,9 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 					<Alert
 						color="error"
 						icon={<ErrorIcon color="error" />}
-						sx={{
-							marginBottom: 2,
-							display: "flex",
-							justifyContent: "flex-start",
-							alignItems: "center",
-						}}
+						sx={{ mb: 2 }}
 					>
-						<Typography variant="body2" color="error">
-							{errorMessage}
-						</Typography>
+						<Typography variant="body2">{errorMessage}</Typography>
 					</Alert>
 				)}
 				<Box component="form" onSubmit={handleSubmit} sx={{ p: 1 }}>
@@ -219,6 +239,9 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 											<MenuItem
 												key={type.id}
 												value={type.id}
+												onClick={() =>
+													setSelectedVehicleType(type)
+												}
 											>
 												{type.name}
 											</MenuItem>
@@ -296,6 +319,51 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 								/>
 							</FormControl>
 						</Grid>
+
+						{/* Status */}
+						<Grid size={{ xs: 12, sm: 3 }}>
+							<FormControl fullWidth error={!!errors.status}>
+								<InputLabel>Select a status</InputLabel>
+								<Select
+									value={formData.status}
+									label="Select a status"
+									onChange={(e) =>
+										handleInputChange(
+											"status",
+											e.target.value
+										)
+									}
+								>
+									{(
+										Object.values(
+											VehicleStatus
+										) as UpdateVehicleDTO["status"][]
+									).map((status) => (
+										<MenuItem key={status} value={status}>
+											{status!.charAt(0).toUpperCase() +
+												status!.slice(1).toLowerCase()}
+										</MenuItem>
+									))}
+								</Select>
+								{errors.vehicleTypeId && (
+									<Typography
+										variant="caption"
+										color="error"
+										sx={{ mt: 1, ml: 2 }}
+									>
+										{errors.vehicleTypeId}
+									</Typography>
+								)}
+							</FormControl>
+						</Grid>
+
+						{selectedVehicleType && (
+							<Grid size={{ xs: 12 }}>
+								<SeatLayoutPreview
+									seatLayout={selectedVehicleType.seatLayout}
+								/>
+							</Grid>
+						)}
 					</Grid>
 				</Box>
 			</DialogContent>

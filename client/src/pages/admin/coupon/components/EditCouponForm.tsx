@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { EditCouponFormProps } from "./types/Props";
-import { COUPON_TYPES, type UpdateCouponDTO } from "@my-types";
+import { CouponType, type UpdateCouponDTO } from "@my-types";
 import { API_ENDPOINTS } from "@constants";
 import { handleAxiosError } from "@utils/handleError";
 import axios from "axios";
@@ -192,12 +192,12 @@ const EditCouponForm: React.FC<EditCouponFormProps> = ({
 
 		if (formData.value == null || Number.isNaN(Number(formData.value))) {
 			nextErrors.value = "Enter a valid coupon value.";
-		} else if (formData.type === "percentage") {
+		} else if (formData.type === CouponType.PERCENTAGE) {
 			const value = Number(formData.value);
 			if (value < 0 || value > 100) {
 				nextErrors.value = "Percentage must be between 0 and 100.";
 			}
-		} else if (formData.type === "fixed") {
+		} else if (formData.type === CouponType.FIXED) {
 			if (Number(formData.value) <= 0) {
 				nextErrors.value = "Fixed discount must be greater than 0.";
 			}
@@ -315,7 +315,7 @@ const EditCouponForm: React.FC<EditCouponFormProps> = ({
 
 	const displayValue =
 		formData.value !== undefined && formData.value !== null
-			? formData.type === "percentage"
+			? formData.type === CouponType.PERCENTAGE
 				? String(formData.value)
 				: Number(formData.value).toLocaleString("vi-VN")
 			: "";
@@ -413,7 +413,7 @@ const EditCouponForm: React.FC<EditCouponFormProps> = ({
 
 												if (
 													event.target.value ===
-														"percentage" &&
+														CouponType.PERCENTAGE &&
 													numericValue > 100
 												) {
 													handleInputChange(
@@ -424,12 +424,26 @@ const EditCouponForm: React.FC<EditCouponFormProps> = ({
 											}
 										}}
 									>
-										{COUPON_TYPES.map((type) => (
-											<MenuItem key={type} value={type}>
-												{type.charAt(0).toUpperCase() +
-													type.slice(1).toLowerCase()}
-											</MenuItem>
-										))}
+										{(
+											Object.values(
+												CouponType
+											) as UpdateCouponDTO["type"][]
+										).map(
+											(type) =>
+												type && (
+													<MenuItem
+														key={type}
+														value={type}
+													>
+														{type
+															.charAt(0)
+															.toUpperCase() +
+															type
+																.slice(1)
+																.toLowerCase()}
+													</MenuItem>
+												)
+										)}
 									</Select>
 									{errors.type && (
 										<FormHelperText>
@@ -460,7 +474,8 @@ const EditCouponForm: React.FC<EditCouponFormProps> = ({
 												: 0;
 
 											if (
-												formData.type === "percentage"
+												formData.type ===
+												CouponType.PERCENTAGE
 											) {
 												nextValue = Math.max(
 													0,
@@ -483,7 +498,7 @@ const EditCouponForm: React.FC<EditCouponFormProps> = ({
 												endAdornment: (
 													<InputAdornment position="end">
 														{formData.type ===
-														"percentage"
+														CouponType.PERCENTAGE
 															? "%"
 															: "đ"}
 													</InputAdornment>

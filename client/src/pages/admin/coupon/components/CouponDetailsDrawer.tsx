@@ -15,6 +15,7 @@ import { Box } from "@mui/system";
 import { GridCloseIcon } from "@mui/x-data-grid";
 import { format } from "date-fns";
 import type { CouponDetailsDrawerProps } from "./types/Props";
+import { CouponType } from "@my-types";
 
 /**
  * Renders a drawer that shows a read-only summary of the selected coupon.
@@ -68,7 +69,7 @@ const CouponDetailsDrawer: React.FC<CouponDetailsDrawerProps> = ({
 				created_at: formatDateTime(coupon.createdAt),
 				updated_at: formatDateTime(coupon.updatedAt),
 				value_label:
-					coupon.type === "percentage"
+					coupon.type === CouponType.PERCENTAGE
 						? `${coupon.value}%`
 						: coupon.value.toLocaleString("en-US", {
 								style: "currency",
@@ -119,7 +120,10 @@ const CouponDetailsDrawer: React.FC<CouponDetailsDrawerProps> = ({
 									<CardHeader
 										title={coupon.title ?? coupon.code}
 										subheader={
-											<Box display={'flex'} justifyContent={'space-between'}>
+											<Box
+												display={"flex"}
+												justifyContent={"space-between"}
+											>
 												<Chip
 													color={
 														coupon.isActive

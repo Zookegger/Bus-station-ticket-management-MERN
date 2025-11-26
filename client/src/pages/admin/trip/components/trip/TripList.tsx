@@ -1,85 +1,66 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
 	Box,
 	Button,
-	IconButton,
-	Menu,
-	MenuItem,
 	Paper,
 	TextField,
 	InputAdornment,
-	CircularProgress,
-	Dialog,
-	DialogTitle,
-	DialogContent,
-	DialogActions,
-	Drawer,
+	IconButton,
+	Chip,
 	Typography,
 } from "@mui/material";
 import {
 	Add as AddIcon,
-	MoreVert as MoreIcon,
 	Search as SearchIcon,
+	Edit as EditIcon,
+	Delete as DeleteIcon,
+	Visibility as ViewIcon,
 } from "@mui/icons-material";
-import { DataGrid as Grid } from "@mui/x-data-grid"; // Alias DataGrid as Grid per v7 guideline
-import type { GridColDef } from "@mui/x-data-grid";
-import type { TripItemDTO, ApiTripDTO } from "@my-types/TripDTOs";
-import axios from "axios";
+import { DataGrid, type GridColDef } from "@mui/x-data-grid";
+import { format } from "date-fns";
+
 import { DataGridPageLayout } from "@components/admin";
+import callApi from "@utils/apiCaller";
 import { API_ENDPOINTS } from "@constants";
+import { TripStatus, type TripAttributes } from "@my-types/trip";
+
+import CreateTrip from "./CreateTrip";
+import EditTrip from "./EditTrip";
+import DeleteTrip from "./DeleteTrip";
 import TripDetailsDrawer from "./TripDetailsDrawer";
-import CreateTripForm from "./CreateTrip";
+import { Stack } from "@mui/system";
 
+const TripList: React.FC = () => {
+	// --- State ---
+	const [trips, setTrips] = useState<TripAttributes[]>([]);
+	const [searchTerm, setSearchTerm] = useState("");
 
-interface TripListProps {
-	onOpenDetails: (trip: TripItemDTO) => void;
-}
+	// Selection & Dialogs
+	const [selectedTrip, setSelectedTrip] = useState<TripAttributes | null>(
+		null
+	);
+	const [drawerOpen, setDrawerOpen] = useState(false);
+	const [createOpen, setCreateOpen] = useState(false);
+	const [editOpen, setEditOpen] = useState(false);
+	const [deleteOpen, setDeleteOpen] = useState(false);
 
-/**
- * Admin Trip List page component.
- * Fetches trips, applies client-side search filtering, and renders them inside a shared DataGrid layout.
- */
-const TripList: React.FC<TripListProps> = ({ onOpenDetails }) => {
-	const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-	const [menuTrip, setMenuTrip] = useState<TripItemDTO | null>(null);
-	const [selectedTrip, setSelectedTrip] = useState<TripItemDTO | null>(null);
-
-	// Dialog / Drawer states
-	const [isAddOpen, setIsAddOpen] = useState(false);
-	const [isEditOpen, setIsEditOpen] = useState(false);
-	const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-	const [isDetailOpen, setIsDetailOpen] = useState(false);
-	const [search, setSearch] = useState("");
-	const [trips, setTrips] = useState<TripItemDTO[]>([]);
-	const [isLoading, setLoading] = useState(true);
-
-
+	// --- Actions ---
 	const fetchTrips = async () => {
 		try {
-			const response = await axios.get(API_ENDPOINTS.TRIP.BASE);
-			if (response.status === 200) {
-				const data = response.data;
-				const tripsData = data.trips || data;
-				setTrips(
-					tripsData.map((t: ApiTripDTO) => ({
-						id: t.id,
-						route:
-							t.origin && t.destination
-								? `${t.origin} - ${t.destination}`
-								: "Unknown Route",
-						departure: t.departureTime,
-						arrival: t.arrivalTime,
-						price: `$${t.price}`,
-						status: (t.status as TripItemDTO["status"]) || "Standby",
-					}))
-				);
-			} else {
-				console.error("Failed to fetch trips");
+			const { status, data } = await callApi(
+				{
+					method: "GET",
+					url: API_ENDPOINTS.TRIP.BASE,
+					params: { limit: 1000 },
+				},
+				{ returnFullResponse: true }
+			);
+
+			if (status === 200 && data.success) {
+				setTrips(data.data);
 			}
-		} catch (error) {
-			console.error("Error fetching trips:", error);
-		} finally {
-			setLoading(false);
+		} catch (err) {
+			console.error("Failed to fetch trips", err);
 		}
 	};
 
@@ -87,232 +68,328 @@ const TripList: React.FC<TripListProps> = ({ onOpenDetails }) => {
 		fetchTrips();
 	}, []);
 
-	const filtered = useMemo(() => {
-		const query = search.trim().toLowerCase();
+	const handleViewDetails = (trip: TripAttributes) => {
+		setSelectedTrip(trip);
+		setDrawerOpen(true);
+	};
+
+	const handleCloseDrawer = () => {
+		setDrawerOpen(false);
+		setSelectedTrip(null);
+	};
+
+	const handleOpenEdit = (trip: TripAttributes) => {
+		setSelectedTrip(trip);
+		setEditOpen(true);
+	};
+
+	const handleOpenDelete = (trip: TripAttributes) => {
+		setSelectedTrip(trip);
+		setDeleteOpen(true);
+	};
+
+	// --- Filtering ---
+	const filteredTrips = useMemo(() => {
+		const query = searchTerm.trim().toLowerCase();
 		if (!query) return trips;
-		return trips.filter((d) => d.route.toLowerCase().includes(query)); // Filter trips based on search input
-	}, [trips, search]);
 
-	const handleOpenMenu = (
-		event: React.MouseEvent<HTMLButtonElement>,
-		trip: TripItemDTO
-	) => {
-		setAnchorEl(event.currentTarget);
-		setMenuTrip(trip);
-	};
+		return trips.filter((t) => {
+			// - Use route.name instead of non-existent fields
+			const routeName = t.route?.name || "Unknown Route";
 
-	const handleCloseMenu = () => {
-		setAnchorEl(null);
-		setMenuTrip(null);
-	};
+			// - Robust vehicle name generation
+			const vehicleLabel = t.vehicle
+				? `${t.vehicle.numberPlate} ${t.vehicle.manufacturer || ""} ${
+						t.vehicle.model || ""
+				  }`
+				: "";
 
-	// Add / Edit / Delete / Detail handlers
-	const handleOpenAdd = () => setIsAddOpen(true);
-	const handleCloseAdd = () => setIsAddOpen(false);
+			return (
+				routeName.toLowerCase().includes(query) ||
+				vehicleLabel.toLowerCase().includes(query) ||
+				t.status?.toLowerCase().includes(query) ||
+				String(t.id).includes(query)
+			);
+		});
+	}, [trips, searchTerm]);
 
-	const handleOpenEdit = (trip: TripItemDTO | null) => {
-		setSelectedTrip(trip);
-		setIsEditOpen(true);
-		handleCloseMenu();
-	};
-	const handleCloseEdit = () => {
-		setSelectedTrip(null);
-		setIsEditOpen(false);
-	};
-
-	const handleOpenDelete = (trip: TripItemDTO | null) => {
-		setSelectedTrip(trip);
-		setIsDeleteOpen(true);
-		handleCloseMenu();
-	};
-	const handleCloseDelete = () => {
-		setSelectedTrip(null);
-		setIsDeleteOpen(false);
-	};
-
-	const handleOpenDetailsLocal = (trip: TripItemDTO) => {
-		setSelectedTrip(trip);
-		setIsDetailOpen(true);
-		handleCloseMenu();
-		// still call external opener if provided
-		onOpenDetails?.(trip);
-	};
-
-	const handleCloseDetails = () => {
-		setSelectedTrip(null);
-		setIsDetailOpen(false);
-	};
-
-	// Define DataGrid columns
+	// --- Columns ---
 	const columns: GridColDef[] = [
+		{
+			field: "id",
+			headerName: "ID",
+			width: 70,
+		},
 		{
 			field: "route",
 			headerName: "Route",
 			flex: 2,
 			minWidth: 200,
+			renderCell: (params) => {
+				const data: TripAttributes = params.row;
+
+				const status = (data.status as string)?.toUpperCase() || "UNKNOWN";
+				const isTemplate = data.isTemplate;
+				const isRoundTrip = Boolean(data.returnTripId);
+
+				let color:
+					| "default"
+					| "primary"
+					| "secondary"
+					| "error"
+					| "info"
+					| "success"
+					| "warning" = "default";
+
+				switch (status) {
+					case TripStatus.SCHEDULED:
+						color = "info";
+						break;
+					case TripStatus.COMPLETED:
+						color = "success";
+						break;
+					case TripStatus.CANCELLED:
+						color = "error";
+						break;
+					case TripStatus.DEPARTED:
+						color = "warning";
+						break;
+					case TripStatus.DELAYED:
+						color = "warning";
+						break;
+					default:
+						color = "default";
+						break;
+				}
+
+				return (
+					<Box
+						display={"flex"}
+						height={"100%"}
+						flexDirection={"column"}
+						alignItems={"flex-start"}
+						justifyContent={"center"}
+					>
+						<Typography
+							maxWidth={"100%"}
+							textOverflow={"ellipsis"}
+							overflow={"hidden"}
+							variant="body2"
+							gutterBottom
+						>
+							{`${data.route?.name.toString()}` ||
+								`Route #${data.routeId}`}
+						</Typography>
+						<Stack direction={"row"} gap={0.25}>
+							<Chip
+								label={status}
+								color={color}
+								size="small"
+								variant="outlined"
+							/>
+							{isRoundTrip &&
+							<Chip
+								label={"Round Trip"}
+								color="info"
+								size="small"
+								variant="outlined"
+							/>}
+							{isTemplate &&
+							<Chip
+								label={"Repeated"}
+								color="success"
+								size="small"
+								variant="outlined"
+							/>}
+						</Stack>
+					</Box>
+				);
+			},
 		},
 		{
-			field: "departure",
-			headerName: "Departure Time",
+			field: "vehicle",
+			headerName: "Vehicle",
 			flex: 1,
-			minWidth: 150,
+			minWidth: 180,
+			valueGetter: (_value, row: TripAttributes) => {
+				// - Handle optional manufacturer/model
+				if (!row.vehicle) return `Vehicle #${row.vehicleId}`;
+				const details = [row.vehicle.manufacturer, row.vehicle.model]
+					.filter(Boolean)
+					.join(" ");
+
+				return details
+					? `${row.vehicle.numberPlate} (${details})`
+					: row.vehicle.numberPlate;
+			},
 		},
 		{
-			field: "arrival",
-			headerName: "Arrival Time",
+			field: "startTime",
+			headerName: "Departure",
 			flex: 1,
 			minWidth: 150,
+			valueFormatter: (value) =>
+				value ? format(new Date(value), "dd/MM/yyyy HH:mm") : "-",
+		},
+		{
+			field: "returnStartTime",
+			headerName: "Departure (Return)",
+			flex: 1,
+			minWidth: 150,
+			valueFormatter: (value: Date) =>
+				value ? format(new Date(value), "dd/MM/yyyy HH:mm") : "-",
 		},
 		{
 			field: "price",
-			headerName: "Total Price",
+			headerName: "Price",
 			width: 120,
-		},
-		{
-			field: "status",
-			headerName: "Status",
-			width: 120,
+			valueFormatter: (value: number) =>
+				value
+					? new Intl.NumberFormat("vi-VN", {
+							style: "currency",
+							currency: "VND",
+					  }).format(value)
+					: "N/A",
 		},
 		{
 			field: "actions",
 			headerName: "Actions",
-			width: 80,
+			width: 120,
 			sortable: false,
-			renderCell: (params) => (
-				<IconButton
-					onClick={(e) => {
-						e.stopPropagation();
-						handleOpenMenu(e, params.row as TripItemDTO);
-					}}
-				>
-					<MoreIcon />
-				</IconButton>
-			),
+			renderCell: (params) => {
+				const trip = params.row as TripAttributes;
+				return (
+					<Box onClick={(e) => e.stopPropagation()}>
+						<IconButton
+							size="small"
+							onClick={(e) => {
+								e.stopPropagation();
+								handleViewDetails(trip);
+							}}
+							title="View Details"
+						>
+							<ViewIcon />
+						</IconButton>
+						<IconButton
+							size="small"
+							color="primary"
+							onClick={(e) => {
+								e.stopPropagation();
+								handleOpenEdit(trip);
+							}}
+							title="Edit"
+						>
+							<EditIcon />
+						</IconButton>
+						<IconButton
+							size="small"
+							color="error"
+							onClick={(e) => {
+								e.stopPropagation();
+								handleOpenDelete(trip);
+							}}
+							title="Delete"
+						>
+							<DeleteIcon />
+						</IconButton>
+					</Box>
+				);
+			},
 		},
 	];
 
-	// Action bar providing search + create button
-	const actionBar = (
-		<Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-			<TextField
-				size="small"
-				placeholder="Search by route"
-				value={search}
-				onChange={(e) => setSearch(e.target.value)}
-				sx={{ width: 300 }}
-				slotProps={{
-					input: {
-						startAdornment: (
-							<InputAdornment position="start">
-								<SearchIcon />
-							</InputAdornment>
-						),
-					},
-				}}
-			/>
-			<Button
-				variant="contained"
-				startIcon={<AddIcon />}
-				onClick={handleOpenAdd}
-				sx={{
-					textTransform: "none",
-					backgroundColor: "#2E7D32",
-					"&:hover": { backgroundColor: "#276a2b" },
-				}}
-			>
-				Add New Trip
-			</Button>
-		</Box>
-	);
-
-	if (isLoading) {
-		return (
-			<DataGridPageLayout title="Trips" actionBar={actionBar}>
-				<Box display="flex" justifyContent="center" py={8}>
-					<CircularProgress />
-				</Box>
-			</DataGridPageLayout>
-		);
-	}
-
 	return (
-		<DataGridPageLayout title="Trips" actionBar={actionBar}>
+		<DataGridPageLayout
+			title="Trip Management"
+			actionBar={
+				<Box
+					sx={{
+						display: "flex",
+						gap: 2,
+						alignItems: "center",
+						flexWrap: "wrap",
+					}}
+				>
+					<Button
+						variant="contained"
+						startIcon={<AddIcon />}
+						onClick={() => setCreateOpen(true)}
+					>
+						Add Trip
+					</Button>
+					<TextField
+						size="small"
+						placeholder="Search trips..."
+						value={searchTerm}
+						onChange={(e) => setSearchTerm(e.target.value)}
+						slotProps={{
+							input: {
+								startAdornment: (
+									<InputAdornment position="start">
+										<SearchIcon />
+									</InputAdornment>
+								),
+							},
+						}}
+					/>
+				</Box>
+			}
+		>
 			<Paper elevation={3} sx={{ width: "100%" }}>
-				<Grid
-					rows={filtered}
+				<DataGrid
+					rows={filteredTrips}
 					columns={columns}
+					rowHeight={62}
 					pagination
-					rowHeight={35}
 					initialState={{
 						pagination: {
 							paginationModel: { pageSize: 10, page: 0 },
 						},
 					}}
-					pageSizeOptions={[5, 10, 20, 50]}
+					pageSizeOptions={[10, 25, 50]}
+					onRowClick={(params) => handleViewDetails(params.row)}
 					sx={{ border: "none" }}
-					onRowClick={(params) =>
-						onOpenDetails(params.row as TripItemDTO)
-					}
-					loading={isLoading}
 				/>
 			</Paper>
-			<Menu
-				anchorEl={anchorEl}
-				open={Boolean(anchorEl)}
-				onClose={handleCloseMenu}
-			>
-					<MenuItem
-						onClick={() => {
-							if (menuTrip) handleOpenDetailsLocal(menuTrip);
-						}}
-					>
-						View Details
-					</MenuItem>
-					<MenuItem onClick={() => handleOpenEdit(menuTrip)}>
-						Edit
-					</MenuItem>
-					<MenuItem onClick={() => handleOpenDelete(menuTrip)}>
-						Delete
-					</MenuItem>
-			</Menu>
-                
-			{/* Add Trip Dialog */}
-			<CreateTripForm
-				open={isAddOpen}
-				onClose={handleCloseAdd}
-				onCreated={() => {
-					setLoading(true);
-					fetchTrips();
+
+			<TripDetailsDrawer
+				open={drawerOpen}
+				onClose={handleCloseDrawer}
+				trip={selectedTrip}
+				onEdit={(trip) => {
+					handleCloseDrawer();
+					handleOpenEdit(trip);
 				}}
 			/>
 
-			{/* Edit Trip Dialog (placeholder) */}
-			<Dialog open={isEditOpen} onClose={handleCloseEdit} fullWidth maxWidth="md">
-				<DialogTitle>Edit Trip</DialogTitle>
-				<DialogContent>
-					<Typography variant="body2">Editing trip: {selectedTrip?.route || "-"}</Typography>
-				</DialogContent>
-				<DialogActions>
-					<Button onClick={handleCloseEdit}>Cancel</Button>
-					<Button onClick={handleCloseEdit} variant="contained">Save</Button>
-				</DialogActions>
-			</Dialog>
+			<CreateTrip
+				open={createOpen}
+				onClose={() => setCreateOpen(false)}
+				onCreated={fetchTrips}
+			/>
 
-			{/* Delete Confirmation Dialog */}
-			<Dialog open={isDeleteOpen} onClose={handleCloseDelete}>
-				<DialogTitle>Delete Trip</DialogTitle>
-				<DialogContent>
-					<Typography>Are you sure you want to delete this trip?</Typography>
-					<Typography variant="body2">{selectedTrip?.route}</Typography>
-				</DialogContent>
-				<DialogActions>
-					<Button onClick={handleCloseDelete}>Cancel</Button>
-					<Button color="error" onClick={handleCloseDelete} variant="contained">Delete</Button>
-				</DialogActions>
-			</Dialog>
-
-			{/* Trip Detail Drawer */}
-			<TripDetailsDrawer trip={selectedTrip} open={isDetailOpen} onClose={handleCloseDetails} />
+			{selectedTrip && (
+				<EditTrip
+					open={editOpen}
+					onClose={() => setEditOpen(false)}
+					trip={selectedTrip}
+					onEdited={() => {
+						setEditOpen(false);
+						fetchTrips();
+					}}
+				/>
+			)}
+			{selectedTrip && (
+				<DeleteTrip
+					open={deleteOpen}
+					onClose={() => setDeleteOpen(false)}
+					trip={selectedTrip}
+					onDeleted={() => {
+						setDeleteOpen(false);
+						fetchTrips();
+					}}
+				/>
+			)}
 		</DataGridPageLayout>
 	);
 };

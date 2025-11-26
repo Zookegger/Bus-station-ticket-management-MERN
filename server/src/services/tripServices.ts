@@ -14,6 +14,7 @@ import {
 	CreateTripDTO,
 	UpdateTripDTO,
 	TripRepeatFrequency,
+	TripStatus,
 } from "@my_types/trip";
 import { SeatStatus } from "@my_types/seat";
 import { VehicleType } from "@models/vehicleType";
@@ -522,6 +523,7 @@ export const addTrip = async (dto: CreateTripDTO): Promise<Trip | null> => {
 	const total_price = (route.price || 0) + (vehicle.vehicleType.price || 0);
 
 	const transaction = await db.sequelize.transaction();
+	let trip: Trip;
 
 	try {
 		// Convert date strings to Date objects for Sequelize
@@ -541,7 +543,7 @@ export const addTrip = async (dto: CreateTripDTO): Promise<Trip | null> => {
 		createData.price = total_price;
 
 		// Create outbound trip
-		const trip = await db.Trip.create(createData, { transaction });
+		trip = await db.Trip.create(createData, { transaction });
 
 		// Generate seats based on vehicle type configuration
 		if (!trip.isTemplate) {
@@ -572,6 +574,7 @@ export const addTrip = async (dto: CreateTripDTO): Promise<Trip | null> => {
 				...createData,
 				routeId: reverseRoute.id,
 				startTime: new Date(dto.returnStartTime),
+				returnStartTime: null,
 				price: returnTripPrice,
 				returnTripId: trip.id, // Link return -> outbound
 			};
@@ -595,22 +598,24 @@ export const addTrip = async (dto: CreateTripDTO): Promise<Trip | null> => {
 		}
 
 		await transaction.commit();
+	} catch (err) {
+		await transaction.rollback();
+		throw err;
+	}
 
+	// Post-transaction actions (queues).
+	// These are separated so that a failure here doesn't roll back the created trip.
+	try {
 		const tripsToProcess = [trip];
 		if (trip.returnTripId) {
-			// We can't use the 'returnTrip' variable directly if it wasn't returned from the transaction scope
-			// But in your code, you have 'returnTrip' object available before commit.
-			// Ensure you pass it out or re-fetch it.
 			const returnTrip = await db.Trip.findByPk(trip.returnTripId);
 			if (returnTrip) tripsToProcess.push(returnTrip);
 		}
 
 		// Process Queues for ALL involved trips (Outbound + Return)
 		for (const t of tripsToProcess) {
-			// Post-transaction actions (queues)
 			if (!t.isTemplate) {
 				// 1. Trigger Auto Driver Assignment
-				// Use a strategy appropriate for the trip (could be passed in DTO or default)
 				const strategy = SchedulingStrategies.AVAILABILITY;
 				await tripSchedulingQueue.add("assign-driver", {
 					tripId: t.id,
@@ -618,7 +623,6 @@ export const addTrip = async (dto: CreateTripDTO): Promise<Trip | null> => {
 				});
 
 				// 2. Update Vehicle Status (Busy)
-				// Calculate delay: Time until this specific trip starts
 				const delay = new Date(t.startTime).getTime() - Date.now();
 				if (delay > 0) {
 					await enqueueVehicleStatus(
@@ -628,12 +632,16 @@ export const addTrip = async (dto: CreateTripDTO): Promise<Trip | null> => {
 				}
 			}
 		}
-
-		return trip;
-	} catch (err) {
-		await transaction.rollback();
-		throw err;
+	} catch (queueError) {
+		// Log the error, but don't throw, as the trip is already created.
+		// A monitoring system should watch for queue failures.
+		logger.error(
+			`Failed to enqueue post-trip-creation tasks for trip ID ${trip.id}:`,
+			queueError
+		);
 	}
+
+	return trip;
 };
 
 /**
@@ -773,8 +781,8 @@ export const updateTrip = async (
 			}
 
 			// If user cancelled the outbound, propagate cancellation to return trip
-			if (dto.status === "Cancelled") {
-				returnTripUpdateData.status = "Cancelled";
+			if (dto.status === TripStatus.CANCELLED) {
+				returnTripUpdateData.status = TripStatus.CANCELLED;
 			}
 
 			if (Object.keys(returnTripUpdateData).length > 0) {

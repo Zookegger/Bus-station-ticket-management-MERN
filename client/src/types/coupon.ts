@@ -6,8 +6,8 @@
 /**
  * Represents the types of coupons available.
  */
-export const COUPON_TYPES = ["PERCENTAGE", "FIXED"] as const;
-export type CouponType = typeof COUPON_TYPES[number];
+export type CouponType = (typeof CouponType)[keyof typeof CouponType];
+export const CouponType = { PERCENTAGE: "PERCENTAGE", FIXED: "FIXED" } as const;
 
 /**
  * Represents a coupon object on the client-side.
@@ -88,4 +88,5 @@ export interface CouponAttributes {
 	updatedAt?: Date | string;
 }
 
-export type CouponCreationAttributes = Omit<Partial<CouponAttributes>, 'id'> & Partial<Pick<CouponAttributes, 'id'>>;
+export type CouponCreationAttributes = Omit<Partial<CouponAttributes>, "id"> &
+	Partial<Pick<CouponAttributes, "id">>;

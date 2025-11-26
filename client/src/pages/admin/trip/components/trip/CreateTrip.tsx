@@ -180,7 +180,7 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 				vehicleId: selectedVehicle.id,
 				startTime: dates.outboundDepart,
 				endTime: outboundArrivalISO,
-				status: TripStatus.SCHEDULED,
+				status: TripStatus.PENDING,
 				isTemplate: isRepeated,
 				isRoundTrip: tripType === "roundTrip",
 			};

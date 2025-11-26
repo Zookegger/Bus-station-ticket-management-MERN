@@ -24,9 +24,14 @@ import type { VehicleType } from "./vehicleType";
  * @property {string} INACTIVE - The vehicle is inactive and not available for trips.
  * @property {string} MAINTENANCE - The vehicle is under maintenance.
  */
-export type VehicleStatus = typeof VehicleStatus[number];
+export type VehicleStatus = (typeof VehicleStatus)[keyof typeof VehicleStatus];
 
-export const VehicleStatus = ["ACTIVE", "INACTIVE", "MAINTENANCE", "BUSY"] as const;
+export const VehicleStatus = {
+	ACTIVE: "ACTIVE",
+	INACTIVE: "INACTIVE",
+	MAINTENANCE: "MAINTENANCE",
+	BUSY: "BUSY",
+} as const;
 
 /**
  * Represents a vehicle on the client-side.
@@ -84,27 +89,6 @@ export interface UpdateVehicleDTO {
 	model?: string | null;
 }
 
-/**
- * Data Transfer Object for updating an existing Vehicle.
- *
- * Used for PUT/PATCH requests where only specific fields may be modified.
- * The `id` is required to identify which record to update.
- *
- * @interface UpdateVehicleDTO
- * @property {number} id - ID of the vehicle to update.
- * @property {string} [numberPlate] - Updated license plate number.
- * @property {number} [vehicleTypeId] - Updated vehicle type ID.
- * @property {string | null} [manufacturer] - Updated manufacturer.
- * @property {string | null} [model] - Updated model.
- */
-export interface UpdateVehicleDTO {
-	id: number;
-	numberPlate?: string;
-	vehicleTypeId?: number;
-	manufacturer?: string | null;
-	model?: string | null;
-}
-
 /** Model attributes for Vehicle */
 export interface VehicleAttributes {
 	id: number;
@@ -117,4 +101,5 @@ export interface VehicleAttributes {
 	updatedAt?: Date;
 }
 
-export type VehicleCreationAttributes = Omit<Partial<VehicleAttributes>, 'id'> & Partial<Pick<VehicleAttributes, 'id'>>;
+export type VehicleCreationAttributes = Omit<Partial<VehicleAttributes>, "id"> &
+	Partial<Pick<VehicleAttributes, "id">>;
