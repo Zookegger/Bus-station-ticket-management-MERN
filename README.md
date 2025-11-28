@@ -1,6 +1,6 @@
 # Bus Station Ticket Management System
 
-A full-stack MEN (MySQL, Express.js, React, Node.js) application for managing bus station operations, including vehicle management, trip scheduling, ticket booking, and user administration.
+A full-stack MERN (MySQL, Express.js, React, Node.js) application for managing bus station operations, including vehicle management, trip scheduling, ticket booking, and user administration.
 
 ## Features
 
@@ -34,13 +34,12 @@ A full-stack MEN (MySQL, Express.js, React, Node.js) application for managing bu
 - **JWT** for authentication
 - **bcrypt** for password hashing
 - **Nodemailer** for email services
-- **Bull** queue for background jobs
+- **BullMQ** queue for background jobs
 
 ### DevOps
 
 - **Docker** and Docker Compose for containerization
 - **Nginx** for serving the frontend
-- **PM2** for process management (optional)
 
 ## Prerequisites
 
