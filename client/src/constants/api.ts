@@ -131,6 +131,12 @@ export const API_ENDPOINTS: ApiEndpoints = {
 	CHECKIN: {
 		VERIFY: "/check-in/:orderId",
 	},
+	NOTIFICATION: {
+		BASE: "/notifications",
+		READ_ALL: "/notifications/read-all",
+		READ: (id: number) => `/notifications/${id}/read`,
+		DELETE: (id: number) => `/notifications/${id}`,
+	},
 	DEBUG: {
 		TRIGGER_PAYMENT_CLEANUP: "/debug/trigger-payment-cleanup",
 		PAYMENT_QUEUE_STATS: "/debug/payment-queue-stats",

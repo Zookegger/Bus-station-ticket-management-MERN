@@ -1,11 +1,14 @@
 import React, { useState } from "react";
 import { Box, Tab, Tabs, Typography } from "@mui/material";
-import { ApiTest } from "./components";
-import SystemSettingsManager from "./components/SystemSettingsManager";
+import {
+	ApiTest,
+	SystemSettingsManager,
+	PaymentMethodManager,
+} from "./components";
 import TabPanel from "@components/common/TabPanel";
 
 const System: React.FC = () => {
-	const [activeTab, setActiveTab] = useState(0); // 0 for Vehicles, 1 for Vehicle Types
+	const [activeTab, setActiveTab] = useState(0);
 
 	const handleTabChange = (
 		_event: React.SyntheticEvent,
@@ -37,11 +40,12 @@ const System: React.FC = () => {
 				sx={{
 					borderBottom: 3,
 					borderColor: "divider",
-					marginBottom: 3
+					marginBottom: 3,
 				}}
 			>
 				<Tab label="Api Test" />
 				<Tab label="System Settings" />
+				<Tab label="Payment Methods" />
 			</Tabs>
 
 			<TabPanel value={activeTab} index={0}>
@@ -49,6 +53,9 @@ const System: React.FC = () => {
 			</TabPanel>
 			<TabPanel value={activeTab} index={1}>
 				<SystemSettingsManager key={activeTab} />
+			</TabPanel>
+			<TabPanel value={activeTab} index={2}>
+				<PaymentMethodManager key={activeTab} />
 			</TabPanel>
 		</Box>
 	);

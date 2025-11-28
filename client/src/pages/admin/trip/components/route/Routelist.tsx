@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from "@constants";
+import { API_ENDPOINTS } from "@constants/index";;
 import { Button, Paper, Box, CircularProgress } from "@mui/material";
 import type { Route } from "@my-types";
 import { handleAxiosError } from "@utils/handleError";

@@ -18,7 +18,7 @@ import {
 	Typography,
 } from "@mui/material";
 import { RouteMapDialog, type LocationData } from "@components/map";
-import { API_ENDPOINTS } from "@constants";
+import { API_ENDPOINTS } from "@constants/index";;
 import type { Location } from "@my-types";
 import { formatDistance, formatDuration } from "@utils/map";
 import {

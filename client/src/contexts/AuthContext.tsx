@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import axios from "axios";
 import type { User } from "@my-types/user";
 import { AuthContext } from "./AuthContext.context";
-import { API_ENDPOINTS, CSRF_CONFIG, ROUTES } from "@constants";
+import { API_ENDPOINTS, CSRF_CONFIG, ROUTES } from "@constants/index";
 import type {
 	AuthUser,
 	GetMeResponse,

@@ -31,7 +31,7 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { DateTimePicker, DatePicker } from "@mui/x-date-pickers";
 import { addSeconds, format, isValid } from "date-fns";
 
-import { API_ENDPOINTS } from "@constants";
+import { API_ENDPOINTS } from "@constants/index";;
 import { type Trip, type UpdateTripDTO } from "@my-types/trip";
 import type { Route, Vehicle } from "@my-types";
 import callApi from "@utils/apiCaller";

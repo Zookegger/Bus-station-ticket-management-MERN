@@ -24,3 +24,12 @@ export const IN_EVENTS = {
 	ROOM_JOIN: "room:join",
 	ROOM_LEAVE: "room:leave",
 };
+
+export const WEBSOCKET_CONNECTION_STATES = {
+	DISCONNECTED: "disconnected",
+	CONNECTING: "connecting",
+	CONNECTED: "connected",
+	AUTHENTICATED: "authenticated",
+	RECONNECTING: "reconnecting",
+	ERROR: "error",
+};

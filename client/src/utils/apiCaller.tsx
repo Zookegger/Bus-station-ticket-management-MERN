@@ -1,7 +1,7 @@
 import axios from "axios";
 import type { AxiosRequestConfig, AxiosResponse } from "axios";
 import { handleAxiosError } from "./handleError";
-import { APP_CONFIG } from "@constants";
+import { APP_CONFIG } from "@constants/index";
 
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || APP_CONFIG.apiBaseUrl;
 axios.defaults.withCredentials = true;
@@ -30,25 +30,128 @@ export interface ApiResponse<T> {
 }
 
 /**
- * Generic API caller using axios.
+ * Generic API caller using axios with full TypeScript support.
+ * 
+ * @template T - The expected response data type
+ * @template D - The request data type (for POST/PUT/PATCH)
  * 
  * @example
- * // Simple usage
- * const user = await callApi({ method: 'GET', url: '/api/user' });
+ * // Define your response type
+ * interface User {
+ *   id: string;
+ *   name: string;
+ *   email: string;
+ * }
+ * 
+ * // Simple GET request with typed response
+ * const user: User = await callApi<User>({ 
+ *   method: 'GET', 
+ *   url: '/api/user/123' 
+ * });
  * 
  * @example
- * // With cancellation
+ * // POST request with request and response types
+ * interface LoginRequest {
+ *   email: string;
+ *   password: string;
+ * }
+ * interface LoginResponse {
+ *   token: string;
+ *   user: User;
+ * }
+ * 
+ * const loginData: LoginResponse = await callApi<LoginResponse, LoginRequest>({
+ *   method: 'POST',
+ *   url: '/api/auth/login',
+ *   data: { email: 'user@example.com', password: 'secret' }
+ * });
+ * 
+ * @example
+ * // Using with order data (from your bus ticket system)
+ * import type { Order } from '@my-types/order';
+ * 
+ * const orders: Order[] = await callApi<Order[]>({ 
+ *   method: 'GET', 
+ *   url: '/api/orders' 
+ * });
+ * 
+ * @example
+ * // With query parameters and typed response
+ * interface OrderListResponse {
+ *   orders: Order[];
+ *   total: number;
+ *   page: number;
+ * }
+ * 
+ * const orderList: OrderListResponse = await callApi<OrderListResponse>({
+ *   method: 'GET',
+ *   url: '/api/orders',
+ *   params: { page: 1, limit: 10, status: 'CONFIRMED' }
+ * });
+ * 
+ * @example
+ * // With cancellation support
  * const controller = new AbortController();
- * callApi({ method: 'GET', url: '/api/data', signal: controller.signal });
- * controller.abort(); // Cancel request
+ * 
+ * const fetchData = async () => {
+ *   try {
+ *     const data: SomeType = await callApi<SomeType>({
+ *       method: 'GET',
+ *       url: '/api/data',
+ *       signal: controller.signal
+ *     });
+ *     console.log(data);
+ *   } catch (error) {
+ *     if (error.name === 'AbortError') {
+ *       console.log('Request was cancelled');
+ *     }
+ *   }
+ * };
+ * 
+ * // Cancel the request
+ * controller.abort();
  * 
  * @example
- * // Return full response
- * const { data, status } = await callApi({ 
- *   method: 'POST', 
- *   url: '/api/login', 
- *   data: { email, password } 
+ * // Return full response with status and headers
+ * const response: ApiResponse<Order> = await callApi<Order>({
+ *   method: 'POST',
+ *   url: '/api/orders',
+ *   data: orderData
  * }, { returnFullResponse: true });
+ * 
+ * console.log(response.status); // 201
+ * console.log(response.headers['content-type']);
+ * console.log(response.data); // The Order object
+ * 
+ * @example
+ * // File upload with progress tracking
+ * interface UploadResponse {
+ *   fileUrl: string;
+ *   fileId: string;
+ * }
+ * 
+ * const uploadResult: UploadResponse = await callApi<UploadResponse>({
+ *   method: 'POST',
+ *   url: '/api/upload',
+ *   data: formData,
+ *   headers: { 'Content-Type': 'multipart/form-data' },
+ *   onUploadProgress: (progressEvent) => {
+ *     const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+ *     console.log(`Upload progress: ${percent}%`);
+ *   }
+ * });
+ * 
+ * @example
+ * // Error handling with typed responses
+ * try {
+ *   const user: User = await callApi<User>({
+ *     method: 'GET',
+ *     url: '/api/user/invalid-id'
+ *   });
+ * } catch (error) {
+ *   // error is already handled by handleAxiosError
+ *   console.error('API Error:', error.message);
+ * }
  */
 export async function callApi<T = any, D = any>(
 	opts: CallApiProps<D>,

@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import { Warning } from "@mui/icons-material";
 import axios from "axios";
-import { API_ENDPOINTS } from "@constants";
+import { API_ENDPOINTS } from "@constants/index";;
 import { handleAxiosError } from "@utils/handleError";
 import type { Trip } from "@my-types/trip";
 

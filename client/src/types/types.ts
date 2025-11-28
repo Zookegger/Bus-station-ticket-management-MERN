@@ -133,6 +133,12 @@ export interface ApiEndpoints {
 		readonly TRIGGER_PAYMENT_CLEANUP: string;
 		readonly PAYMENT_QUEUE_STATS: string;
 	};
+	readonly NOTIFICATION: {
+		readonly BASE: string;
+		readonly READ_ALL: string;
+		readonly READ: (id: number) => string;
+		readonly DELETE: (id: number) => string;
+	};
 }
 
 export interface StorageKeys {

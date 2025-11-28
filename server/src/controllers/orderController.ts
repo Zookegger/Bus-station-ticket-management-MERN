@@ -19,7 +19,6 @@ const getOptions = (req: Request): OrderQueryOptions => {
     if (req.query.updatedFrom) options.updatedFrom = new Date(req.query.updatedFrom as string);
     if (req.query.updatedTo) options.updatedTo = new Date(req.query.updatedTo as string);
     if (req.query.status) options.status = req.query.status as OrderStatus;
-    if (req.query.include) options.include = req.query.include as ("tickets" | "payment" | "couponUsage")[];
     if (req.query.limit) options.limit = Number.parseInt(req.query.limit.toString());
     if (req.query.offset) options.offset = Number.parseInt(req.query.offset.toString());
     if (req.query.sortBy && VALID_ORDER_SORT_FIELDS.includes(req.query.sortBy as keyof OrderAttributes)) options.sortBy = req.query.sortBy as keyof OrderAttributes;

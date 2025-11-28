@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import { CheckCircle, Error as ErrorIcon } from "@mui/icons-material";
 import callApi from "@utils/apiCaller";
-import { API_ENDPOINTS } from "@constants";
+import { API_ENDPOINTS } from "@constants/index";;
 
 const PaymentResult: React.FC = () => {
 	const [searchParams] = useSearchParams();

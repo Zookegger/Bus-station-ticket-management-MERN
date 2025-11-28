@@ -20,7 +20,7 @@ import { format } from "date-fns";
 import type { Trip } from "@my-types/trip";
 import type { Seat } from "@my-types/seat"; // Ensure this type exists based on your seat model
 import type { SeatLayout } from "@components/seatmap/types";
-import { API_ENDPOINTS } from "@constants";
+import { API_ENDPOINTS } from "@constants/index";;
 import callApi from "@utils/apiCaller";
 import { SeatStatus } from "@my-types/seat"; // Assuming you have this enum on client
 import { useAuth } from "@hooks/useAuth";

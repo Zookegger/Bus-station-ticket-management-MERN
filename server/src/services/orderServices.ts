@@ -331,8 +331,8 @@ export const cancelTickets = async (dto: RefundTicketDTO): Promise<Order> => {
 				as: "tickets",
 				include: [
 					{
-							model: db.Seat,
-							as: "seat",
+						model: db.Seat,
+						as: "seat",
 						include: [{ model: db.Trip, as: "trip" }],
 					},
 				],
@@ -535,12 +535,14 @@ export const checkInTicketsByOrder = async (
 	await ticketServices.confirmTickets(bookedTicketIds);
 
 	// Step 4: Re-fetch the order with all nested data to return the final result.
-	const updatedOrder = await getOrderById(orderId, {
-		include: ["tickets", "payment"],
-	});
+	const updatedOrder = await getOrderById(orderId, {});
 
-	if (!updatedOrder) throw { status: 500, message: "Failed to retrieve updated order after check-in.", };
-    
+	if (!updatedOrder)
+		throw {
+			status: 500,
+			message: "Failed to retrieve updated order after check-in.",
+		};
+
 	return updatedOrder;
 };
 
@@ -575,39 +577,63 @@ const buildOrderQueryOptions = (
 			whereClause.updatedAt[Op.lte] = options.updatedTo;
 	}
 
-	// Build the include clause for associations
-	const includeClause = options.include
-		?.map((assoc) => {
-			if (assoc === "tickets") return { model: db.Ticket, as: "tickets" };
-			if (assoc === "payment")
-				return { model: db.Payment, as: "payment" };
-			if (assoc === "couponUsage") {
-				return {
-					model: db.CouponUsage,
-					as: "couponUsage",
-					include: [{ model: db.Coupon, as: "coupon" }],
-				};
-			}
-			return null;
-		})
-		.filter((item): item is NonNullable<typeof item> => item !== null);
-
 	// Build the order clause for sorting
 	const orderClause: any = options.sortBy
 		? [[options.sortBy, options.sortOrder || "DESC"]]
 		: [["createdAt", "DESC"]];
 
+	const includeClause: any = [
+		{ model: db.User, as: "user" },
+		{
+			model: db.Ticket,
+			include: [
+				{
+					model: db.Seat,
+					include: [
+						{
+							model: db.Trip,
+							include: [
+								{
+									model: db.Route,
+									include: [
+										{
+											model: db.RouteStop,
+											include: [
+												{
+													model: db.Location,
+													as: "locations",
+												},
+											],
+											as: "stops",
+										},
+									],
+									as: "route",
+								},
+							],
+							as: "trip",
+						},
+					],
+					as: "seat",
+				},
+			],
+			as: "tickets",
+		},
+		{
+			model: db.Payment,
+			include: [{ model: db.PaymentMethod, as: "paymentMethod" }],
+			as: "payment",
+		},
+		{ model: db.CouponUsage, as: "couponUsage" },
+	];
+
 	const queryOptions: any = {
 		where: whereClause,
+		include: includeClause,
 		order: orderClause,
 	};
 
 	if (options.limit) queryOptions.limit = options.limit;
 	if (options.offset) queryOptions.offset = options.offset;
-
-	if (includeClause && includeClause.length > 0) {
-		queryOptions.include = includeClause;
-	}
 
 	if (attributes && attributes.length > 0) {
 		queryOptions.attributes = attributes;

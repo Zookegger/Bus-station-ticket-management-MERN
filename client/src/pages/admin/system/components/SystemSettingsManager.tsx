@@ -20,7 +20,7 @@ import {
 } from "@mui/icons-material";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import callApi from "@utils/apiCaller";
-import { API_ENDPOINTS } from "@constants";
+import { API_ENDPOINTS } from "@constants/index";;
 
 /**
  * Interface representing a system setting record loaded from the backend.

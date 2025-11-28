@@ -57,7 +57,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 			<Box
 				sx={{
 					flexGrow: 1,
-					marginLeft: sidebarCollapsed ? "70px" : "200px",
+					marginLeft: sidebarCollapsed ? "70px" : "220px",
 					minHeight: "100vh",
 					backgroundColor: "#fafafa",
 					transition: "margin-left 0.3s ease",

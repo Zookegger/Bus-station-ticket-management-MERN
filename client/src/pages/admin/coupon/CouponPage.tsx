@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from "@constants";
+import { API_ENDPOINTS } from "@constants/index";
 import { Button, InputAdornment, Paper, TextField } from "@mui/material";
 import type { Coupon } from "@my-types";
 import { handleAxiosError } from "@utils/handleError";
@@ -133,8 +133,8 @@ const CouponPage: React.FC = () => {
 				!term ||
 				c.code.toLowerCase().includes(term) ||
 				(c.title && c.title.toLowerCase().includes(term)) ||
-				(c.createdAt && c.createdAt.includes(term)) ||
-				(c.updatedAt && c.updatedAt.includes(term));
+				(c.createdAt && String(c.createdAt).toLowerCase().includes(term)) ||
+				(c.updatedAt && String(c.updatedAt).toLowerCase().includes(term));
 
 			return matchesSearch;
 		});

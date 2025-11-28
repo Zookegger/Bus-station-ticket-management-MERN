@@ -21,7 +21,7 @@ import DeleteVehicleTypeDialog from "./DeleteVehicleTypeDialog";
 import CreateVehicleTypeForm from "./CreateVehicleTypeForm";
 import EditVehicleTypeForm from "./EditVehicleTypeForm";
 import callApi from "@utils/apiCaller";
-import { API_ENDPOINTS } from "@constants";
+import { API_ENDPOINTS } from "@constants/index";;
 // import axios from "axios";
 
 const VehicleTypeList: React.FC = () => {

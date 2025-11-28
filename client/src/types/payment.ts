@@ -14,11 +14,13 @@ export interface Payment {
 	id: string;
 	orderId: string;
 	paymentMethodId: number;
-	amount: number;
+	totalAmount: number;
 	paymentStatus: PaymentStatus;
-	transactionId: string | null;
-	paymentGateway: string;
+	merchantOrderRef: string;
+	gatewayTransactionNo?: string | null;
+	gatewayResponseData?: any | null;
 	createdAt: Date | string; // Date on server, ISO string on client
+	expiredAt?: Date | string;
 	updatedAt: Date | string; // Date on server, ISO string on client
 }
 

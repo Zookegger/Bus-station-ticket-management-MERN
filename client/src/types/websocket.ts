@@ -3,12 +3,12 @@ export interface WebsocketEventHandlers {
 }
 
 export interface WebsocketOptions {
-	events: WebsocketEventHandlers;
-	namespace: string;
-	auto_connect: boolean;
-	debug: boolean;
-	max_reconnect_attempts: number;
-	reconnect_delay: number;
+	events?: WebsocketEventHandlers;
+	namespace?: string;
+	auto_connect?: boolean;
+	debug?: boolean;
+	max_reconnect_attempts?: number;
+	reconnect_delay?: number;
 }
 
 export type NotificationEventData = {

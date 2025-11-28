@@ -1,3 +1,0 @@
-const Notification: React.FC<> = ({}) => {
-
-}

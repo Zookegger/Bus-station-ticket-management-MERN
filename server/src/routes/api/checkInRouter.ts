@@ -45,7 +45,7 @@ const checkInRateLimiter = rateLimit({
  */
 checkInRouter.post(
 	"/:orderId",
-    checkInRateLimiter,
+	checkInRateLimiter,
 	checkInValidators,
 	handleValidationResult,
 	checkInController.executeCheckIn,

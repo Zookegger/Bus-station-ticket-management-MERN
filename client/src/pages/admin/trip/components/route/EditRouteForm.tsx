@@ -21,7 +21,7 @@ import {
 import { RouteMapDialog, type LocationData } from "@components/map";
 import { handleAxiosError } from "@utils/handleError";
 import axios from "axios";
-import { API_ENDPOINTS } from "@constants";
+import { API_ENDPOINTS } from "@constants/index";;
 import type { Location } from "@my-types";
 import { formatDistance, formatDuration } from "@utils/map";
 import {

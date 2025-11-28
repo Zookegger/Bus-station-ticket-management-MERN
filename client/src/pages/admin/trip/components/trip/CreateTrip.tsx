@@ -36,7 +36,7 @@ import axios from "axios";
 import { addSeconds, format, isValid } from "date-fns";
 
 // Mock imports based on context
-import { API_ENDPOINTS } from "@constants/api";
+import { API_ENDPOINTS } from "@constants//api";
 import type { Route, Vehicle } from "@my-types";
 import type { CreateTripDTO } from "@my-types/trip";
 import { TripStatus, TripRepeatFrequency } from "@my-types/trip";

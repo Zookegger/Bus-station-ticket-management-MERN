@@ -18,7 +18,7 @@ import SeatLayoutEditor from "@components/seatmap/SeatLayoutEditor";
 import type { CreateVehicleTypeFormProps } from "./types";
 import type { SeatLayout } from "@my-types/vehicleType";
 import callApi from "@utils/apiCaller";
-import { API_ENDPOINTS } from "@constants";
+import { API_ENDPOINTS } from "@constants/index";;
 
 type CreateVehicleTypeErrors = Partial<
 	Record<keyof CreateVehicleTypeDTO, string>

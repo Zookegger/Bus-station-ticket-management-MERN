@@ -9,7 +9,7 @@ import {
 	Typography,
 } from "@mui/material";
 import { useEffect, useState } from "react";
-import { API_ENDPOINTS } from "@constants";
+import { API_ENDPOINTS } from "@constants/index";;
 import { Error as ErrorIcon, Warning } from "@mui/icons-material";
 import callApi from "@utils/apiCaller";
 

@@ -12,7 +12,7 @@ import {
 	Skeleton,
 } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
-import { APP_CONFIG, ROUTES } from "@constants";
+import { APP_CONFIG, ROUTES } from "@constants/index";
 import { useAuth } from "@hooks/useAuth";
 import { AccountBox, Logout, Window } from "@mui/icons-material";
 import buildAvatarUrl from "@utils/avatarImageHelper";

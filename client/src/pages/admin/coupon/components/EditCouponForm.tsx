@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { EditCouponFormProps } from "./types/Props";
 import { CouponType, type UpdateCouponDTO } from "@my-types";
-import { API_ENDPOINTS } from "@constants";
+import { API_ENDPOINTS } from "@constants/index";;
 import { handleAxiosError } from "@utils/handleError";
 import axios from "axios";
 import {

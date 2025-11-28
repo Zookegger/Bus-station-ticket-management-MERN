@@ -18,7 +18,7 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import cover from "@assets/background.jpg";
 import type { Location } from "@my-types";
 import axios from "axios";
-import { API_ENDPOINTS, ROUTES } from "@constants";
+import { API_ENDPOINTS, ROUTES } from "@constants/index";
 import { LocationOn, Search } from "@mui/icons-material";
 import { createSearchParams, useNavigate } from "react-router-dom";
 import { format, formatDate } from "date-fns";

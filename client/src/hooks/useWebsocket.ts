@@ -5,9 +5,16 @@ import {
 	type ManagerOptions,
 	type SocketOptions,
 } from "socket.io-client";
-import { WEBSOCKET_CONNECTION_STATES } from "@constants";
+import { WEBSOCKET_CONNECTION_STATES } from "@constants/index";
 import type { WebsocketOptions } from "@my-types/websocket";
 import axios from "axios";
+
+// Singleton WebSocket instance for performance
+let global_socket: Socket | null = null;
+let global_connection_state: string = WEBSOCKET_CONNECTION_STATES.DISCONNECTED;
+let global_reconnect_attempts: number = 0;
+const global_event_handlers = new Map(); // Track all event handlers
+let authentication_attempted: boolean = false; // Track if authentication has been attempted
 
 /**
  * Custom WebSocket Hook for Real-Time Features
@@ -24,6 +31,7 @@ import axios from "axios";
  * - Debug logging support
  *
  * @param {WebsocketOptions} options - Configuration options
+ *
  * @returns {{
  *   socket: Socket | null;
  *   connectionState: string;
@@ -36,15 +44,7 @@ import axios from "axios";
  *   emitEvent: (event_name: string, data: any) => boolean;
  * }} Connection utilities and state
  */
-
-// Singleton WebSocket instance for performance
-let global_socket: Socket | null = null;
-let global_connection_state: string = WEBSOCKET_CONNECTION_STATES.DISCONNECTED;
-let global_reconnect_attempts: number = 0;
-const global_event_handlers = new Map(); // Track all event handlers
-let authentication_attempted: boolean = false; // Track if authentication has been attempted
-
-const useWebsocket = (options: WebsocketOptions) => {
+const useWebsocket = (options: WebsocketOptions = {}) => {
 	const {
 		events = {},
 		namespace = "",

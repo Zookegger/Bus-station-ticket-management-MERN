@@ -24,6 +24,7 @@ import checkInRouter from "@routes/api/checkInRouter";
 import couponRouter from "@routes/api/couponRouter";
 import debugRouter from "@routes/api/debugRouter";
 import dashboardRouter from "@routes/api/dashboardRouter";
+import notificationRouter from "@routes/api/notificationRouter";
 
 /**
  * Main API router instance.
@@ -81,6 +82,7 @@ apiRouter.use("/settings", apiRateLimiter, settingsRouter);
 apiRouter.use("/orders", apiRateLimiter, orderRouter);
 apiRouter.use("/coupons", apiRateLimiter, couponRouter);
 apiRouter.use("/dashboard", apiRateLimiter, dashboardRouter);
+apiRouter.use("/notifications", apiRateLimiter, notificationRouter);
 apiRouter.use("/check-in", checkInRouter);
 
 // Debug routes (admin only, for development/testing)

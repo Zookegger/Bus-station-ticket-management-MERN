@@ -228,6 +228,16 @@ export const router = createBrowserRouter([
 				},
 			},
 			{
+				path: "order",
+				handle: { title: "Orders • EasyRide" },
+				lazy: async () => {
+					const { default: Order } = await import(
+						"@pages/admin/order/Order"
+					);
+					return { Component: Order };
+				},
+			},
+			{
 				path: "coupon",
 				handle: { title: "Coupons • EasyRide" },
 				children: [

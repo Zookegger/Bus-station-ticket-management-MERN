@@ -26,7 +26,7 @@ import CreateVehicleForm from "./CreateVehicleForm";
 import RemoveVehicleForm from "./RemoveVehicleForm";
 import type { UpdateVehicleDTO } from "@my-types/vehicle";
 import callApi from "@utils/apiCaller";
-import { API_ENDPOINTS } from "@constants";
+import { API_ENDPOINTS } from "@constants/index";;
 
 interface VehicleTypeFilter {
 	id: number;

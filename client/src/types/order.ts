@@ -1,6 +1,8 @@
-import type { PaymentAdditionalData } from "./payment";
-import type { PaymentMethodAttributes } from "./paymentMethods";
-import type { TicketAttributes } from "./ticket";
+import type { CouponUsage } from "./coupon";
+import type { Payment, PaymentAdditionalData } from "./payment";
+import type { PaymentMethod } from "./paymentMethods";
+import type { Ticket, TicketAttributes } from "./ticket";
+import type { User } from "./user";
 
 
 /**
@@ -39,7 +41,7 @@ export interface CreateOrderDTO {
 	/** Information for guest purchasers. */
 	guestInfo?: GuestPurchaserInfo | null;
 	/** The payment method code. */
-	paymentMethodCode: PaymentMethodAttributes;
+	paymentMethodCode: PaymentMethod;
 	/** Optional coupon code for discount. */
 	couponCode?: string | null;
 	/** Additional payment data. */
@@ -120,7 +122,7 @@ export interface OrderQueryOptions {
 	/** Offset for pagination. */
 	offset?: number;
 	/** Sort by field. */
-	sortBy?: keyof OrderAttributes;
+	sortBy?: keyof Order;
 	/** Sort order. */
 	sortOrder?: "ASC" | "DESC";
 	/** Optional associations to include. */
@@ -130,21 +132,44 @@ export interface OrderQueryOptions {
 /**
  * Order status values (mirrors server `OrderStatus` enum).
  */
-export type OrderStatus =
-	| "PENDING"
-	| "CONFIRMED"
-	| "CANCELLED"
-	| "PARTIALLY_REFUNDED"
-	| "REFUNDED"
-	| "EXPIRED";
+export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus]
+
+/**
+ * Enum for the status of an order.
+ * @enum {string}
+ * @property {string} PENDING - The order is pending and awaiting confirmation or payment.
+ * @property {string} CONFIRMED - The order has been confirmed.
+ * @property {string} CANCELLED - The order has been cancelled.
+ * @property {string} PARTIALLY_REFUNDED - The order has been partially refunded.
+ * @property {string} REFUNDED - The order has been fully refunded.
+ * @property {string} EXPIRED - The order has expired.
+ */
+export const OrderStatus = {
+	/** The order is pending and awaiting confirmation or payment. */
+	PENDING: "PENDING",
+	/** The order has been confirmed. */
+	CONFIRMED: "CONFIRMED",
+	/** The order has been cancelled. */
+	CANCELLED: "CANCELLED",
+	/** The order has been partially refunded. */
+	PARTIALLY_REFUNDED: "PARTIALLY_REFUNDED",
+	/** The order has been fully refunded. */
+	REFUNDED: "REFUNDED",
+	/** The order has expired. */
+	EXPIRED: "EXPIRED"
+} as const;
 
 /**
  * Model attribute interface for Order (server-aligned)
  */
-export interface OrderAttributes {
+export interface Order {
 	id: string; // UUID
 	/** The user id for the order; null for guest checkouts. */
 	userId: string | null;
+	user?: User | null;
+	tickets: Ticket[];
+	payment: Payment[] | null;
+	couponUsage: CouponUsage | null;
 	totalBasePrice: number;
 	totalDiscount: number;
 	totalFinalPrice: number;
@@ -157,7 +182,27 @@ export interface OrderAttributes {
 }
 
 /**
- * Creation attributes for Order (server-aligned).
- * Mirrors server `OrderCreationAttributes` where select fields are optional.
+ * DTO for check-in request.
+ * @interface OrderCheckInRequest
+ * @property {string} orderId - The ID of the order to check in.
+ * @property {string} token - The security token for verification.
  */
-export type OrderCreationAttributes = Omit<OrderAttributes, 'id'> & Partial<Pick<OrderAttributes, 'id' | 'totalDiscount' | 'status' | 'guestPurchaserEmail' | 'guestPurchaserName' | 'guestPurchaserPhone' | 'createdAt' | 'updatedAt'>>;
+export interface OrderCheckInRequest {
+	/** The ID of the order to check in. */
+	orderId: string;
+	/** The security token for verification. */
+	token: string;
+}
+
+/**
+ * Response for check-in verification.
+ * @interface OrderCheckInResponse
+ * @property {Order} order - The order details after successful check-in.
+ * @property {string} [message] - Optional success message.
+ */
+export interface OrderCheckInResponse {
+	/** The order details after successful check-in. */
+	order: Order | null;
+	/** Optional success message. */
+	message?: string;
+}

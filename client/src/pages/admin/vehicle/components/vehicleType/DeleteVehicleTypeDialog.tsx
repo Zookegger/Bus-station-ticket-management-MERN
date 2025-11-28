@@ -10,7 +10,7 @@ import {
 import { useEffect, useState } from "react";
 import { handleAxiosError } from "@utils/handleError";
 import axios from "axios";
-import { API_ENDPOINTS } from "@constants";
+import { API_ENDPOINTS } from "@constants/index";;
 import { Warning } from "@mui/icons-material";
 
 interface DeleteVehicleTypeDialogProps {

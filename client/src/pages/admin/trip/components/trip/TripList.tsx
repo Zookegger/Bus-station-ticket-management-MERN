@@ -21,7 +21,7 @@ import { format } from "date-fns";
 
 import { DataGridPageLayout } from "@components/admin";
 import callApi from "@utils/apiCaller";
-import { API_ENDPOINTS } from "@constants";
+import { API_ENDPOINTS } from "@constants/index";;
 import { TripStatus, type Trip } from "@my-types/trip";
 
 import CreateTrip from "./CreateTrip";
