@@ -58,7 +58,7 @@ export const API_ENDPOINTS: ApiEndpoints = {
 	TRIP: {
 		BASE: "/trips",
 		SEARCH: "/trips/search",
-		BY_ID: "/trips/:id",
+		BY_ID: (id: number) => `/trips/${id}`,
 		CREATE: "/trips",
 		UPDATE: (id: number) => `/trips/${id}`,
 		DELETE: (id: number) => `/trips/${id}`,
@@ -103,7 +103,8 @@ export const API_ENDPOINTS: ApiEndpoints = {
 	},
 	SEAT: {
 		BASE: "/seats",
-		BY_ID: "/seats/:id",
+		BY_ID: (id: number) => `/seats/${id}`,
+		BY_TRIP_ID: (tripId: number) => `/seats/seat-by-trip/${tripId}`,
 		UPDATE: "/seats/:id",
 	},
 	PAYMENT_METHOD: {

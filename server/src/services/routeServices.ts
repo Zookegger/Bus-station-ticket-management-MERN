@@ -55,7 +55,7 @@ export const getRouteById = async (id: number): Promise<Route | null> => {
 				include: [
 					{
 						model: db.Location,
-						as: "location",
+						as: "locations",
 					},
 				],
 			},
@@ -184,7 +184,7 @@ export const searchRoute = async (
 				include: [
 					{
 						model: db.Location,
-						as: "location",
+						as: "locations",
 						// Keyword search on any location name within the route
 						where: keywords
 							? { name: { [Op.like]: `%${keywords}%` } }

@@ -51,10 +51,10 @@ const RouteDetailsDrawer: React.FC<RouteDetailsDrawerProps> = ({
 		return [...route.stops]
 			.sort((a, b) => a.stopOrder - b.stopOrder)
 			.map((s) => ({
-				name: s.location?.name || `Stop ${s.stopOrder + 1}`,
-				address: s.location?.address || "",
-				latitude: Number(s.location?.latitude),
-				longitude: Number(s.location?.longitude),
+				name: s.locations?.name || `Stop ${s.stopOrder + 1}`,
+				address: s.locations?.address || "",
+				latitude: Number(s.locations?.latitude),
+				longitude: Number(s.locations?.longitude),
 				id: s.id,
 			}));
 	}, [route]);

@@ -22,7 +22,7 @@ import { format } from "date-fns";
 import { DataGridPageLayout } from "@components/admin";
 import callApi from "@utils/apiCaller";
 import { API_ENDPOINTS } from "@constants";
-import { TripStatus, type TripAttributes } from "@my-types/trip";
+import { TripStatus, type Trip } from "@my-types/trip";
 
 import CreateTrip from "./CreateTrip";
 import EditTrip from "./EditTrip";
@@ -32,11 +32,11 @@ import { Stack } from "@mui/system";
 
 const TripList: React.FC = () => {
 	// --- State ---
-	const [trips, setTrips] = useState<TripAttributes[]>([]);
+	const [trips, setTrips] = useState<Trip[]>([]);
 	const [searchTerm, setSearchTerm] = useState("");
 
 	// Selection & Dialogs
-	const [selectedTrip, setSelectedTrip] = useState<TripAttributes | null>(
+	const [selectedTrip, setSelectedTrip] = useState<Trip | null>(
 		null
 	);
 	const [drawerOpen, setDrawerOpen] = useState(false);
@@ -68,7 +68,7 @@ const TripList: React.FC = () => {
 		fetchTrips();
 	}, []);
 
-	const handleViewDetails = (trip: TripAttributes) => {
+	const handleViewDetails = (trip: Trip) => {
 		setSelectedTrip(trip);
 		setDrawerOpen(true);
 	};
@@ -78,12 +78,12 @@ const TripList: React.FC = () => {
 		setSelectedTrip(null);
 	};
 
-	const handleOpenEdit = (trip: TripAttributes) => {
+	const handleOpenEdit = (trip: Trip) => {
 		setSelectedTrip(trip);
 		setEditOpen(true);
 	};
 
-	const handleOpenDelete = (trip: TripAttributes) => {
+	const handleOpenDelete = (trip: Trip) => {
 		setSelectedTrip(trip);
 		setDeleteOpen(true);
 	};
@@ -126,7 +126,7 @@ const TripList: React.FC = () => {
 			flex: 2,
 			minWidth: 200,
 			renderCell: (params) => {
-				const data: TripAttributes = params.row;
+				const data: Trip = params.row;
 
 				const status = (data.status as string)?.toUpperCase() || "UNKNOWN";
 				const isTemplate = data.isTemplate;
@@ -211,7 +211,7 @@ const TripList: React.FC = () => {
 			headerName: "Vehicle",
 			flex: 1,
 			minWidth: 180,
-			valueGetter: (_value, row: TripAttributes) => {
+			valueGetter: (_value, row: Trip) => {
 				// - Handle optional manufacturer/model
 				if (!row.vehicle) return `Vehicle #${row.vehicleId}`;
 				const details = [row.vehicle.manufacturer, row.vehicle.model]
@@ -257,7 +257,7 @@ const TripList: React.FC = () => {
 			width: 120,
 			sortable: false,
 			renderCell: (params) => {
-				const trip = params.row as TripAttributes;
+				const trip = params.row as Trip;
 				return (
 					<Box onClick={(e) => e.stopPropagation()}>
 						<IconButton

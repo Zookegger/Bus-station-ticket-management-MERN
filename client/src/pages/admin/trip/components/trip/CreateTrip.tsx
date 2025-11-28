@@ -86,10 +86,10 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 		return [...selectedOutboundRoute.stops]
 			.sort((a, b) => a.stopOrder - b.stopOrder)
 			.map((s) => ({
-				latitude: Number(s.location?.latitude),
-				longitude: Number(s.location?.longitude),
-				name: s.location?.name,
-				address: s.location?.address,
+				latitude: Number(s.locations?.latitude),
+				longitude: Number(s.locations?.longitude),
+				name: s.locations?.name,
+				address: s.locations?.address,
 			}));
 	}, [selectedOutboundRoute]);
 

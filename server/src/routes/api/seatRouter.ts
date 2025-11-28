@@ -13,7 +13,6 @@ import { errorHandler } from "@middlewares/errorHandler";
 import { handleValidationResult } from "@middlewares/validateRequest";
 import * as seatController from "@controllers/seatController";
 import * as seatValidator from "@middlewares/validators/seatValidator";
-import * as routeValidator from "@middlewares/validators/routeValidator"; // Reuse validateIdParam
 
 /**
  * Seat management router instance.
@@ -31,9 +30,17 @@ seatRouter.get("/", seatController.SearchSeat, errorHandler);
 // GET /seats/:id - Get seat by ID
 seatRouter.get(
 	"/:id",
-	routeValidator.validateIdParam, // Reuse existing ID validation
+	seatValidator.validateIdParam,
 	handleValidationResult,
 	seatController.GetSeatById,
+	errorHandler
+);
+// GET /seat-by-trip/:tripId - Get seat by Trip ID
+seatRouter.get(
+	"/seat-by-trip/:tripId",
+	seatValidator.validateTripIdParam,
+	handleValidationResult,
+	seatController.GetSeatByTripId,
 	errorHandler
 );
 
@@ -41,7 +48,7 @@ seatRouter.get(
 seatRouter.put(
 	"/:id",
 	csrfAdminProtectionRoute,
-	routeValidator.validateIdParam, // Reuse existing ID validation
+	seatValidator.validateIdParam,
 	seatValidator.validateUpdateSeat,
 	handleValidationResult,
 	seatController.UpdateSeat,

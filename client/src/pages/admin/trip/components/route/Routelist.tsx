@@ -57,26 +57,30 @@ const RouteList: React.FC = () => {
 		setSelectedRoute(null);
 	};
 
-    const fetchData = async () => {
-        try {
-            const response = await axios.get(API_ENDPOINTS.ROUTE.BASE);
-            if (response.status !== 200) throw new Error("Failed to fetch data");
-            
-            const data = response.data as any;
-            const normalized: Route[] = Array.isArray(data)
-                ? data
-                : Array.isArray(data.routes)
-                ? data.routes
-                : Array.isArray(data.data)
-                ? data.data
-                : [];
-            setRoutes(normalized);
-        } catch (err) {
-            console.error(handleAxiosError(err));
-        } finally {
-            setIsLoading(false);
-        }
-    };
+	const fetchData = async () => {
+		try {
+			const response = await axios.get(API_ENDPOINTS.ROUTE.BASE);
+			if (response.status !== 200)
+				throw new Error("Failed to fetch data");
+
+			const data = response.data as any;
+			const normalized: Route[] = Array.isArray(data)
+				? data
+				: Array.isArray(data.routes)
+				? data.routes
+				: Array.isArray(data.data)
+				? data.data
+				: [];
+
+			console.log(normalized);
+
+			setRoutes(normalized);
+		} catch (err) {
+			console.error(handleAxiosError(err));
+		} finally {
+			setIsLoading(false);
+		}
+	};
 
 	useEffect(() => {
 		fetchData();
@@ -84,8 +88,18 @@ const RouteList: React.FC = () => {
 
 	const columns: GridColDef[] = [
 		{ field: "id", headerName: "ID", width: 70 },
-		{ field: "startLocation", headerName: "Departure", flex: 1, minWidth: 150 },
-		{ field: "destination", headerName: "Destination", flex: 1, minWidth: 150 },
+		{
+			field: "startLocation",
+			headerName: "Departure",
+			flex: 1,
+			minWidth: 150,
+		},
+		{
+			field: "destination",
+			headerName: "Destination",
+			flex: 1,
+			minWidth: 150,
+		},
 		{ field: "price", headerName: "Price", width: 150 },
 		{ field: "distance", headerName: "Distance", width: 100 },
 		{ field: "updatedAt", headerName: "Updated At", width: 160 },
@@ -93,21 +107,28 @@ const RouteList: React.FC = () => {
 	];
 
 	const rows = routes.map((r) => {
-        // Sort stops by order to ensure correct start/end logic
-        const sortedStops = [...(r.stops || [])].sort((a, b) => a.stopOrder - b.stopOrder);
-        const start = sortedStops.length > 0 ? sortedStops[0].location?.name : "Unknown";
-        const end = sortedStops.length > 1 ? sortedStops[sortedStops.length - 1].location?.name : "Unknown";
+		// Sort stops by order to ensure correct start/end logic
+		const start =
+			r.stops.length > 0 ? r.stops[0].locations?.name : "Unknown";
+		const end =
+			r.stops.length > 1
+				? r.stops[r.stops.length - 1].locations?.name
+				: "Unknown";
 
-        return {
-            id: r.id,
-            startLocation: start || "Unknown",
-            destination: end || "Unknown",
-            price: r.price ? `${r.price.toLocaleString("vi-VN")} VND` : "N/A",
-            distance: r.distance ? formatDistance(r.distance) : "N/A",
-            updatedAt: r.updatedAt ? format(new Date(r.updatedAt), "dd/MM/yyyy - HH:mm:ss") : "N/A",
-            createdAt: r.createdAt ? format(new Date(r.createdAt), "dd/MM/yyyy - HH:mm:ss") : "N/A",
-        };
-    });
+		return {
+			id: r.id,
+			startLocation: start || "Unknown",
+			destination: end || "Unknown",
+			price: r.price ? `${r.price.toLocaleString("vi-VN")} VND` : "N/A",
+			distance: r.distance ? formatDistance(r.distance) : "N/A",
+			updatedAt: r.updatedAt
+				? format(new Date(r.updatedAt), "dd/MM/yyyy - HH:mm:ss")
+				: "N/A",
+			createdAt: r.createdAt
+				? format(new Date(r.createdAt), "dd/MM/yyyy - HH:mm:ss")
+				: "N/A",
+		};
+	});
 
 	const actionBar = (
 		<Button variant="contained" onClick={() => setAddOpen(true)}>
@@ -133,7 +154,9 @@ const RouteList: React.FC = () => {
 						}}
 						pageSizeOptions={[5, 10, 20, 50]}
 						sx={{ maxWidth: "100%", border: "none" }}
-						onRowClick={(params) => handleOpenDrawer(Number(params.id))}
+						onRowClick={(params) =>
+							handleOpenDrawer(Number(params.id))
+						}
 					/>
 				</Paper>
 			)}
@@ -147,16 +170,16 @@ const RouteList: React.FC = () => {
 				onEdited={() => {
 					setEditOpen(false);
 					setIsLoading(true);
-                    fetchData(); // Refresh list after edit
+					fetchData(); // Refresh list after edit
 				}}
 			/>
 			<CreateRouteForm
 				open={addOpen}
 				onClose={() => setAddOpen(false)}
 				onCreated={() => {
-                    setIsLoading(true);
-                    fetchData(); // Refresh list after create
-                }}
+					setIsLoading(true);
+					fetchData(); // Refresh list after create
+				}}
 			/>
 			{selectedRoute && (
 				<>
@@ -172,10 +195,10 @@ const RouteList: React.FC = () => {
 						open={deleteOpen}
 						onClose={() => setDeleteOpen(false)}
 						onConfirm={() => {
-                            setDeleteOpen(false);
-                            setIsLoading(true);
-                            fetchData();
-                        }}
+							setDeleteOpen(false);
+							setIsLoading(true);
+							fetchData();
+						}}
 					/>
 				</>
 			)}

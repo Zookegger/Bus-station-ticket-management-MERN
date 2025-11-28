@@ -3,6 +3,7 @@ import {
 	Grid,
 	IconButton,
 	Paper,
+	Snackbar,
 	Stack,
 	Tab,
 	Tabs,
@@ -16,10 +17,7 @@ import {
 	CheckCircle as SelectedIcon,
 	Cancel as BookedIcon,
 } from "@mui/icons-material";
-import type {
-	SeatLayout,
-	SeatType,
-} from "./types";
+import type { SeatLayout, SeatType } from "./types";
 
 // --- Types ---
 
@@ -81,6 +79,8 @@ const SeatBookingSelector: FC<SeatBookingSelectorProps> = ({
 		{ floor: number; row: number; col: number; label: string }[]
 	>([]);
 
+	const [warning, setWarning] = useState<string | null>(null);
+
 	// Use external state if provided, otherwise local
 	const selected = useMemo(() => {
 		// If external props are passed, we map them to include labels if possible,
@@ -136,7 +136,17 @@ const SeatBookingSelector: FC<SeatBookingSelectorProps> = ({
 		if (isBooked(floor, row, col)) return;
 
 		const alreadySelected = isSelected(floor, row, col);
-		let newSelection = [...(internalSelected || [])];
+		// Use external selection as the base if provided, otherwise use internal state
+		const baseSelection = externalSelectedSeats && externalSelectedSeats.length
+			? externalSelectedSeats.map((s) => ({
+				floor: s.floor,
+				row: s.row,
+				col: s.col,
+				label: seatLabels[`${s.floor}-${s.row}-${s.col}`] || "?",
+			}))
+			: [...(internalSelected || [])];
+
+		let newSelection = [...baseSelection];
 
 		if (alreadySelected) {
 			newSelection = newSelection.filter(
@@ -144,7 +154,7 @@ const SeatBookingSelector: FC<SeatBookingSelectorProps> = ({
 			);
 		} else {
 			if (maxSelectable && newSelection.length >= maxSelectable) {
-				// Optional: Trigger a toast warning here
+				setWarning(`You can only select up to ${maxSelectable} seats.`);
 				return;
 			}
 			const key = `${floor}-${row}-${col}`;
@@ -167,6 +177,13 @@ const SeatBookingSelector: FC<SeatBookingSelectorProps> = ({
 
 	return (
 		<Grid container spacing={2} justifyContent="center">
+			<Snackbar
+				open={warning !== null}
+				autoHideDuration={6000}
+				message={warning}
+				onClose={() => setWarning(null)}
+			/>
+
 			{/* --- Legend / Info Section --- */}
 			<Grid size={{ xs: 12 }}>
 				<Stack
@@ -299,13 +316,29 @@ const SeatBookingSelector: FC<SeatBookingSelectorProps> = ({
 
 									return (
 										<Tooltip
+											disableInteractive
+											arrow
+											placement="top"
 											key={cIdx}
 											title={
 												booked
 													? "Booked"
 													: `Seat ${label}`
 											}
-											arrow
+											slotProps={{
+												popper: {
+													modifiers: [
+														{
+															name: "offset",
+															options: {
+																offset: [
+																	0, -12,
+																],
+															},
+														},
+													],
+												},
+											}}
 										>
 											<Box sx={{ position: "relative" }}>
 												<IconButton

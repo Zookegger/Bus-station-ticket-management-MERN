@@ -96,7 +96,7 @@ export class RouteStop
         // A RouteStop belongs to one Location
 		RouteStop.belongsTo(models.Location, {
 			foreignKey: "locationId",
-			as: "location",
+			as: "locations",
 		});
 	}
 }

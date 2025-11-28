@@ -15,7 +15,8 @@ import {
 } from "@mui/icons-material";
 import type { CreateVehicleTypeDTO } from "@my-types/vehicleType";
 import SeatLayoutEditor from "@components/seatmap/SeatLayoutEditor";
-import type { CreateVehicleTypeFormProps, SeatLayout } from "./types";
+import type { CreateVehicleTypeFormProps } from "./types";
+import type { SeatLayout } from "@my-types/vehicleType";
 import callApi from "@utils/apiCaller";
 import { API_ENDPOINTS } from "@constants";
 

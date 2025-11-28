@@ -202,7 +202,7 @@ export const getDriverSchedule = async (
 		include: [
 			{
 				model: db.Trip,
-				as: "trips",
+				as: "trip",
 				include: [
 					{ model: db.Route, as: "route" },
 					{ model: db.Vehicle, as: "vehicle" },

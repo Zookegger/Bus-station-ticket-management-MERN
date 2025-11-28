@@ -97,7 +97,6 @@ export const updateTicketAdmin = async (
 				};
 			}
 
-			// Lock target seat
 			const target_seat = await db.Seat.findByPk(dto.seatId, {
 				include: [{ model: db.Trip, as: "trip" }],
 				lock: transaction.LOCK.UPDATE,

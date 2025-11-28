@@ -380,6 +380,7 @@ export const getMe = async (userId: string): Promise<GetMeResponse> => {
 		"lastName",
 		"email",
 		"emailConfirmed",
+		"phoneNumber",
 		"role",
 		"avatar"
 	);
@@ -391,6 +392,7 @@ export const getMe = async (userId: string): Promise<GetMeResponse> => {
 			fullName: user.fullName!,
 			firstName: user.firstName!,
 			lastName: user.lastName!,
+			phoneNumber: user.phoneNumber,
 			email: user.email,
 			emailConfirmed: user.emailConfirmed ?? false,
 			role: user.role,

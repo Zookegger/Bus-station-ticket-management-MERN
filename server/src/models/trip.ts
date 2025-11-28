@@ -271,7 +271,7 @@ export class Trip
 			foreignKey: "returnTripId",
 			as: "returnTrip",
 		});
-		
+
 		Trip.hasOne(models.Trip, {
 			foreignKey: "returnTripId",
 			as: "outboundTrip",

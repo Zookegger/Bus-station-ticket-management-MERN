@@ -56,7 +56,7 @@ export interface ApiEndpoints {
 	readonly TRIP: {
 		readonly BASE: string;
 		readonly SEARCH: string;
-		readonly BY_ID: string;
+		readonly BY_ID: (id: number) => string;
 		readonly CREATE: string;
 		readonly UPDATE: (id: number) => string;
 		readonly DELETE: (id: number) => string;
@@ -101,7 +101,8 @@ export interface ApiEndpoints {
 	};
 	readonly SEAT: {
 		readonly BASE: string;
-		readonly BY_ID: string;
+		readonly BY_ID: (id: number) => string;
+		readonly BY_TRIP_ID: (tripId: number) => string;
 		readonly UPDATE: string;
 	};
 	readonly PAYMENT_METHOD: {

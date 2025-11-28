@@ -32,7 +32,7 @@ import { DateTimePicker, DatePicker } from "@mui/x-date-pickers";
 import { addSeconds, format, isValid } from "date-fns";
 
 import { API_ENDPOINTS } from "@constants";
-import { type TripAttributes, type UpdateTripDTO } from "@my-types/trip";
+import { type Trip, type UpdateTripDTO } from "@my-types/trip";
 import type { Route, Vehicle } from "@my-types";
 import callApi from "@utils/apiCaller";
 import { RouteMap } from "@components/map";
@@ -41,7 +41,7 @@ import axios from "axios";
 
 interface EditTripFormProps {
 	open: boolean;
-	trip: TripAttributes | null;
+	trip: Trip | null;
 	onClose: () => void;
 	onEdited?: () => void;
 }

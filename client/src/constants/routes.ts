@@ -9,7 +9,7 @@
 export const ROUTES = {
 	HOME: "/",
 	SEARCH: "/search",
-	SEAT_BOOKING: "/book",
+	SEAT_BOOKING: "/book/:tripId",
 	DASHBOARD_HOME: "/dashboard/home",
 	DASHBOARD_VEHICLE: "/dashboard/vehicle",
 	DASHBOARD_VEHICLE_TYPE: "/dashboard/vehicle-type",

@@ -192,7 +192,27 @@ export interface ListOptions {
  * @returns Promise resolving to the trip or null if not found
  */
 export const getTripById = async (id: number): Promise<Trip | null> => {
-	return await db.Trip.findByPk(id);
+	return await db.Trip.findByPk(id, {
+		include: [
+			{
+				model: db.Vehicle,
+				as: "vehicle",
+				include: [{ model: db.VehicleType, as: "vehicleType" }],
+			},
+			{
+				model: db.Route,
+				as: "route",
+				include: [
+					{
+						model: db.RouteStop,
+						as: "stops",
+						include: [{ model: db.Location, as: "locations" }],
+					},
+				],
+			},
+			{ model: db.Seat, as: "seats" },
+		],
+	});
 };
 
 /**
@@ -269,7 +289,7 @@ export const searchTrip = async (
 					include: [
 						{
 							model: db.Location,
-							as: "location",
+							as: "locations",
 							where: { name: { [Op.like]: `%${fromLocation}%` } },
 						},
 					],
@@ -283,7 +303,7 @@ export const searchTrip = async (
 					include: [
 						{
 							model: db.Location,
-							as: "location",
+							as: "locations",
 							where: { name: { [Op.like]: `%${toLocation}%` } },
 						},
 					],
@@ -372,7 +392,7 @@ export const searchTrip = async (
 				{
 					model: db.RouteStop,
 					as: "stops",
-					include: [{ model: db.Location, as: "location" }],
+					include: [{ model: db.Location, as: "locations" }],
 				},
 			],
 		},
@@ -383,7 +403,7 @@ export const searchTrip = async (
 			include: [
 				{
 					model: db.VehicleType,
-					as: "vehicleType",
+						as: "vehicleType",
 					...(vehicleTypeId ? { where: { id: vehicleTypeId } } : {}),
 				},
 			],
@@ -414,7 +434,7 @@ export const searchTrip = async (
 				model: db.Route,
 				as: "route",
 				include: [
-					{ model: db.RouteStop, as: "stops", include: ["location"] },
+					{ model: db.RouteStop, as: "stops", include: [{ model: db.Location, as: "locations" }] },
 				],
 			},
 			...(checkSeatAvailability

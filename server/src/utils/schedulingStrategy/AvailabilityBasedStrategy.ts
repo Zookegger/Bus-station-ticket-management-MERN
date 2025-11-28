@@ -38,7 +38,7 @@ class AvailabilityBasedStrategy implements IDriverAssignmentStrategy {
 					include: [
 						{
 							model: db.Trip,
-							as: "trip",
+							as: "trips",
 							where: {
 								status: {
 									[Op.notIn]: [

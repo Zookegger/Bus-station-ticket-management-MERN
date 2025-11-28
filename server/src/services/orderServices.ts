@@ -53,7 +53,7 @@ export const createOrder = async (
 
 		// 2. Calculate Price & Validate Coupon
 		const seatsWithPricing = seats.map((seat) => {
-			if (seat.status !== SeatStatus.AVAILABLE)
+			if (seat.status.toUpperCase() !== SeatStatus.AVAILABLE)
 				throw {
 					status: 409,
 					message: `Seat ${seat.number} is not available.`,
@@ -169,12 +169,7 @@ export const createOrder = async (
 			transaction
 		);
 
-		const transactionState = (
-			transaction as unknown as { finished?: string }
-		).finished;
-		if (!transactionState) {
-			await transaction.commit();
-		}
+		await transaction.commit();
 
 		// Reload order with tickets to return
 		const finalOrder = await Order.findByPk(order.id, {
@@ -195,12 +190,7 @@ export const createOrder = async (
 			paymentUrl,
 		};
 	} catch (err) {
-		const transactionState = (
-			transaction as unknown as { finished?: string }
-		).finished;
-		if (!transactionState) {
-			await transaction.rollback();
-		}
+		await transaction.rollback();
 		logger.error("Order creation failed: ", err);
 		throw err;
 	}
@@ -220,11 +210,11 @@ export const refundTickets = async (dto: RefundTicketDTO): Promise<Order> => {
 		const order = await Order.findByPk(dto.orderId, {
 			include: [
 				{ model: db.Ticket, as: "tickets" },
-				{ model: db.Ticket, as: "payment" },
+				{ model: db.Payment, as: "payment" },
 				{
-					model: db.Ticket,
+					model: db.CouponUsage,
 					as: "couponUsage",
-					include: [{ model: db.Coupon }],
+					include: [{ model: db.Coupon, as: "coupon" }],
 				},
 			],
 		});
@@ -341,8 +331,8 @@ export const cancelTickets = async (dto: RefundTicketDTO): Promise<Order> => {
 				as: "tickets",
 				include: [
 					{
-						model: db.Seat,
-						as: "seat",
+							model: db.Seat,
+							as: "seat",
 						include: [{ model: db.Trip, as: "trip" }],
 					},
 				],

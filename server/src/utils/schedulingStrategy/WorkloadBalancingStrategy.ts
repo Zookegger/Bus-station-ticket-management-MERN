@@ -27,7 +27,7 @@ class WorkloadBalancingStrategy implements IDriverAssignmentStrategy {
 					include: [
 						{
 							model: db.Trip,
-							as: "trip",
+							as: "trips",
 							where: {
 								startTime: { [Op.gte]: new Date() },
 								status: {

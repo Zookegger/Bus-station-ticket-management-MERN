@@ -34,27 +34,27 @@ import { FederatedCredential } from "./federatedCredential";
  * holds all Sequelize models.
  */
 export interface DbModels {
-    sequelize: Sequelize;
-    Setting: typeof Setting;
-    User: typeof User;
+	sequelize: Sequelize;
+	Setting: typeof Setting;
+	User: typeof User;
 	FederatedCredential: typeof FederatedCredential;
-    Notification: typeof Notification;
-    Driver: typeof Driver;
-    Location: typeof Location;
-    Route: typeof Route;
+	Notification: typeof Notification;
+	Driver: typeof Driver;
+	Location: typeof Location;
+	Route: typeof Route;
 	RouteStop: typeof RouteStop;
-    RefreshToken: typeof RefreshToken;
-    Vehicle: typeof Vehicle;
-    VehicleType: typeof VehicleType;
-    Trip: typeof Trip;
-    Seat: typeof Seat;
-    Ticket: typeof Ticket;
-    TripSchedule: typeof TripSchedule;
-    Coupon: typeof Coupon;
-    CouponUsage: typeof CouponUsage;
-    Payment: typeof Payment;
-    PaymentMethod: typeof PaymentMethod;
-    Order: typeof Order;
+	RefreshToken: typeof RefreshToken;
+	Vehicle: typeof Vehicle;
+	VehicleType: typeof VehicleType;
+	Trip: typeof Trip;
+	Seat: typeof Seat;
+	Ticket: typeof Ticket;
+	TripSchedule: typeof TripSchedule;
+	Coupon: typeof Coupon;
+	CouponUsage: typeof CouponUsage;
+	Payment: typeof Payment;
+	PaymentMethod: typeof PaymentMethod;
+	Order: typeof Order;
 }
 
 const models = {
@@ -102,4 +102,4 @@ Object.values(models).forEach((model) => {
 });
 
 export default db;
-export { connectToDatabase } from '@models/setup';
+export { connectToDatabase } from "@models/setup";

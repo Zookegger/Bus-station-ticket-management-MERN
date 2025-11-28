@@ -35,7 +35,6 @@ export interface User {
   dateOfBirth: Date | string | null; // Date on server, ISO string on client
   role: Role;
   emailConfirmed: boolean;
-  lastLogin: string | null; // ISO Date string
   createdAt: Date | string; // Date on server, ISO string on client
   updatedAt: Date | string; // Date on server, ISO string on client
 }

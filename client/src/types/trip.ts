@@ -127,7 +127,7 @@ export interface UpdateTripDTO {
  */
 /**
  * Interface for the attributes of a Trip.
- * @interface TripAttributes
+ * @interface Trip
  * @property {number} id - The unique identifier for the trip.
  * @property {number} routeId - The ID of the route for this trip.
  * @property {number} vehicleId - The ID of the vehicle for this trip.
@@ -138,7 +138,7 @@ export interface UpdateTripDTO {
  * @property {Date} [createdAt] - The date and time the trip was created.
  * @property {Date} [updatedAt] - The date and time the trip was last updated.
  */
-export interface TripAttributes {
+export interface Trip {
 	/**The unique identifier for the trip. */
 	id: number;
 	/**The ID of the route for this trip. */

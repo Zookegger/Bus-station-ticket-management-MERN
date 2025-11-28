@@ -12,13 +12,13 @@ import { Warning } from "@mui/icons-material";
 import axios from "axios";
 import { API_ENDPOINTS } from "@constants";
 import { handleAxiosError } from "@utils/handleError";
-import type { TripAttributes } from "@my-types/trip";
+import type { Trip } from "@my-types/trip";
 
 interface DeleteTripProps {
 	open: boolean;
 	onClose: () => void;
 	onDeleted: () => void;
-	trip: TripAttributes | null;
+	trip: Trip | null;
 }
 
 const DeleteTrip: React.FC<DeleteTripProps> = ({

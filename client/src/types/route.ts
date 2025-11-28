@@ -13,7 +13,7 @@ export interface RouteStop {
 	routeId: number;
 	locationId: number;
 	stopOrder: number;
-	location?: Location;
+	locations?: Location;
 	createdAt?: Date;
 	updatedAt?: Date;
 }

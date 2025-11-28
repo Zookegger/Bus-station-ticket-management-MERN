@@ -5,9 +5,8 @@ import {
 	Sequelize,
 	HasManyGetAssociationsMixin,
 } from "sequelize";
-import { DbModels } from "@models";import { RouteStop } from "./routeStop";
-;
-
+import { DbModels } from "@models";
+import { RouteStop } from "./routeStop";
 /**
  * Sequelize model for Location entity.
  *
@@ -28,13 +27,13 @@ import { DbModels } from "@models";import { RouteStop } from "./routeStop";
  * @property {Date} updatedAt - Timestamp when the record was last updated.
  */
 export interface LocationAttributes {
-    id: number,
-    name: string,
-    address: string | null,
-    latitude?: number | null,
-    longitude?: number | null,
-    createdAt?: Date
-    updatedAt?: Date
+	id: number;
+	name: string;
+	address: string | null;
+	latitude?: number | null;
+	longitude?: number | null;
+	createdAt?: Date;
+	updatedAt?: Date;
 }
 
 /**
@@ -44,7 +43,11 @@ export interface LocationAttributes {
  *
  * @interface LocationCreationAttributes
  */
-export interface LocationCreationAttributes extends Optional<LocationAttributes, 'id' | 'address' | 'latitude' | 'longitude' | 'createdAt' | 'updatedAt'>{}
+export interface LocationCreationAttributes
+	extends Optional<
+		LocationAttributes,
+		"id" | "address" | "latitude" | "longitude" | "createdAt" | "updatedAt"
+	> {}
 
 /**
  * Sequelize model representing a Location.
@@ -64,65 +67,78 @@ export interface LocationCreationAttributes extends Optional<LocationAttributes,
  * @property {Route[]} [routesStartingHere] - Associated Route instances starting from this location.
  * @property {Route[]} [routesEndingHere] - Associated Route instances ending at this location.
  */
-export class Location extends Model<LocationAttributes, LocationCreationAttributes> implements LocationAttributes {
-    /**
-     * @property {number} id - Unique identifier of the location.
-     */
-    public id!: number
-    /**
-     * @property {string} name - Name of the location.
-     */
-    public name!: string
-    /**
-     * @property {string | null} address - Physical address.
-     */
-    public address!: string | null
-    /**
-     * @property {number | null} latitude - Latitude coordinate.
-     */
-    public latitude?: number | null
-    /**
-     * @property {number | null} longitude - Longitude coordinate.
-     */
-    public longitude?: number | null
-    /**
-     * @property {Date} createdAt - Creation timestamp.
-     */
-    public readonly createdAt!: Date
-    /**
-     * @property {Date} updatedAt - Last update timestamp.
-     */
-    public readonly updatedAt!: Date
+export class Location
+	extends Model<LocationAttributes, LocationCreationAttributes>
+	implements LocationAttributes
+{
+	/**
+	 * @property {number} id - Unique identifier of the location.
+	 */
+	public id!: number;
+	/**
+	 * @property {string} name - Name of the location.
+	 */
+	public name!: string;
+	/**
+	 * @property {string | null} address - Physical address.
+	 */
+	public address!: string | null;
+	/**
+	 * @property {number | null} latitude - Latitude coordinate.
+	 */
+	public latitude?: number | null;
+	/**
+	 * @property {number | null} longitude - Longitude coordinate.
+	 */
+	public longitude?: number | null;
+	/**
+	 * @property {Date} createdAt - Creation timestamp.
+	 */
+	public readonly createdAt!: Date;
+	/**
+	 * @property {Date} updatedAt - Last update timestamp.
+	 */
+	public readonly updatedAt!: Date;
 
-    // Association properties
-    public getRouteStops!: HasManyGetAssociationsMixin<RouteStop>;
-    
-    /**
-     * @property {Route[]} [routesEndingHere] - Associated Route Stop locations along the route.
-     */
-    public readonly routeStops?: RouteStop[];
+	// Association properties
+	public getRouteStops!: HasManyGetAssociationsMixin<RouteStop>;
 
-    /**
+	/**
+	 * @property {Route[]} [routesEndingHere] - Associated Route Stop locations along the route.
+	 */
+	public readonly routeStops?: RouteStop[];
+
+	/**
 	 * Initializes the Sequelize model definition for Location.
 	 *
 	 * @param {Sequelize} sequelize - The Sequelize instance.
 	 */
 	static initModel(sequelize: Sequelize) {
-        Location.init(
-            {
-                id: { type: DataTypes.INTEGER.UNSIGNED, primaryKey: true, autoIncrement: true },
-                name: { type: DataTypes.STRING, allowNull: false },
-                address: { type: DataTypes.STRING, allowNull: false },
-                longitude: { type: DataTypes.DECIMAL(10, 7), allowNull: false },
-                latitude: { type: DataTypes.DECIMAL(10, 7), allowNull: false },
-            },
-            {
-                sequelize,
-                tableName: 'locations',
-                timestamps: true,
-				underscored: false
-            }
-        );
+		Location.init(
+			{
+				id: {
+					type: DataTypes.INTEGER.UNSIGNED,
+					primaryKey: true,
+					autoIncrement: true,
+				},
+				name: { type: DataTypes.STRING, allowNull: false },
+				address: { type: DataTypes.STRING, allowNull: false },
+				longitude: { type: DataTypes.DECIMAL(10, 7), allowNull: false, get() {
+                    const v = this.getDataValue(("longitude"));
+                    return v === null ? null : parseFloat(v as unknown as string);
+                } },
+				latitude: { type: DataTypes.DECIMAL(10, 7), allowNull: false, get() {
+                    const v = this.getDataValue(("latitude"));
+                    return v === null ? null : parseFloat(v as unknown as string);
+                } },
+			},
+			{
+				sequelize,
+				tableName: "locations",
+				timestamps: true,
+				underscored: false,
+			}
+		);
 	}
 
 	/**
@@ -132,9 +148,9 @@ export class Location extends Model<LocationAttributes, LocationCreationAttribut
 	 * @returns {void}
 	 */
 	static associate(models: DbModels) {
-        Location.hasMany(models.RouteStop, {
-            foreignKey: "locationId",
-            as: "routeStops"
-        })
+		Location.hasMany(models.RouteStop, {
+			foreignKey: "locationId",
+			as: "routeStops",
+		});
 	}
 }

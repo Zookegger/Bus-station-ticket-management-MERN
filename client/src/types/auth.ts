@@ -68,13 +68,14 @@ export interface RegisterResponse {
 export interface AuthUser {
 	id: string;
 	userName: string;
-	fullName: string;
-	firstName: string;
-	lastName: string;
+	fullName?: string;
+	firstName?: string;
+	lastName?: string;
+	phoneNumber?: string;
 	email: string;
-	emailConfirmed: false;
-	role: "User";
-	avatar: null;
+	emailConfirmed: boolean;
+	avatar?: string | null;
+	role: Role;
 }
 
 /**
@@ -110,6 +111,7 @@ export interface GetMeResponse {
 		fullName?: string;
 		firstName?: string;
 		lastName?: string;
+		phoneNumber?: string;
 		email: string;
 		emailConfirmed: boolean;
 		avatar?: string | null;

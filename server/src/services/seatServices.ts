@@ -72,6 +72,37 @@ export const getSeatById = async (id: number): Promise<Seat | null> => {
 		],
 	});
 };
+/**
+ * Retrieves a seat by its unique identifier.
+ *
+ * @param tripId - Unique identifier of the seat
+ * @returns Promise resolving to the seat or null if not found
+ */
+export const getSeatByTripId = async (
+	tripId: number
+): Promise<Seat[] | null> => {
+	return await db.Seat.findAll({
+		where: { tripId },
+		// include: [
+		// 	{
+		// 		model: db.Trip,
+		// 		as: "trip",
+		// 		include: [
+		// 			{
+		// 				model: db.Vehicle,
+		// 				as: "vehicle",
+		// 				include: [
+		// 					{
+		// 						model: db.VehicleType,
+		// 						as: "vehicleType",
+		// 					},
+		// 				],
+		// 			},
+		// 		],
+		// 	},
+		// ],
+	});
+};
 
 /**
  * Retrieves seats based on filter criteria with optional pagination.

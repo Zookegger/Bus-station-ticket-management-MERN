@@ -13,7 +13,8 @@ import {
 	ArrowBack as ArrowBackIcon,
 	Save as SaveIcon,
 } from "@mui/icons-material";
-import type { EditVehicleTypeFormProps, SeatLayout } from "./types";
+import type { EditVehicleTypeFormProps } from "./types";
+import type { SeatLayout } from "@my-types/vehicleType";
 import SeatLayoutEditor from "@components/seatmap/SeatLayoutEditor";
 import type { UpdateVehicleTypeDTO } from "@my-types/vehicleType";
 

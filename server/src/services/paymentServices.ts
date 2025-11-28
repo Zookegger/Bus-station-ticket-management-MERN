@@ -191,16 +191,35 @@ export const initiatePayment = async (
 
 		if (!payment_url) throw new Error("Failed to generate payment url");
 
-		const completePayment = await getPaymentById(payment.id);
-		if (!completePayment)
-			throw new Error("Failed to retrieve created payment");
+		// Build payment response directly to avoid reading uncommitted rows
+		const paymentResponse: PaymentResponseDTO = {
+			id: payment.id,
+			totalAmount: Number(payment.totalAmount),
+			paymentMethodId: payment.paymentMethodId,
+			paymentStatus: payment.paymentStatus as PaymentStatus,
+			merchantOrderRef: payment.merchantOrderRef,
+			gatewayTransactionNo: payment.gatewayTransactionNo,
+			gatewayResponseData: payment.gatewayResponseData,
+			createdAt: payment.createdAt.toISOString(),
+			expiredAt: payment.expiredAt.toISOString(),
+			updatedAt: payment.updatedAt.toISOString(),
+		};
+
+		// Include payment method details if available from earlier lookup
+		if (payment_method) {
+			paymentResponse.paymentMethod = {
+				id: payment_method.id,
+				name: payment_method.name,
+				code: payment_method.code,
+			};
+		}
 
 		// Commit only if we created the transaction
 		if (owns_tx) await transaction.commit();
 
 		return {
 			paymentUrl: payment_url,
-			payment: completePayment,
+			payment: paymentResponse,
 		};
 	} catch (error) {
 		// Roll back only if we created the transaction; otherwise let caller handle it
@@ -487,7 +506,7 @@ export const getPaymentByMerchantOrderRef = async (
 							{
 								model: Seat,
 								as: "seat",
-								include: [{ model: Trip, as: "trip" }],
+									include: [{ model: Trip, as: "trip" }],
 							},
 						],
 					},
