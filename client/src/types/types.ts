@@ -36,6 +36,7 @@ export interface ApiEndpoints {
 		readonly DELETE_PROFILE: (id: string) => string;
 		readonly ADMIN_UPDATE: (id: string) => string;
 		readonly ADMIN_DELETE: (id: string) => string;
+		readonly WEBSOCKET_AUTH: (id: string) => string;
 	};
 	readonly VEHICLE: {
 		readonly BASE: string;

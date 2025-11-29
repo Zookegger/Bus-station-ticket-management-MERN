@@ -15,11 +15,13 @@ import logger from "@utils/logger";
 import * as paymentServices from "@services/paymentServices";
 import * as userServices from "@services/userServices";
 import * as couponServices from "@services/couponServices";
+import * as notificationServices from "@services/notificationServices";
 import { Op } from "sequelize";
 import { PaymentStatus } from "@my_types/payments";
 import { TripStatus } from "@my_types/trip";
 import * as ticketServices from "@services/ticketServices";
 import { TicketStatus } from "@my_types/ticket";
+import { NotificationPriorities, NotificationTypes } from "@my-types";
 
 /**
  * Creates an order, reserves seats, applies coupons, and initiates payment.
@@ -180,6 +182,21 @@ export const createOrder = async (
 			throw new Error("Something went wrong while creating order");
 		}
 
+		if (dto.userId) {
+			notificationServices
+				.createNotification({
+					userId: dto.userId,
+					title: "Order Successful",
+					content: `Your order #${finalOrder.id} has been successfully placed.`,
+					type: NotificationTypes.BOOKING,
+					priority: NotificationPriorities.MEDIUM,
+					metadata: { orderId: finalOrder.id },
+				})
+				.catch((err) =>
+					logger.error("Failed to send order notification", err)
+				);
+		}
+
 		return {
 			order: {
 				id: finalOrder.id,
@@ -298,6 +315,21 @@ export const refundTickets = async (dto: RefundTicketDTO): Promise<Order> => {
 		await order.update({ status: newOrderStatus }, { transaction });
 
 		await transaction.commit();
+
+		if (order.userId) {
+			notificationServices
+				.createNotification({
+					userId: order.userId,
+					title: "Ticket Refunded",
+					content: `Refund processed for order #${order.id}. Amount: ${totalRefundAmount}`,
+					type: NotificationTypes.PAYMENT,
+					priority: NotificationPriorities.HIGH,
+					metadata: { orderId: order.id },
+				})
+				.catch((err) =>
+					logger.error("Failed to send refund notification", err)
+				);
+		}
 
 		return (await Order.findByPk(order.id, {
 			include: [{ model: db.Ticket, as: "tickets" }],

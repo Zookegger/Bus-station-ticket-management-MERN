@@ -8,6 +8,12 @@ import {
 	FormControl,
 	FormHelperText,
 	Stack,
+	Alert,
+	Card,
+	CardContent,
+	CardMedia,
+	Chip,
+	Grid,
 } from "@mui/material";
 import ListItemText from "@mui/material/ListItemText";
 import ListItemButton from "@mui/material/ListItemButton";
@@ -16,12 +22,12 @@ import Autocomplete from "@mui/material/Autocomplete";
 import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import cover from "@assets/background.jpg";
-import type { Location } from "@my-types";
-import axios from "axios";
+import { type Location, type Coupon, CouponType } from "@my-types";
+import callApi from "@utils/apiCaller";
 import { API_ENDPOINTS, ROUTES } from "@constants/index";
-import { LocationOn, Search } from "@mui/icons-material";
+import { LocationOn, Search, LocalOffer } from "@mui/icons-material";
 import { createSearchParams, useNavigate } from "react-router-dom";
-import { format, formatDate } from "date-fns";
+import { format } from "date-fns";
 
 type TripSearchFormState = {
 	departure: string;
@@ -48,37 +54,77 @@ const Home: React.FC = () => {
 		useState<boolean>(false); // Loading state
 	const [date, setDate] = useState<Date | null>(null); // Selected date/time
 	const [errors] = useState<FormErrorState>({}); // Placeholder for future validation errors
+	const [fetchError, setFetchError] = useState<string | null>(null);
+
+	// Coupons carousel state
+	const [coupons, setCoupons] = useState<Coupon[]>([]);
+	const [isLoadingCoupons, setIsLoadingCoupons] = useState(false);
 
 	// Fetch list of locations from API once on mount
 	useEffect(() => {
 		const fetchLocations = async () => {
 			setIsLoadingLocations(true);
+			setFetchError(null);
 			try {
-				const response = await axios.get(API_ENDPOINTS.LOCATION.SEARCH);
-				if (response.status === 200) {
-					const data = response.data;
-					if (Array.isArray(data)) {
-						setLocations(data);
-					} else if (
-						data?.locations &&
-						Array.isArray(data.locations)
-					) {
-						setLocations(data.locations);
-					} else if (data?.data && Array.isArray(data.data)) {
-						setLocations(data.data);
-					} else {
-						console.warn("Unexpected response structure:", data);
-						setLocations([]);
-					}
+				const response = await callApi({
+					method: "GET",
+					url: API_ENDPOINTS.LOCATION.SEARCH,
+				});
+
+				// Handle different response structures
+				const data = response as any;
+				if (Array.isArray(data)) {
+					setLocations(data);
+				} else if (data?.locations && Array.isArray(data.locations)) {
+					setLocations(data.locations);
+				} else if (data?.data && Array.isArray(data.data)) {
+					setLocations(data.data);
+				} else {
+					console.warn("Unexpected response structure:", data);
+					setLocations([]);
 				}
-			} catch (err) {
+			} catch (err: any) {
 				console.error("Failed to fetch locations:", err);
+				setFetchError(
+					"Failed to load locations. Please try refreshing the page."
+				);
 				setLocations([]);
 			} finally {
 				setIsLoadingLocations(false);
 			}
 		};
 		fetchLocations();
+	}, []);
+
+	// Fetch active coupons for carousel
+	useEffect(() => {
+		const fetchCoupons = async () => {
+			setIsLoadingCoupons(true);
+			try {
+				const response = await callApi({
+					method: "GET",
+					url: API_ENDPOINTS.COUPON.SEARCH,
+					params: { isActive: true, limit: 10 }, // Fetch active coupons, limit to 10
+				});
+
+				const data = response as any;
+				if (Array.isArray(data)) {
+					setCoupons(data);
+				} else if (data?.rows && Array.isArray(data.rows)) {
+					setCoupons(data.rows);
+				} else if (data?.data && Array.isArray(data.data)) {
+					setCoupons(data.data);
+				} else {
+					setCoupons([]);
+				}
+			} catch (err) {
+				console.error("Failed to fetch coupons:", err);
+				setCoupons([]);
+			} finally {
+				setIsLoadingCoupons(false);
+			}
+		};
+		fetchCoupons();
 	}, []);
 
 	const handleSubmit = (e: React.FormEvent) => {
@@ -155,6 +201,12 @@ const Home: React.FC = () => {
 						>
 							Fast, easy, and secure travel reservations
 						</Typography>
+
+						{fetchError && (
+							<Alert severity="error" sx={{ mb: 2 }}>
+								{fetchError}
+							</Alert>
+						)}
 
 						<LocalizationProvider dateAdapter={AdapterDateFns}>
 							<Box
@@ -320,9 +372,7 @@ const Home: React.FC = () => {
 											onChange={(val) => {
 												if (val) {
 													setDate(
-														new Date(
-															val.toString()
-														)
+														new Date(val.toString())
 													);
 												}
 											}}
@@ -357,21 +407,138 @@ const Home: React.FC = () => {
 				</Container>
 			</Box>
 
-			{/* PLACEHOLDER: Future sections (Featured Routes, Promo Banner, Trust Badges) */}
+			{/* Coupons Carousel Section */}
 			<Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
 				<Container maxWidth="lg" sx={{ py: 4 }}>
 					<Typography variant="h5" fontWeight={600} sx={{ mb: 2 }}>
-						Coming Soon: Curated Routes & Deals
+						Special Offers & Coupons
 					</Typography>
-					<Typography
-						variant="body2"
-						color="text.secondary"
-						sx={{ mb: 3 }}
-					>
-						This area will showcase personalized recommendations,
-						promotions, and live route insights.
-					</Typography>
-					{/* Future components: <FeaturedRoutes /> <LivePricingTicker /> <PromoCarousel /> */}
+					{isLoadingCoupons ? (
+						<Typography>Loading offers...</Typography>
+					) : coupons.length > 0 ? (
+						<Box sx={{ overflowX: "auto", pb: 2 }}>
+							<Grid
+								container
+								spacing={2}
+								sx={{ minWidth: "max-content" }}
+							>
+								{coupons.map((coupon) => (
+									<Grid
+										key={coupon.id}
+										size={{ xs: 12, sm: 6, md: 4, lg: 3 }}
+									>
+										{coupon.imgUrl ? (
+											<Card sx={{ maxWidth: 345 }}>
+												<CardMedia
+													component="img"
+													height="140"
+													image={coupon.imgUrl}
+													alt={
+														coupon.title ||
+														coupon.code
+													}
+												/>
+												<CardContent>
+													<Typography
+														gutterBottom
+														variant="h6"
+														component="div"
+													>
+														{coupon.title ||
+															coupon.code}
+													</Typography>
+													<Typography
+														variant="body2"
+														color="text.secondary"
+														sx={{ mb: 1 }}
+													>
+														{coupon.description}
+													</Typography>
+													<Stack
+														direction="row"
+														spacing={1}
+													>
+														<Chip
+															label={`${
+																coupon.type.toUpperCase() ===
+																CouponType.PERCENTAGE
+																	? `${coupon.value}%`
+																	: `$${coupon.value}`
+															}`}
+															color="primary"
+															size="small"
+														/>
+														<Chip
+															label={`Code: ${coupon.code}`}
+															variant="outlined"
+															size="small"
+														/>
+													</Stack>
+												</CardContent>
+											</Card>
+										) : (
+											<Card sx={{ maxWidth: 345 }}>
+												<CardContent
+													sx={{ textAlign: "center" }}
+												>
+													<LocalOffer
+														sx={{
+															fontSize: 48,
+															color: "primary.main",
+															mb: 2,
+														}}
+													/>
+													<Typography
+														gutterBottom
+														variant="h6"
+														component="div"
+													>
+														{coupon.title ||
+															coupon.code}
+													</Typography>
+													<Typography
+														variant="body2"
+														color="text.secondary"
+														sx={{ mb: 1 }}
+													>
+														{coupon.description}
+													</Typography>
+													<Stack
+														direction="row"
+														spacing={1}
+														sx={{
+															justifyContent:
+																"center",
+														}}
+													>
+														<Chip
+															label={`${
+																coupon.type.toUpperCase() ===
+																CouponType.PERCENTAGE
+																	? `${Math.floor(coupon.value)}%`
+																	: `$${coupon.value}`
+															} Off`}
+															color="primary"
+															size="small"
+														/>
+														<Chip
+															label={`Code: ${coupon.code}`}
+															variant="outlined"
+															size="small"
+														/>
+													</Stack>
+												</CardContent>
+											</Card>
+										)}
+									</Grid>
+								))}
+							</Grid>
+						</Box>
+					) : (
+						<Typography variant="body2" color="text.secondary">
+							No special offers available at the moment.
+						</Typography>
+					)}
 				</Container>
 			</Box>
 		</Box>

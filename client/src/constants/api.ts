@@ -38,6 +38,7 @@ export const API_ENDPOINTS: ApiEndpoints = {
 		UPDATE_PROFILE: (id: string) => `/users/profile/${id}`,
 		ADMIN_UPDATE: (id: string) => `/users/${id}`,
 		ADMIN_DELETE: (id: string) => `/users/${id}`,
+		WEBSOCKET_AUTH: (id: string) => `/websocket-token/${id}`
 	},
 	VEHICLE: {
 		BASE: "/vehicles",

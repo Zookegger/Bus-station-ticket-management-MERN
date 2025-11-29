@@ -25,6 +25,7 @@ import {
 	Close as CloseIcon,
 } from "@mui/icons-material";
 import type { Notification } from "@my-types/notifications";
+import { useNotifications } from "@contexts/NotificationContext";
 
 interface NotificationPopperProps {
 	/**
@@ -34,7 +35,7 @@ interface NotificationPopperProps {
 	/**
 	 * Array of notifications to display
 	 */
-	notifications: Notification[];
+	notifications?: Notification[];
 	/**
 	 * Loading state for notifications
 	 */
@@ -112,19 +113,43 @@ const NotificationPopper: React.FC<NotificationPopperProps> = ({
 		setOpen(false);
 	};
 
+	// If parent didn't pass notifications/handlers, try to use context.
+	let ctxNotifications: Notification[] | null = null;
+	let ctxLoading: boolean | null = null;
+	let ctxMarkAsRead: ((id: number) => Promise<void>) | null = null;
+	let ctxMarkAllAsRead: (() => Promise<void>) | null = null;
+	let ctxDeleteNotification: ((id: number) => Promise<void>) | null = null;
+
+	try {
+		const ctx = useNotifications();
+		ctxNotifications = ctx.notifications;
+		ctxLoading = ctx.isLoading;
+		ctxMarkAsRead = ctx.markAsRead;
+		ctxMarkAllAsRead = ctx.markAllAsRead;
+		ctxDeleteNotification = ctx.deleteNotification;
+	} catch (err) {
+		// Provider not mounted — fall back to props only
+	}
+
+	const effectiveNotifications = notifications ?? ctxNotifications ?? [];
+	const effectiveLoading = loading || ctxLoading || false;
+	const effectiveOnMarkAsRead = onMarkAsRead ?? (ctxMarkAsRead ?? (() => Promise.resolve()));
+	const effectiveOnDelete = onDelete ?? (ctxDeleteNotification ?? (() => Promise.resolve()));
+	const effectiveOnMarkAllAsRead = onMarkAllAsRead ?? (ctxMarkAllAsRead ?? (() => Promise.resolve()));
+
 	const handleMarkAsRead = (notificationId: number) => {
-		onMarkAsRead?.(notificationId);
+		effectiveOnMarkAsRead(notificationId);
 	};
 
 	const handleDelete = (notificationId: number) => {
-		onDelete?.(notificationId);
+		effectiveOnDelete(notificationId);
 	};
 
 	const handleMarkAllAsRead = () => {
-		onMarkAllAsRead?.();
+		effectiveOnMarkAllAsRead();
 	};
 
-	const unreadCount = notifications.filter(
+	const unreadCount = effectiveNotifications.filter(
 		(n) => n.status === "unread"
 	).length;
 
@@ -254,7 +279,7 @@ const NotificationPopper: React.FC<NotificationPopperProps> = ({
 							</Box>
 
 							{/* Content */}
-							{loading ? (
+							{effectiveLoading ? (
 								<Box
 									sx={{
 										display: "flex",
@@ -264,7 +289,7 @@ const NotificationPopper: React.FC<NotificationPopperProps> = ({
 								>
 									<CircularProgress size={24} />
 								</Box>
-							) : notifications.length === 0 ? (
+							) : effectiveNotifications.length === 0 ? (
 								<Box sx={{ p: 3, textAlign: "center" }}>
 									<NotificationsNoneIcon
 										sx={{
@@ -282,8 +307,7 @@ const NotificationPopper: React.FC<NotificationPopperProps> = ({
 								</Box>
 							) : (
 								<List sx={{ py: 0 }}>
-									{notifications.map(
-										(notification, index) => (
+									{effectiveNotifications.map((notification, index) => (
 											<React.Fragment
 												key={notification.id}
 											>
@@ -406,9 +430,7 @@ const NotificationPopper: React.FC<NotificationPopperProps> = ({
 														</IconButton>
 													</Box>
 												</ListItem>
-												{index <
-													notifications.length -
-														1 && <Divider />}
+												{index < effectiveNotifications.length - 1 && <Divider />}
 											</React.Fragment>
 										)
 									)}

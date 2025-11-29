@@ -13,8 +13,10 @@ import { COMPUTED } from "@constants/config";
 import { OrderStatus } from "@models/orders";
 import { PaymentStatus } from "@my_types/payments";
 import * as couponServices from "@services/couponServices";
+import * as notificationServices from "@services/notificationServices";
 import { emitBulkSeatUpdates, emitSeatUpdate } from "./realtimeEvents";
 import { SeatPayload } from "@my_types/realtime";
+import { NotificationPriorities, NotificationTypes } from "@my-types";
 
 export const updateTicketAdmin = async (
 	ticket_id: number,
@@ -453,8 +455,7 @@ export const searchTicket = async (
  */
 export const confirmTickets = async (
 	ticketIds: number[]
-	// ): Promise<Ticket[]> => {
-): Promise<void> => {
+): Promise<Ticket[]> => {
 	if (!ticketIds || ticketIds.length === 0)
 		throw { status: 400, message: "An array of ticket IDs is required." };
 
@@ -517,11 +518,24 @@ export const confirmTickets = async (
 
 		await transaction.commit();
 
-		// for (const ticket of tickets) {
-		//     ticket.status = TicketStatus.COMPLETED;
-		// }
+		const ticketsByDetail = tickets.reduce((acc, t) => {
+			if (t.userId) acc[t.userId] = (acc[t.userId] || 0) + 1;
+			return acc;
+		}, {} as Record<string, number>);
 
-		// return tickets;
+		Object.entries(ticketsByDetail).forEach(([userId, count]) => {
+			notificationServices
+				.createNotification({
+					userId,
+					title: "Check-in Successful",
+					content: `Successfully checked in ${count} ticket(s). Have a safe trip!`,
+					type: NotificationTypes.TRIP,
+					priority: NotificationPriorities.LOW,
+				})
+				.catch((e) => logger.error("Check-in notification error", e));
+		});
+
+		return tickets;
 	} catch (err) {
 		await transaction.rollback();
 		logger.error(err);

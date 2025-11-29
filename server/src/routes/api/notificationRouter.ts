@@ -2,6 +2,8 @@ import { Router } from "express";
 import * as notificationController from "@controllers/notificationController";
 import { csrfUserProtectionRoute } from "@middlewares/csrf";
 import { errorHandler } from "@middlewares/errorHandler";
+import { handleValidationResult } from "@middlewares/validateRequest";
+import * as notificationValidators from "@middlewares/validators/notificationValidators";
 
 const notificationRouter = Router();
 
@@ -9,6 +11,8 @@ const notificationRouter = Router();
 notificationRouter.get(
 	"/",
 	csrfUserProtectionRoute,
+	notificationValidators.getUserNotificationsValidation,
+	handleValidationResult,
 	notificationController.getUserNotifications,
 	errorHandler
 );
@@ -25,6 +29,8 @@ notificationRouter.put(
 notificationRouter.put(
 	"/:id/read",
 	csrfUserProtectionRoute,
+	notificationValidators.markAsReadValidation,
+	handleValidationResult,
 	notificationController.markAsRead,
 	errorHandler
 );
@@ -33,6 +39,8 @@ notificationRouter.put(
 notificationRouter.delete(
 	"/:id",
 	csrfUserProtectionRoute,
+	notificationValidators.deleteNotificationValidation,
+	handleValidationResult,
 	notificationController.deleteNotification,
 	errorHandler
 );

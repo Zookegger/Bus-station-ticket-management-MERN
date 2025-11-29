@@ -5,9 +5,10 @@ import {
 	type ManagerOptions,
 	type SocketOptions,
 } from "socket.io-client";
-import { WEBSOCKET_CONNECTION_STATES } from "@constants/index";
+import { API_ENDPOINTS, WEBSOCKET_CONNECTION_STATES } from "@constants/index";
 import type { WebsocketOptions } from "@my-types/websocket";
-import axios from "axios";
+import callApi from "@utils/apiCaller";
+import { useAuth } from "./useAuth";
 
 // Singleton WebSocket instance for performance
 let global_socket: Socket | null = null;
@@ -74,6 +75,11 @@ const useWebsocket = (options: WebsocketOptions = {}) => {
 
 	const debug_ref = useRef(debug);
 	debug_ref.current = debug;
+
+	// Access auth at top level of the hook to comply with Rules of Hooks.
+	// Use `userAuth` to avoid colliding with this hook's `isAuthenticated` socket state.
+	// Note: useWebsocket is used inside SocketProvider which is wrapped by AuthProvider.
+	const userAuth = useAuth();
 
 	// Debug logging helper
 	const debugLog = useCallback(
@@ -269,10 +275,12 @@ const useWebsocket = (options: WebsocketOptions = {}) => {
 	);
 
 	const getAuthToken = async () => {
+		if (!userAuth.isAuthenticated || !userAuth.user) return null;
+
 		try {
-			const response = await axios("/api/users/websocket-token", {
+			const response = await callApi({
 				method: "POST",
-				withCredentials: true,
+				url: API_ENDPOINTS.USERS.WEBSOCKET_AUTH(userAuth.user.id),
 			});
 
 			if (response.status && response.data.websocket_token) {

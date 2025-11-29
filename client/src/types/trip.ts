@@ -176,3 +176,8 @@ export interface Trip {
 	/**The date and time the trip was last updated. */
 	updatedAt?: Date;
 }
+
+export interface TripResponse {
+	rows: Trip[];
+	count: number;
+}

@@ -10,15 +10,45 @@ import {
 	MenuItem,
 	Avatar,
 	Skeleton,
+	IconButton,
+	Badge,
 } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import { APP_CONFIG, ROUTES } from "@constants/index";
 import { useAuth } from "@hooks/useAuth";
-import { AccountBox, Logout, Window } from "@mui/icons-material";
+import {
+	AccountBox as AccountBoxIcon,
+	Login as LoginIcon,
+	PersonAdd as RegisterIcon,
+	Logout as LogoutIcon,
+	Notifications as NotificationsIcon,
+	Window as WindowIcon,
+} from "@mui/icons-material";
 import buildAvatarUrl from "@utils/avatarImageHelper";
+import { useNotifications } from "@contexts/NotificationContext";
+import { NotificationPopper } from "@components/common";
+import { Stack } from "@mui/system";
 
 const Header: React.FC = () => {
 	const { isAuthenticated, isAdmin, user, logout, isLoading } = useAuth();
+	let notifications = [] as any[];
+	let deleteNotification = async (_id: number) => {};
+	let markAllAsRead = async () => {};
+	let markAsRead = async (_id: number) => {};
+	let unreadCount = 0;
+	let notifLoading = false;
+
+	try {
+		const notifCtx = useNotifications();
+		notifications = notifCtx.notifications;
+		deleteNotification = notifCtx.deleteNotification;
+		markAllAsRead = notifCtx.markAllAsRead;
+		markAsRead = notifCtx.markAsRead;
+		unreadCount = notifCtx.unreadCount;
+		notifLoading = notifCtx.isLoading;
+	} catch (err) {
+		// NotificationProvider not mounted — fall back to safe defaults
+	}
 
 	const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -49,7 +79,7 @@ const Header: React.FC = () => {
 						{APP_CONFIG.name}
 					</Typography>
 					<Box flex={1} />
-					<Box>
+					<Stack direction={"row"} gap={isAuthenticated && user ? 0 : 1}>
 						{isLoading ? (
 							<Skeleton
 								variant="rectangular"
@@ -111,7 +141,9 @@ const Header: React.FC = () => {
 										component={RouterLink}
 										to={ROUTES.PROFILE}
 									>
-										<AccountBox sx={{ marginRight: 1 }} />
+										<AccountBoxIcon
+											sx={{ marginRight: 1 }}
+										/>
 										Profile
 									</MenuItem>
 									{isAdmin && (
@@ -120,7 +152,9 @@ const Header: React.FC = () => {
 											component={RouterLink}
 											to={ROUTES.DASHBOARD_HOME}
 										>
-											<Window sx={{ marginRight: 1 }} />
+											<WindowIcon
+												sx={{ marginRight: 1 }}
+											/>
 											Dashboard
 										</MenuItem>
 									)}
@@ -130,10 +164,27 @@ const Header: React.FC = () => {
 											await logout();
 										}}
 									>
-										<Logout sx={{ marginRight: 1 }} />
+										<LogoutIcon sx={{ marginRight: 1 }} />
 										Logout
 									</MenuItem>
 								</Menu>
+
+								<NotificationPopper
+									notifications={notifications}
+									loading={notifLoading}
+									onMarkAsRead={markAsRead}
+									onMarkAllAsRead={markAllAsRead}
+									onDelete={deleteNotification}
+								>
+									<IconButton color="inherit" size="large">
+										<Badge
+											badgeContent={unreadCount}
+											color="error"
+										>
+											<NotificationsIcon />
+										</Badge>
+									</IconButton>
+								</NotificationPopper>
 							</>
 						) : (
 							<>
@@ -142,6 +193,10 @@ const Header: React.FC = () => {
 									component={RouterLink}
 									to={ROUTES.LOGIN}
 									size="small"
+									className="hvr-icon-grow"
+									startIcon={
+										<LoginIcon className="hvr-icon" />
+									}
 								>
 									Login
 								</Button>
@@ -150,12 +205,16 @@ const Header: React.FC = () => {
 									component={RouterLink}
 									to={ROUTES.REGISTER}
 									size="small"
+									className="hvr-icon-grow"
+									startIcon={
+										<RegisterIcon className="hvr-icon" />
+									}
 								>
 									Register
 								</Button>
 							</>
 						)}
-					</Box>
+					</Stack>
 				</Toolbar>
 			</Container>
 		</AppBar>

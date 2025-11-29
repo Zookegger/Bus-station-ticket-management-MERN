@@ -100,7 +100,23 @@ const EditCouponForm: React.FC<EditCouponFormProps> = ({
 		// Populate form when editing an existing coupon
 		if (coupon) {
 			setFormData({
-				...coupon,
+				code: coupon.code,
+				type: coupon.type,
+				value: coupon.value,
+				startPeriod: coupon.startPeriod
+					? typeof coupon.startPeriod === "string"
+						? coupon.startPeriod
+						: coupon.startPeriod.toISOString()
+					: undefined,
+				endPeriod: coupon.endPeriod
+					? typeof coupon.endPeriod === "string"
+						? coupon.endPeriod
+						: coupon.endPeriod.toISOString()
+					: undefined,
+				isActive: coupon.isActive,
+				description: coupon.description ?? undefined,
+				imgUrl: coupon.imgUrl ?? undefined,
+				title: coupon.title ?? undefined,
 				maxUsage: coupon.maxUsage ?? 1,
 			});
 			// Show current image if any and no new file selected

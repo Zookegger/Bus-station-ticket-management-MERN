@@ -1,4 +1,8 @@
-import { PaymentAdditionalData, PaymentInitResponse, PaymentMethod } from "@my_types/payments";
+import {
+	PaymentAdditionalData,
+	PaymentInitResponse,
+	PaymentMethod,
+} from "@my_types/payments";
 
 /**
  * Represents the lifecycle status of a ticket.
@@ -25,7 +29,7 @@ export enum TicketStatus {
 	/** The ticket is invalid (e.g., expired, voided) */
 	INVALID = "INVALID",
 	/** The ticket has expired. */
-	EXPIRED = "EXPIRED"
+	EXPIRED = "EXPIRED",
 }
 
 /**
@@ -46,7 +50,7 @@ export interface BookTicketDTO {
 	seatIds?: number | number[] | null;
 
 	couponIds?: string | null;
-  	/** Selected payment gateway code */
+	/** Selected payment gateway code */
 	paymentMethodCode: PaymentMethod;
 	/** Optional gateway-specific data (e.g., ipAddress, orderInfo, locale) */
 	additionalData?: PaymentAdditionalData;
@@ -60,12 +64,12 @@ export interface BookTicketDTO {
  * @property {PaymentInitResponse} [payment] - Compact payment summary.
  */
 export interface BookTicketResult {
-  /** Persisted ticket IDs (status = PENDING until payment completes) */
-  ticketIds: number[];
-  /** Redirect URL to the selected payment gateway (if applicable) */
-  paymentUrl?: string;
-  /** Compact payment summary */
-  payment?: PaymentInitResponse;
+	/** Persisted ticket IDs (status = PENDING until payment completes) */
+	ticketIds: number[];
+	/** Redirect URL to the selected payment gateway (if applicable) */
+	paymentUrl?: string;
+	/** Compact payment summary */
+	payment?: PaymentInitResponse;
 }
 
 /**
@@ -97,7 +101,6 @@ export interface GetTicketQueryDTO {
 	/** Maximum final price filter */
 	maxFinalPrice?: number;
 }
-
 
 /**
  * Options for querying tickets with filtering, sorting, and pagination.
@@ -148,18 +151,24 @@ export interface TicketQueryOptions {
 	/** Offset for pagination. */
 	offset?: number;
 	/** Sort by field. */
-	sortBy?: 'id' | 'basePrice' | 'finalPrice' | 'status' | 'createdAt' | 'updatedAt';
+	sortBy?:
+		| "id"
+		| "basePrice"
+		| "finalPrice"
+		| "status"
+		| "createdAt"
+		| "updatedAt";
 	/** Sort order. */
 	sortOrder?: "ASC" | "DESC";
 	/** Optional associations to include. */
 	include?: ("user" | "seat" | "order" | "payments")[];
-} 
+}
 
 /**
  * DTO for admin ticket updates.
  */
 export interface AdminUpdateTicketDTO {
-    status?: TicketStatus;
-    seatId?: number | null;
-    note?: string | null;
+	status?: TicketStatus;
+	seatId?: number | null;
+	note?: string | null;
 }

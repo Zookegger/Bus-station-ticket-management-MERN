@@ -64,10 +64,10 @@ const CouponDetailsDrawer: React.FC<CouponDetailsDrawerProps> = ({
 
 	const formatted_details = coupon
 		? {
-				start_period: formatDateTime(coupon.startPeriod),
-				end_period: formatDateTime(coupon.endPeriod),
-				created_at: formatDateTime(coupon.createdAt),
-				updated_at: formatDateTime(coupon.updatedAt),
+				start_period: coupon.startPeriod ? formatDateTime(coupon.startPeriod.toString()) : "N/A",
+				end_period: coupon.endPeriod ? formatDateTime(coupon.endPeriod.toString()) : "N/A",
+				created_at: coupon.createdAt ? formatDateTime(coupon.createdAt.toString()) : "N/A",
+				updated_at: coupon.updatedAt ? formatDateTime(coupon.updatedAt.toString()) : "N/A",
 				value_label:
 					coupon.type === CouponType.PERCENTAGE
 						? `${coupon.value}%`

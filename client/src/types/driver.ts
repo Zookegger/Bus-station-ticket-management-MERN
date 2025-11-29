@@ -23,132 +23,82 @@
  * Based on server/src/types/driver.ts
  */
 
+import type { Gender } from "./user";
+
+export const DriverStatus = {
+	ACTIVE: "ACTIVE",
+	INACTIVE: "INACTIVE",
+	SUSPENDED: "SUSPENDED",
+} as const;
+
+export type DriverStatus = (typeof DriverStatus)[keyof typeof DriverStatus];
+
 /**
  * Represents a driver's profile on the client-side.
  */
 export interface Driver {
-  id: number;
-  fullname?: string | null;
-  phoneNumber?: string | null;
-  avatar?: string | null;
-  hiredAt?: string | null; // ISO Date string
-  isActive: boolean;
-  licenseNumber?: string | null;
-  licenseCategory?: string | null;
-  licenseIssueDate?: string | null; // ISO Date string
-  licenseExpiryDate?: string | null; // ISO Date string
-  issuingAuthority?: string | null;
-  isSuspended: boolean;
-  createdAt: string; // ISO Date string
-  updatedAt: string; // ISO Date string
+	id: number;
+	fullname?: string | null;
+	gender: Gender;
+	status: DriverStatus;
+	email?: string | null;
+	phoneNumber?: string | null;
+	avatar?: string | null;
+	dateOfBirth?: string | null; // ISO Date string
+	citizenId?: string | null;
+	address?: string | null;
+	hiredAt?: string | null; // ISO Date string
+	isActive: boolean;
+	licenseNumber?: string | null;
+	licenseCategory?: string | null;
+	licenseIssueDate?: string | null; // ISO Date string
+	licenseExpiryDate?: string | null; // ISO Date string
+	issuingAuthority?: string | null;
+	isSuspended: boolean;
+	createdAt: string; // ISO Date string
+	updatedAt: string; // ISO Date string
 }
 
 /**
  * DTO for creating a new Driver profile.
  */
 export interface CreateDriverDTO {
-  fullname?: string | null;
-  phoneNumber?: string | null;
-  avatar?: string | null;
-  hiredAt?: string | null; // ISO Date string
-  isActive?: boolean;
-  licenseNumber?: string | null;
-  licenseCategory?: string | null;
-  licenseIssueDate?: string | null; // ISO Date string
-  licenseExpiryDate?: string | null; // ISO Date string
-  issuingAuthority?: string | null;
-  isSuspended?: boolean;
+	fullname?: string | null;
+	email?: string | null;
+	gender: Gender;
+	phoneNumber?: string | null;
+	avatar?: string | null;
+	dateOfBirth?: string | null; // ISO Date string
+	address?: string | null;
+	hiredAt?: string | null; // ISO Date string
+	isActive?: boolean;
+	status?: DriverStatus;
+	licenseNumber?: string | null;
+	licenseCategory?: string | null;
+	licenseIssueDate?: string | null; // ISO Date string
+	licenseExpiryDate?: string | null; // ISO Date string
+	issuingAuthority?: string | null;
+	isSuspended?: boolean;
 }
 
 /**
  * DTO for updating an existing Driver profile.
  */
 export interface UpdateDriverDTO {
-  fullname?: string | null;
-  phoneNumber?: string | null;
-  avatar?: string | null;
-  hiredAt?: string | null; // ISO Date string
-  isActive?: boolean;
-  licenseNumber?: string | null;
-  licenseCategory?: string | null;
-  licenseIssueDate?: string | null; // ISO Date string
-  licenseExpiryDate?: string | null; // ISO Date string
-  issuingAuthority?: string | null;
-  isSuspended?: boolean;
+	fullname?: string | null;
+	gender?: Gender | null;
+	email?: string | null;
+	phoneNumber?: string | null;
+	avatar?: string | null;
+	dateOfBirth?: string | null; // ISO Date string
+	address?: string | null;
+	hiredAt?: string | null; // ISO Date string
+	isActive?: boolean;
+	status?: DriverStatus;
+	licenseNumber?: string | null;
+	licenseCategory?: string | null;
+	licenseIssueDate?: string | null; // ISO Date string
+	licenseExpiryDate?: string | null; // ISO Date string
+	issuingAuthority?: string | null;
+	isSuspended?: boolean;
 }
-
-/**
- * Data Transfer Object for updating an existing Driver profile.
- *
- * Used for PUT/PATCH requests where only specific fields may be modified.
- * The `id` is required to identify which driver profile to update.
- *
- * @interface UpdateDriverDTO
- * @property {number} id - ID of the driver profile to update
- * @property {string | null} [fullname] - Updated driver's full name
- * @property {string | null} [phoneNumber] - Updated driver's phone number
- * @property {string | null} [avatar] - Updated URL or path to the driver's avatar image
- * @property {Date | null} [hiredAt] - Updated date when the driver was hired
- * @property {boolean} [isActive] - Updated active employment status
- * @property {string | null} [licenseNumber] - Updated driver's license number
- * @property {string | null} [licenseCategory] - Updated license category
- * @property {Date | null} [licenseIssueDate] - Updated license issue date
- * @property {Date | null} [licenseExpiryDate] - Updated license expiry date
- * @property {string | null} [issuingAuthority] - Updated issuing authority
- * @property {boolean} [isSuspended] - Updated suspension status
- */
-export interface UpdateDriverDTO {
-  id: number;
-  fullname?: string | null;
-  phoneNumber?: string | null;
-  avatar?: string | null;
-  hiredAt?: string | null;
-  isActive?: boolean;
-  licenseNumber?: string | null;
-  licenseCategory?: string | null;
-  licenseIssueDate?: string | null;
-  licenseExpiryDate?: string | null;
-  issuingAuthority?: string | null;
-  isSuspended?: boolean;
-}
-export interface DriverRecord {
-  id: string;
-  fullName: string;
-  email: string;
-  phone: string;
-  gender: "Male" | "Female";
-  dateOfBirth: string; // YYYY-MM-DD
-  address: string;
-  licenseNumber: string;
-  licenseClass: string;
-  issueDate: string;
-  expiryDate: string;
-  status: "active" | "inactive" | "suspended";
-  totalTrips: number;
-  totalEarnings: number;
-  rating: number;
-  avatar?: string;
-}
-
-/**
- * Model attribute interface for Driver (server-aligned).
- * Use these when working with driver records returned by APIs or stored locally.
- */
-export interface DriverAttributes {
-  id: number | string;
-  fullname?: string | null;
-  phoneNumber?: string | null;
-  avatar?: string | null;
-  hiredAt?: Date | string | null;
-  isActive: boolean;
-  licenseNumber?: string | null;
-  licenseCategory?: string | null;
-  licenseIssueDate?: Date | string | null;
-  licenseExpiryDate?: Date | string | null;
-  issuingAuthority?: string | null;
-  isSuspended?: boolean;
-  createdAt?: Date | string;
-  updatedAt?: Date | string;
-}
-
-export type DriverCreationAttributes = Omit<Partial<DriverAttributes>, 'id'> & Partial<Pick<DriverAttributes, 'id'>>;

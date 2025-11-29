@@ -199,13 +199,13 @@ const CreateRouteForm: React.FC<CreateRouteFormProps> = ({
 				duration: duration,
 			};
 
-			const { status, data } = await callApi({
+			const data = await callApi({
 				method: "POST",
 				url: API_ENDPOINTS.ROUTE.BASE,
 				data: payload,
-			}, { returnFullResponse: true });
+			});
 
-			if (status !== 200 || !data) throw new Error("Failed to create route");
+			if (!data) throw new Error("Failed to create route");
 			onCreated?.();
 			onClose();
 		} catch (err: any) {

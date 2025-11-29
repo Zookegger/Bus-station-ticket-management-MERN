@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
 	Box,
 	List,
@@ -36,11 +36,10 @@ import {
 	Logout,
 	Notifications as NotificationsIcon,
 } from "@mui/icons-material";
-import { APP_CONFIG, ROUTES, API_ENDPOINTS } from "@constants/index";
+import { APP_CONFIG, ROUTES } from "@constants/index";
 import { useAuth } from "@hooks/useAuth";
-import useWebsocket from "@hooks/useWebsocket";
+import { useNotifications } from "@contexts/NotificationContext";
 import buildAvatarUrl from "@utils/avatarImageHelper";
-import { callApi } from "@utils/apiCaller";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTicket } from "@fortawesome/free-solid-svg-icons";
 import { NotificationPopper } from "@components/common";
@@ -129,11 +128,28 @@ interface PositionedMenuProps {
 }
 
 const PositionedMenu: React.FC<PositionedMenuProps> = ({ isCollapsed, sx }) => {
-	const { user, logout, isAuthenticated, isLoading } = useAuth();
-	const { socket } = useWebsocket();
+	const { user, logout, isAuthenticated, isLoading: authLoading } = useAuth();
 	const navigate = useNavigate();
-	const [notifications, setNotifications] = useState<Notification[]>([]);
-	const [unreadCount, setUnreadCount] = useState<number>(0);
+	let notifications: Notification[] = [];
+	let unreadCount = 0;
+	let notifLoading = false;
+	let markAsRead = async (_id: number) => {};
+	let markAllAsRead = async () => {};
+	let deleteNotification = async (_id: number) => {};
+
+	// useNotifications throws when provider is not mounted. Guard it so the sidebar
+	// doesn't crash if NotificationProvider isn't mounted (useful in some dev routes).
+	try {
+		const ctx = useNotifications();
+		notifications = ctx.notifications;
+		unreadCount = ctx.unreadCount;
+		notifLoading = ctx.isLoading;
+		markAsRead = ctx.markAsRead;
+		markAllAsRead = ctx.markAllAsRead;
+		deleteNotification = ctx.deleteNotification;
+	} catch (err) {
+		// Provider not mounted — keep safe defaults and no-op methods
+	}
 	const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 	const open = Boolean(anchorEl);
 
@@ -155,77 +171,7 @@ const PositionedMenu: React.FC<PositionedMenuProps> = ({ isCollapsed, sx }) => {
 		navigate("/login");
 	};
 
-	const fetchNotifications = async () => {
-		try {
-			const response = await callApi<{ data: Notification[] }>({
-				method: "GET",
-				url: API_ENDPOINTS.NOTIFICATION.BASE,
-			});
-
-			if (response.data) {
-				setNotifications(response.data as Notification[]);
-				setUnreadCount(
-					(response.data as Notification[]).filter((n) => !n.readAt)
-						.length
-				);
-			}
-		} catch (error) {
-			console.error("Failed to fetch notifications", error);
-		}
-	};
-
-	const handleMarkAsAllRead = async () => {
-		try {
-			await callApi({
-				method: "PATCH",
-				url: API_ENDPOINTS.NOTIFICATION.READ_ALL,
-			});
-			setNotifications((prev) =>
-				prev.map((n) => ({ ...n, isRead: true }))
-			);
-			setUnreadCount(0);
-		} catch (error) {
-			console.error("Failed to mark all as read", error);
-		}
-	};
-
-	const handleMarkAsRead = async (id: number) => {
-		try {
-			await callApi({
-				method: "PATCH",
-				url: API_ENDPOINTS.NOTIFICATION.READ(id),
-			});
-			setNotifications((prev) =>
-				prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-			);
-			setUnreadCount((prev) => Math.max(0, prev - 1));
-		} catch (error) {
-			console.error("Failed to mark as read", error);
-		}
-	};
-
-	useEffect(() => {
-		if (isAuthenticated) {
-			fetchNotifications();
-		}
-	}, [isAuthenticated]);
-
-	useEffect(() => {
-		if (!socket || !isAuthenticated) return;
-
-		const handleNewNotification = (notification: Notification) => {
-			setNotifications((prev) => [notification, ...prev]);
-			setUnreadCount((prev) => prev + 1);
-		};
-
-		socket.on("notification:new", handleNewNotification);
-
-		return () => {
-			socket.off("notification:new", handleNewNotification);
-		};
-	}, [socket, isAuthenticated]);
-
-	if (isLoading) {
+	if (authLoading) {
 		return <Skeleton />;
 	}
 
@@ -352,9 +298,10 @@ const PositionedMenu: React.FC<PositionedMenuProps> = ({ isCollapsed, sx }) => {
 
 					<NotificationPopper
 						notifications={notifications}
-						onMarkAsRead={handleMarkAsRead}
-						onMarkAllAsRead={handleMarkAsAllRead}
-						loading={isLoading}
+						onMarkAsRead={markAsRead}
+						onMarkAllAsRead={markAllAsRead}
+						onDelete={deleteNotification}
+						loading={notifLoading}
 						placement="top"
 					>
 						<IconButton>
@@ -365,14 +312,99 @@ const PositionedMenu: React.FC<PositionedMenuProps> = ({ isCollapsed, sx }) => {
 					</NotificationPopper>
 				</>
 			) : user?.avatar ? (
-				<Avatar
-					src={buildAvatarUrl(user.avatar) ?? ""}
-					alt={user.firstName}
-					sx={{
-						width: "32px",
-						height: "32px",
-					}}
-				/>
+				<>
+					<Button
+						fullWidth
+						sx={{
+							color: "rgba(255, 255, 255, 0.51)",
+							"&:hover": {
+								backgroundColor: "rgba(255, 255, 255, 0.05)",
+							},
+							"&:active": {
+								backgroundColor: "rgba(255, 255, 255, 0.05)",
+							},
+							justifyContent: isCollapsed ? "center" : "flex-end",
+							gap: 1,
+						}}
+						size="small"
+						aria-controls={
+							open ? "demo-positioned-menu" : undefined
+						}
+						aria-haspopup="true"
+						aria-expanded={open ? "true" : undefined}
+						onClick={handleClick}
+					>
+						<Avatar
+							src={buildAvatarUrl(user.avatar) ?? ""}
+							alt={user.firstName}
+							sx={{
+								width: "32px",
+								height: "32px",
+							}}
+						/>
+					</Button>
+
+					<Menu
+						anchorEl={anchorEl}
+						open={open}
+						onClose={handleMenuClose}
+						anchorOrigin={{
+							vertical: "top",
+							horizontal: "center",
+						}}
+						transformOrigin={{
+							vertical: "top",
+							horizontal: "center",
+						}}
+						slotProps={{
+							paper: {
+								sx: {
+									width: "250px",
+									maxWidth: "200px",
+									marginTop: -4,
+								},
+							},
+						}}
+					>
+						<MenuItem
+							onClick={handleMenuClose}
+							sx={{
+								color: "black",
+								"&:hover": {
+									backgroundColor: "rgba(255, 255, 255, 0.1)",
+								},
+							}}
+							component={RouterLink}
+							to={ROUTES.PROFILE}
+						>
+							<AccountBox sx={{ marginRight: 1 }} />
+							Profile
+						</MenuItem>
+						<MenuItem
+							onClick={handleMenuClose}
+							component={RouterLink}
+							to={ROUTES.HOME}
+						>
+							<HomeIcon sx={{ marginRight: 1 }} />
+							Home
+						</MenuItem>
+						<MenuItem
+							onClick={async () => {
+								handleMenuClose();
+								await handleLogout();
+							}}
+							sx={{
+								color: "black",
+								"&:hover": {
+									backgroundColor: "rgba(255, 255, 255, 0.1)",
+								},
+							}}
+						>
+							<Logout sx={{ marginRight: 1 }} />
+							Logout
+						</MenuItem>
+					</Menu>
+				</>
 			) : (
 				<AccountIcon />
 			)}

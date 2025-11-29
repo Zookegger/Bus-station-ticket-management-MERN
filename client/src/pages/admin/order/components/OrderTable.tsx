@@ -4,7 +4,6 @@ import type { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import type { Order } from "@my-types/order";
 import type { Ticket } from "@my-types/ticket";
 import type { Trip } from "@my-types";
-import { Stack } from "@mui/system";
 
 interface OrderTableProps {
 	orders: Order[];
