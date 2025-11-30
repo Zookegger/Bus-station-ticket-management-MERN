@@ -8,7 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { dailyRevenueData } from "@data/mockData";
+import type { DailyRevenueRecord } from "@my-types/dashboard";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("vi-VN", {
@@ -37,10 +37,15 @@ const CustomTooltip = ({ active, payload }: any) => {
   return null;
 };
 
-export const DailyRevenueChart = () => {
-  const data = dailyRevenueData.map((d) => ({
-    ...d,
-    formatted: formatCurrency(d.revenue),
+interface DailyRevenueChartProps {
+  data?: DailyRevenueRecord[];
+}
+
+export const DailyRevenueChart = ({ data = [] }: DailyRevenueChartProps) => {
+  const chartData = data.map((d) => ({
+    date: d.period,
+    revenue: d.value,
+    formatted: formatCurrency(d.value),
   }));
 
   return (
@@ -50,7 +55,7 @@ export const DailyRevenueChart = () => {
       </Typography>
       <Box sx={{ width: "100%", height: 220 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data}>
+          <AreaChart data={chartData}>
             <defs>
               <linearGradient id="dailyGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#1976d2" stopOpacity={0.8} />

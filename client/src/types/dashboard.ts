@@ -9,14 +9,14 @@ export interface DailyRevenueRecord {
   value: number;
 }
 
-export interface MonthlyComparisonRecord {
-  /** Period label (e.g., 'Jan', '2025-01'). */
-  period: string;
-  /** Previous period value. */
-  previous: number;
-  /** Current period value. */
-  current: number;
+export interface PeriodComparisonRecord {
+  period: string; // "Today", "This Month", "2025"
+  previous: number; // Revenue from previous period
+  current: number; // Revenue from current period
 }
+
+// Alias for backward compatibility
+export type MonthlyComparisonRecord = PeriodComparisonRecord;
 
 export interface CancellationRecord {
   /** Category / route / entity name. */
@@ -36,4 +36,25 @@ export interface RevenueStatsSummary {
   ticketsSold: number;
   /** Total cancelled tickets. */
   cancelledTickets: number;
+  /** Total users. */
+  totalUsers: number;
+  /** Total trips. */
+  totalTrips: number;
+}
+
+export interface DashboardStats extends RevenueStatsSummary {
+  dailyRevenue: Array<DailyRevenueRecord>;
+  // Comparison Data
+  dailyComparison: PeriodComparisonRecord[];
+  monthlyComparison: PeriodComparisonRecord[];
+  yearlyComparison: PeriodComparisonRecord[];
+  cancellationRate: Array<CancellationRecord>;
+}
+
+/**
+ * API Response type for dashboard stats
+ */
+export interface DashboardStatsResponse {
+  data?: DashboardStats;
+  [key: string]: any; // For flexible response handling
 }

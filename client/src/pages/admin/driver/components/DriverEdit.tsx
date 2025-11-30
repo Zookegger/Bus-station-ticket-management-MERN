@@ -20,13 +20,17 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   createDriverAPISchema,
   type CreateDriverAPIFormData,
+  type CreateDriverAPISubmitData,
 } from "@schemas/driverSchema";
 import callApi from "@utils/apiCaller";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { type DriverFromServer } from "@my-types/driver";
 
-const DriverCreate: React.FC = () => {
+const DriverEdit: React.FC = () => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = React.useState(false);
+  const [fetchLoading, setFetchLoading] = React.useState(true);
   const [success, setSuccess] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
@@ -37,53 +41,114 @@ const DriverCreate: React.FC = () => {
     reset,
   } = useForm<CreateDriverAPIFormData>({
     resolver: zodResolver(createDriverAPISchema),
-    defaultValues: {
-      fullname: "",
-      phoneNumber: "",
-      licenseNumber: "",
-      licenseCategory: "",
-      licenseIssueDate: "",
-      licenseExpiryDate: "",
-      issuingAuthority: "",
-      hiredAt: "",
-      isActive: true,
-      isSuspended: false,
-      avatar: "",
-    },
   });
 
-  const onSubmit = async (data: CreateDriverAPIFormData) => {
+  // Fetch driver data
+  React.useEffect(() => {
+    const fetchDriver = async () => {
+      if (!id) return;
+
+      try {
+        const response = await callApi<DriverFromServer>({
+          method: "GET",
+          url: `/drivers/${id}`,
+        });
+
+        if (
+          response &&
+          typeof response === "object" &&
+          "fullname" in response
+        ) {
+          const driverData = response as DriverFromServer;
+          // Populate form with existing data
+          reset({
+            fullname: driverData.fullname || "",
+            phoneNumber: driverData.phoneNumber || "",
+            licenseNumber: driverData.licenseNumber || "",
+            licenseCategory: driverData.licenseCategory || "",
+            licenseIssueDate: driverData.licenseIssueDate
+              ? new Date(driverData.licenseIssueDate)
+                  .toISOString()
+                  .split("T")[0]
+              : "",
+            licenseExpiryDate: driverData.licenseExpiryDate
+              ? new Date(driverData.licenseExpiryDate)
+                  .toISOString()
+                  .split("T")[0]
+              : "",
+            issuingAuthority: driverData.issuingAuthority || "",
+            hiredAt: driverData.hiredAt
+              ? new Date(driverData.hiredAt).toISOString().split("T")[0]
+              : "",
+            isActive: driverData.isActive ?? true,
+            isSuspended: driverData.isSuspended ?? false,
+            avatar: driverData.avatar || "",
+          });
+        }
+      } catch (err: any) {
+        console.error("Failed to fetch driver:", err);
+        setErrorMessage("Không thể tải thông tin tài xế.");
+      } finally {
+        setFetchLoading(false);
+      }
+    };
+
+    fetchDriver();
+  }, [id, reset]);
+
+  const onSubmit = async (formData: CreateDriverAPIFormData) => {
+    if (!id) return;
+
     setLoading(true);
     setErrorMessage(null);
 
     try {
-      // Convert empty strings to null for optional fields
-      const submitData = Object.fromEntries(
-        Object.entries(data).map(([key, value]) => [
-          key,
-          value === "" ? null : value,
-        ])
-      ) as CreateDriverAPIFormData;
+      // Convert form data to API format
+      const submitData: CreateDriverAPISubmitData = {
+        fullname: formData.fullname,
+        phoneNumber: formData.phoneNumber || null,
+        licenseNumber: formData.licenseNumber || null,
+        licenseCategory: formData.licenseCategory || null,
+        licenseIssueDate: formData.licenseIssueDate || null,
+        licenseExpiryDate: formData.licenseExpiryDate || null,
+        issuingAuthority: formData.issuingAuthority || null,
+        hiredAt: formData.hiredAt || null,
+        isActive: formData.isActive ? formData.isActive === true : undefined,
+        isSuspended: formData.isSuspended
+          ? formData.isSuspended === true
+          : undefined,
+        avatar: formData.avatar || null,
+      };
 
       const response = await callApi({
-        method: "POST",
-        url: "/drivers",
+        method: "PUT",
+        url: `/drivers/${id}`,
         data: submitData,
       });
 
       if (response) {
         setSuccess(true);
         setTimeout(() => {
-          navigate("/dashboard/trip"); // Quay lại danh sách driver
+          navigate("/dashboard/driver");
         }, 1500);
       }
     } catch (err: any) {
-      console.error("Failed to create driver:", err);
-      setErrorMessage(err.message ?? "Không thể tạo tài xế. Vui lòng thử lại.");
+      console.error("Failed to update driver:", err);
+      setErrorMessage(
+        err.message ?? "Không thể cập nhật tài xế. Vui lòng thử lại."
+      );
     } finally {
       setLoading(false);
     }
   };
+
+  if (fetchLoading) {
+    return (
+      <Box sx={{ p: 3, display: "flex", justifyContent: "center" }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: 3, maxWidth: 800, mx: "auto" }}>
@@ -91,13 +156,13 @@ const DriverCreate: React.FC = () => {
         variant="h5"
         sx={{ fontWeight: 700, color: "#2E7D32", mb: 3 }}
       >
-        Thêm tài xế mới
+        Chỉnh sửa tài xế
       </Typography>
 
       <Paper variant="outlined" sx={{ p: 3 }}>
         {success && (
           <Alert severity="success" sx={{ mb: 2 }}>
-            Thêm tài xế thành công! Đang chuyển hướng về danh sách...
+            Cập nhật tài xế thành công! Đang chuyển hướng về danh sách...
           </Alert>
         )}
 
@@ -333,7 +398,7 @@ const DriverCreate: React.FC = () => {
                 disabled={loading}
                 startIcon={loading && <CircularProgress size={20} />}
               >
-                {loading ? "Đang lưu..." : "Thêm tài xế"}
+                {loading ? "Đang lưu..." : "Cập nhật tài xế"}
               </Button>
             </Stack>
           </Stack>
@@ -343,4 +408,4 @@ const DriverCreate: React.FC = () => {
   );
 };
 
-export default DriverCreate;
+export default DriverEdit;

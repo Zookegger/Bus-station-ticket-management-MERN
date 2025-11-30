@@ -109,6 +109,33 @@ export const router = createBrowserRouter([
         },
       },
       {
+        path: ROUTES.MY_RATINGS,
+        lazy: async () => {
+          const { default: MyRatings } = await import(
+            "@pages/landing/MyRatings"
+          );
+          return { Component: MyRatings };
+        },
+      },
+      {
+        path: ROUTES.RATING_NEW,
+        lazy: async () => {
+          const { default: NewRating } = await import(
+            "@pages/landing/RateOrEditRating"
+          );
+          return { Component: NewRating };
+        },
+      },
+      {
+        path: ROUTES.RATING_EDIT,
+        lazy: async () => {
+          const { default: EditRating } = await import(
+            "@pages/landing/RateOrEditRating"
+          );
+          return { Component: EditRating };
+        },
+      },
+      {
         path: ROUTES.NOT_FOUND,
         handle: { title: "Not Found • EasyRide" },
         lazy: async () => {
@@ -163,6 +190,24 @@ export const router = createBrowserRouter([
         lazy: async () => {
           const { default: Home } = await import("@pages/admin/home/Dashboard");
           return { Component: Home };
+        },
+      },
+      {
+        path: "driver/create",
+        lazy: async () => {
+          const { default: CreateDriver } = await import(
+            "@pages/admin/driver/components/DriverCreate"
+          );
+          return { Component: CreateDriver };
+        },
+      },
+      {
+        path: "driver/edit/:id",
+        lazy: async () => {
+          const { default: DriverEdit } = await import(
+            "@pages/admin/driver/components/DriverEdit"
+          );
+          return { Component: DriverEdit };
         },
       },
       {

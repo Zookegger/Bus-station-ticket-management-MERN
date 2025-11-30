@@ -1,3 +1,4 @@
+// src/components/DriverDetails.tsx
 import React from "react";
 import {
   Box,
@@ -46,7 +47,7 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({ driver, onClose }) => {
         variant="h6"
         sx={{ fontWeight: 700, color: "#1e88e5", mb: 2 }}
       >
-        Chi tiết tài xế
+        Chi Tiết Tài Xế
       </Typography>
 
       {/* Avatar + Info */}
@@ -117,9 +118,7 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({ driver, onClose }) => {
           <Stack spacing={1.5}>
             <Stack direction="row" spacing={1.5} alignItems="center">
               <PhoneIphoneRounded fontSize="small" />
-              <Typography variant="body2">
-                Số điện thoại: {driver.phone}
-              </Typography>
+              <Typography variant="body2">SĐT: {driver.phone}</Typography>
             </Stack>
             <Stack direction="row" spacing={1.5} alignItems="center">
               <MailOutlineRounded fontSize="small" />
@@ -139,20 +138,19 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({ driver, onClose }) => {
             <Stack direction="row" spacing={1.5} alignItems="center">
               <BadgeRounded fontSize="small" />
               <Typography variant="body2">
-                Số bằng lái: {driver.licenseNumber}
+                Số GPLX: {driver.licenseNumber}
               </Typography>
             </Stack>
             <Stack direction="row" spacing={1.5} alignItems="center">
               <Typography variant="body2" sx={{ ml: 4 }}>
-                Hạng bằng lái: {driver.licenseClass}
+                Hạng: {driver.licenseClass}
               </Typography>
             </Stack>
             <Stack direction="row" spacing={1.5} alignItems="center">
               <CalendarTodayRounded fontSize="small" />
               <Typography variant="body2">
-                Ngày cấp:{" "}
-                {new Date(driver.issueDate).toLocaleDateString("vi-VN")} - Ngày
-                hết hạn:{" "}
+                Cấp: {new Date(driver.issueDate).toLocaleDateString("vi-VN")} -
+                Hết hạn:{" "}
                 {new Date(driver.expiryDate).toLocaleDateString("vi-VN")}
               </Typography>
             </Stack>
@@ -168,7 +166,7 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({ driver, onClose }) => {
         <Box sx={{ p: 2 }}>
           <Stack spacing={1.5}>
             <Typography variant="body2">
-              Tổng số chuyến đi: {driver.totalTrips}
+              Tổng chuyến: {driver.totalTrips}
             </Typography>
             <Typography variant="body2">
               Tổng thu nhập: {currency(driver.totalEarnings)}

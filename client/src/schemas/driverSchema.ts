@@ -9,9 +9,6 @@ export const driverSchema = z.object({
       /^(0|\+84)[3|5|7|8|9][0-9]{8}$/,
       "Số điện thoại không hợp lệ (VD: 0901234567)"
     ),
-  gender: z.enum(["Male", "Female"], {
-    required_error: "Vui lòng chọn giới tính",
-  }),
   dateOfBirth: z.string().refine((val) => {
     const date = new Date(val);
     const today = new Date();
@@ -36,3 +33,36 @@ export const driverSchema = z.object({
 });
 
 export type DriverFormData = z.infer<typeof driverSchema>;
+
+// Schema cho CreateDriverDTO (API backend)
+export const createDriverAPISchema = z.object({
+  fullname: z.string().min(2, "Họ tên phải có ít nhất 2 ký tự"),
+  phoneNumber: z.string().optional(),
+  licenseNumber: z.string().optional(),
+  licenseCategory: z.string().optional(),
+  licenseIssueDate: z.string().optional(),
+  licenseExpiryDate: z.string().optional(),
+  issuingAuthority: z.string().optional(),
+  hiredAt: z.string().optional(),
+  isActive: z.boolean().optional(),
+  isSuspended: z.boolean().optional(),
+  avatar: z.string().optional(),
+});
+
+// Type for form data (with string booleans)
+export type CreateDriverAPIFormData = z.infer<typeof createDriverAPISchema>;
+
+// Type for API submission (with actual booleans)
+export interface CreateDriverAPISubmitData {
+  fullname: string;
+  phoneNumber?: string | null;
+  licenseNumber?: string | null;
+  licenseCategory?: string | null;
+  licenseIssueDate?: string | null;
+  licenseExpiryDate?: string | null;
+  issuingAuthority?: string | null;
+  hiredAt?: string | null;
+  isActive?: boolean;
+  isSuspended?: boolean;
+  avatar?: string | null;
+}

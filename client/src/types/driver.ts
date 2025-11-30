@@ -111,21 +111,46 @@ export interface UpdateDriverDTO {
   issuingAuthority?: string | null;
   isSuspended?: boolean;
 }
+// Server response interface (matches server/src/models/driver.ts)
+export interface DriverFromServer {
+  id: number;
+  fullname: string | null;
+  phoneNumber?: string | null;
+  avatar?: string | null;
+  hiredAt?: Date | null;
+  isActive?: boolean;
+  licenseNumber: string | null;
+  licenseCategory: string | null;
+  licenseIssueDate: Date | null;
+  licenseExpiryDate: Date | null;
+  issuingAuthority: string | null;
+  isSuspended: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 export interface DriverRecord {
   id: string;
   fullName: string;
-  email: string;
+  email: string; // Will be derived from fullname or placeholder
   phone: string;
-  gender: "Male" | "Female";
-  dateOfBirth: string; // YYYY-MM-DD
-  address: string;
+  gender: "Male" | "Female"; // Will be placeholder
+  dateOfBirth: string; // YYYY-MM-DD, will be placeholder
+  address: string; // Will be placeholder
   licenseNumber: string;
   licenseClass: string;
   issueDate: string;
   expiryDate: string;
   status: "active" | "inactive" | "suspended";
-  totalTrips: number;
-  totalEarnings: number;
-  rating: number;
+  totalTrips: number; // Will be placeholder
+  totalEarnings: number; // Will be placeholder
+  rating: number; // Will be placeholder
   avatar?: string;
+}
+
+// API Response types
+export interface DriversResponse {
+  rows?: DriverFromServer[];
+  count?: number;
+  [key: string]: any; // For other possible envelope structures
 }

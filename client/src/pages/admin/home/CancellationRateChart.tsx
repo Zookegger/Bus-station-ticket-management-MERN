@@ -1,4 +1,3 @@
-import { cancelData } from "@data/mockData";
 import { Box, Typography } from "@mui/material";
 import {
   PieChart,
@@ -8,15 +7,21 @@ import {
   Legend,
   Tooltip,
 } from "recharts";
-
-const data = cancelData.map((d) => ({
-  name: d.route,
-  value: Math.round((d.cancelled / d.total) * 100),
-}));
+import type { CancellationRecord } from "@my-types/dashboard";
 
 const COLORS = ["#d32f2f", "#ff9800", "#4caf50"];
 
-export const CancellationRateChart = () => {
+interface CancellationRateChartProps {
+  data?: CancellationRecord[];
+}
+
+export const CancellationRateChart = ({
+  data = [],
+}: CancellationRateChartProps) => {
+  const chartData = data.map((d) => ({
+    name: d.name,
+    value: d.total > 0 ? Math.round((d.count / d.total) * 100) : 0,
+  }));
   return (
     <Box>
       <Typography variant="subtitle2" fontWeight={600} gutterBottom>
@@ -25,7 +30,7 @@ export const CancellationRateChart = () => {
       <ResponsiveContainer width="100%" height={220}>
         <PieChart>
           <Pie
-            data={data}
+            data={chartData}
             cx="50%"
             cy="50%"
             outerRadius={70}
@@ -33,7 +38,7 @@ export const CancellationRateChart = () => {
             dataKey="value"
             label={({ value }) => `${value}%`}
           >
-            {data.map((_, index) => (
+            {chartData.map((_, index) => (
               <Cell
                 key={`cell-${index}`}
                 fill={COLORS[index % COLORS.length]}

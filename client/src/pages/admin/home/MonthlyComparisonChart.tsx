@@ -1,4 +1,3 @@
-import { comparisonData } from "@data/mockData";
 import { Box, Typography } from "@mui/material";
 import {
   BarChart,
@@ -10,6 +9,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import type { PeriodComparisonRecord } from "@my-types/dashboard";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("vi-VN", {
@@ -18,14 +18,26 @@ const formatCurrency = (value: number) =>
     minimumFractionDigits: 0,
   }).format(value);
 
-export const MonthlyComparisonChart = () => {
+interface MonthlyComparisonChartProps {
+  data?: PeriodComparisonRecord[];
+}
+
+export const MonthlyComparisonChart = ({
+  data = [],
+}: MonthlyComparisonChartProps) => {
+  // Transform data to match chart format
+  const chartData = data.map((record) => ({
+    month: record.period,
+    previous: record.previous,
+    current: record.current,
+  }));
   return (
     <Box>
       <Typography variant="subtitle2" fontWeight={600} gutterBottom>
         So sánh doanh thu (Tháng này vs Tháng trước)
       </Typography>
       <ResponsiveContainer width="100%" height={220}>
-        <BarChart data={comparisonData} margin={{ left: 60 }}>
+        <BarChart data={chartData} margin={{ left: 60 }}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="month" />
           <YAxis tickFormatter={formatCurrency} />
