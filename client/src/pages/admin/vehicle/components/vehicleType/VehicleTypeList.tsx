@@ -152,6 +152,30 @@ const VehicleTypeList: React.FC = () => {
 			width: 130,
 		},
 		{
+			field: "updatedAt",
+			headerName: "Updated At",
+			width: 190,
+			valueFormatter: (value: Date) => {
+				return value
+					? `${new Date(value).toLocaleDateString()} - ${new Date(
+							value
+					  ).toLocaleTimeString()}`
+					: "N/A";
+			},
+		},
+		{
+			field: "createdAt",
+			headerName: "Created At",
+			width: 190,
+			valueFormatter: (value: Date) => {
+				return value
+					? `${new Date(value).toLocaleDateString()} - ${new Date(
+							value
+					  ).toLocaleTimeString()}`
+					: "N/A";
+			},
+		},
+		{
 			field: "actions",
 			headerName: "Actions",
 			width: 150,

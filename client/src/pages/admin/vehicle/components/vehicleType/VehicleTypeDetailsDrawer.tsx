@@ -4,12 +4,15 @@ import {
 	Box,
 	Typography,
 	IconButton,
-	Divider,
 	Button,
 	Chip,
 	Grid,
 	Paper,
 	type ChipPropsColorOverrides,
+	Card,
+	CardHeader,
+	CardContent,
+	CardActions,
 } from "@mui/material";
 import type { OverridableStringUnion } from "@mui/types";
 import {
@@ -19,7 +22,6 @@ import {
 	EventSeat as SeatIcon,
 	Layers as FloorIcon,
 	Edit as EditIcon,
-	ArrowBack as ArrowBackIcon,
 	Delete as DeleteIcon,
 } from "@mui/icons-material";
 import type { VehicleType } from "@my-types/vehicleType";
@@ -56,7 +58,7 @@ const ItemPanel: React.FC<ItemPanelProps> = ({
 	chipColor,
 }) => {
 	return (
-		<Grid size={{ xs: 6 }} flexGrow={1}>
+		<Grid size={{ xs: 4 }} flexGrow={1}>
 			<Paper sx={{ height: "100%", display: "flex" }}>
 				<Box
 					display={"flex"}
@@ -110,79 +112,99 @@ const VehicleTypeDetailsDrawer: React.FC<VehicleTypeDetailsDrawerProps> = ({
 				},
 			}}
 		>
-			<Box sx={{ p: 3 }}>
+			<Card
+				sx={{
+					p: 1,
+					height: "100%",
+					display: "flex",
+					flexDirection: "column",
+				}}
+			>
 				{/* Header */}
-				<Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-					<Typography
-						variant="h5"
-						sx={{ fontWeight: "bold", flexGrow: 1 }}
-					>
-						Vehicle Type Details
-					</Typography>
-					<IconButton onClick={onClose}>
-						<CloseIcon />
-					</IconButton>
-				</Box>
+				<CardHeader
+					sx={{ display: "flex", alignItems: "center" }}
+					title={
+						<Typography
+							variant="h5"
+							sx={{ fontWeight: "bold", flexGrow: 1 }}
+						>
+							Vehicle Type Details
+						</Typography>
+					}
+					action={
+						<IconButton onClick={onClose}>
+							<CloseIcon />
+						</IconButton>
+					}
+				/>
 
-				<Divider sx={{ mb: 3 }} />
+				<CardContent sx={{ flex: 1, overflow: "auto" }}>
+					{/* Vehicle Information */}
+					<Paper sx={{ p: 0, borderRadius: 2, mb: 3 }} elevation={0}>
+						<Grid container gap={1}>
+							<ItemPanel
+								content={vehicleType.name ?? "N/A"}
+								chipColor="info"
+								labelName={"Name"}
+								iconItem={
+									<BusIcon
+										fontSize={"large"}
+										color="primary"
+									/>
+								}
+							/>
+							<ItemPanel
+								content={
+									formatCurrency(vehicleType.price) ?? "N/A"
+								}
+								chipColor="success"
+								labelName={"Price"}
+								iconItem={
+									<MoneyIcon
+										fontSize={"large"}
+										color="success"
+									/>
+								}
+							/>
+							<ItemPanel
+								content={vehicleType.totalSeats ?? "N/A"}
+								chipColor="secondary"
+								labelName={"Total Seats"}
+								iconItem={
+									<SeatIcon
+										fontSize={"large"}
+										color="secondary"
+									/>
+								}
+							/>
+							<ItemPanel
+								content={vehicleType.totalFloors ?? "N/A"}
+								chipColor="error"
+								labelName={"Total Floors"}
+								iconItem={
+									<FloorIcon
+										fontSize={"large"}
+										color="error"
+									/>
+								}
+							/>
+						</Grid>
+					</Paper>
 
-				{/* Vehicle Information */}
-				<Paper sx={{ p: 0, borderRadius: 2, mb: 3 }} elevation={0}>
-					<Grid container gap={1}>
-						<ItemPanel
-							content={vehicleType.name ?? "N/A"}
-							chipColor="info"
-							labelName={"Name"}
-							iconItem={
-								<BusIcon fontSize={"large"} color="primary" />
-							}
+					{/* Seat Layout Preview */}
+					<Paper sx={{ p: 0, borderRadius: 2, pb: 3 }}>
+						<SeatLayoutPreview
+							seatLayout={vehicleType?.seatLayout}
 						/>
-						<ItemPanel
-							content={formatCurrency(vehicleType.price) ?? "N/A"}
-							chipColor="success"
-							labelName={"Price"}
-							iconItem={
-								<MoneyIcon fontSize={"large"} color="success" />
-							}
-						/>
-						<ItemPanel
-							content={vehicleType.totalSeats ?? "N/A"}
-							chipColor="secondary"
-							labelName={"Total Seats"}
-							iconItem={
-								<SeatIcon
-									fontSize={"large"}
-									color="secondary"
-								/>
-							}
-						/>
-						<ItemPanel
-							content={vehicleType.totalFloors ?? "N/A"}
-							chipColor="error"
-							labelName={"Total Floors"}
-							iconItem={
-								<FloorIcon fontSize={"large"} color="error" />
-							}
-						/>
-					</Grid>
-				</Paper>
-
-				{/* Seat Layout Preview */}
-				<Paper sx={{ p: 0, borderRadius: 2, mb: 3 }}>
-					<SeatLayoutPreview seatLayout={vehicleType?.seatLayout} />
-					<Divider sx={{ my: 2 }} />
-					<Typography variant="subtitle1" fontWeight={"bold"} textAlign={"center"} paddingBottom={2}>
-						Total Seats: {vehicleType.totalSeats}
-					</Typography>
-				</Paper>
-
+					</Paper>
+				</CardContent>
 				{/* Action Buttons */}
-				<Box sx={{ display: "flex", gap: 2, flexDirection: "column" }}>
+				<CardActions sx={{ gap: 1 }}>
 					<Button
 						variant="contained"
 						startIcon={<EditIcon />}
 						onClick={() => onEdit(vehicleType)}
-						sx={{ bgcolor: "#1976d2" }}
+						sx={{ bgcolor: "#1976d2", flex: 1 }}
 					>
 						Edit
 					</Button>
@@ -190,20 +212,12 @@ const VehicleTypeDetailsDrawer: React.FC<VehicleTypeDetailsDrawerProps> = ({
 						variant="contained"
 						startIcon={<DeleteIcon />}
 						onClick={() => onDelete(vehicleType)}
-						sx={{ bgcolor: "#d32f2f" }}
+						sx={{ bgcolor: "#d32f2f", flex: 1 }}
 					>
 						Delete
 					</Button>
-					<Button
-						variant="outlined"
-						startIcon={<ArrowBackIcon />}
-						onClick={onClose}
-						sx={{ color: "#666", borderColor: "#ddd" }}
-					>
-						Back to List
-					</Button>
-				</Box>
-			</Box>
+				</CardActions>
+			</Card>
 		</Drawer>
 	);
 };

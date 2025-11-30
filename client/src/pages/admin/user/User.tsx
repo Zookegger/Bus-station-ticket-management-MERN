@@ -1,502 +1,335 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  Box,
-  Typography,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  TextField,
-  IconButton,
-  Menu,
-  MenuItem,
-  Drawer,
-  Stack,
-  Button,
-  Chip,
-  TableSortLabel,
-  Divider,
-  Avatar,
-  FormControl,
-  InputLabel,
-  Select,
+	Box,
+	Paper,
+	FormControl,
+	InputLabel,
+	Select,
+	MenuItem,
+	TextField,
+	InputAdornment,
+	IconButton,
+	Avatar,
+	Chip,
+	Typography,
+	Stack,
+	Alert,
 } from "@mui/material";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
-import MailOutlineRoundedIcon from "@mui/icons-material/MailOutlineRounded";
-import PhoneIphoneRoundedIcon from "@mui/icons-material/PhoneIphoneRounded";
-import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
-import EventRoundedIcon from "@mui/icons-material/EventRounded";
-import { MOCK_USERS } from "@data/mockUsers";
-import type { UserRecord } from "@my-types/types";
+import {
+	Error as ErrorIcon,
+	Search as SearchIcon,
+	Visibility as VisibilityIcon,
+} from "@mui/icons-material";
 
-const currency = (v: number) =>
-  new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  }).format(v);
+import {
+	DataGrid,
+	type GridColDef,
+	type GridRenderCellParams,
+} from "@mui/x-data-grid";
+import { DataGridPageLayout } from "@components/admin";
+import callApi from "@utils/apiCaller";
+import type { Role, User } from "@my-types/user";
+import buildAvatarUrl from "@utils/avatarImageHelper";
+import { InfoDrawer } from "./components";
 
-type Order = "asc" | "desc";
-type OrderBy = keyof Pick<
-  UserRecord,
-  "username" | "fullName" | "email" | "phone"
->;
+const UserPage: React.FC = () => {
+	const [users, setUsers] = useState<User[]>([]);
+	const [loading, setLoading] = useState<boolean>(true);
+	const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-const User: React.FC = () => {
-  const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"all" | "admin" | "user">("all"); // LỌC THEO ROLE
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(9);
-  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
-  const [activeUser, setActiveUser] = useState<UserRecord | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [order, setOrder] = useState<Order>("asc");
-  const [orderBy, setOrderBy] = useState<OrderBy>("username");
+	// UI States
+	const [drawerOpen, setDrawerOpen] = useState(false);
+	const [searchTerm, setSearchTerm] = useState("");
+	const [roleFilter, setRoleFilter] = useState<"all" | Role>("all");
+	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // === LỌC THEO SEARCH + ROLE ===
-  const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    return MOCK_USERS.filter((u) => {
-      const matchesSearch =
-        !term ||
-        [u.username, u.fullName, u.email, u.phone, u.role, u.status].some((f) =>
-          f.toLowerCase().includes(term)
-        );
+	// Helper to get initials
+	const getInitials = (name: string) => {
+		return name
+			? name
+					.split(" ")
+					.map((n) => n[0])
+					.join("")
+					.toUpperCase()
+					.slice(0, 2)
+			: "U";
+	};
 
-      const matchesRole =
-        roleFilter === "all" || u.role.toLowerCase() === roleFilter;
+	// Filter users based on search and role
+	const filteredUsers = useMemo(() => {
+		return users.filter((u) => {
+			const matchesRole = roleFilter === "all" || u.role === roleFilter;
+			const term = searchTerm.toLowerCase();
+			const matchesSearch =
+				!term ||
+				u.fullName.toLowerCase().includes(term) ||
+				u.email.toLowerCase().includes(term) ||
+				(u.phoneNumber && u.phoneNumber.includes(term)) ||
+				u.userName.toLowerCase().includes(term);
 
-      return matchesSearch && matchesRole;
-    });
-  }, [search, roleFilter]);
+			return matchesRole && matchesSearch;
+		});
+	}, [users, roleFilter, searchTerm]);
 
-  // === SẮP XẾP ===
-  const sorted = useMemo(() => {
-    const comparator = (a: UserRecord, b: UserRecord) => {
-      const aVal = a[orderBy];
-      const bVal = b[orderBy];
+	// Handlers
+	const handleViewDetails = (user: User) => {
+		setSelectedUser(user);
+		setDrawerOpen(true);
+	};
 
-      if (typeof aVal === "string" && typeof bVal === "string") {
-        return order === "asc"
-          ? aVal.localeCompare(bVal)
-          : bVal.localeCompare(aVal);
-      }
-      if (aVal < bVal) return order === "asc" ? -1 : 1;
-      if (aVal > bVal) return order === "asc" ? 1 : -1;
-      return 0;
-    };
+	const handleCloseDrawer = () => {
+		setDrawerOpen(false);
+		setSelectedUser(null);
+	};
 
-    return [...filtered].sort(comparator);
-  }, [filtered, order, orderBy]);
+	// DataGrid Columns
+	const columns: GridColDef[] = [
+		{
+			field: "fullName",
+			headerName: "Full Name",
+			flex: 1,
+			minWidth: 195,
+			renderCell: (params: GridRenderCellParams<User>) => (
+				<Stack direction={"row"} alignItems={"center"} paddingX={0.5}>
+					<Avatar
+						src={buildAvatarUrl(params.row.avatar) || undefined}
+						sx={{
+							width: 48,
+							height: 48,
+							fontSize: 12,
+							fontWeight: 600,
+							bgcolor: "#e3f2fd",
+							color: "#1565c0",
+							marginRight: 1,
+						}}
+					>
+						{getInitials(params.row.fullName)}
+					</Avatar>
+					<Box my={1}>
+						<Typography variant="body2">{params.value}</Typography>
+						<Stack
+							direction="row"
+							spacing={1}
+							alignItems="center"
+							my={0.5}
+						>
+							<Chip
+								label={
+									params.row.emailConfirmed
+										? "Verified"
+										: "Unverified"
+								}
+								size="small"
+								color={
+									params.row.emailConfirmed
+										? "success"
+										: "warning"
+								}
+								variant="outlined"
+								sx={{ height: 24 }}
+							/>
 
-  const handleSort = (property: OrderBy) => {
-    const isAsc = orderBy === property && order === "asc";
-    setOrder(isAsc ? "desc" : "asc");
-    setOrderBy(property);
-  };
+							<Chip
+								label={params.row.role}
+								size="small"
+								sx={{
+									bgcolor:
+										params.value === "Admin"
+											? "#f3e5f5"
+											: "#e3f2fd",
+									color:
+										params.value === "Admin"
+											? "#7b1fa2"
+											: "#1565c0",
+									fontWeight: 500,
+								}}
+							/>
+						</Stack>
+					</Box>
+				</Stack>
+			),
+		},
+		{
+			field: "userName",
+			headerName: "Username",
+			flex: 1,
+			minWidth: 120,
+		},
+		{
+			field: "email",
+			headerName: "Email",
+			flex: 1.5,
+			minWidth: 220,
+		},
+		{
+			field: "phoneNumber",
+			headerName: "Phone",
+			flex: 1,
+			minWidth: 90,
+			width: 120,
+			maxWidth: 140,
+			valueFormatter: (value: string | null) => value || "N/A",
+		},
+		{
+			field: "createdAt",
+			headerName: "Joined",
+			width: 190,
+			valueFormatter: (value: Date) => {
+				return value
+					? `${new Date(value).toLocaleDateString()} - ${new Date(
+							value
+					  ).toLocaleTimeString()}`
+					: "N/A";
+			},
+		},
+		{
+			field: "updatedAt",
+			headerName: "Last Updated",
+			width: 190,
+			valueFormatter: (value: Date) => {
+				return value
+					? `${new Date(value).toLocaleDateString()} - ${new Date(
+							value
+					  ).toLocaleTimeString()}`
+					: "N/A";
+			},
+		},
+		{
+			field: "actions",
+			headerName: "Actions",
+			width: 80,
+			sortable: false,
+			renderCell: (params: GridRenderCellParams<User>) => (
+				<IconButton
+					size="small"
+					color="primary"
+					onClick={(e) => {
+						e.stopPropagation();
+						handleViewDetails(params.row);
+					}}
+					title="View Details"
+				>
+					<VisibilityIcon fontSize="small" />
+				</IconButton>
+			),
+		},
+	];
 
-  const handleOpenMenu = (
-    e: React.MouseEvent<HTMLButtonElement>,
-    user: UserRecord
-  ) => {
-    setActiveUser(user);
-    setMenuAnchor(e.currentTarget);
-  };
-  const handleCloseMenu = () => setMenuAnchor(null);
+	useEffect(() => {
+		const fetchUsers = async () => {
+			setLoading(true);
+			try {
+				// Matches GET /users in userRouter.ts
+				const res = await callApi<{ users: User[] }>({
+					method: "GET",
+					url: "/users",
+				});
 
-  const openDetails = (user: UserRecord) => {
-    setActiveUser(user);
-    setDrawerOpen(true);
-    handleCloseMenu();
-  };
+				if (res) {
+					// Normalize different possible response envelopes and extract users array
+					const usersPayload =
+						// direct shape: { users: User[] }
+						(res as any).users ??
+						// common envelope: { data: { users: User[] } }
+						(res as any).data?.users ??
+						// alternative envelope: { payload: { users: User[] } }
+						(res as any).payload?.users ??
+						// fallback if the response itself is the array
+						(res as any);
 
-  const visibleRows =
-    rowsPerPage > 0
-      ? sorted.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-      : sorted;
+					setUsers(Array.isArray(usersPayload) ? usersPayload : []);
+				}
+			} catch (err: any) {
+				console.error("Failed to fetch users:", err);
+				setErrorMessage(
+					err.message ?? "Failed to load users. Please try again."
+				);
+			} finally {
+				setLoading(false);
+			}
+		};
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
+		fetchUsers();
+	}, []);
 
-  return (
-    <Box sx={{ p: 3 }}>
-      <Typography
-        variant="h5"
-        sx={{ fontWeight: 700, color: "#2E7D32", mb: 2 }}
-      >
-        Users Management
-      </Typography>
+	return (
+		<DataGridPageLayout
+			title="User Management"
+			actionBar={
+				<Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+					{/* Role Filter */}
+					<FormControl size="small" sx={{ minWidth: 150 }}>
+						<InputLabel>Role</InputLabel>
+						<Select
+							value={roleFilter}
+							label="Role"
+							onChange={(e) =>
+								setRoleFilter(e.target.value as any)
+							}
+						>
+							<MenuItem value="all">All Roles</MenuItem>
+							<MenuItem value="Admin">Admin</MenuItem>
+							<MenuItem value="User">User</MenuItem>
+						</Select>
+					</FormControl>
 
-      <Paper variant="outlined" sx={{ p: 2 }}>
-        {/* === FILTER BAR === */}
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={2}
-          alignItems="center"
-          justifyContent="space-between"
-          sx={{ mb: 2 }}
-        >
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Typography variant="body2" color="text.secondary">
-              Show
-            </Typography>
-            <Chip
-              size="small"
-              label={rowsPerPage === -1 ? "All" : rowsPerPage}
-              sx={{ mx: 0.5 }}
-            />
-            <Typography variant="body2" color="text.secondary">
-              entries
-            </Typography>
-          </Stack>
+					{/* Search Field */}
+					<TextField
+						size="small"
+						placeholder="Search by name, email..."
+						value={searchTerm}
+						onChange={(e) => setSearchTerm(e.target.value)}
+						slotProps={{
+							input: {
+								startAdornment: (
+									<InputAdornment position="start">
+										<SearchIcon color="action" />
+									</InputAdornment>
+								),
+							},
+						}}
+						sx={{ minWidth: 250 }}
+					/>
+				</Box>
+			}
+		>
+			{errorMessage && <Alert icon={<ErrorIcon />}></Alert>}
+			<Paper elevation={3} sx={{ width: "100%", overflow: "hidden" }}>
+				<DataGrid
+					rows={filteredUsers}
+					columns={columns}
+					loading={loading}
+					rowHeight={68}
+					pagination
+					initialState={{
+						pagination: {
+							paginationModel: { pageSize: 10, page: 0 },
+						},
+						sorting: {
+							sortModel: [{ field: "fullName", sort: "asc" }],
+						},
+					}}
+					onRowClick={(params) => handleViewDetails(params.row)}
+					pageSizeOptions={[5, 10, 20, 50]}
+					sx={{
+						border: "none",
+						"& .MuiDataGrid-columnHeaders": {
+							bgcolor: "#f5f5f5",
+						},
+					}}
+					disableRowSelectionOnClick
+				/>
+			</Paper>
 
-          <Stack
-            direction="row"
-            spacing={2}
-            sx={{ width: { xs: "100%", sm: "auto" } }}
-          >
-            {/* LỌC THEO ROLE */}
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>Role</InputLabel>
-              <Select
-                value={roleFilter}
-                label="Role"
-                onChange={(e) => {
-                  setRoleFilter(e.target.value as any);
-                  setPage(0);
-                }}
-              >
-                <MenuItem value="all">All Roles</MenuItem>
-                <MenuItem value="admin">Admin</MenuItem>
-                <MenuItem value="user">User</MenuItem>
-              </Select>
-            </FormControl>
-
-            {/* TÌM KIẾM */}
-            <TextField
-              size="small"
-              placeholder="Search..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(0);
-              }}
-              sx={{ minWidth: 200 }}
-            />
-          </Stack>
-        </Stack>
-
-        {/* === BẢNG === */}
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>
-                  <TableSortLabel
-                    active={orderBy === "fullName"}
-                    direction={orderBy === "fullName" ? order : "asc"}
-                    onClick={() => handleSort("fullName")}
-                  >
-                    Full Name & Info
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell>
-                  <TableSortLabel
-                    active={orderBy === "email"}
-                    direction={orderBy === "email" ? order : "asc"}
-                    onClick={() => handleSort("email")}
-                  >
-                    Email
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell>
-                  <TableSortLabel
-                    active={orderBy === "phone"}
-                    direction={orderBy === "phone" ? order : "asc"}
-                    onClick={() => handleSort("phone")}
-                  >
-                    Phone Number
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {visibleRows.map((u) => (
-                <TableRow key={u.id} hover>
-                  <TableCell>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Avatar
-                        sx={{
-                          width: 32,
-                          height: 32,
-                          fontSize: 14,
-                          fontWeight: 600,
-                          bgcolor: "#e0e0e0",
-                          color: "#424242",
-                        }}
-                      >
-                        {getInitials(u.fullName)}
-                      </Avatar>
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          {u.fullName}
-                        </Typography>
-                        <Stack
-                          direction="row"
-                          spacing={0.5}
-                          alignItems="center"
-                          sx={{ mt: 0.5 }}
-                        >
-                          <Chip
-                            label={u.role}
-                            size="small"
-                            color="default"
-                            variant="outlined"
-                            sx={{
-                              height: 20,
-                              fontSize: 11,
-                              "& .MuiChip-label": { px: 1 },
-                              bgcolor:
-                                u.role === "admin" ? "#f3e5f5" : "#e3f2fd",
-                              color: u.role === "admin" ? "#7b1fa2" : "#1565c0",
-                            }}
-                          />
-                          <Chip
-                            label={u.status}
-                            size="small"
-                            color={u.status === "active" ? "success" : "error"}
-                            sx={{
-                              height: 20,
-                              fontSize: 11,
-                              "& .MuiChip-label": { px: 1 },
-                            }}
-                          />
-                        </Stack>
-                      </Box>
-                    </Stack>
-                  </TableCell>
-                  <TableCell sx={{ whiteSpace: "nowrap" }}>{u.email}</TableCell>
-                  <TableCell sx={{ whiteSpace: "nowrap" }}>{u.phone}</TableCell>
-                  <TableCell align="right">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => handleOpenMenu(e, u)}
-                    >
-                      <MoreVertIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        {/* === PHÂN TRANG === */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: 1,
-            pt: 1,
-          }}
-        >
-          <Typography variant="caption">
-            {filtered.length === 0
-              ? "0 entries"
-              : `${page * rowsPerPage + 1} to ${Math.min(
-                  filtered.length,
-                  page * rowsPerPage +
-                    (rowsPerPage > 0 ? rowsPerPage : filtered.length)
-                )} of ${filtered.length} entries`}
-          </Typography>
-          <TablePagination
-            component="div"
-            count={filtered.length}
-            page={page}
-            onPageChange={(_, p) => setPage(p)}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={(e) => {
-              setRowsPerPage(parseInt(e.target.value, 10));
-              setPage(0);
-            }}
-            rowsPerPageOptions={[5, 9, 25, { label: "All", value: -1 }]}
-          />
-        </Box>
-      </Paper>
-
-      {/* === MENU HÀNH ĐỘNG === */}
-      <Menu
-        anchorEl={menuAnchor}
-        open={Boolean(menuAnchor)}
-        onClose={handleCloseMenu}
-      >
-        <MenuItem onClick={() => activeUser && openDetails(activeUser)}>
-          View details
-        </MenuItem>
-      </Menu>
-
-      {/* === DRAWER CHI TIẾT === */}
-      <Drawer
-        anchor="right"
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        PaperProps={{ sx: { width: { xs: 360, sm: 420, md: 520 } } }}
-      >
-        <Box sx={{ p: 2 }}>
-          <Typography
-            variant="h6"
-            sx={{ fontWeight: 700, color: "#1e88e5", mb: 2 }}
-          >
-            User Details
-          </Typography>
-
-          {activeUser && (
-            <>
-              <Stack
-                direction="row"
-                spacing={2}
-                alignItems="center"
-                sx={{ mb: 2 }}
-              >
-                <Avatar
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    fontSize: 18,
-                    fontWeight: 600,
-                    bgcolor: "#e3f2fd",
-                    color: "#1565c0",
-                  }}
-                >
-                  {getInitials(activeUser.fullName)}
-                </Avatar>
-                <Box>
-                  <Typography sx={{ fontWeight: 700 }}>
-                    {activeUser.fullName}
-                  </Typography>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Typography variant="body2" color="text.secondary">
-                      {activeUser.email}
-                    </Typography>
-                    <Chip
-                      size="small"
-                      label={activeUser.role}
-                      color={
-                        activeUser.role === "admin" ? "secondary" : "default"
-                      }
-                    />
-                    <Chip
-                      size="small"
-                      label={activeUser.status}
-                      color={
-                        activeUser.status === "active" ? "success" : "error"
-                      }
-                    />
-                  </Stack>
-                </Box>
-              </Stack>
-
-              <Paper variant="outlined" sx={{ mb: 2 }}>
-                <Box sx={{ p: 1.5, background: "#e3f2fd" }}>
-                  <Typography sx={{ fontWeight: 700 }}>
-                    Personal information
-                  </Typography>
-                </Box>
-                <Box sx={{ p: 2 }}>
-                  <Stack spacing={1.5}>
-                    <Stack direction="row" spacing={1.5} alignItems="center">
-                      <EventRoundedIcon fontSize="small" />
-                      <Typography variant="body2">
-                        Date of birth: {activeUser.dateOfBirth ?? "-"}
-                      </Typography>
-                    </Stack>
-                    <Stack direction="row" spacing={1.5} alignItems="center">
-                      <HomeRoundedIcon fontSize="small" />
-                      <Typography variant="body2">
-                        Address: {activeUser.address ?? "-"}
-                      </Typography>
-                    </Stack>
-                  </Stack>
-                </Box>
-              </Paper>
-
-              <Paper variant="outlined" sx={{ mb: 2 }}>
-                <Box sx={{ p: 1.5, background: "#e3f2fd" }}>
-                  <Typography sx={{ fontWeight: 700 }}>
-                    Contact Information
-                  </Typography>
-                </Box>
-                <Box sx={{ p: 2 }}>
-                  <Stack spacing={1.5}>
-                    <Stack direction="row" spacing={1.5} alignItems="center">
-                      <PhoneIphoneRoundedIcon fontSize="small" />
-                      <Typography variant="body2">
-                        Phone Number: {activeUser.phone}
-                      </Typography>
-                    </Stack>
-                    <Stack direction="row" spacing={1.5} alignItems="center">
-                      <MailOutlineRoundedIcon fontSize="small" />
-                      <Typography variant="body2">
-                        Email: {activeUser.email}
-                      </Typography>
-                      <Chip
-                        size="small"
-                        color={activeUser.emailVerified ? "success" : "default"}
-                        label={
-                          activeUser.emailVerified ? "Verified" : "Unverified"
-                        }
-                        sx={{ ml: 1 }}
-                      />
-                    </Stack>
-                  </Stack>
-                </Box>
-              </Paper>
-
-              <Paper variant="outlined" sx={{ mb: 2 }}>
-                <Box sx={{ p: 1.5, background: "#e3f2fd" }}>
-                  <Typography sx={{ fontWeight: 700 }}>Tickets</Typography>
-                </Box>
-                <Box sx={{ p: 2 }}>
-                  <Stack spacing={1.5}>
-                    <Typography variant="body2">
-                      Total Tickets: {activeUser.ticketsTotal}
-                    </Typography>
-                    <Typography variant="body2">
-                      Total Spent: {currency(activeUser.totalSpentVnd)}
-                    </Typography>
-                  </Stack>
-                </Box>
-              </Paper>
-
-              <Divider sx={{ my: 1 }} />
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  onClick={() => setDrawerOpen(false)}
-                >
-                  Back to List
-                </Button>
-              </Stack>
-            </>
-          )}
-        </Box>
-      </Drawer>
-    </Box>
-  );
+			{selectedUser && (
+				<InfoDrawer
+					user={selectedUser}
+					open={drawerOpen}
+					handleClose={handleCloseDrawer}
+				/>
+			)}
+		</DataGridPageLayout>
+	);
 };
 
-export default User;
+export default UserPage;

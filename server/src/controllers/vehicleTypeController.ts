@@ -38,7 +38,7 @@ import { getParamNumericId } from "@utils/request";
  *
  * @route GET /vehicle-types
  * @access Public/Admin
- *
+ * 
  * @throws {Error} When database query fails or invalid parameters provided
  * @returns JSON response with vehicle types data and total count
  */
@@ -48,6 +48,14 @@ export const SearchVehicleTypes = async (
 	next: NextFunction
 ): Promise<void> => {
 	try {
+		// GET /vehicle-types?items=id&items=name
+		// Retrieve stacked parameters from req.query (not req.params)
+		const items: string[] | undefined = Array.isArray(req.query.items)
+			? req.query.items.map(String) // Ensure all are strings
+			: req.query.items
+			? [String(req.query.items)]
+			: undefined; // Handle single value as array
+
 		const {
 			keywords,
 			orderBy = "createdAt",
@@ -63,12 +71,14 @@ export const SearchVehicleTypes = async (
 		} = req.query;
 
 		const options: any = {
+			items: items as string[],
 			keywords: keywords as string,
 			orderBy: orderBy as string,
 			sortOrder: sortOrder as "ASC" | "DESC",
 		};
 		if (page !== undefined) options.page = parseInt(page as string);
 		if (limit !== undefined) options.limit = parseInt(limit as string);
+		if (items !== undefined) options.items = items;
 		if (minPrice !== undefined)
 			options.minPrice = parseInt(minPrice as string);
 		if (maxPrice !== undefined)

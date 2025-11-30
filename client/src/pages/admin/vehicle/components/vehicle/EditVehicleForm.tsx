@@ -13,16 +13,19 @@ import {
 	DialogTitle,
 	DialogContent,
 	DialogActions,
+	Alert,
+	CircularProgress,
 } from "@mui/material";
 import {
 	ArrowBack as ArrowBackIcon,
 	Edit as EditIcon,
+	Error as ErrorIcon,
 } from "@mui/icons-material";
-import axios, { isAxiosError } from "axios";
 import type { UpdateVehicleDTO } from "@my-types/vehicle";
 import type { VehicleDetail } from "@my-types/vehicleList";
 import type { VehicleType } from "@my-types/vehicleType";
-import { APP_CONFIG, API_ENDPOINTS } from "@constants/index";
+import { API_ENDPOINTS } from "@constants/index";
+import callApi from "@utils/apiCaller";
 
 interface EditVehicleFormProps {
 	open: boolean;
@@ -51,6 +54,8 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 	});
 	const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
 	const [loadingTypes, setLoadingTypes] = useState(false);
+	const [errorMessage, setErrorMessage] = useState<string | null>(null);
+	const [isLoading, setIsLoading] = useState<boolean>(false);
 
 	useEffect(() => {
 		if (vehicle) {
@@ -67,34 +72,26 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 		const getVehicleTypes = async () => {
 			setLoadingTypes(true);
 			try {
-				const response = await axios.get(`${APP_CONFIG.apiBaseUrl}${API_ENDPOINTS.VEHICLE_TYPE.BASE}`);
-				if (response.data === null) {
+				const { status, data } = await callApi(
+					{
+						method: "GET",
+						url: API_ENDPOINTS.VEHICLE_TYPE.BASE,
+					},
+					{ returnFullResponse: true }
+				);
+
+				if ((status === 200 || status === 304) && data === null) {
 					throw new Error("Server returned empty set");
 				}
 
-				if (Array.isArray(response.data)) {
-					setVehicleTypes(response.data);
-				} else {
-					throw new Error("Invalid data format from server");
-				}
-
-			} catch (err: unknown) {
-				// Fixed: Use 'unknown' instead of specific type or 'any'
-				// Narrow the type safely
-				let errorMessage = "Failed to load vehicle types.";
-	
-				if (isAxiosError(err) && err.response?.data?.message) {
-					errorMessage = err.response.data.message; // Now TypeScript knows it's a string
-				} else if (err instanceof Error) {
-					errorMessage = err.message; // Fallback for other Errors
-				} // Else: Use the default message for non-Error throws (e.g., strings)
-	
-				setErrors((prev) => ({ ...prev, general: errorMessage }));
+				setVehicleTypes(data);
+			} catch (err: any) {
+				setErrorMessage(err.message);
 				console.error("Vehicle type fetch error:", err);
 			} finally {
 				setLoadingTypes(false);
 			}
-		}
+		};
 
 		if (open) {
 			getVehicleTypes();
@@ -124,44 +121,85 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 			manufacturer: "",
 			model: "",
 		};
-		if (!formData.numberPlate.trim())
-			newErrors.numberPlate = "Number plate is required";
+
+		formData.numberPlate = formData.numberPlate.trim();
+		formData.manufacturer = formData.manufacturer.trim();
+		formData.model = formData.model.trim();
+
 		if (!formData.vehicleTypeId)
 			newErrors.vehicleTypeId = "Please select a vehicle type";
+		if (!formData.numberPlate)
+			newErrors.numberPlate = "Number plate is required";
+		if (!formData.manufacturer)
+			newErrors.manufacturer = "Manufacturer is required";
+		if (!formData.model) newErrors.model = "Model is required";
+
 		setErrors(newErrors);
 		return Object.values(newErrors).every((error) => error === "");
 	};
-	const handleSubmit = (e: React.FormEvent) => {
+
+	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (validateForm()) {
-			console.log("Updated vehicle:", formData);
-			onSave({
-				id: vehicle.id,
-				numberPlate: formData.numberPlate,
-				vehicleTypeId: formData.vehicleTypeId,
-				manufacturer: formData.manufacturer || null,
-				model: formData.model || null,
+
+		if (!validateForm()) {
+			return;
+		}
+
+		try {
+			setIsLoading(true);
+
+			const { status, data } = await callApi({
+				method: "PUT",
+				url: API_ENDPOINTS.VEHICLE.UPDATE(vehicle.id),
+				data: formData,
 			});
+
+			if (status !== 200) {
+				throw new Error(`Server Error: ${data.message}`);
+			}
+			onSave({
+				id: data.vehicle.id,
+				numberPlate: data.vehicle.numberPlate,
+				vehicleTypeId: data.vehicle.vehicleTypeId,
+				manufacturer: data.vehicle.manufacturer,
+				model: data.vehicle.model,
+			});
+			onClose();
+		} catch (err: any) {
+			setErrorMessage(err.message);
+			console.error(err);
+		} finally {
+			setIsLoading(false);
 		}
 	};
 
 	return (
 		<Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-			<DialogTitle>Edit Vehicle</DialogTitle>
+			<DialogTitle>Update vehicle information</DialogTitle>
 			<DialogContent>
 				{errors.general && (
-					<Typography variant="body2" color="error" sx={{ mb: 2 }}>
-						{errors.general}
-					</Typography>
+					<Alert
+						color="error"
+						icon={<ErrorIcon color="error" />}
+						sx={{
+							marginBottom: 2,
+							display: "flex",
+							justifyContent: "flex-start",
+							alignItems: "center",
+						}}
+					>
+						<Typography variant="body2" color="error">
+							{errorMessage}
+						</Typography>
+					</Alert>
 				)}
 				<Box component="form" onSubmit={handleSubmit} sx={{ p: 1 }}>
-					<Typography variant="h6" sx={{ color: "#333", mb: 4 }}>
-						Update vehicle information
-					</Typography>
-
 					<Grid container spacing={3}>
-						<Grid size={{ xs: 12, md: 6}}>
-							<FormControl fullWidth error={!!errors.vehicleTypeId}>
+						<Grid size={{ xs: 12, md: 6 }}>
+							<FormControl
+								fullWidth
+								error={!!errors.vehicleTypeId}
+							>
 								<InputLabel>Select a vehicle type</InputLabel>
 								<Select
 									value={formData.vehicleTypeId}
@@ -178,7 +216,10 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 										<MenuItem disabled>Loading...</MenuItem>
 									) : (
 										vehicleTypes.map((type) => (
-											<MenuItem key={type.id} value={type.id}>
+											<MenuItem
+												key={type.id}
+												value={type.id}
+											>
 												{type.name}
 											</MenuItem>
 										))
@@ -196,46 +237,64 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 							</FormControl>
 						</Grid>
 
-						<Grid size={{ xs: 12, md: 6}}>
-							<TextField
-								fullWidth
-								label="Number Plate"
-								value={formData.numberPlate}
-								onChange={(e) =>
-									handleInputChange("numberPlate", e.target.value)
-								}
-								error={!!errors.numberPlate}
-								helperText={errors.numberPlate}
-								placeholder="Enter number plate"
-							/>
+						<Grid size={{ xs: 12, md: 6 }}>
+							<FormControl fullWidth error={!!errors.numberPlate}>
+								<TextField
+									fullWidth
+									label="Number Plate"
+									value={formData.numberPlate}
+									onChange={(e) =>
+										handleInputChange(
+											"numberPlate",
+											e.target.value
+										)
+									}
+									error={!!errors.numberPlate}
+									helperText={errors.numberPlate}
+									placeholder="Enter number plate"
+								/>
+							</FormControl>
 						</Grid>
 
-						<Grid size={{ xs: 12, md: 6}}>
-							<TextField
+						<Grid size={{ xs: 12, md: 6 }}>
+							<FormControl
 								fullWidth
-								label="Manufacturer"
-								value={formData.manufacturer}
-								onChange={(e) =>
-									handleInputChange("manufacturer", e.target.value)
-								}
 								error={!!errors.manufacturer}
-								helperText={errors.manufacturer}
-								placeholder="Enter manufacturer"
-							/>
+							>
+								<TextField
+									fullWidth
+									label="Manufacturer"
+									value={formData.manufacturer}
+									onChange={(e) =>
+										handleInputChange(
+											"manufacturer",
+											e.target.value
+										)
+									}
+									error={!!errors.manufacturer}
+									helperText={errors.manufacturer}
+									placeholder="Enter manufacturer"
+								/>
+							</FormControl>
 						</Grid>
 
-						<Grid size={{ xs: 12, md: 6}}>
-							<TextField
-								fullWidth
-								label="Model"
-								value={formData.model}
-								onChange={(e) =>
-									handleInputChange("model", e.target.value)
-								}
-								error={!!errors.model}
-								helperText={errors.model}
-								placeholder="Enter model"
-							/>
+						<Grid size={{ xs: 12, md: 6 }}>
+							<FormControl fullWidth error={!!errors.model}>
+								<TextField
+									fullWidth
+									label="Model"
+									value={formData.model}
+									onChange={(e) =>
+										handleInputChange(
+											"model",
+											e.target.value
+										)
+									}
+									error={!!errors.model}
+									helperText={errors.model}
+									placeholder="Enter model"
+								/>
+							</FormControl>
 						</Grid>
 					</Grid>
 				</Box>
@@ -252,14 +311,14 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 				<Button
 					type="submit"
 					variant="contained"
-					startIcon={<EditIcon />}
+					startIcon={isLoading ? <CircularProgress /> : <EditIcon />}
 					sx={{
 						backgroundColor: "#1976d2",
 						"&:hover": { backgroundColor: "#1565c0" },
 					}}
 					onClick={handleSubmit}
 				>
-					Update
+					{isLoading ? "Updating..." : "Edit"}
 				</Button>
 			</DialogActions>
 		</Dialog>

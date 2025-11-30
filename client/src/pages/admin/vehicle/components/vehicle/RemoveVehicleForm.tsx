@@ -6,12 +6,12 @@ import {
 	DialogContent,
 	DialogContentText,
 	DialogTitle,
+	Typography,
 } from "@mui/material";
 import { useEffect, useState } from "react";
-import { handleAxiosError } from "@utils/handleError";
-import axios from "axios";
 import { API_ENDPOINTS } from "@constants";
-import { Warning } from "@mui/icons-material";
+import { Error as ErrorIcon, Warning } from "@mui/icons-material";
+import callApi from "@utils/apiCaller";
 
 interface RemoveVehicleFormProps {
 	id?: number;
@@ -30,6 +30,13 @@ const RemoveVehicleForm: React.FC<RemoveVehicleFormProps> = ({
 	const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
 	useEffect(() => {
+		if (open === true) {
+			setErrors(null);
+			setIsDeleting(false);
+		}
+	}, [open]);
+
+	useEffect(() => {
 		if (!(typeof id === "number" && Number.isInteger(id))) {
 			setErrors("Invalid ID");
 		} else {
@@ -46,17 +53,25 @@ const RemoveVehicleForm: React.FC<RemoveVehicleFormProps> = ({
 		if (!id) throw new Error("No ID provided");
 
 		try {
-			const response = await axios.delete(
-				API_ENDPOINTS.VEHICLE.DELETE(id)
+			// const response = await axios.delete(
+			// 	API_ENDPOINTS.VEHICLE.DELETE(id)
+			// );
+			const { status, data } = await callApi(
+				{
+					method: "DELETE",
+					url: API_ENDPOINTS.VEHICLE.DELETE(id),
+				},
+				{ returnFullResponse: true }
 			);
-			if (!response || response.status !== 200) {
-				throw new Error("No response from server");
+
+			if (status !== 200) {
+				throw new Error(data);
 			}
+
 			await onConfirm();
 			onClose();
-		} catch (err: unknown) {
-			const message = handleAxiosError(err);
-			setErrors(message.message);
+		} catch (err: any) {
+			setErrors(err.message as string);
 		} finally {
 			setIsDeleting(false);
 		}
@@ -65,12 +80,20 @@ const RemoveVehicleForm: React.FC<RemoveVehicleFormProps> = ({
 	return (
 		<Dialog open={open} onClose={onClose}>
 			<DialogTitle>
-				<Warning color="error" />
-				{errors && <Alert>{errors.toString()}</Alert>}
+				{errors && (
+					<Alert color="error" icon={<ErrorIcon />}>
+						{errors.toString()}
+					</Alert>
+				)}
 			</DialogTitle>
 
 			<DialogContent>
-				<DialogContentText>
+				<DialogContentText
+					display={"flex"}
+					alignItems={"center"}
+					justifyContent={"flex-start"}
+				>
+					<Warning color="error" sx={{ marginRight: 1 }} />
 					Are you sure you want to delete this vehicle?
 				</DialogContentText>
 			</DialogContent>
@@ -85,7 +108,12 @@ const RemoveVehicleForm: React.FC<RemoveVehicleFormProps> = ({
 					disabled={isDeleting || errors != null}
 					onClick={handleSubmit}
 				>
-					{isDeleting ? "Deleting..." : "Confirm Delete"}
+					<Typography
+						variant="button"
+						fontWeight={isDeleting ? "regular" : "bold"}
+					>
+						{isDeleting ? "Deleting..." : "Confirm"}
+					</Typography>
 				</Button>
 			</DialogActions>
 		</Dialog>
