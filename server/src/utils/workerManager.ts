@@ -4,6 +4,7 @@ import paymentWorker from "@utils/workers/paymentWorker";
 import ticketWorker from "@utils/workers/ticketWorker";
 import tripSchedulingWorker from "@utils/workers/tripSchedulingWorker";
 import notificationWorker from "@utils/workers/notificationWorker";
+import tripStatusWorker from "@utils/workers/tripStatusWorker";
 
 /**
  * Initializes all background workers and schedules recurring maintenance jobs.
@@ -30,6 +31,7 @@ export const initializeWorkersAndSchedules = async (): Promise<void> => {
 	const refreshTokenWorker = await import(
 		"@utils/workers/refreshTokenWorker"
 	);
+	const tripStatusWorker = await import("@utils/workers/tripStatusWorker");
 
 	// Wait until all workers are connected and ready to process jobs
 	await emailWorker.default.waitUntilReady();
@@ -47,6 +49,9 @@ export const initializeWorkersAndSchedules = async (): Promise<void> => {
 	await refreshTokenWorker.default.waitUntilReady();
 	logger.info("✓ Refresh token cleanup worker ready");
 
+	await tripStatusWorker.default.waitUntilReady();
+	logger.info("✓ Trip status worker ready");
+
 	// Schedule recurring payment cleanup (provided by payment queue utilities)
 	try {
 		const { scheduleRecurringCleanup, addCleanupJob } = await import(
@@ -63,6 +68,19 @@ export const initializeWorkersAndSchedules = async (): Promise<void> => {
 	} catch (err) {
 		logger.error(
 			`✗ Failed to schedule payment cleanup: ${(err as Error).message}`
+		);
+	}
+
+	// Schedule recurring trip status updates
+	try {
+		const { scheduleRecurringStatusUpdate } = await import(
+			"@utils/queues/tripStatusQueue"
+		);
+		await scheduleRecurringStatusUpdate();
+		logger.info("✓ Scheduled recurring trip status update job");
+	} catch (err) {
+		logger.error(
+			`✗ Failed to schedule trip status update: ${(err as Error).message}`
 		);
 	}
 
@@ -163,6 +181,7 @@ export const closeAllWorkers = async () => {
 			tripSchedulingWorker.close(),
 			paymentWorker.close(),
 			notificationWorker.close(),
+			tripStatusWorker.close(),
 		]);
 		logger.info("All workers closed successfully");
 	} catch (err) {

@@ -126,6 +126,12 @@ const VehicleList: React.FC = () => {
 	// Define DataGrid columns
 	const columns: GridColDef[] = [
 		{
+			field: "id",
+			headerName: "ID",
+			flex: 1,
+			minWidth: 30,
+		},
+		{
 			field: "displayName",
 			headerName: "Name",
 			flex: 1,

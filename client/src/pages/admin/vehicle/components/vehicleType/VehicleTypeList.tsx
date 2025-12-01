@@ -129,11 +129,16 @@ const VehicleTypeList: React.FC = () => {
 	// Define DataGrid columns
 	const columns: GridColDef[] = [
 		{
+			field: "id",
+			headerName: "ID",
+			flex: 1,
+			minWidth: 30,
+		},
+		{
 			field: "name",
 			headerName: "Name",
 			flex: 1,
 			minWidth: 150,
-			renderCell: (params) => params.value,
 		},
 		{
 			field: "price",

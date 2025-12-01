@@ -144,12 +144,14 @@ export class Route
 		Route.hasMany(models.Trip, {
 			foreignKey: "routeId",
 			as: "trips",
-			onDelete: "CASCADE",
+			onDelete: "RESTRICT",
+			onUpdate: "CASCADE",
 		});
 		Route.hasMany(models.RouteStop, {
 			foreignKey: "routeId",
 			as: "stops",
 			onDelete: "CASCADE",
+			onUpdate: "CASCADE",
 		});
 	}
 }

@@ -14,11 +14,13 @@ import {
 	Typography,
 	Stack,
 	Alert,
+	Button,
 } from "@mui/material";
 import {
 	Error as ErrorIcon,
 	Search as SearchIcon,
-	Visibility as VisibilityIcon,
+	Delete as DeleteIcon,
+	Edit as EditIcon,
 } from "@mui/icons-material";
 
 import {
@@ -28,9 +30,15 @@ import {
 } from "@mui/x-data-grid";
 import { DataGridPageLayout } from "@components/admin";
 import callApi from "@utils/apiCaller";
+import { API_ENDPOINTS } from "@constants/index";
 import type { Role, User } from "@my-types/user";
 import buildAvatarUrl from "@utils/avatarImageHelper";
-import { InfoDrawer } from "./components";
+import {
+	InfoDrawer,
+	EditUserForm,
+	DeleteUserConfirm,
+	AddUserForm,
+} from "./components";
 
 const UserPage: React.FC = () => {
 	const [users, setUsers] = useState<User[]>([]);
@@ -39,6 +47,9 @@ const UserPage: React.FC = () => {
 
 	// UI States
 	const [drawerOpen, setDrawerOpen] = useState(false);
+	const [editOpen, setEditOpen] = useState(false);
+	const [deleteOpen, setDeleteOpen] = useState(false);
+	const [addOpen, setAddOpen] = useState(false);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [roleFilter, setRoleFilter] = useState<"all" | Role>("all");
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -77,6 +88,34 @@ const UserPage: React.FC = () => {
 		setDrawerOpen(true);
 	};
 
+	const handleOpenEdit = (user: User) => {
+		setSelectedUser(user);
+		setEditOpen(true);
+	};
+
+	const handleOpenAdd = () => {
+		setAddOpen(true);
+	};
+
+	const handleCloseAdd = () => {
+		setAddOpen(false);
+	};
+
+	const handleCloseEdit = () => {
+		setEditOpen(false);
+		setSelectedUser(null);
+	};
+
+	const handleOpenDelete = (user: User) => {
+		setSelectedUser(user);
+		setDeleteOpen(true);
+	};
+
+	const handleCloseDelete = () => {
+		setDeleteOpen(false);
+		setSelectedUser(null);
+	};
+
 	const handleCloseDrawer = () => {
 		setDrawerOpen(false);
 		setSelectedUser(null);
@@ -84,7 +123,7 @@ const UserPage: React.FC = () => {
 
 	// DataGrid Columns
 	const columns: GridColDef[] = [
-		{ field: "id", headerName: "ID", width: 70, },
+		{ field: "id", headerName: "ID", width: 70 },
 		{
 			field: "fullName",
 			headerName: "Full Name",
@@ -198,21 +237,37 @@ const UserPage: React.FC = () => {
 		{
 			field: "actions",
 			headerName: "Actions",
-			width: 80,
+			width: 150,
 			sortable: false,
-			renderCell: (params: GridRenderCellParams<User>) => (
-				<IconButton
-					size="small"
-					color="primary"
-					onClick={(e) => {
-						e.stopPropagation();
-						handleViewDetails(params.row);
-					}}
-					title="View Details"
-				>
-					<VisibilityIcon fontSize="small" />
-				</IconButton>
-			),
+			renderCell: (params) => {
+				const user = params.row as User;
+				return (
+					<Box onClick={(e) => e.stopPropagation()}>
+						<IconButton
+							size="small"
+							color="primary"
+							onClick={(e) => {
+								e.stopPropagation();
+								handleOpenEdit(user);
+							}}
+							title="Edit"
+						>
+							<EditIcon />
+						</IconButton>
+						<IconButton
+							size="small"
+							color="error"
+							onClick={(e) => {
+								e.stopPropagation();
+								handleOpenDelete(user);
+							}}
+							title="Delete"
+						>
+							<DeleteIcon />
+						</IconButton>
+					</Box>
+				);
+			},
 		},
 	];
 
@@ -220,10 +275,10 @@ const UserPage: React.FC = () => {
 		const fetchUsers = async () => {
 			setLoading(true);
 			try {
-				// Matches GET /users in userRouter.ts
+				// Matches admin GET /admin/users
 				const res = await callApi<{ users: User[] }>({
 					method: "GET",
-					url: "/users",
+					url: API_ENDPOINTS.ADMIN.BASE,
 				});
 
 				if (res) {
@@ -258,6 +313,13 @@ const UserPage: React.FC = () => {
 			title="User Management"
 			actionBar={
 				<Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+					<Button
+						variant="contained"
+						onClick={() => handleOpenAdd()}
+						sx={{ textTransform: "none", fontWeight: "bold" }}
+					>
+						Add User
+					</Button>
 					{/* Role Filter */}
 					<FormControl size="small" sx={{ minWidth: 150 }}>
 						<InputLabel>Role</InputLabel>
@@ -323,12 +385,58 @@ const UserPage: React.FC = () => {
 			</Paper>
 
 			{selectedUser && (
-				<InfoDrawer
-					user={selectedUser}
-					open={drawerOpen}
-					handleClose={handleCloseDrawer}
-				/>
+				<>
+					<EditUserForm
+						open={editOpen}
+						user={selectedUser}
+						onClose={handleCloseEdit}
+						onSaved={(updated) => {
+							setUsers((u) =>
+								u.map((x) =>
+									x.id === updated.id ? updated : x
+								)
+							);
+							setEditOpen(false);
+						}}
+					/>
+
+					<DeleteUserConfirm
+						open={deleteOpen}
+						user={selectedUser}
+						onClose={handleCloseDelete}
+						onDeleted={(id) => {
+							setUsers((u) => u.filter((x) => x.id !== id));
+							setDeleteOpen(false);
+						}}
+					/>
+					<InfoDrawer
+						user={selectedUser}
+						open={drawerOpen}
+						onClose={handleCloseDrawer}
+						onDelete={(id) => {
+							setUsers((u) => u.filter((x) => x.id !== id));
+							setDeleteOpen(false);
+						}}
+						onEdit={(updated) => {
+							setUsers((u) =>
+								u.map((x) =>
+									x.id === updated.id ? updated : x
+								)
+							);
+							setEditOpen(false);
+						}}
+					/>
+				</>
 			)}
+
+			<AddUserForm
+				open={addOpen}
+				onClose={handleCloseAdd}
+				onSaved={(created) => {
+					setUsers((u) => [created, ...u]);
+					setAddOpen(false);
+				}}
+			/>
 		</DataGridPageLayout>
 	);
 };

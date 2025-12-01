@@ -278,6 +278,16 @@ export const searchTrip = async (
 
 	const where: any = {};
 
+	// Map to store route segment details for price/time calculation
+	// Key: routeId, Value: { origin: { duration, distance }, dest: { duration, distance } }
+	const routeSegmentMap = new Map<
+		number,
+		{
+			origin: { duration: number; distance: number };
+			dest: { duration: number; distance: number };
+		}
+	>();
+
 	// --- 1. Route Filtering Logic (The Fix) ---
 	// If from/to locations are provided, we must first find which Routes match.
 	let validRouteIds: number[] | null = null;
@@ -293,7 +303,12 @@ export const searchTrip = async (
 							where: { name: { [Op.like]: `%${fromLocation}%` } },
 						},
 					],
-					attributes: ["routeId", "stopOrder"],
+					attributes: [
+						"routeId",
+						"stopOrder",
+						"durationFromStart",
+						"distanceFromStart",
+					],
 			  })
 			: null;
 
@@ -307,7 +322,12 @@ export const searchTrip = async (
 							where: { name: { [Op.like]: `%${toLocation}%` } },
 						},
 					],
-					attributes: ["routeId", "stopOrder"],
+					attributes: [
+						"routeId",
+						"stopOrder",
+						"durationFromStart",
+						"distanceFromStart",
+					],
 			  })
 			: null;
 
@@ -317,11 +337,25 @@ export const searchTrip = async (
 			// If BOTH provided, Route must have both stops AND From.Order < To.Order
 			fromStops.forEach((fs) => {
 				// Is there a corresponding 'To' stop on the same route with a higher order?
-				const hasValidDest = toStops.some(
+				const matchingDest = toStops.find(
 					(ts) =>
 						ts.routeId === fs.routeId && ts.stopOrder > fs.stopOrder
 				);
-				if (hasValidDest) matchedIds.add(fs.routeId);
+
+				if (matchingDest) {
+					matchedIds.add(fs.routeId);
+					// Store segment data for calculation
+					routeSegmentMap.set(fs.routeId, {
+						origin: {
+							duration: fs.durationFromStart || 0,
+							distance: fs.distanceFromStart || 0,
+						},
+						dest: {
+							duration: matchingDest.durationFromStart || 0,
+							distance: matchingDest.distanceFromStart || 0,
+						},
+					});
+				}
 			});
 		} else if (fromLocation && fromStops) {
 			// Only From provided
@@ -403,7 +437,7 @@ export const searchTrip = async (
 			include: [
 				{
 					model: db.VehicleType,
-						as: "vehicleType",
+					as: "vehicleType",
 					...(vehicleTypeId ? { where: { id: vehicleTypeId } } : {}),
 				},
 			],
@@ -434,7 +468,11 @@ export const searchTrip = async (
 				model: db.Route,
 				as: "route",
 				include: [
-					{ model: db.RouteStop, as: "stops", include: [{ model: db.Location, as: "locations" }] },
+					{
+						model: db.RouteStop,
+						as: "stops",
+						include: [{ model: db.Location, as: "locations" }],
+					},
 				],
 			},
 			...(checkSeatAvailability
@@ -460,7 +498,52 @@ export const searchTrip = async (
 		limit: limit,
 	};
 
-	return await db.Trip.findAndCountAll(queryOptions);
+	const result = await db.Trip.findAndCountAll(queryOptions);
+
+	// --- Post-Processing: Dynamic Time & Price Calculation ---
+	if (routeSegmentMap.size > 0) {
+		result.rows.forEach((trip) => {
+			const segment = routeSegmentMap.get(trip.routeId);
+			// Ensure we have segment data and the route is loaded
+			if (segment && trip.route) {
+				// 1. Adjust Start Time
+				// New Start Time = Trip Start + Origin Duration
+				const originalStart = new Date(trip.startTime);
+				const newStartTime = new Date(
+					originalStart.getTime() + segment.origin.duration * 60000
+				);
+				trip.setDataValue("startTime", newStartTime);
+
+				// 2. Calculate Arrival Time
+				// Arrival Time = Trip Start + Destination Duration
+				const arrivalTime = new Date(
+					originalStart.getTime() + segment.dest.duration * 60000
+				);
+				// 'arrivalTime' is not in Trip model, so we set it as a data value (virtual)
+				trip.setDataValue("arrivalTime" as any, arrivalTime);
+
+				// 3. Adjust Price
+				// Ratio = (DestDist - OriginDist) / TotalRouteDist
+				const totalDist = trip.route.distance || 0;
+				const segmentDist =
+					segment.dest.distance - segment.origin.distance;
+
+				if (totalDist > 0 && segmentDist > 0) {
+					const ratio = segmentDist / totalDist;
+					// Cap ratio at 1.0 to prevent overcharging if data is weird
+					const finalRatio = Math.min(ratio, 1.0);
+
+					const originalPrice = Number(trip.price);
+					const newPrice = originalPrice * finalRatio;
+
+					// Update the price on the instance
+					trip.setDataValue("price", parseFloat(newPrice.toFixed(2)));
+				}
+			}
+		});
+	}
+
+	return result;
 };
 
 /**

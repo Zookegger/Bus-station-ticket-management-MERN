@@ -31,7 +31,7 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { DateTimePicker, DatePicker } from "@mui/x-date-pickers";
 import { addSeconds, format, isValid } from "date-fns";
 
-import { API_ENDPOINTS } from "@constants/index";;
+import { API_ENDPOINTS } from "@constants/index";
 import { type Trip, type UpdateTripDTO } from "@my-types/trip";
 import type { Route, Vehicle } from "@my-types";
 import callApi from "@utils/apiCaller";
@@ -54,6 +54,8 @@ const EditTrip: React.FC<EditTripFormProps> = ({
 }) => {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+
+	const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
 	// Data lists
 	const [routes, setRoutes] = useState<Route[]>([]);
@@ -79,7 +81,9 @@ const EditTrip: React.FC<EditTripFormProps> = ({
 
 	// Recurrence
 	const [isRepeated, setIsRepeated] = useState(false);
-	const [repeatFrequency, setRepeatFrequency] = useState<TripRepeatFrequency>(TripRepeatFrequency.NONE);
+	const [repeatFrequency, setRepeatFrequency] = useState<TripRepeatFrequency>(
+		TripRepeatFrequency.NONE
+	);
 	const [repeatEndDate, setRepeatEndDate] = useState<Date | null>(null);
 
 	// Populate form when trip data is available
@@ -98,13 +102,17 @@ const EditTrip: React.FC<EditTripFormProps> = ({
 		setSelectedRoute(trip.route || null);
 		setSelectedVehicle(trip.vehicle || null);
 		// Preselect recurrence if present on trip
-		if (trip.repeatFrequency && trip.repeatFrequency !== TripRepeatFrequency.NONE) {
+		if (
+			trip.repeatFrequency &&
+			trip.repeatFrequency !== TripRepeatFrequency.NONE
+		) {
 			setIsRepeated(true);
 			setRepeatFrequency(trip.repeatFrequency);
-			setRepeatEndDate(trip.repeatEndDate
-					? new Date(trip.repeatEndDate)
-					: null
+			setRepeatEndDate(
+				trip.repeatEndDate ? new Date(trip.repeatEndDate) : null
 			);
+			// Clear previous form errors when loading a new trip
+			setFormErrors({});
 		} else {
 			setIsRepeated(false);
 			setRepeatFrequency(TripRepeatFrequency.NONE);
@@ -132,7 +140,7 @@ const EditTrip: React.FC<EditTripFormProps> = ({
 				setVehicles(
 					Array.isArray(vehiclesRes.data)
 						? vehiclesRes.data
-						: vehiclesRes.data.data || vehiclesRes.data.rows || [] 
+						: vehiclesRes.data.data || vehiclesRes.data.rows || []
 				);
 			} catch (err: any) {
 				setError(err.message || "Failed to fetch data.");
@@ -166,23 +174,24 @@ const EditTrip: React.FC<EditTripFormProps> = ({
 	}, [formState.returnStartTime, selectedRoute, trip?.route?.duration]);
 
 	const mapStops = useMemo(() => {
-		const r = selectedRoute || trip?.route;
-		if (!r?.stops) return undefined;
-		return [...r.stops]
-			.sort((a: any, b: any) => a.stopOrder - b.stopOrder)
-			.map((s: any) => ({
-				latitude: Number(s.location?.latitude),
-				longitude: Number(s.location?.longitude),
-				name: s.location?.name,
-				address: s.location?.address,
+		if (!trip?.route?.stops) return [];
+		return [...trip.route.stops]
+			.sort((a, b) => a.stopOrder - b.stopOrder)
+			.map((s) => ({
+				name: s.locations?.name,
+				address: s.locations?.address,
+				latitude: Number(s.locations?.latitude),
+				longitude: Number(s.locations?.longitude),
 			}));
-	}, [selectedRoute, trip]);
+	}, [trip]);
 
 	const handleSave = async () => {
 		if (!trip) return;
 
 		setError(null);
 		setIsSubmitting(true);
+		// clear previous field errors
+		setFormErrors({});
 
 		try {
 			const payload: Partial<UpdateTripDTO> = {
@@ -193,10 +202,7 @@ const EditTrip: React.FC<EditTripFormProps> = ({
 					: null,
 			};
 
-			if (
-				selectedVehicle &&
-				selectedVehicle.id !== trip.vehicleId
-			) {
+			if (selectedVehicle && selectedVehicle.id !== trip.vehicleId) {
 				payload.vehicleId = selectedVehicle.id;
 			}
 			if (selectedRoute && selectedRoute.id !== trip.routeId) {
@@ -220,7 +226,32 @@ const EditTrip: React.FC<EditTripFormProps> = ({
 			onEdited?.();
 			onClose();
 		} catch (err: any) {
-			setError(err.response?.data?.message || "Failed to update trip.");
+			// Try to extract validation errors array from common server shapes
+			const validationArray =
+				err?.response?.data?.errors ||
+				err?.raw?.errors ||
+				err?.errors ||
+				null;
+			if (Array.isArray(validationArray)) {
+				const next: Record<string, string> = {};
+				for (const it of validationArray) {
+					if (it && it.path) {
+						next[it.path] =
+							it.msg || String(it.message || "Invalid value");
+					}
+				}
+				setFormErrors(next);
+				setError(
+					"Validation failed. Please check the highlighted fields."
+				);
+			} else {
+				console.error(err?.raw?.errors ?? err);
+				setError(
+					err?.response?.data?.message ||
+						err?.message ||
+						"Failed to update trip."
+				);
+			}
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -256,11 +287,10 @@ const EditTrip: React.FC<EditTripFormProps> = ({
 						display: "flex",
 						justifyContent: "space-between",
 						alignItems: "center",
+						fontWeight: "bold",
 					}}
 				>
-					<Typography variant="h5" fontWeight={"bold"}>
-						Edit Trip #{trip?.id}
-					</Typography>
+					Edit Trip #{trip?.id}
 				</DialogTitle>
 
 				<DialogContent dividers>
@@ -280,14 +310,20 @@ const EditTrip: React.FC<EditTripFormProps> = ({
 										{...params}
 										label="Route"
 										placeholder="Select Route"
-										InputProps={{
-											...params.InputProps,
-											startAdornment: (
-												<InputAdornment position="start">
-													<RouteIcon color="action" />
-												</InputAdornment>
-											),
+										slotProps={{
+											input: {
+												...params.InputProps,
+												startAdornment: (
+													<InputAdornment position="start">
+														<RouteIcon color="action" />
+													</InputAdornment>
+												),
+											},
 										}}
+										error={!!formErrors.routeId}
+										helperText={
+											formErrors.routeId || undefined
+										}
 									/>
 								)}
 							/>
@@ -316,6 +352,10 @@ const EditTrip: React.FC<EditTripFormProps> = ({
 												),
 											},
 										}}
+										error={!!formErrors.vehicleId}
+										helperText={
+											formErrors.vehicleId || undefined
+										}
 									/>
 								)}
 							/>
@@ -348,7 +388,7 @@ const EditTrip: React.FC<EditTripFormProps> = ({
 						<Grid
 							size={{
 								xs: 12,
-								md: (formState.isRoundTrip) ? 6 : 12,
+								md: formState.isRoundTrip ? 6 : 12,
 							}}
 						>
 							<DateTimePicker
@@ -361,7 +401,14 @@ const EditTrip: React.FC<EditTripFormProps> = ({
 									}))
 								}
 								disablePast
-								slotProps={{ textField: { fullWidth: true } }}
+								slotProps={{
+									textField: {
+										fullWidth: true,
+										error: !!formErrors.startTime,
+										helperText:
+											formErrors.startTime || undefined,
+									},
+								}}
 							/>
 							{renderArrivalPreview(outboundArrival)}
 						</Grid>
@@ -380,8 +427,15 @@ const EditTrip: React.FC<EditTripFormProps> = ({
 									minDateTime={
 										formState.startTime || undefined
 									}
+									disablePast
 									slotProps={{
-										textField: { fullWidth: true },
+										textField: {
+											fullWidth: true,
+											error: !!formErrors.returnStartTime,
+											helperText:
+												formErrors.returnStartTime ||
+												undefined,
+										},
 									}}
 								/>
 								{renderArrivalPreview(returnArrival)}
@@ -477,6 +531,14 @@ const EditTrip: React.FC<EditTripFormProps> = ({
 												Monthly
 											</ToggleButton>
 										</ToggleButtonGroup>
+										{formErrors.repeatFrequency && (
+											<Typography
+												variant="caption"
+												color="error"
+											>
+												{formErrors.repeatFrequency}
+											</Typography>
+										)}
 									</Grid>
 									<Grid size={{ xs: 12, md: 4 }}>
 										<DatePicker
@@ -490,6 +552,10 @@ const EditTrip: React.FC<EditTripFormProps> = ({
 												textField: {
 													fullWidth: true,
 													size: "small",
+													error: !!formErrors.repeatEndDate,
+													helperText:
+														formErrors.repeatEndDate ||
+														undefined,
 												},
 											}}
 										/>

@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from "@constants/index";
 import { Button, InputAdornment, Paper, TextField } from "@mui/material";
-import type { Coupon } from "@my-types";
+import type { Coupon, CouponType } from "@my-types";
 import { handleAxiosError } from "@utils/handleError";
 import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
@@ -46,7 +46,9 @@ const CouponPage: React.FC = () => {
 		}
 
 		const detail = coupons.find((c) => c.id === id);
+
 		if (detail) {
+			detail.type = detail.type.toUpperCase() as CouponType;
 			setSelectedCoupon(detail);
 			setDetailOpen(false);
 			setEditOpen(true);
@@ -133,8 +135,10 @@ const CouponPage: React.FC = () => {
 				!term ||
 				c.code.toLowerCase().includes(term) ||
 				(c.title && c.title.toLowerCase().includes(term)) ||
-				(c.createdAt && String(c.createdAt).toLowerCase().includes(term)) ||
-				(c.updatedAt && String(c.updatedAt).toLowerCase().includes(term));
+				(c.createdAt &&
+					String(c.createdAt).toLowerCase().includes(term)) ||
+				(c.updatedAt &&
+					String(c.updatedAt).toLowerCase().includes(term));
 
 			return matchesSearch;
 		});
@@ -228,16 +232,6 @@ const CouponPage: React.FC = () => {
 					pagination
 				/>
 			</Paper>
-			<EditCouponForm
-				coupon={selectedCoupon}
-				key={selectedCoupon ? selectedCoupon.id : "new"}
-				open={editOpen}
-				onClose={() => setEditOpen(false)}
-				onEdited={() => {
-					setEditOpen(false);
-					setIsLoading(true);
-				}}
-			/>
 			<AddCouponForm
 				open={addOpen}
 				onClose={() => setAddOpen(false)}
@@ -245,6 +239,16 @@ const CouponPage: React.FC = () => {
 			/>
 			{selectedCoupon && (
 				<>
+					<EditCouponForm
+						coupon={selectedCoupon}
+						key={selectedCoupon ? selectedCoupon.id : "new"}
+						open={editOpen}
+						onClose={() => setEditOpen(false)}
+						onEdited={() => {
+							setEditOpen(false);
+							setIsLoading(true);
+						}}
+					/>
 					<CouponDetailsDrawer
 						coupon={selectedCoupon}
 						open={detailOpen}

@@ -24,7 +24,6 @@ import {
 	OrderTable,
 } from "./components";
 import type { Order } from "@my-types/order";
-import type { Ticket } from "@my-types/ticket";
 import { OrderStatus } from "@my-types/order";
 import callApi from "@utils/apiCaller";
 import { API_ENDPOINTS } from "@constants/index";
@@ -35,10 +34,12 @@ export default function OrderManagement() {
 		"all"
 	);
 	const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-	const [ticketToCancel, setTicketToCancel] = useState<Ticket | null>(null);
+	const [showRefundDialog, setShowRefundDialog] = useState(false);
+	const [initialSelectedTickets, setInitialSelectedTickets] = useState<number[]>([]);
 	const [orders, setOrders] = useState<Order[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [refreshTrigger, setRefreshTrigger] = useState(0);
 
 	useEffect(() => {
 		const fetchOrders = async () => {
@@ -58,7 +59,7 @@ export default function OrderManagement() {
 			}
 		};
 		fetchOrders();
-	}, []);
+	}, [refreshTrigger]);
 
 	const statusOptions = [
 		{ value: "all", label: "All" },
@@ -101,8 +102,20 @@ export default function OrderManagement() {
 	}, [orders, search, statusFilter]);
 
 	const handleRefundOrder = () => {
-		alert(`Full refund of order ${selectedOrder?.id}`);
-		setSelectedOrder(null);
+		if (selectedOrder?.tickets) {
+			setInitialSelectedTickets(selectedOrder.tickets.map((t) => t.id));
+			setShowRefundDialog(true);
+		}
+	};
+
+	const handleRefundTickets = (ticketIds: number[]) => {
+		setInitialSelectedTickets(ticketIds);
+		setShowRefundDialog(true);
+	};
+
+	const handleRefundSuccess = () => {
+		setRefreshTrigger((prev) => prev + 1);
+		setSelectedOrder(null); // Close detail dialog as data is stale
 	};
 
 	return (
@@ -190,16 +203,18 @@ export default function OrderManagement() {
 				open={!!selectedOrder}
 				onClose={() => setSelectedOrder(null)}
 				onRefundOrder={handleRefundOrder}
-				onCancelTicket={setTicketToCancel}
+				onRefundTickets={handleRefundTickets}
 			/>
 
 			{/* Confirm Cancel Ticket */}
-			{ticketToCancel && (
+			{selectedOrder && (
 				<OrderConfirmCancelDialog
-					ticketToCancel={ticketToCancel}
-					onClose={() => {
-						setTicketToCancel(null);
-					}}
+					open={showRefundDialog}
+					onClose={() => setShowRefundDialog(false)}
+					orderId={selectedOrder.id}
+					tickets={selectedOrder.tickets || []}
+					initialSelectedTicketIds={initialSelectedTickets}
+					onSuccess={handleRefundSuccess}
 				/>
 			)}
 		</DataGridPageLayout>

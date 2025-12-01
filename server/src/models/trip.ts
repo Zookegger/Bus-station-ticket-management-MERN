@@ -236,19 +236,27 @@ export class Trip
 		Trip.belongsTo(models.Route, {
 			foreignKey: "routeId",
 			as: "route",
+			onDelete: "RESTRICT",
+			onUpdate: "CASCADE",
 		});
 		Trip.belongsTo(models.Vehicle, {
 			foreignKey: "vehicleId",
 			as: "vehicle",
+			onDelete: "RESTRICT",
+			onUpdate: "CASCADE",
 		});
 		Trip.hasMany(models.Seat, {
 			foreignKey: "tripId",
 			as: "seats",
+			onDelete: "CASCADE",
+			onUpdate: "CASCADE",
 		});
 		// Direct access to assignment rows for auditing and scheduling UIs
 		Trip.hasMany(models.TripSchedule, {
 			foreignKey: "tripId",
 			as: "driverAssignments",
+			onDelete: "CASCADE",
+			onUpdate: "CASCADE",
 		});
 		Trip.belongsToMany(models.Driver, {
 			through: models.TripSchedule,
@@ -261,20 +269,28 @@ export class Trip
 		Trip.belongsTo(models.Trip, {
 			foreignKey: "templateTripId",
 			as: "template",
+			onDelete: "SET NULL",
+			onUpdate: "CASCADE",
 		});
 		Trip.hasMany(models.Trip, {
 			foreignKey: "templateTripId",
 			as: "instances",
+			onDelete: "SET NULL",
+			onUpdate: "CASCADE",
 		});
 
 		Trip.belongsTo(models.Trip, {
 			foreignKey: "returnTripId",
 			as: "returnTrip",
+			onDelete: "SET NULL",
+			onUpdate: "CASCADE",
 		});
 
 		Trip.hasOne(models.Trip, {
 			foreignKey: "returnTripId",
 			as: "outboundTrip",
+			onDelete: "SET NULL",
+			onUpdate: "CASCADE",
 		});
 	}
 }

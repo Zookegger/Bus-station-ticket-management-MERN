@@ -45,7 +45,11 @@ import {
 } from "@dnd-kit/sortable";
 import callApi from "@utils/apiCaller";
 
-type UILocation = Partial<Location> & { tempId: string };
+type UILocation = Partial<Location> & {
+	tempId: string;
+	durationFromStart?: number;
+	distanceFromStart?: number;
+};
 
 /**
  * Props for the CreateRouteForm dialog component.
@@ -193,6 +197,8 @@ const CreateRouteForm: React.FC<CreateRouteFormProps> = ({
 					address: s.address ?? s.name, // Default address to name if not present
 					latitude: s.latitude,
 					longitude: s.longitude,
+					durationFromStart: s.durationFromStart,
+					distanceFromStart: s.distanceFromStart,
 				})),
 				price: Number(price),
 				distance: distance,
@@ -549,6 +555,8 @@ const CreateRouteForm: React.FC<CreateRouteFormProps> = ({
 						confirmedStops.map((s) => ({
 							...s,
 							tempId: getTempStopId(),
+							durationFromStart: s.durationFromStart,
+							distanceFromStart: s.distanceFromStart,
 						}))
 					);
 					setDistance(routeMetrics.distance);

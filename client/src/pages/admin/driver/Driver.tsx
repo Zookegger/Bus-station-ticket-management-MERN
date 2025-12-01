@@ -1,364 +1,319 @@
 import React, { useMemo, useState } from "react";
 import {
-  Box,
-  Typography,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  TextField,
-  IconButton,
-  Menu,
-  MenuItem,
-  Drawer,
-  Stack,
-  Chip,
-  TableSortLabel,
-  Avatar,
-  FormControl,
-  InputLabel,
-  Select,
-  Alert,
-  Button,
+	Box,
+	Typography,
+	Paper,
+	TextField,
+	Drawer,
+	Stack,
+	Chip,
+	Avatar,
+	FormControl,
+	InputLabel,
+	Select,
+	MenuItem,
+	Button,
+	InputAdornment,
 } from "@mui/material";
-import { Link } from "react-router-dom";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { MOCK_DRIVERS } from "@data/mockDrivers";
-import { type DriverRecord } from "@my-types/driver";
+import { type Driver, DriverStatus } from "@my-types/driver";
 import DriverDetails from "./components/DriverDetails";
-import { useNavigate } from "react-router-dom";
-
-type Order = "asc" | "desc";
-type OrderBy = keyof Pick<
-  DriverRecord,
-  "fullName" | "email" | "phone" | "rating"
->;
+import DriverCreate from "./components/DriverForm";
+import { DataGridPageLayout } from "@components/admin";
+import {
+	DataGrid,
+	type GridColDef,
+	type GridRenderCellParams,
+} from "@mui/x-data-grid";
+import { Add as AddIcon, Search as SearchIcon } from "@mui/icons-material";
 
 const Driver: React.FC = () => {
-  const navigate = useNavigate();
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "active" | "inactive" | "suspended"
-  >("all");
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(9);
-  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
-  const [selectedDriver, setSelectedDriver] = useState<DriverRecord | null>(
-    null
-  );
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [order, setOrder] = useState<Order>("asc");
-  const [orderBy, setOrderBy] = useState<OrderBy>("fullName");
+	const [search, setSearch] = useState("");
+	const [statusFilter, setStatusFilter] = useState<"all" | DriverStatus>(
+		"all"
+	);
+	const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
+	const [drawerOpen, setDrawerOpen] = useState(false);
+	const [dialogOpen, setDialogOpen] = useState(false);
+	const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
+	const [dataVersion, setDataVersion] = useState(0);
+	const [isLoading] = useState<boolean>(false);
 
-  // Filter
-  const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    return MOCK_DRIVERS.filter((d) => {
-      const matchesSearch =
-        !term ||
-        [d.fullName, d.email, d.phone, d.licenseNumber].some((f) =>
-          f.toLowerCase().includes(term)
-        );
-      const matchesStatus = statusFilter === "all" || d.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    });
-  }, [search, statusFilter]);
+	const filtered = useMemo(() => {
+		const term = search.trim().toLowerCase();
+		return MOCK_DRIVERS.filter((d) => {
+			const matchesSearch =
+				!term ||
+				[
+					d.fullname ?? "",
+					d.phoneNumber ?? "",
+					d.licenseNumber ?? "",
+					d.licenseCategory ?? "",
+					d.dateOfBirth ?? "",
+				].some((f) => String(f).toLowerCase().includes(term));
+			const rowStatus =
+				d.status ??
+				(d.isSuspended
+					? DriverStatus.SUSPENDED
+					: d.isActive
+					? DriverStatus.ACTIVE
+					: DriverStatus.INACTIVE);
+			const matchesStatus =
+				statusFilter === "all" || rowStatus === statusFilter;
+			return matchesSearch && matchesStatus;
+		});
+	}, [search, statusFilter, dataVersion]);
 
-  // Sort
-  const sorted = useMemo(() => {
-    const comparator = (a: DriverRecord, b: DriverRecord) => {
-      const aVal = a[orderBy];
-      const bVal = b[orderBy];
-      if (typeof aVal === "string" && typeof bVal === "string") {
-        return order === "asc"
-          ? aVal.localeCompare(bVal)
-          : bVal.localeCompare(aVal);
-      }
-      if (aVal < bVal) return order === "asc" ? -1 : 1;
-      if (aVal > bVal) return order === "asc" ? 1 : -1;
-      return 0;
-    };
-    return [...filtered].sort(comparator);
-  }, [filtered, order, orderBy]);
+	const visibleRows = filtered;
 
-  const handleSort = (property: OrderBy) => {
-    const isAsc = orderBy === property && order === "asc";
-    setOrder(isAsc ? "desc" : "asc");
-    setOrderBy(property);
-  };
+	const getInitials = (name: string) =>
+		name
+			.split(" ")
+			.map((n) => n[0])
+			.join("")
+			.toUpperCase()
+			.slice(0, 2);
 
-  const handleOpenMenu = (
-    e: React.MouseEvent<HTMLButtonElement>,
-    driver: DriverRecord
-  ) => {
-    setSelectedDriver(driver);
-    setMenuAnchor(e.currentTarget);
-  };
+	const columns: GridColDef[] = [
+		{
+			field: "id",
+			headerName: "ID",
+			width: 30,
+		},
+		{
+			field: "fullName",
+			headerName: "Driver",
+			flex: 1.2,
+			minWidth: 200,
+			renderCell: (params: GridRenderCellParams<Driver>) => {
+				return (
+					<Stack
+						direction="row"
+						spacing={1}
+						alignItems="center"
+						justifyContent={"flex-start"}
+						height={"100%"}
+					>
+						<Avatar
+							sx={{
+								width: 32,
+								height: 32,
+								fontSize: 14,
+								fontWeight: 600,
+							}}
+						>
+							{getInitials(params.row.fullname ?? "")}
+						</Avatar>
+						<Box>
+							<Typography
+								variant="body2"
+								sx={{ fontWeight: 500 }}
+							>
+								{params.row.fullname}
+							</Typography>
+							<Stack
+								direction="row"
+								spacing={0.5}
+								sx={{ mt: 0.5 }}
+							>
+								<Chip
+									label={params.row.licenseCategory ?? "—"}
+									size="small"
+									sx={{ height: 20, fontSize: 11 }}
+								/>
+								<Chip
+									label={
+										params.row.status ??
+										(params.row.isSuspended
+											? "Suspended"
+											: params.row.isActive
+											? "Active"
+											: "Inactive")
+									}
+									size="small"
+									color={
+										params.row.status ===
+										DriverStatus.SUSPENDED
+											? "error"
+											: params.row.status ===
+											  DriverStatus.ACTIVE
+											? "success"
+											: "warning"
+									}
+									sx={{
+										height: 20,
+										fontSize: 11,
+										fontWeight: "bold",
+									}}
+								/>
+							</Stack>
+						</Box>
+					</Stack>
+				);
+			},
+		},
+		{
+			field: "phoneNumber",
+			headerName: "Phone",
+			flex: 0.9,
+			minWidth: 120,
+			valueGetter: (value) => value ?? "N/A",
+		},
+		{
+			field: "licenseNumber",
+			headerName: "License #",
+			flex: 1,
+			minWidth: 120,
+			valueGetter: (value) => value ?? "N/A",
+		},
+		{
+			field: "hiredAt",
+			headerName: "Hired",
+			width: 120,
+			valueFormatter: (value: string | Date) =>
+				value ? new Date(value).toLocaleDateString() : "—",
+		},
+		{
+			field: "dateOfBirth",
+			headerName: "DOB",
+			width: 120,
+			valueFormatter: (value: string | Date) =>
+				value ? new Date(value).toLocaleDateString() : "—",
+		},
+		{
+			field: "updatedAt",
+			headerName: "Updated At",
+			width: 190,
+			valueFormatter: (value: Date) => {
+				return value
+					? `${new Date(value).toLocaleDateString()} - ${new Date(
+							value
+					  ).toLocaleTimeString()}`
+					: "N/A";
+			},
+		},
+		{
+			field: "createdAt",
+			headerName: "Created At",
+			width: 190,
+			valueFormatter: (value: Date) => {
+				return value
+					? `${new Date(value).toLocaleDateString()} - ${new Date(
+							value
+					  ).toLocaleTimeString()}`
+					: "N/A";
+			},
+		},
+	];
 
-  const handleCloseMenu = () => setMenuAnchor(null);
+	const actionBar = (
+		<Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+			<Button
+				onClick={() => {
+					setEditingDriver(null);
+					setDialogOpen(true);
+				}}
+				variant="contained"
+				className="hvr-icon-pop"
+				sx={{ textTransform: "none", fontWeight: "bold" }}
+				startIcon={<AddIcon className="hvr-icon" />}
+			>
+				Add Driver
+			</Button>
+			<FormControl size="small" sx={{ minWidth: 140 }}>
+				<InputLabel>Status</InputLabel>
+				<Select
+					value={statusFilter}
+					label="Status"
+					onChange={(e) => setStatusFilter(e.target.value as any)}
+				>
+					<MenuItem value="all">All</MenuItem>
+					<MenuItem value={DriverStatus.ACTIVE}>Active</MenuItem>
+					<MenuItem value={DriverStatus.INACTIVE}>Inactive</MenuItem>
+					<MenuItem value={DriverStatus.SUSPENDED}>
+						Suspended
+					</MenuItem>
+				</Select>
+			</FormControl>
+			<TextField
+				size="small"
+				placeholder="Search by name, email..."
+				value={search}
+				onChange={(e) => setSearch(e.target.value)}
+				slotProps={{
+					input: {
+						startAdornment: (
+							<InputAdornment position="start">
+								<SearchIcon color="action" />
+							</InputAdornment>
+						),
+					},
+				}}
+				sx={{ minWidth: 250 }}
+			/>
+		</Box>
+	);
 
-  const openDetails = (driver: DriverRecord) => {
-    setSelectedDriver(driver);
-    setDrawerOpen(true);
-    handleCloseMenu();
-  };
+	const openDetails = (driver: Driver) => {
+		setSelectedDriver(driver);
+		setDrawerOpen(true);
+	};
 
-  const visibleRows =
-    rowsPerPage > 0
-      ? sorted.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-      : sorted;
+	return (
+		<DataGridPageLayout title={`Driver Management`} actionBar={actionBar}>
+			<Paper elevation={3} sx={{ width: "100%" }}>
+				<DataGrid
+					rows={visibleRows}
+					columns={columns}
+					onRowClick={(e) => {
+						const id = Number(e.id);
+						const driver = visibleRows.find((d) => d.id === id);
+						if (driver) openDetails(driver);
+					}}
+					rowHeight={56}
+					loading={isLoading}
+					pagination
+					slotProps={{
+						pagination: {
+							labelRowsPerPage: "Rows per page:",
+						},
+					}}
+					sx={{ maxWidth: "100%" }}
+				/>
+			</Paper>
 
-  const getInitials = (name: string) =>
-    name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
+			<Drawer
+				anchor="right"
+				open={drawerOpen}
+				onClose={() => setDrawerOpen(false)}
+				slotProps={{
+					paper: { sx: { width: { xs: 360, sm: 420, md: 560 } } },
+				}}
+			>
+				{selectedDriver && (
+					<DriverDetails
+						driver={selectedDriver}
+						onClose={() => setDrawerOpen(false)}
+						onEdit={(d) => {
+							setEditingDriver(d);
+							setDialogOpen(true);
+							setDrawerOpen(false);
+						}}
+					/>
+				)}
+			</Drawer>
 
-  return (
-    <Box sx={{ p: 3 }}>
-      <Typography
-        variant="h5"
-        sx={{ fontWeight: 700, color: "#2E7D32", mb: 2 }}
-      >
-        Driver Management
-      </Typography>
-
-      <Link to="driver/create">
-        <Button variant="contained" sx={{ textTransform: "none", mb: 2 }}>
-          + Add Driver
-        </Button>
-      </Link>
-
-      <Paper variant="outlined" sx={{ p: 2 }}>
-        {/* Filter Bar */}
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={2}
-          alignItems="center"
-          justifyContent="space-between"
-          sx={{ mb: 2 }}
-        >
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Typography variant="body2" color="text.secondary">
-              Hiển thị
-            </Typography>
-            <Chip
-              size="small"
-              label={rowsPerPage === -1 ? "All" : rowsPerPage}
-            />
-            <Typography variant="body2" color="text.secondary">
-              records
-            </Typography>
-          </Stack>
-
-          <Stack
-            direction="row"
-            spacing={2}
-            sx={{ width: { xs: "100%", sm: "auto" } }}
-          >
-            <FormControl size="small" sx={{ minWidth: 140 }}>
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={statusFilter}
-                label="Status"
-                onChange={(e) => {
-                  setStatusFilter(e.target.value as any);
-                  setPage(0);
-                }}
-              >
-                <MenuItem value="all">All</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-                <MenuItem value="suspended">Suspended</MenuItem>
-              </Select>
-            </FormControl>
-
-            <TextField
-              size="small"
-              placeholder="Search..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(0);
-              }}
-              sx={{ minWidth: 200 }}
-            />
-          </Stack>
-        </Stack>
-
-        {/* Table */}
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>
-                  <TableSortLabel
-                    active={orderBy === "fullName"}
-                    direction={orderBy === "fullName" ? order : "asc"}
-                    onClick={() => handleSort("fullName")}
-                  >
-                    Name & Information
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell>
-                  <TableSortLabel
-                    active={orderBy === "email"}
-                    direction={orderBy === "email" ? order : "asc"}
-                    onClick={() => handleSort("email")}
-                  >
-                    Email
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell>
-                  <TableSortLabel
-                    active={orderBy === "phone"}
-                    direction={orderBy === "phone" ? order : "asc"}
-                    onClick={() => handleSort("phone")}
-                  >
-                    Phone Number
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell align="right">
-                  <TableSortLabel
-                    active={orderBy === "rating"}
-                    direction={orderBy === "rating" ? order : "asc"}
-                    onClick={() => handleSort("rating")}
-                  >
-                    Rating
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {visibleRows.map((d) => (
-                <TableRow key={d.id} hover>
-                  <TableCell>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Avatar
-                        sx={{
-                          width: 32,
-                          height: 32,
-                          fontSize: 14,
-                          fontWeight: 600,
-                          bgcolor: "#e0e0e0",
-                          color: "#424242",
-                        }}
-                      >
-                        {getInitials(d.fullName)}
-                      </Avatar>
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          {d.fullName}
-                        </Typography>
-                        <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }}>
-                          <Chip
-                            label={d.licenseClass}
-                            size="small"
-                            sx={{ height: 20, fontSize: 11 }}
-                          />
-                          <Chip
-                            label={d.status}
-                            size="small"
-                            color={
-                              d.status === "active"
-                                ? "success"
-                                : d.status === "suspended"
-                                ? "error"
-                                : "default"
-                            }
-                            sx={{ height: 20, fontSize: 11 }}
-                          />
-                        </Stack>
-                      </Box>
-                    </Stack>
-                  </TableCell>
-                  <TableCell sx={{ whiteSpace: "nowrap" }}>{d.email}</TableCell>
-                  <TableCell sx={{ whiteSpace: "nowrap" }}>{d.phone}</TableCell>
-                  <TableCell align="right">⭐ {d.rating.toFixed(1)}</TableCell>
-                  <TableCell align="right">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => handleOpenMenu(e, d)}
-                    >
-                      <MoreVertIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        {/* Pagination */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: 1,
-            pt: 1,
-          }}
-        >
-          <Typography variant="caption">
-            {filtered.length === 0
-              ? "0 record"
-              : `${page * rowsPerPage + 1} - ${Math.min(
-                  filtered.length,
-                  page * rowsPerPage +
-                    (rowsPerPage > 0 ? rowsPerPage : filtered.length)
-                )} of ${filtered.length} records`}
-          </Typography>
-          <TablePagination
-            component="div"
-            count={filtered.length}
-            page={page}
-            onPageChange={(_, p) => setPage(p)}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={(e) => {
-              setRowsPerPage(parseInt(e.target.value, 10));
-              setPage(0);
-            }}
-            rowsPerPageOptions={[5, 9, 25, { label: "All", value: -1 }]}
-            labelRowsPerPage="Rows per page:"
-          />
-        </Box>
-      </Paper>
-
-      {/* Menu */}
-      <Menu
-        anchorEl={menuAnchor}
-        open={Boolean(menuAnchor)}
-        onClose={handleCloseMenu}
-      >
-        <MenuItem onClick={() => selectedDriver && openDetails(selectedDriver)}>
-          View Details
-        </MenuItem>
-      </Menu>
-
-      {/* Drawer */}
-      <Drawer
-        anchor="right"
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        PaperProps={{ sx: { width: { xs: 360, sm: 420, md: 560 } } }}
-      >
-        {selectedDriver && (
-          <DriverDetails
-            driver={selectedDriver}
-            onClose={() => setDrawerOpen(false)}
-          />
-        )}
-      </Drawer>
-    </Box>
-  );
+			<DriverCreate
+				open={dialogOpen}
+				onClose={() => {
+					setDialogOpen(false);
+					setEditingDriver(null);
+				}}
+				initialData={editingDriver ?? undefined}
+				onSaved={() => setDataVersion((v) => v + 1)}
+			/>
+		</DataGridPageLayout>
+	);
 };
 
 export default Driver;

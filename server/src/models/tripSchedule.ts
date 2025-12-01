@@ -131,14 +131,20 @@ export class TripSchedule
 		TripSchedule.belongsTo(models.Trip, {
 			foreignKey: "tripId",
 			as: "trip",
+			onDelete: "CASCADE",
+			onUpdate: "CASCADE",
 		});
 		TripSchedule.belongsTo(models.Driver, {
 			foreignKey: "driverId",
 			as: "driver",
+			onDelete: "CASCADE",
+			onUpdate: "CASCADE",
 		});
 		TripSchedule.belongsTo(models.User, {
 			foreignKey: "assignedBy",
 			as: "assigner",
+			onDelete: "SET NULL",
+			onUpdate: "CASCADE",
 		});
 	}
 }

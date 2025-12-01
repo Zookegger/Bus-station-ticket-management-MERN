@@ -46,7 +46,7 @@ const DeleteCouponForm: React.FC<DeleteCouponFormProps> = ({
 			if (!response || response.status !== 200) {
 				throw new Error("No response from server");
 			}
-			await onConfirm();
+			onConfirm?.(id);
 			onClose();
 		} catch (err: unknown) {
 			const message = handleAxiosError(err);

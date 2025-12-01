@@ -162,10 +162,14 @@ export class Vehicle
 		Vehicle.belongsTo(models.VehicleType, {
 			foreignKey: "vehicleTypeId",
 			as: "vehicleType",
+			onDelete: "RESTRICT",
+			onUpdate: "CASCADE",
 		});
 		Vehicle.hasMany(models.Trip, {
 			foreignKey: "vehicleId",
 			as: "trips",
+			onDelete: "RESTRICT",
+			onUpdate: "CASCADE",
 		});
 	}
 }

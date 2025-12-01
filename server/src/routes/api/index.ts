@@ -25,6 +25,7 @@ import couponRouter from "@routes/api/couponRouter";
 import debugRouter from "@routes/api/debugRouter";
 import dashboardRouter from "@routes/api/dashboardRouter";
 import notificationRouter from "@routes/api/notificationRouter";
+import adminRouter from "@routes/api/adminRouter";
 
 /**
  * Main API router instance.
@@ -84,6 +85,8 @@ apiRouter.use("/coupons", apiRateLimiter, couponRouter);
 apiRouter.use("/dashboard", apiRateLimiter, dashboardRouter);
 apiRouter.use("/notifications", apiRateLimiter, notificationRouter);
 apiRouter.use("/check-in", checkInRouter);
+// Admin routes (user, system management)
+apiRouter.use("/admin", apiRateLimiter, adminRouter);
 
 // Debug routes (admin only, for development/testing)
 if (process.env.NODE_ENV !== "production") {

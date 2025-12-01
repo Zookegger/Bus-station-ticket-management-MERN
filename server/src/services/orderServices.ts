@@ -641,6 +641,16 @@ const buildOrderQueryOptions = (
 									],
 									as: "route",
 								},
+								{
+									model: db.Vehicle,
+									include: [
+										{
+											model: db.VehicleType,
+											as: "vehicleType",
+										},
+									],
+									as: "vehicle"
+								},
 							],
 							as: "trip",
 						},

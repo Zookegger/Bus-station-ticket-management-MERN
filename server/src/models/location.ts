@@ -151,6 +151,8 @@ export class Location
 		Location.hasMany(models.RouteStop, {
 			foreignKey: "locationId",
 			as: "routeStops",
+			onDelete: "CASCADE",
+			onUpdate: "CASCADE",
 		});
 	}
 }

@@ -142,4 +142,10 @@ export const API_ENDPOINTS: ApiEndpoints = {
 		TRIGGER_PAYMENT_CLEANUP: "/debug/trigger-payment-cleanup",
 		PAYMENT_QUEUE_STATS: "/debug/payment-queue-stats",
 	},
+	ADMIN: {
+		BASE: "/admin/users",
+		ADD: "/admin/users",
+		UPDATE: (id: string) => `/admin/users/${id}`,
+		DELETE: (id: string) => `/admin/users/${id}`,
+	}
 } as const;

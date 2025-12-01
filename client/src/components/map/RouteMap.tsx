@@ -90,31 +90,30 @@ const RouteMap: React.FC<RouteMapProps> = ({
 
 	if (route?.route?.geometry?.coordinates) {
 		// Legacy OSRM format [lon, lat]
-		routeCoords = route.route.geometry.coordinates.map((c: any[]) => [c[1], c[0]]);
+		routeCoords = route.route.geometry.coordinates
+			.map((c: any[]) => [c[1], c[0]])
+			.filter((pair) => Number.isFinite(pair[0]) && Number.isFinite(pair[1]));
 	} else if (fetchedRoute?.features?.[0]?.geometry?.coordinates) {
 		// ORS format [lon, lat]
-		routeCoords = fetchedRoute.features[0].geometry.coordinates.map((c) => [
-			c[1],
-			c[0],
-		]);
+		routeCoords = fetchedRoute.features[0].geometry.coordinates
+			.map((c) => [c[1], c[0]])
+			.filter((pair) => Number.isFinite(pair[0]) && Number.isFinite(pair[1]));
 	}
 
 	// 2. Markers (Stops)
 	// If 'stops' prop exists, use it. Otherwise try to infer from legacy 'route' object (only has start/end).
 	const markersToRender = stops
-		? stops.map((s, i) => ({
-				lat: Number(s.latitude),
-				lon: Number(s.longitude),
-				name:
-					s.name ||
-					(i === 0
-						? "Start"
-						: i === stops.length - 1
-						? "End"
-						: `Stop ${i + 1}`),
-				index: i,
-				total: stops.length,
-		  }))
+		? stops
+			  .map((s, i) => ({
+				  lat: Number(s.latitude),
+				  lon: Number(s.longitude),
+				  name:
+					  s.name ||
+					  (i === 0 ? "Start" : i === stops.length - 1 ? "End" : `Stop ${i + 1}`),
+				  index: i,
+				  total: stops.length,
+			  }))
+			  .filter((m) => Number.isFinite(m.lat) && Number.isFinite(m.lon))
 		: [];
 
 	// Fallback for legacy route object (only has start/end)
@@ -139,11 +138,14 @@ const RouteMap: React.FC<RouteMapProps> = ({
 		}
 	}
 
-	// Default center calculation
+	// Default center calculation - ensure numeric values
+	const firstMarker = markersToRender.length > 0 ? markersToRender[0] : null;
 	const mapCenter: [number, number] =
-		markersToRender.length > 0
-			? [markersToRender[0].lat, markersToRender[0].lon]
-			: center;
+		firstMarker && Number.isFinite(firstMarker.lat) && Number.isFinite(firstMarker.lon)
+			? [firstMarker.lat, firstMarker.lon]
+			: Array.isArray(center) && Number.isFinite(center[0]) && Number.isFinite(center[1])
+			? [center[0], center[1]]
+			: [10.762622, 106.660172];
 
 	return (
 		<Box sx={{ height, width: "100%", position: "relative" }}>

@@ -36,7 +36,7 @@ import axios from "axios";
 import { addSeconds, format, isValid } from "date-fns";
 
 // Mock imports based on context
-import { API_ENDPOINTS } from "@constants//api";
+import { API_ENDPOINTS } from "@constants/api";
 import type { Route, Vehicle } from "@my-types";
 import type { CreateTripDTO } from "@my-types/trip";
 import { TripStatus, TripRepeatFrequency } from "@my-types/trip";
@@ -64,6 +64,8 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 	const [vehicles, setVehicles] = useState<Vehicle[]>([]);
 	const [isLoadingData, setIsLoadingData] = useState(true);
 
+	const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
 	// Form State
 	const [selectedOutboundRoute, setSelectedOutboundRoute] =
 		useState<Route | null>(null);
@@ -81,7 +83,7 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 
 	const mapStops = useMemo(() => {
 		if (!selectedOutboundRoute?.stops) return undefined;
-		
+
 		// Convert RouteStops to the format RouteMap expects
 		return [...selectedOutboundRoute.stops]
 			.sort((a, b) => a.stopOrder - b.stopOrder)
@@ -126,6 +128,7 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 		if (!open) return;
 		const fetchData = async () => {
 			setIsLoadingData(true);
+			setFormErrors({});
 			try {
 				const [routesRes, vehiclesRes] = await Promise.all([
 					axios.get(API_ENDPOINTS.ROUTE.BASE),
@@ -143,7 +146,7 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 				setVehicles(
 					Array.isArray(vehiclesRes.data)
 						? vehiclesRes.data
-						: vehiclesRes.data.data || vehiclesRes.data.rows || [] 
+						: vehiclesRes.data.data || vehiclesRes.data.rows || []
 				);
 			} catch (err) {
 				console.error("Failed to load form data", err);
@@ -157,6 +160,7 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 
 	const handleSubmit = async () => {
 		setError(null);
+		setFormErrors({});
 		setIsSubmitting(true);
 
 		if (
@@ -203,8 +207,15 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 				(payload as any).repeatEndDate = repeatEndDate;
 			}
 
-			const { status, data } = await callApi({method: "POST", url: API_ENDPOINTS.TRIP.CREATE, data: payload}, {returnFullResponse: true});
-			
+			const { status, data } = await callApi(
+				{
+					method: "POST",
+					url: API_ENDPOINTS.TRIP.CREATE,
+					data: payload,
+				},
+				{ returnFullResponse: true }
+			);
+
 			if (status !== 201 || !data) {
 				throw new Error("Failed to create trip.");
 			}
@@ -212,11 +223,30 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 			onCreated?.();
 			onClose();
 		} catch (err: any) {
-			setError(
-				err.response?.data?.message ||
-					err.message ||
-					"Failed to create trip."
-			);
+			const validationArray =
+				err?.response?.data?.errors ||
+				err?.raw?.errors ||
+				err?.errors ||
+				null;
+			if (Array.isArray(validationArray)) {
+				const next: Record<string, string> = {};
+				for (const it of validationArray) {
+					if (it && it.path) {
+						next[it.path] =
+							it.msg || String(it.message || "Invalid value");
+					}
+				}
+				setFormErrors(next);
+				setError(
+					"Validation failed. Please check the highlighted fields."
+				);
+			} else {
+				setError(
+					err.response?.data?.message ||
+						err.message ||
+						"Failed to create trip."
+				);
+			}
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -303,20 +333,24 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 												{...params}
 												label="Route"
 												placeholder="Select Route"
-												InputProps={{
-													...params.InputProps,
-													startAdornment: (
-														<InputAdornment position="start">
-															<RouteIcon color="action" />
-														</InputAdornment>
-													),
+												slotProps={{
+													input: {
+														...params.InputProps,
+														startAdornment: (
+															<InputAdornment position="start">
+																<RouteIcon color="action" />
+															</InputAdornment>
+														),
+													},
 												}}
+												error={!!formErrors.routeId}
 												helperText={
-													selectedOutboundRoute?.distance
+													formErrors.routeId ||
+													(selectedOutboundRoute?.distance
 														? `Total Distance: ${formatDistance(
 																selectedOutboundRoute.distance
 														  )}`
-														: " "
+														: " ")
 												}
 											/>
 										)}
@@ -337,17 +371,18 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 												{...params}
 												label="Vehicle"
 												placeholder="Select Vehicle"
-												slotProps={{
-													input: {
-														...params.InputProps,
-														startAdornment: (
-															<InputAdornment position="start">
-																<CarIcon color="action" />
-															</InputAdornment>
-														),
-													},
+												InputProps={{
+													...params.InputProps,
+													startAdornment: (
+														<InputAdornment position="start">
+															<CarIcon color="action" />
+														</InputAdornment>
+													),
 												}}
-												helperText=" " // Spacer to align with route helper
+												error={!!formErrors.vehicleId}
+												helperText={
+													formErrors.vehicleId || " "
+												} // Spacer to align with route helper
 											/>
 										)}
 									/>
@@ -355,22 +390,22 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 							</Grid>
 
 							{mapStops && (
-								<Paper 
-                                    variant="outlined" 
-                                    sx={{ 
-                                        height: 200, 
-                                        overflow: 'hidden', 
-                                        borderRadius: 1,
-                                        mt: -2 // Pull it up slightly closer to inputs
-                                    }}
-                                >
-									<RouteMap 
-                                        stops={mapStops} 
-                                        height="100%" 
-                                        zoom={10} 
-                                        showMarkers={true}
-                                        showRoute={true}
-                                    />
+								<Paper
+									variant="outlined"
+									sx={{
+										height: 200,
+										overflow: "hidden",
+										borderRadius: 1,
+										mt: -2, // Pull it up slightly closer to inputs
+									}}
+								>
+									<RouteMap
+										stops={mapStops}
+										height="100%"
+										zoom={10}
+										showMarkers={true}
+										showRoute={true}
+									/>
 								</Paper>
 							)}
 
@@ -417,7 +452,13 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 											}
 											disablePast
 											slotProps={{
-												textField: { fullWidth: true },
+												textField: {
+													fullWidth: true,
+													error: !!formErrors.startTime,
+													helperText:
+														formErrors.startTime ||
+														undefined,
+												},
 											}}
 										/>
 										{renderArrivalPreview(
@@ -443,7 +484,9 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 												slotProps={{
 													textField: {
 														fullWidth: true,
+														error: !!formErrors.returnStartTime,
 														helperText:
+															formErrors.returnStartTime ||
 															"Must be after outbound departure",
 													},
 												}}
@@ -546,6 +589,16 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 														Monthly
 													</ToggleButton>
 												</ToggleButtonGroup>
+												{formErrors.repeatFrequency && (
+													<Typography
+														variant="caption"
+														color="error"
+													>
+														{
+															formErrors.repeatFrequency
+														}
+													</Typography>
+												)}
 											</Grid>
 											<Grid size={{ xs: 12, md: 4 }}>
 												<DatePicker
@@ -561,6 +614,10 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 														textField: {
 															size: "small",
 															fullWidth: true,
+															error: !!formErrors.repeatEndDate,
+															helperText:
+																formErrors.repeatEndDate ||
+																undefined,
 														},
 													}}
 												/>
@@ -571,8 +628,6 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 							</Paper>
 						</Box>
 					)}
-
-					
 				</DialogContent>
 				<DialogActions sx={{ px: 3, pb: 3 }}>
 					<Button onClick={onClose} color="inherit">

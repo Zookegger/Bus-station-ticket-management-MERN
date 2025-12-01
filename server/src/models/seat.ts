@@ -219,12 +219,14 @@ export class Seat
 		Seat.belongsTo(models.Trip, {
 			foreignKey: "tripId",
 			as: "trip",
-			onDelete: "SET NULL",
+			onDelete: "CASCADE",
+			onUpdate: "CASCADE",
 		});
 		Seat.hasOne(models.Ticket, {
 			foreignKey: "seatId",
 			as: "ticket",
 			onDelete: "RESTRICT",
+			onUpdate: "CASCADE",
 		});
 	}
 }

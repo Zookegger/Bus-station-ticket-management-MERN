@@ -163,14 +163,20 @@ export class CouponUsage
 		CouponUsage.belongsTo(models.User, {
 			foreignKey: "userId",
 			as: "user",
+			onDelete: "SET NULL",
+			onUpdate: "CASCADE",
 		});
 		CouponUsage.belongsTo(models.Order, {
 			foreignKey: "orderId",
 			as: "order",
+			onDelete: "CASCADE",
+			onUpdate: "CASCADE",
 		});
 		CouponUsage.belongsTo(models.Coupon, {
 			foreignKey: "couponId",
 			as: "coupon",
+			onDelete: "RESTRICT",
+			onUpdate: "CASCADE",
 		});
 	}
 }

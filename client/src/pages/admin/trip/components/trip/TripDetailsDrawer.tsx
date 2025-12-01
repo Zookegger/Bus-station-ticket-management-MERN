@@ -35,7 +35,7 @@ import {
 } from "@mui/icons-material";
 import { addSeconds, format, isValid } from "date-fns";
 import { TripStatus, type Trip } from "@my-types/trip";
-import { RouteMap } from "@components/map"; // Reusing your existing map component
+import { RouteMap } from "@components/map";
 import { formatDistance, formatDuration } from "@utils/map";
 
 interface TripDetailsDrawerProps {
@@ -55,7 +55,7 @@ const CustomTabPanel = (props: TabPanelProps) => {
 	const { children, value, index, ...other } = props;
 
 	return (
-		<div
+		<Box
 			role="tabpanel"
 			hidden={value !== index}
 			id={`trip-tabpanel-${index}`}
@@ -71,7 +71,7 @@ const CustomTabPanel = (props: TabPanelProps) => {
 			{value === index && (
 				<Box sx={{ p: 2, flex: 1, overflowY: "auto" }}>{children}</Box>
 			)}
-		</div>
+		</Box>
 	);
 };
 

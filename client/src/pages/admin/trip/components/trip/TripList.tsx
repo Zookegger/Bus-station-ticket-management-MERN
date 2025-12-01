@@ -14,14 +14,13 @@ import {
 	Search as SearchIcon,
 	Edit as EditIcon,
 	Delete as DeleteIcon,
-	Visibility as ViewIcon,
 } from "@mui/icons-material";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import { format } from "date-fns";
 
 import { DataGridPageLayout } from "@components/admin";
 import callApi from "@utils/apiCaller";
-import { API_ENDPOINTS } from "@constants/index";;
+import { API_ENDPOINTS } from "@constants/index";
 import { TripStatus, type Trip } from "@my-types/trip";
 
 import CreateTrip from "./CreateTrip";
@@ -36,9 +35,7 @@ const TripList: React.FC = () => {
 	const [searchTerm, setSearchTerm] = useState("");
 
 	// Selection & Dialogs
-	const [selectedTrip, setSelectedTrip] = useState<Trip | null>(
-		null
-	);
+	const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
 	const [drawerOpen, setDrawerOpen] = useState(false);
 	const [createOpen, setCreateOpen] = useState(false);
 	const [editOpen, setEditOpen] = useState(false);
@@ -128,7 +125,8 @@ const TripList: React.FC = () => {
 			renderCell: (params) => {
 				const data: Trip = params.row;
 
-				const status = (data.status as string)?.toUpperCase() || "UNKNOWN";
+				const status =
+					(data.status as string)?.toUpperCase() || "UNKNOWN";
 				const isTemplate = data.isTemplate;
 				const isRoundTrip = Boolean(data.returnTripId);
 
@@ -187,20 +185,22 @@ const TripList: React.FC = () => {
 								size="small"
 								variant="outlined"
 							/>
-							{isRoundTrip &&
-							<Chip
-								label={"Round Trip"}
-								color="info"
-								size="small"
-								variant="outlined"
-							/>}
-							{isTemplate &&
-							<Chip
-								label={"Repeated"}
-								color="success"
-								size="small"
-								variant="outlined"
-							/>}
+							{isRoundTrip && (
+								<Chip
+									label={"Round Trip"}
+									color="info"
+									size="small"
+									variant="outlined"
+								/>
+							)}
+							{isTemplate && (
+								<Chip
+									label={"Repeated"}
+									color="success"
+									size="small"
+									variant="outlined"
+								/>
+							)}
 						</Stack>
 					</Box>
 				);
@@ -260,16 +260,6 @@ const TripList: React.FC = () => {
 				const trip = params.row as Trip;
 				return (
 					<Box onClick={(e) => e.stopPropagation()}>
-						<IconButton
-							size="small"
-							onClick={(e) => {
-								e.stopPropagation();
-								handleViewDetails(trip);
-							}}
-							title="View Details"
-						>
-							<ViewIcon />
-						</IconButton>
 						<IconButton
 							size="small"
 							color="primary"

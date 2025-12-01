@@ -17,7 +17,10 @@ import {
   BadgeRounded,
   CalendarTodayRounded,
 } from "@mui/icons-material";
-import { type DriverRecord } from "@my-types/driver";
+import { type Driver } from "@my-types/driver";
+import callApi from "@utils/apiCaller";
+import { API_ENDPOINTS } from "@constants/index";
+import { useNavigate } from "react-router-dom";
 
 const currency = (v: number) =>
   new Intl.NumberFormat("vi-VN", {
@@ -35,11 +38,43 @@ const getInitials = (name: string) =>
     .slice(0, 2);
 
 interface DriverDetailsProps {
-  driver: DriverRecord;
+  driver: Driver;
   onClose: () => void;
+  onEdit?: (driver: Driver) => void;
 }
 
-const DriverDetails: React.FC<DriverDetailsProps> = ({ driver, onClose }) => {
+const DriverDetails: React.FC<DriverDetailsProps> = ({ driver, onClose, onEdit }) => {
+  const navigate = useNavigate();
+
+  const handleEdit = () => {
+    // close drawer first
+    onClose();
+    if (onEdit) {
+      onEdit(driver);
+      return;
+    }
+    // fallback to navigation for older flows
+    navigate("driver/create", { state: { driver } });
+  };
+
+  const handleDelete = async () => {
+    if (!confirm("Are you sure you want to delete this driver? This action cannot be undone.")) return;
+    try {
+      await callApi({ method: "DELETE", url: API_ENDPOINTS.DRIVER.DELETE((driver as any).id) });
+      // update mock fallback if present
+      try {
+        const mocks = (await import("@data/mockDrivers")).MOCK_DRIVERS as any[];
+        const idx = mocks.findIndex((d) => d.id === (driver as any).id);
+        if (idx >= 0) mocks.splice(idx, 1);
+      } catch (e) {
+        // ignore
+      }
+      onClose();
+    } catch (err) {
+      console.error("Delete driver failed", err);
+      alert("Failed to delete driver");
+    }
+  };
   return (
     <Box sx={{ p: 2, width: { xs: 360, sm: 420, md: 520 } }}>
       <Typography
@@ -61,11 +96,11 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({ driver, onClose }) => {
             color: "#1565c0",
           }}
         >
-          {getInitials(driver.fullName)}
+          {getInitials(driver.fullname ?? "")}
         </Avatar>
         <Box>
           <Typography sx={{ fontWeight: 700, fontSize: "1.1rem" }}>
-            {driver.fullName}
+            {driver.fullname}
           </Typography>
           <Stack direction="row" spacing={1} alignItems="center">
             <Typography variant="body2" color="text.secondary">
@@ -73,14 +108,8 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({ driver, onClose }) => {
             </Typography>
             <Chip
               size="small"
-              label={driver.status}
-              color={
-                driver.status === "active"
-                  ? "success"
-                  : driver.status === "suspended"
-                  ? "error"
-                  : "default"
-              }
+              label={driver.isSuspended ? "suspended" : driver.isActive ? "active" : "inactive"}
+              color={driver.isSuspended ? "error" : driver.isActive ? "success" : "default"}
             />
           </Stack>
         </Box>
@@ -96,13 +125,12 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({ driver, onClose }) => {
             <Stack direction="row" spacing={1.5} alignItems="center">
               <EventRounded fontSize="small" />
               <Typography variant="body2">
-                Date of Birth:{" "}
-                {new Date(driver.dateOfBirth).toLocaleDateString("vi-VN")}
+                Date of Birth: {driver.dateOfBirth ? new Date(driver.dateOfBirth).toLocaleDateString("vi-VN") : "—"}
               </Typography>
             </Stack>
             <Stack direction="row" spacing={1.5} alignItems="center">
               <HomeRounded fontSize="small" />
-              <Typography variant="body2">Address: {driver.address}</Typography>
+              <Typography variant="body2">Address: {driver.address ?? "—"}</Typography>
             </Stack>
           </Stack>
         </Box>
@@ -117,7 +145,7 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({ driver, onClose }) => {
           <Stack spacing={1.5}>
             <Stack direction="row" spacing={1.5} alignItems="center">
               <PhoneIphoneRounded fontSize="small" />
-              <Typography variant="body2">Phone: {driver.phone}</Typography>
+              <Typography variant="body2">Phone: {driver.phoneNumber ?? "—"}</Typography>
             </Stack>
             <Stack direction="row" spacing={1.5} alignItems="center">
               <MailOutlineRounded fontSize="small" />
@@ -137,21 +165,19 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({ driver, onClose }) => {
             <Stack direction="row" spacing={1.5} alignItems="center">
               <BadgeRounded fontSize="small" />
               <Typography variant="body2">
-                License Number: {driver.licenseNumber}
+                License Number: {driver.licenseNumber ?? "—"}
               </Typography>
             </Stack>
             <Stack direction="row" spacing={1.5} alignItems="center">
               <Typography variant="body2" sx={{ ml: 4 }}>
-                License Class: {driver.licenseClass}
+                License Category: {driver.licenseCategory ?? "—"}
               </Typography>
             </Stack>
             <Stack direction="row" spacing={1.5} alignItems="center">
               <CalendarTodayRounded fontSize="small" />
               <Typography variant="body2">
-                Issue Date:{" "}
-                {new Date(driver.issueDate).toLocaleDateString("vi-VN")} -
-                Expiry Date:{" "}
-                {new Date(driver.expiryDate).toLocaleDateString("vi-VN")}
+                Issue Date: {driver.licenseIssueDate ? new Date(driver.licenseIssueDate).toLocaleDateString("vi-VN") : "—"} -
+                Expiry Date: {driver.licenseExpiryDate ? new Date(driver.licenseExpiryDate).toLocaleDateString("vi-VN") : "—"}
               </Typography>
             </Stack>
           </Stack>
@@ -165,15 +191,9 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({ driver, onClose }) => {
         </Box>
         <Box sx={{ p: 2 }}>
           <Stack spacing={1.5}>
-            <Typography variant="body2">
-              Total Trips: {driver.totalTrips}
-            </Typography>
-            <Typography variant="body2">
-              Total Earnings: {currency(driver.totalEarnings)}
-            </Typography>
-            <Typography variant="body2">
-              Rating: ⭐ {driver.rating.toFixed(1)}
-            </Typography>
+            <Typography variant="body2">Total Trips: {typeof (driver as any).totalTrips === 'number' ? (driver as any).totalTrips : '—'}</Typography>
+            <Typography variant="body2">Total Earnings: {typeof (driver as any).totalEarnings === 'number' ? currency((driver as any).totalEarnings) : '—'}</Typography>
+            <Typography variant="body2">Rating: {typeof (driver as any).rating === 'number' ? `⭐ ${(driver as any).rating.toFixed(1)}` : '—'}</Typography>
           </Stack>
         </Box>
       </Paper>
@@ -183,6 +203,12 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({ driver, onClose }) => {
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
         <Button variant="outlined" fullWidth onClick={onClose}>
           Back to List
+        </Button>
+        <Button variant="contained" color="primary" fullWidth onClick={handleEdit}>
+          Edit
+        </Button>
+        <Button variant="outlined" color="error" fullWidth onClick={handleDelete}>
+          Delete
         </Button>
       </Stack>
     </Box>

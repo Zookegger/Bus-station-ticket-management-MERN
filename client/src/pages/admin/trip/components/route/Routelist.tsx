@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from "@constants/index";;
+import { API_ENDPOINTS } from "@constants/index";
 import { Button, Paper, Box, CircularProgress } from "@mui/material";
 import type { Route } from "@my-types";
 import { handleAxiosError } from "@utils/handleError";
@@ -100,7 +100,18 @@ const RouteList: React.FC = () => {
 			flex: 1,
 			minWidth: 150,
 		},
-		{ field: "price", headerName: "Price", width: 150 },
+		{
+			field: "price",
+			headerName: "Price",
+			width: 120,
+			valueFormatter: (value: number) =>
+				value
+					? new Intl.NumberFormat("vi-VN", {
+							style: "currency",
+							currency: "VND",
+					  }).format(Number.parseFloat(value.toString()))
+					: "N/A",
+		},
 		{ field: "distance", headerName: "Distance", width: 100 },
 		{ field: "updatedAt", headerName: "Updated At", width: 160 },
 		{ field: "createdAt", headerName: "Created At", width: 160 },

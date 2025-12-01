@@ -132,8 +132,8 @@ const VehicleTypeDetailsDrawer: React.FC<VehicleTypeDetailsDrawerProps> = ({
 						</Typography>
 					}
 					action={
-						<IconButton onClick={onClose}>
-							<CloseIcon />
+						<IconButton className="hvr-icon-grow" onClick={onClose}>
+							<CloseIcon className="hvr-icon" />
 						</IconButton>
 					}
 				/>

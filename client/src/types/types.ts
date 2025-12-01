@@ -140,6 +140,12 @@ export interface ApiEndpoints {
 		readonly READ: (id: number) => string;
 		readonly DELETE: (id: number) => string;
 	};
+	readonly ADMIN: {
+		readonly BASE: string;
+		readonly ADD: string;
+		readonly UPDATE: (id: string) => string;
+		readonly DELETE: (id: string) => string;
+	}
 }
 
 export interface StorageKeys {

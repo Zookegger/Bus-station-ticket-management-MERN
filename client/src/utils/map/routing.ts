@@ -26,6 +26,11 @@ export interface RouteMetricsNormalized {
 	durationSeconds: number;
 }
 
+export interface StopMetric {
+	durationFromStart: number; // minutes
+	distanceFromStart: number; // km
+}
+
 export interface RoutingInputPoint {
 	latitude?: number | string;
 	longitude?: number | string;
@@ -145,6 +150,37 @@ export function extractRouteMetrics(
 		};
 	}
 	return null;
+}
+
+export function extractStopMetrics(
+	route: ORSRouteResponse | null
+): StopMetric[] {
+	if (!route?.features?.length) return [];
+	const segments = route.features[0].properties.segments;
+
+	const metrics: StopMetric[] = [];
+
+	// Stop 0 is always 0,0
+	metrics.push({ durationFromStart: 0, distanceFromStart: 0 });
+
+	let cumulativeDuration = 0;
+	let cumulativeDistance = 0;
+
+	if (segments) {
+		for (const segment of segments) {
+			cumulativeDuration += segment.duration;
+			cumulativeDistance += segment.distance;
+
+			metrics.push({
+				durationFromStart: Math.round(cumulativeDuration / 60), // Convert seconds to minutes
+				distanceFromStart: parseFloat(
+					(cumulativeDistance / 1000).toFixed(2)
+				), // Convert meters to km
+			});
+		}
+	}
+
+	return metrics;
 }
 
 /**

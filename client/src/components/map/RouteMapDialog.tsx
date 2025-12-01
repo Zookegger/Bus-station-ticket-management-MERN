@@ -35,6 +35,7 @@ import {
 	formatDistance,
 	formatDuration,
 	extractRouteMetrics,
+	extractStopMetrics,
 	type ORSRouteResponse,
 } from "@utils/map/routing";
 import { useDebouncedSearch, useDebouncedCoordinate } from "@hooks/map";
@@ -443,12 +444,16 @@ const RouteMapDialog: React.FC<RouteMapDialogProps> = ({
 
 	const handleConfirm = () => {
 		const metrics = extractRouteMetrics(routeData);
-		const resultData: LocationData[] = stops.map((s) => ({
+		const stopMetrics = extractStopMetrics(routeData);
+
+		const resultData: LocationData[] = stops.map((s, index) => ({
 			name: s.name,
 			address: s.address,
 			latitude: s.latitude,
 			longitude: s.longitude,
 			id: s.id,
+			durationFromStart: stopMetrics[index]?.durationFromStart || 0,
+			distanceFromStart: stopMetrics[index]?.distanceFromStart || 0,
 		}));
 
 		onConfirm(resultData, {

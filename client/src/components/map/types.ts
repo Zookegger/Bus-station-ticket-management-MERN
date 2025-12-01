@@ -58,4 +58,6 @@ export interface LocationData {
 	latitude: number;
 	longitude: number;
 	id?: number;
+	durationFromStart?: number;
+	distanceFromStart?: number;
 }

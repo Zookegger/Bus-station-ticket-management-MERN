@@ -7,7 +7,7 @@ export interface AddCouponFormProps {
 }
 
 export interface EditCouponFormProps {
-    coupon: Coupon | null;
+	coupon: Coupon | null;
 	open: boolean;
 	onClose: () => void;
 	onEdited?: (updated_coupon: Coupon) => void;
@@ -17,13 +17,13 @@ export interface DeleteCouponFormProps {
 	id?: number;
 	open: boolean;
 	onClose: () => void;
-	onConfirm: () => void;
+	onConfirm?: (id: number) => void;
 }
 
 export interface CouponDetailsDrawerProps {
-    open: boolean;
-    onClose: () => void;
-    coupon: Coupon | null;
-    onEdit?: (coupon: Coupon) => void;
-    onDelete?: (coupon: Coupon) => void;
+	open: boolean;
+	onClose: () => void;
+	coupon: Coupon | null;
+	onEdit?: (coupon: Coupon) => void;
+	onDelete?: (id: number) => void;
 }

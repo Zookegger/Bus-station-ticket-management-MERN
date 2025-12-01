@@ -73,9 +73,9 @@ export interface UpdateCouponDTO {
  * @property {string | null} userId - The user's ID, or null for guest orders.
  */
 export interface PreviewCouponDTO {
-    code: string;
-    orderTotal: number;
-    userId: string | null;
+	code: string;
+	orderTotal: number;
+	userId: string | null;
 }
 
 /**

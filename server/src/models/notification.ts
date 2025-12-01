@@ -193,6 +193,8 @@ export class Notification
 		Notification.belongsTo(models.User, {
 			foreignKey: "userId",
 			as: "user",
+			onDelete: "CASCADE",
+			onUpdate: "CASCADE",
 		});
 	}
 }

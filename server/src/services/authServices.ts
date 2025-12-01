@@ -88,6 +88,7 @@ export const register = async (
 		dto.password,
 		CONFIG.BCRYPT_SALT_ROUNDS
 	);
+	
 	const user = await db.User.create({
 		userName: dto.email,
 		firstName: dto.firstName,

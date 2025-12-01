@@ -3,7 +3,11 @@
  * Based on server/src/types/user.ts
  */
 
-export type Role = "User" | "Admin";
+import type { FederatedCredential } from "./federatedCredential";
+
+export type Role = (typeof Role)[keyof typeof Role];
+
+export const Role = { USER: "User", ADMIN: "Admin" };
 
 /**
  * Type for user gender.
@@ -13,30 +17,31 @@ export type Role = "User" | "Admin";
 export type Gender = (typeof Gender)[keyof typeof Gender];
 
 export const Gender = {
-  MALE: "MALE",
-  FEMALE: "FEMALE",
-  OTHER: "OTHER",
+	MALE: "MALE",
+	FEMALE: "FEMALE",
+	OTHER: "OTHER",
 } as const;
 
 /**
  * Represents a user object on the client-side.
  */
 export interface User {
-  id: string; // UUID
-  email: string;
-  phoneNumber: string | null;
-  userName: string;
-  fullName: string;
-  firstName: string;
-  lastName: string;
-  address: string | null;
-  gender: Gender | null;
-  avatar: string | null;
-  dateOfBirth: Date | string | null; // Date on server, ISO string on client
-  role: Role;
-  emailConfirmed: boolean;
-  createdAt: Date | string; // Date on server, ISO string on client
-  updatedAt: Date | string; // Date on server, ISO string on client
+	id: string; // UUID
+	email: string;
+	phoneNumber: string | null;
+	userName: string;
+	fullName: string;
+	firstName: string;
+	lastName: string;
+	address: string | null;
+	gender: Gender | null;
+	avatar: string | null;
+	dateOfBirth: Date | string | null; // Date on server, ISO string on client
+	role: Role;
+	emailConfirmed: boolean;
+	createdAt: Date | string; // Date on server, ISO string on client
+	updatedAt: Date | string; // Date on server, ISO string on client
+  federatedCredentials?: FederatedCredential[],
 }
 
 /**
@@ -51,11 +56,11 @@ export interface User {
  * by the service layer or validators before persisting updates.
  */
 export interface RegisterDTO {
-  username: string;
-  email: string;
-  phoneNumber: string;
-  password: string;
-  confirmPassword: string;
+	username: string;
+	email: string;
+	phoneNumber: string;
+	password: string;
+	confirmPassword: string;
 }
 /**
  * Data Transfer Object for logging in.
@@ -67,8 +72,8 @@ export interface RegisterDTO {
  * by the service layer or validators before persisting updates.
  */
 export interface LoginDTO {
-  username: string;
-  password: string;
+	username: string;
+	password: string;
 }
 /**
  * Data Transfer Object for updating a user's profile.
@@ -86,83 +91,84 @@ export interface LoginDTO {
  */
 
 export interface UpdateProfileDTO {
-  email?: string;
-  fullName?: string;
-  address?: string | null;
-  phoneNumber?: string | null;
-  gender?: Gender | null;
-  avatar?: string | null;
-  dateOfBirth?: Date | string | null; // Date on server, ISO string on client
+	email?: string;
+	fullName?: string;
+	address?: string | null;
+	phoneNumber?: string | null;
+	gender?: Gender | null;
+	avatar?: string | null;
+	dateOfBirth?: Date | string | null; // Date on server, ISO string on client
 }
 
 export interface UpdateAdminProfileDTO {
-  fullName?: string | null;
-  address?: string | null;
-  gender?: Gender | null;
-  avatar?: string | null;
-  dateOfBirth?: Date | string | null;
-  phoneNumber?: string | null;
-  role?: string | null;
-  email?: string | null;
+	fullName?: string | null;
+	address?: string | null;
+	gender?: Gender | null;
+	avatar?: string | null;
+	dateOfBirth?: Date | string | null;
+	phoneNumber?: string | null;
+	role?: string | null;
+	email?: string | null;
 }
 
 /**
 DTO for changing a user's password.
 */
 export interface ChangePasswordDTO {
-  userId: string;
-  currentPassword: string;
-  newPassword: string;
-  newConfirmPassword: string;
+	userId: string;
+	currentPassword: string;
+	newPassword: string;
+	newConfirmPassword: string;
 }
 
 /**
  * DTO for resetting a user's password.
  */
 export interface ResetPasswordDTO {
-  token: string;
-  newPassword: string;
-  newConfirmPassword: string;
+	token: string;
+	newPassword: string;
+	newConfirmPassword: string;
 }
 
 /**
  * DTO for retrieving minimal authenticated user data.
  */
 export interface GetMeDTO {
-  user: {
-    id: string;
-    username: string;
-    email: string;
-    emailConfirmed: boolean;
-    avatar?: string | null;
-    role: Role;
-  };
-  tokens?: {
-    expiresIn?: number;
-    tokenType?: string;
-    issuedAt?: string | null; // ISO Date string
-  };
+	user: {
+		id: string;
+		username: string;
+		email: string;
+		emailConfirmed: boolean;
+		avatar?: string | null;
+		role: Role;
+	};
+	tokens?: {
+		expiresIn?: number;
+		tokenType?: string;
+		issuedAt?: string | null; // ISO Date string
+	};
 }
 
 /** Model attribute interfaces for User (server-aligned) */
 export interface UserAttributes {
-  id: string;
-  email: string;
-  passwordHash?: string;
-  firstName?: string;
-  lastName?: string;
-  fullName?: string;
-  userName: string;
-  address?: string | null;
-  gender?: Gender | null;
-  avatar?: string | null;
-  dateOfBirth?: Date | null;
-  emailConfirmed?: boolean;
-  phoneNumber?: string | null;
-  phoneNumberConfirmed?: boolean;
-  role?: Role;
-  createdAt?: Date;
-  updatedAt?: Date;
+	id: string;
+	email: string;
+	passwordHash?: string;
+	firstName?: string;
+	lastName?: string;
+	fullName?: string;
+	userName: string;
+	address?: string | null;
+	gender?: Gender | null;
+	avatar?: string | null;
+	dateOfBirth?: Date | null;
+	emailConfirmed?: boolean;
+	phoneNumber?: string | null;
+	phoneNumberConfirmed?: boolean;
+	role?: Role;
+	createdAt?: Date;
+	updatedAt?: Date;
 }
 
-export type UserCreationAttributes = Omit<Partial<UserAttributes>, 'id'> & Partial<Pick<UserAttributes, 'id'>>;
+export type UserCreationAttributes = Omit<Partial<UserAttributes>, "id"> &
+	Partial<Pick<UserAttributes, "id">>;
