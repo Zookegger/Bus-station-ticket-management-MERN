@@ -1,4 +1,4 @@
-import React, { useState, useEffect, type FC } from "react";
+import React, { useEffect, useCallback } from "react";
 import {
 	Box,
 	Button,
@@ -17,19 +17,40 @@ import type { EditVehicleTypeFormProps } from "./types";
 import type { SeatLayout } from "@my-types/vehicleType";
 import SeatLayoutEditor from "@components/seatmap/SeatLayoutEditor";
 import type { UpdateVehicleTypeDTO } from "@my-types/vehicleType";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+	vehicleTypeSchema,
+	type VehicleTypeFormData,
+} from "@schemas/vehicleTypeSchema";
 
-const EditVehicleTypeForm: FC<EditVehicleTypeFormProps> = ({
+const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
 	open,
 	onClose,
 	vehicleType,
 	onUpdate,
 }) => {
-	const [formData, setFormData] = useState<Partial<UpdateVehicleTypeDTO>>({});
+	const {
+		control,
+		handleSubmit,
+		reset,
+		setValue,
+		watch,
+		formState: { errors, isSubmitting },
+	} = useForm<VehicleTypeFormData>({
+		resolver: zodResolver(vehicleTypeSchema),
+		defaultValues: {
+			name: "",
+			totalFloors: 0,
+			totalSeats: 0,
+			price: 0,
+			seatLayout: "",
+		},
+	});
 
 	useEffect(() => {
 		if (vehicleType) {
-			setFormData({
-				id: vehicleType.id,
+			reset({
 				name: vehicleType.name,
 				price: vehicleType.price,
 				totalFloors: vehicleType.totalFloors,
@@ -37,34 +58,29 @@ const EditVehicleTypeForm: FC<EditVehicleTypeFormProps> = ({
 				seatLayout: vehicleType.seatLayout,
 			});
 		}
-	}, [vehicleType]);
+	}, [vehicleType, reset]);
 
-	const handleInputChange =
-		(field: keyof UpdateVehicleTypeDTO) =>
-		(event: React.ChangeEvent<HTMLInputElement>) => {
-			const value =
-				event.target.type === "number"
-					? Number(event.target.value) || null
-					: event.target.value;
-			setFormData((prev) => ({ ...prev, [field]: value }));
-		};
+	const seatLayout = watch("seatLayout");
+	const totalFloors = watch("totalFloors");
 
-	const handleLayoutChange = (layout: SeatLayout, totalSeats: number) => {
-		setFormData((prev) => ({
-			...prev,
-			seatLayout: JSON.stringify(layout),
-			totalSeats: totalSeats,
-			totalFloors: layout.length,
-		}));
-	};
-
-	const handleSubmit = (e: React.FormEvent) => {
-		e.preventDefault();
-		if (formData.id) {
-			onUpdate(formData as UpdateVehicleTypeDTO);
+	const onSubmit = (data: VehicleTypeFormData) => {
+		if (vehicleType) {
+			onUpdate({
+				id: vehicleType.id,
+				...data,
+			} as UpdateVehicleTypeDTO);
 			onClose();
 		}
 	};
+
+	const handleLayoutChange = useCallback(
+		(layout: SeatLayout, totalSeats: number) => {
+			setValue("seatLayout", JSON.stringify(layout));
+			setValue("totalSeats", totalSeats);
+			setValue("totalFloors", layout.length);
+		},
+		[setValue]
+	);
 
 	if (!vehicleType) {
 		return null;
@@ -74,66 +90,104 @@ const EditVehicleTypeForm: FC<EditVehicleTypeFormProps> = ({
 		<Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
 			<DialogTitle>Edit Vehicle Type</DialogTitle>
 			<DialogContent>
-				<Box component="form" onSubmit={handleSubmit} sx={{ pt: 2 }}>
+				<Box
+					component="form"
+					onSubmit={handleSubmit(onSubmit)}
+					sx={{ pt: 2 }}
+				>
 					<Grid container spacing={3}>
 						<Grid size={{ xs: 12 }}>
-							<TextField
-								fullWidth
-								label="Name"
-								value={formData.name || ""}
-								onChange={handleInputChange("name")}
-								required
+							<Controller
+								name="name"
+								control={control}
+								render={({ field }) => (
+									<TextField
+										{...field}
+										fullWidth
+										label="Name"
+										error={!!errors.name}
+										helperText={errors.name?.message}
+										required
+									/>
+								)}
 							/>
 						</Grid>
 
 						<Grid size={{ xs: 12, sm: 4 }}>
-							<TextField
-								fullWidth
-								label="Floors"
-								type="number"
-								value={formData.totalFloors || ""}
-								slotProps={{
-									input: {
-										readOnly: true,
-									},
-								}}
-								helperText="Set in layout editor"
+							<Controller
+								name="totalFloors"
+								control={control}
+								render={({ field }) => (
+									<TextField
+										{...field}
+										fullWidth
+										label="Floors"
+										type="number"
+										error={!!errors.totalFloors}
+										helperText={
+											errors.totalFloors?.message ||
+											"Set in layout editor"
+										}
+										slotProps={{
+											input: {
+												readOnly: true,
+											},
+										}}
+									/>
+								)}
 							/>
 						</Grid>
 						<Grid size={{ xs: 12, sm: 6 }}>
-							<TextField
-								fullWidth
-								label="Seats"
-								type="number"
-								value={formData.totalSeats || ""}
-								slotProps={{
-									input: {
-										readOnly: true,
-									},
-								}}
-								helperText="Calculated from layout"
+							<Controller
+								name="totalSeats"
+								control={control}
+								render={({ field }) => (
+									<TextField
+										{...field}
+										fullWidth
+										label="Seats"
+										type="number"
+										error={!!errors.totalSeats}
+										helperText={
+											errors.totalSeats?.message ||
+											"Calculated from layout"
+										}
+										slotProps={{
+											input: {
+												readOnly: true,
+											},
+										}}
+									/>
+								)}
 							/>
 						</Grid>
 
 						<Grid size={{ xs: 12, sm: 4 }}>
-							<TextField
-								fullWidth
-								label="Price"
-								type="number"
-								value={formData.price || ""}
-								onChange={handleInputChange("price")}
-								slotProps={{
-									input: {
-										endAdornment: "₫",
-									},
-								}}
+							<Controller
+								name="price"
+								control={control}
+								render={({ field }) => (
+									<TextField
+										{...field}
+										fullWidth
+										label="Price"
+										type="number"
+										error={!!errors.price}
+										helperText={errors.price?.message}
+										slotProps={{
+											input: {
+												endAdornment: "₫",
+											},
+										}}
+									/>
+								)}
 							/>
 						</Grid>
 						<Grid size={{ xs: 12 }}>
 							<SeatLayoutEditor
 								onLayoutChange={handleLayoutChange}
-								initialLayout={formData.seatLayout}
-								totalFloors={formData.totalFloors}
+								initialLayout={seatLayout || undefined}
+								totalFloors={totalFloors || 1}
 							/>
 						</Grid>
 					</Grid>
@@ -151,7 +205,8 @@ const EditVehicleTypeForm: FC<EditVehicleTypeFormProps> = ({
 					type="submit"
 					variant="contained"
 					startIcon={<SaveIcon />}
-					onClick={handleSubmit}
+					onClick={handleSubmit(onSubmit)}
+					disabled={isSubmitting}
 				>
 					Update
 				</Button>

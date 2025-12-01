@@ -35,6 +35,10 @@ export const AddDriver = async (
 	try {
 		const new_driver: CreateDriverDTO = req.body;
 
+		if (req.file) {
+			new_driver.avatar = `/uploads/avatars/${req.file.filename}`;
+		}
+
 		const driver = await driverServices.addDriver(new_driver);
 		if (!driver)
 			throw {
@@ -75,6 +79,10 @@ export const UpdateDriver = async (
 		const id = getParamNumericId(req);
 
 		const updated_driver: UpdateDriverDTO = req.body;
+
+		if (req.file) {
+			updated_driver.avatar = `/uploads/avatars/${req.file.filename}`;
+		}
 
 		const driver = await driverServices.updateDriver(id, updated_driver);
 
@@ -204,7 +212,7 @@ export const SearchDriver = async (
 		if (hiredBefore !== undefined) options.hiredBefore = new Date(hiredBefore as string);
 
 		const drivers = await driverServices.listDrivers(options);
-		res.status(200).json(drivers);
+		res.status(200).json(drivers.rows);
 	} catch (err) {
 		next(err);
 	}

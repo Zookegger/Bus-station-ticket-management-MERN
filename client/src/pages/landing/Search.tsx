@@ -20,7 +20,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import callApi from "@utils/apiCaller";
 import { API_ENDPOINTS, ROUTES } from "@constants/index";
 import type { Trip, TripResponse } from "@my-types/trip";
-import { format } from "date-fns";
+import { format, differenceInMinutes } from "date-fns";
 import { DirectionsBus } from "@mui/icons-material";
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -251,6 +251,17 @@ const SearchPage: React.FC = () => {
 						const vehicleName =
 							t.vehicle?.vehicleType?.name || "Standard Bus";
 
+						// Calculate duration
+						let durationText = "Direct";
+						if (t.startTime && t.arrivalTime) {
+							const start = new Date(t.startTime);
+							const end = new Date(t.arrivalTime);
+							const diff = differenceInMinutes(end, start);
+							const hours = Math.floor(diff / 60);
+							const minutes = diff % 60;
+							durationText = `${hours}h ${minutes}m`;
+						}
+
 						return (
 							<Paper
 								key={t.id}
@@ -350,9 +361,10 @@ const SearchPage: React.FC = () => {
 															transform:
 																"translateX(-50%)",
 															color: "text.secondary",
+															whiteSpace: "nowrap",
 														}}
 													>
-														Direct
+														{durationText}
 													</Typography>
 												</Box>
 
@@ -362,7 +374,14 @@ const SearchPage: React.FC = () => {
 														fontWeight="bold"
 														color="text.secondary"
 													>
-														--:--
+														{t.arrivalTime
+															? format(
+																	new Date(
+																		t.arrivalTime
+																	),
+																	"HH:mm"
+															  )
+															: "--:--"}
 													</Typography>
 													<Typography
 														variant="body2"

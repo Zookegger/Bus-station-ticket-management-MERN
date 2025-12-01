@@ -17,206 +17,248 @@ import {
 	DialogTitle,
 	DialogContent,
 	DialogActions,
+	FormControlLabel,
+	Switch,
+	Avatar,
 } from "@mui/material";
-import axios from "axios";
-import { handleAxiosError } from "@utils/handleError";
-import type {
-	CreateDriverDTO,
-	UpdateDriverDTO,
-	Driver,
-} from "@my-types/driver";
-import { API_ENDPOINTS } from "@constants/index";
-import { MOCK_DRIVERS } from "@data/mockDrivers";
-import { Gender } from "@my-types";
+import {
+	CloudUpload as CloudUploadIcon,
+} from "@mui/icons-material";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { format } from "date-fns";
+import { callApi } from "@utils/apiCaller";
+import { API_ENDPOINTS, APP_CONFIG } from "@constants/index";
+import { driverSchema, type DriverFormData } from "@schemas/driverSchema";
+import type { Driver } from "@my-types/driver";
+import { DriverStatus, Gender } from "@my-types";
 
-interface DriverCreateProps {
+interface DriverFormProps {
 	open: boolean;
 	onClose: () => void;
 	initialData?: Driver;
 	onSaved?: () => void;
 }
 
-type FormErrors = Partial<Record<keyof CreateDriverDTO | "general", string>>;
-
-const INITIAL_FORM_STATE: CreateDriverDTO = {
-	fullname: null,
-	email: null,
-	gender: Gender.MALE,
-	phoneNumber: null,
-	avatar: null,
-	dateOfBirth: null,
-	address: null,
-	hiredAt: null,
-	isActive: true,
-	licenseNumber: null,
-	licenseCategory: null,
-	licenseIssueDate: null,
-	licenseExpiryDate: null,
-	issuingAuthority: null,
-	isSuspended: false,
-};
-
-const DriverCreate: React.FC<DriverCreateProps> = ({
+const DriverForm: React.FC<DriverFormProps> = ({
 	open,
 	onClose,
 	initialData,
 	onSaved,
 }) => {
-	const editingDriver = initialData as Driver | undefined;
-	const [formData, setFormData] = useState<CreateDriverDTO>({
-		...INITIAL_FORM_STATE,
+	const {
+		register,
+		handleSubmit,
+		reset,
+		control,
+		watch,
+		formState: { errors, isSubmitting },
+		setError,
+	} = useForm({
+		resolver: zodResolver(driverSchema),
+		defaultValues: {
+			gender: Gender.OTHER,
+			isActive: true,
+			isSuspended: false,
+			status: DriverStatus.ACTIVE,
+		},
 	});
-	const [errors, setErrors] = useState<FormErrors>({});
-	const [isSubmitting, setIsSubmitting] = useState(false);
+
 	const [serverError, setServerError] = useState<string | null>(null);
+	const [preview, setPreview] = useState<string | null>(null);
+
+	// Watch avatar to update preview
+	const avatarValue = watch("avatar");
+
+	useEffect(() => {
+		if (avatarValue instanceof FileList && avatarValue.length > 0) {
+			const file = avatarValue[0];
+			const url = URL.createObjectURL(file);
+			setPreview(url);
+			return () => URL.revokeObjectURL(url);
+		} else if (typeof avatarValue === "string") {
+			setPreview(
+				avatarValue.startsWith("http")
+					? avatarValue
+					: `${APP_CONFIG.serverBaseUrl}${avatarValue}`
+			);
+		} else {
+			setPreview(null);
+		}
+	}, [avatarValue]);
+
+	// Helper to format date for input type="date" (YYYY-MM-DD)
+	const formatDateForInput = (date: string | Date | null | undefined) => {
+		if (!date) return "";
+		const d = new Date(date);
+		return isNaN(d.getTime()) ? "" : format(d, "yyyy-MM-dd");
+	};
 
 	useEffect(() => {
 		if (open) {
-			if (editingDriver) {
-				// Map server `Driver` shape to CreateDriverDTO (drop server-only fields)
-				const mapped: CreateDriverDTO = {
-					fullname: editingDriver.fullname ?? null,
-					email: editingDriver.email ?? null,
-					gender:
-						editingDriver.gender ??
-						(INITIAL_FORM_STATE.gender as any),
-					phoneNumber: editingDriver.phoneNumber ?? null,
-					avatar: editingDriver.avatar ?? null,
-					dateOfBirth: editingDriver.dateOfBirth ?? null,
-					address: editingDriver.address ?? null,
-					hiredAt: editingDriver.hiredAt ?? null,
-					isActive:
-						typeof editingDriver.isActive === "boolean"
-							? editingDriver.isActive
-							: true,
-					licenseNumber: editingDriver.licenseNumber ?? null,
-					licenseCategory: editingDriver.licenseCategory ?? null,
-					licenseIssueDate: editingDriver.licenseIssueDate ?? null,
-					licenseExpiryDate: editingDriver.licenseExpiryDate ?? null,
-					issuingAuthority: editingDriver.issuingAuthority ?? null,
-					isSuspended:
-						typeof editingDriver.isSuspended === "boolean"
-							? editingDriver.isSuspended
-							: false,
-				};
-				setFormData({ ...INITIAL_FORM_STATE, ...mapped });
-			} else {
-				setFormData({ ...INITIAL_FORM_STATE });
-			}
-			setErrors({});
 			setServerError(null);
+			if (initialData) {
+				// Map initial data to form values
+				const formattedData: any = {
+					...initialData,
+					dateOfBirth: formatDateForInput(initialData.dateOfBirth),
+					hiredAt: formatDateForInput(initialData.hiredAt),
+					licenseIssueDate: formatDateForInput(
+						initialData.licenseIssueDate
+					),
+					licenseExpiryDate: formatDateForInput(
+						initialData.licenseExpiryDate
+					),
+					status: initialData.status || "ACTIVE",
+					licenseCategory: initialData.licenseCategory || "",
+					avatar: initialData.avatar, // Keep existing avatar URL
+				};
+				reset(formattedData);
+				if (initialData.avatar) {
+					setPreview(
+						initialData.avatar.startsWith("http")
+							? initialData.avatar
+							: `${APP_CONFIG.serverBaseUrl}${initialData.avatar}`
+					);
+				}
+			} else {
+				reset({
+					gender: Gender.OTHER,
+					fullname: "",
+					email: "",
+					phoneNumber: "",
+					citizenId: "",
+					address: "",
+					licenseNumber: "",
+					licenseCategory: undefined,
+					issuingAuthority: "",
+					isActive: true,
+					isSuspended: false,
+					status: DriverStatus.ACTIVE,
+					dateOfBirth: undefined,
+					hiredAt: undefined,
+					licenseIssueDate: undefined,
+					licenseExpiryDate: undefined,
+					avatar: undefined,
+				});
+				setPreview(null);
+			}
 		}
-	}, [open, editingDriver]);
+	}, [open, initialData, reset]);
 
-	const handleInputChange = <K extends keyof CreateDriverDTO>(
-		field: K,
-		value: CreateDriverDTO[K]
-	) => {
-		setFormData((prev) => ({ ...prev, [field]: value }));
-		if ((errors as any)[field]) {
-			setErrors((prev) => {
-				const next = { ...prev } as any;
-				delete next[field as string];
-				return next;
-			});
-		}
-		if (serverError) setServerError(null);
-	};
-
-	const validateForm = (): boolean => {
-		const next: FormErrors = {};
-		if (!formData.fullname || !String(formData.fullname).trim()) {
-			(next as any).fullname = "Full name is required.";
-		}
-		if (formData.phoneNumber && String(formData.phoneNumber).length > 16) {
-			(next as any).phoneNumber =
-				"Phone number must not exceed 16 characters.";
-		}
-		setErrors(next);
-		return Object.keys(next).length === 0;
-	};
-
-	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-		e.preventDefault();
-		if (!validateForm()) return;
-		setIsSubmitting(true);
+	const onSubmit = async (data: DriverFormData) => {
 		setServerError(null);
 		try {
-			const payload: CreateDriverDTO | UpdateDriverDTO = {
-				fullname: formData.fullname ?? null,
-				email: formData.email ?? null,
-				gender: formData.gender,
-				phoneNumber: formData.phoneNumber ?? null,
-				avatar: formData.avatar ?? null,
-				dateOfBirth: formData.dateOfBirth ?? null,
-				address: formData.address ?? null,
-				hiredAt: formData.hiredAt ?? null,
-				isActive:
-					typeof formData.isActive === "boolean"
-						? formData.isActive
-						: true,
-				licenseNumber: formData.licenseNumber ?? null,
-				licenseCategory: formData.licenseCategory ?? null,
-				licenseIssueDate: formData.licenseIssueDate ?? null,
-				licenseExpiryDate: formData.licenseExpiryDate ?? null,
-				issuingAuthority: formData.issuingAuthority ?? null,
-				isSuspended:
-					typeof formData.isSuspended === "boolean"
-						? formData.isSuspended
-						: false,
-			};
+			const formData = new FormData();
 
-			let response;
-			if (editingDriver && editingDriver.id) {
-				response = await axios.put(
-					API_ENDPOINTS.DRIVER.UPDATE(editingDriver.id),
-					payload as UpdateDriverDTO
-				);
-				// update mock fallback
-				const idx = MOCK_DRIVERS.findIndex(
-					(d) => d.id === editingDriver.id
-				);
-				if (idx >= 0)
-					MOCK_DRIVERS[idx] = {
-						...MOCK_DRIVERS[idx],
-						...(payload as any),
-					};
+			// Append all fields to FormData
+			Object.entries(data).forEach(([key, value]) => {
+				if (key === "avatar") {
+					// Only append if it's a file (new upload)
+					if (value instanceof FileList && value.length > 0) {
+						formData.append("avatar", value[0]);
+					}
+					// If it's a string (existing URL), we don't need to send it for update
+					// unless we want to clear it (not handled here)
+				} else if (
+					value !== null &&
+					value !== undefined &&
+					value !== ""
+				) {
+					formData.append(key, String(value));
+				}
+			});
+
+			if (initialData?.id) {
+				await callApi({
+					method: "PUT",
+					url: API_ENDPOINTS.DRIVER.UPDATE(initialData.id),
+					data: formData,
+					headers: { "Content-Type": "multipart/form-data" },
+				});
 			} else {
-				response = await axios.post(
-					API_ENDPOINTS.DRIVER.CREATE,
-					payload as CreateDriverDTO
-				);
-				MOCK_DRIVERS.push({ id: Date.now(), ...(payload as any) });
+				await callApi({
+					method: "POST",
+					url: API_ENDPOINTS.DRIVER.CREATE,
+					data: formData,
+					headers: { "Content-Type": "multipart/form-data" },
+				});
 			}
-
-			onSaved && onSaved();
+			onSaved?.();
 			onClose();
-		} catch (err: unknown) {
-			const h = handleAxiosError(err);
-			setServerError(h.message);
-			if (h.field_errors)
-				setErrors((prev) => ({ ...prev, ...(h.field_errors as any) }));
-		} finally {
-			setIsSubmitting(false);
+		} catch (err: any) {
+			setServerError(err.message || "An error occurred");
+			if (err.field_errors) {
+				Object.entries(err.field_errors).forEach(([key, message]) => {
+					setError(key as keyof DriverFormData, {
+						type: "server",
+						message: message as string,
+					});
+				});
+			}
 		}
 	};
 
 	return (
 		<Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
 			<DialogTitle>
-				{editingDriver ? "Edit Driver" : "Add New Driver"}
+				{initialData ? "Edit Driver" : "Add New Driver"}
 			</DialogTitle>
 			<DialogContent>
-				<Box sx={{ p: 0 }} component={"form"} onSubmit={handleSubmit}>
+				<Box
+					component="form"
+					onSubmit={handleSubmit(onSubmit)}
+					sx={{ mt: 1 }}
+					noValidate
+				>
 					{serverError && (
 						<Alert severity="error" sx={{ mb: 2 }}>
 							{serverError}
 						</Alert>
 					)}
-					<Stack spacing={3} sx={{ py: 1 }}>
+
+					<Stack spacing={3}>
+						{/* Avatar Upload Section */}
+						<Box
+							sx={{
+								display: "flex",
+								flexDirection: "column",
+								alignItems: "center",
+								gap: 2,
+							}}
+						>
+							<Avatar
+								src={preview || undefined}
+								sx={{
+									width: 100,
+									height: 100,
+									border: "1px solid #ccc",
+								}}
+							/>
+							<Button
+								component="label"
+								variant="outlined"
+								startIcon={<CloudUploadIcon />}
+								size="small"
+							>
+								Upload Avatar
+								<input
+									type="file"
+									hidden
+									accept="image/*"
+									{...register("avatar")}
+								/>
+							</Button>
+							{errors.avatar && (
+								<Typography color="error" variant="caption">
+									{errors.avatar.message as string}
+								</Typography>
+							)}
+						</Box>
+
 						<Typography
 							variant="subtitle1"
-							sx={{ fontWeight: 600, color: "#1565c0" }}
+							sx={{ fontWeight: 600, color: "primary.main" }}
 						>
 							Personal Information
 						</Typography>
@@ -224,69 +266,72 @@ const DriverCreate: React.FC<DriverCreateProps> = ({
 						<TextField
 							label="Full Name"
 							fullWidth
-							value={formData.fullname ?? ""}
-							onChange={(e) =>
-								handleInputChange("fullname", e.target.value)
-							}
+							required
+							{...register("fullname")}
 							error={!!errors.fullname}
-							helperText={errors.fullname}
+							helperText={errors.fullname?.message}
 						/>
 
 						<Stack
 							direction={{ xs: "column", sm: "row" }}
 							spacing={2}
 						>
-							<FormControl fullWidth error={!!errors.gender}>
-								<InputLabel>Gender</InputLabel>
-								<Select
-									value={formData.gender}
-									label="Gender"
-									onChange={(e) =>
-										handleInputChange(
-											"gender",
-											e.target.value
-										)
-									}
-								>
-									<MenuItem value="MALE">Male</MenuItem>
-									<MenuItem value="FEMALE">Female</MenuItem>
-								</Select>
-								<FormHelperText>{errors.gender}</FormHelperText>
-							</FormControl>
-
 							<TextField
 								label="Date of Birth"
 								type="date"
 								fullWidth
 								InputLabelProps={{ shrink: true }}
-								value={formData.dateOfBirth ?? ""}
-								onChange={(e) =>
-									handleInputChange(
-										"dateOfBirth",
-										e.target.value
-									)
-								}
+								{...register("dateOfBirth")}
 								error={!!errors.dateOfBirth}
-								helperText={errors.dateOfBirth}
+								helperText={errors.dateOfBirth?.message}
+							/>
+
+							<TextField
+								label="Citizen ID"
+								fullWidth
+								{...register("citizenId")}
+								error={!!errors.citizenId}
+								helperText={errors.citizenId?.message}
 							/>
 						</Stack>
 
 						<TextField
 							label="Address"
 							fullWidth
-							value={formData.address ?? ""}
-							onChange={(e) =>
-								handleInputChange("address", e.target.value)
-							}
+							{...register("address")}
 							error={!!errors.address}
-							helperText={errors.address}
+							helperText={errors.address?.message}
 						/>
+
+						{/* Gender selector */}
+						<FormControl fullWidth error={!!errors.gender}>
+							<InputLabel>Gender</InputLabel>
+							<Controller
+								name="gender"
+								control={control}
+								render={({ field }) => (
+									<Select {...field} label="Gender">
+										{Object.values(Gender).map((g) => (
+											<MenuItem key={String(g)} value={g}>
+												{String(g)
+													.charAt(0)
+													.toUpperCase() +
+													String(g).slice(1)}
+											</MenuItem>
+										))}
+									</Select>
+								)}
+							/>
+							<FormHelperText>
+								{errors.gender?.message}
+							</FormHelperText>
+						</FormControl>
 
 						<Divider />
 
 						<Typography
 							variant="subtitle1"
-							sx={{ fontWeight: 600, color: "#1565c0" }}
+							sx={{ fontWeight: 600, color: "primary.main" }}
 						>
 							Contact Information
 						</Typography>
@@ -299,28 +344,18 @@ const DriverCreate: React.FC<DriverCreateProps> = ({
 								label="Email"
 								type="email"
 								fullWidth
-								value={formData.email ?? ""}
-								onChange={(e) =>
-									handleInputChange("email", e.target.value)
-								}
+								{...register("email")}
 								error={!!errors.email}
-								helperText={errors.email}
+								helperText={errors.email?.message}
 							/>
 
 							<TextField
 								label="Phone Number"
 								fullWidth
-								value={formData.phoneNumber ?? ""}
-								onChange={(e) =>
-									handleInputChange(
-										"phoneNumber",
-										e.target.value
-									)
-								}
+								required
+								{...register("phoneNumber")}
 								error={!!errors.phoneNumber}
-								helperText={
-									errors.phoneNumber || "VD: 0901234567"
-								}
+								helperText={errors.phoneNumber?.message}
 							/>
 						</Stack>
 
@@ -328,7 +363,96 @@ const DriverCreate: React.FC<DriverCreateProps> = ({
 
 						<Typography
 							variant="subtitle1"
-							sx={{ fontWeight: 600, color: "#1565c0" }}
+							sx={{ fontWeight: 600, color: "primary.main" }}
+						>
+							Employment & Status
+						</Typography>
+
+						<Stack
+							direction={{ xs: "column", sm: "row" }}
+							spacing={2}
+						>
+							<TextField
+								label="Hired At"
+								type="date"
+								fullWidth
+								InputLabelProps={{ shrink: true }}
+								{...register("hiredAt")}
+								error={!!errors.hiredAt}
+								helperText={errors.hiredAt?.message}
+							/>
+
+							<FormControl fullWidth error={!!errors.status}>
+								<InputLabel>Status</InputLabel>
+								<Controller
+									name="status"
+									control={control}
+									render={({ field }) => (
+										<Select {...field} label="Status">
+											<MenuItem value="ACTIVE">
+												Active
+											</MenuItem>
+											<MenuItem value="INACTIVE">
+												Inactive
+											</MenuItem>
+											<MenuItem value="SUSPENDED">
+												Suspended
+											</MenuItem>
+										</Select>
+									)}
+								/>
+								<FormHelperText>
+									{errors.status?.message}
+								</FormHelperText>
+							</FormControl>
+						</Stack>
+
+						<Stack direction="row" spacing={2}>
+							<FormControlLabel
+								control={
+									<Controller
+										name="isActive"
+										control={control}
+										render={({ field }) => (
+											<Switch
+												checked={field.value}
+												onChange={(e) =>
+													field.onChange(
+														e.target.checked
+													)
+												}
+											/>
+										)}
+									/>
+								}
+								label="Is Active"
+							/>
+							<FormControlLabel
+								control={
+									<Controller
+										name="isSuspended"
+										control={control}
+										render={({ field }) => (
+											<Switch
+												checked={field.value}
+												onChange={(e) =>
+													field.onChange(
+														e.target.checked
+													)
+												}
+											/>
+										)}
+									/>
+								}
+								label="Is Suspended"
+							/>
+						</Stack>
+
+						<Divider />
+
+						<Typography
+							variant="subtitle1"
+							sx={{ fontWeight: 600, color: "primary.main" }}
 						>
 							License Information
 						</Typography>
@@ -340,15 +464,10 @@ const DriverCreate: React.FC<DriverCreateProps> = ({
 							<TextField
 								label="License Number"
 								fullWidth
-								value={formData.licenseNumber ?? ""}
-								onChange={(e) =>
-									handleInputChange(
-										"licenseNumber",
-										e.target.value
-									)
-								}
+								required
+								{...register("licenseNumber")}
 								error={!!errors.licenseNumber}
-								helperText={errors.licenseNumber}
+								helperText={errors.licenseNumber?.message}
 							/>
 
 							<FormControl
@@ -356,27 +475,47 @@ const DriverCreate: React.FC<DriverCreateProps> = ({
 								error={!!errors.licenseCategory}
 							>
 								<InputLabel>License Class</InputLabel>
-								<Select
-									value={formData.licenseCategory ?? ""}
-									label="License Class"
-									onChange={(e) =>
-										handleInputChange(
-											"licenseCategory",
-											e.target.value
-										)
-									}
-								>
-									<MenuItem value="B1">B1</MenuItem>
-									<MenuItem value="B2">B2</MenuItem>
-									<MenuItem value="C">C</MenuItem>
-									<MenuItem value="D">D</MenuItem>
-									<MenuItem value="E">E</MenuItem>
-								</Select>
+								<Controller
+									name="licenseCategory"
+									control={control}
+									render={({ field }) => (
+										<Select
+											{...field}
+											label="License Class"
+											value={field.value || ""}
+										>
+											<MenuItem value="">
+												<em>None</em>
+											</MenuItem>
+											{[
+												"B1",
+												"B2",
+												"C",
+												"D",
+												"E",
+												"F",
+												"FC",
+											].map((cat) => (
+												<MenuItem key={cat} value={cat}>
+													{cat}
+												</MenuItem>
+											))}
+										</Select>
+									)}
+								/>
 								<FormHelperText>
-									{errors.licenseCategory}
+									{errors.licenseCategory?.message}
 								</FormHelperText>
 							</FormControl>
 						</Stack>
+
+						<TextField
+							label="Issuing Authority"
+							fullWidth
+							{...register("issuingAuthority")}
+							error={!!errors.issuingAuthority}
+							helperText={errors.issuingAuthority?.message}
+						/>
 
 						<Stack
 							direction={{ xs: "column", sm: "row" }}
@@ -387,15 +526,9 @@ const DriverCreate: React.FC<DriverCreateProps> = ({
 								type="date"
 								fullWidth
 								InputLabelProps={{ shrink: true }}
-								value={formData.licenseIssueDate ?? ""}
-								onChange={(e) =>
-									handleInputChange(
-										"licenseIssueDate",
-										e.target.value
-									)
-								}
+								{...register("licenseIssueDate")}
 								error={!!errors.licenseIssueDate}
-								helperText={errors.licenseIssueDate}
+								helperText={errors.licenseIssueDate?.message}
 							/>
 
 							<TextField
@@ -403,50 +536,40 @@ const DriverCreate: React.FC<DriverCreateProps> = ({
 								type="date"
 								fullWidth
 								InputLabelProps={{ shrink: true }}
-								value={formData.licenseExpiryDate ?? ""}
-								onChange={(e) =>
-									handleInputChange(
-										"licenseExpiryDate",
-										e.target.value
-									)
-								}
+								{...register("licenseExpiryDate")}
 								error={!!errors.licenseExpiryDate}
-								helperText={errors.licenseExpiryDate}
+								helperText={errors.licenseExpiryDate?.message}
 							/>
 						</Stack>
-
-						<Divider />
-
-						<DialogActions>
-							<Button
-								onClick={onClose}
-								disabled={isSubmitting}
-								variant="outlined"
-							>
-								Cancel
-							</Button>
-							<Button
-								type="submit"
-								variant="contained"
-								disabled={isSubmitting}
-								startIcon={
-									isSubmitting && (
-										<CircularProgress size={20} />
-									)
-								}
-							>
-								{isSubmitting
-									? "Saving..."
-									: editingDriver
-									? "Save"
-									: "Add Driver"}
-							</Button>
-						</DialogActions>
 					</Stack>
+
+					<DialogActions sx={{ mt: 3, px: 0 }}>
+						<Button
+							onClick={onClose}
+							disabled={isSubmitting}
+							variant="outlined"
+						>
+							Cancel
+						</Button>
+						<Button
+							type="submit"
+							variant="contained"
+							disabled={isSubmitting}
+							startIcon={
+								isSubmitting && <CircularProgress size={20} />
+							}
+						>
+							{isSubmitting
+								? "Saving..."
+								: initialData
+								? "Save Changes"
+								: "Add Driver"}
+						</Button>
+					</DialogActions>
 				</Box>
 			</DialogContent>
 		</Dialog>
 	);
 };
 
-export default DriverCreate;
+export default DriverForm;

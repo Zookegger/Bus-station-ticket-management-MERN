@@ -15,6 +15,7 @@ import {
 	DialogActions,
 	Alert,
 	CircularProgress,
+	FormHelperText,
 } from "@mui/material";
 import {
 	ArrowBack as ArrowBackIcon,
@@ -27,6 +28,9 @@ import type { VehicleType } from "@my-types/vehicleType";
 import { API_ENDPOINTS } from "@constants/index";
 import callApi from "@utils/apiCaller";
 import { SeatLayoutPreview } from "@components/seatmap";
+import { useForm, Controller, type SubmitHandler } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { vehicleSchema, type VehicleFormData } from "@schemas/vehicleSchema";
 
 interface EditVehicleFormProps {
 	open: boolean;
@@ -41,38 +45,41 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 	onClose,
 	onSave,
 }) => {
-	const [formData, setFormData] = useState({
-		numberPlate: vehicle?.numberPlate || "",
-		vehicleTypeId: vehicle?.vehicleType.id || 0,
-		manufacturer: vehicle?.manufacturer || "",
-		status: vehicle?.status || undefined,
-		model: vehicle?.model || "",
+	const {
+		control,
+		handleSubmit,
+		reset,
+		watch,
+		formState: { errors, isSubmitting },
+	} = useForm<VehicleFormData>({
+		resolver: zodResolver(vehicleSchema),
+		defaultValues: {
+			numberPlate: "",
+			manufacturer: "",
+			model: "",
+			status: VehicleStatus.ACTIVE,
+			vehicleTypeId: undefined,
+		},
 	});
-	const [errors, setErrors] = useState<Record<string, string>>({
-		numberPlate: "",
-		vehicleTypeId: "",
-		manufacturer: "",
-		status: "",
-		model: "",
-	});
+
 	const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
 	const [loadingTypes, setLoadingTypes] = useState(false);
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
-	const [isLoading, setIsLoading] = useState<boolean>(false);
-	const [selectedVehicleType, setSelectedVehicleType] =
-		useState<VehicleType | null>(null);
+	const [selectedVehicleType, setSelectedVehicleType] = useState<VehicleType | null>(null);
+
+	const watchedVehicleTypeId = watch("vehicleTypeId");
 
 	useEffect(() => {
 		if (vehicle) {
-			setFormData({
+			reset({
 				numberPlate: vehicle.numberPlate || "",
-				vehicleTypeId: vehicle.vehicleType.id || 0,
+				vehicleTypeId: vehicle.vehicleType.id,
 				manufacturer: vehicle.manufacturer || "",
-				status: vehicle.status,
+				status: vehicle.status as VehicleStatus,
 				model: vehicle.model || "",
 			});
 		}
-	}, [vehicle]);
+	}, [vehicle, reset]);
 
 	useEffect(() => {
 		const getVehicleTypes = async () => {
@@ -86,21 +93,10 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 					{ returnFullResponse: true }
 				);
 
-				// Support APIs that return { data: [...] } or plain array
 				const items = Array.isArray(data) ? data : data?.data || [];
 
-				if (!Array.isArray(items)) {
-					throw new Error("Invalid vehicle types payload");
-				}
-
-				setVehicleTypes(items);
-
-				// If we have an incoming vehicle, set the selected type
-				if (vehicle) {
-					const found = items.find(
-						(t: VehicleType) => t.id === vehicle.vehicleType.id
-					);
-					if (found) setSelectedVehicleType(found);
+				if (Array.isArray(items)) {
+					setVehicleTypes(items);
 				}
 			} catch (err: any) {
 				setErrorMessage(err.message);
@@ -115,15 +111,14 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 		}
 	}, [open]);
 
-	// Keep selectedVehicleType in sync when vehicle prop changes
 	useEffect(() => {
-		if (!vehicle) {
+		if (watchedVehicleTypeId) {
+			const type = vehicleTypes.find((t) => t.id === watchedVehicleTypeId);
+			setSelectedVehicleType(type || null);
+		} else {
 			setSelectedVehicleType(null);
-			return;
 		}
-		const found = vehicleTypes.find((t) => t.id === vehicle.vehicleType.id);
-		setSelectedVehicleType(found || null);
-	}, [vehicle, vehicleTypes]);
+	}, [watchedVehicleTypeId, vehicleTypes]);
 
 	if (!vehicle) {
 		return (
@@ -135,68 +130,29 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 		);
 	}
 
-	const handleInputChange = (field: string, value: string | number) => {
-		setFormData((prev) => ({ ...prev, [field]: value }));
-		if (errors[field as keyof typeof errors]) {
-			setErrors((prev) => ({ ...prev, [field]: "" }));
-		}
-	};
-	const validateForm = () => {
-		const newErrors = {
-			numberPlate: "",
-			vehicleTypeId: "",
-			manufacturer: "",
-			model: "",
-		};
-
-		formData.numberPlate = formData.numberPlate.trim();
-		formData.manufacturer = formData.manufacturer.trim();
-		formData.model = formData.model.trim();
-
-		if (!formData.vehicleTypeId)
-			newErrors.vehicleTypeId = "Please select a vehicle type";
-		if (!formData.numberPlate)
-			newErrors.numberPlate = "Number plate is required";
-		if (!formData.manufacturer)
-			newErrors.manufacturer = "Manufacturer is required";
-		if (!formData.model) newErrors.model = "Model is required";
-
-		setErrors(newErrors);
-		return Object.values(newErrors).every((error) => error === "");
-	};
-
-	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-
-		if (!validateForm()) {
-			return;
-		}
-
+	const onSubmit: SubmitHandler<VehicleFormData> = async (data) => {
 		try {
-			setIsLoading(true);
-
-			const { status, data } = await callApi({
+			const { status, data: resData } = await callApi({
 				method: "PUT",
 				url: API_ENDPOINTS.VEHICLE.UPDATE(vehicle.id),
-				data: formData,
+				data: data,
 			});
 
 			if (status !== 200) {
-				throw new Error(`Server Error: ${data.message}`);
+				throw new Error(`Server Error: ${resData.message}`);
 			}
 			onSave({
-				id: data.vehicle.id,
-				numberPlate: data.vehicle.numberPlate,
-				vehicleTypeId: data.vehicle.vehicleTypeId,
-				manufacturer: data.vehicle.manufacturer,
-				model: data.vehicle.model,
+				id: resData.vehicle.id,
+				numberPlate: resData.vehicle.numberPlate,
+				vehicleTypeId: resData.vehicle.vehicleTypeId,
+				manufacturer: resData.vehicle.manufacturer,
+				model: resData.vehicle.model,
+				status: resData.vehicle.status,
 			});
 			onClose();
 		} catch (err: any) {
 			setErrorMessage(err.message);
 			console.error(err);
-		} finally {
-			setIsLoading(false);
 		}
 	};
 
@@ -204,7 +160,7 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 		<Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
 			<DialogTitle>Update vehicle information</DialogTitle>
 			<DialogContent>
-				{errors.general && (
+				{errorMessage && (
 					<Alert
 						color="error"
 						icon={<ErrorIcon color="error" />}
@@ -213,148 +169,118 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 						<Typography variant="body2">{errorMessage}</Typography>
 					</Alert>
 				)}
-				<Box component="form" onSubmit={handleSubmit} sx={{ p: 1 }}>
+				<Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ p: 1 }}>
 					<Grid container spacing={3}>
 						<Grid size={{ xs: 12, md: 6 }}>
-							<FormControl
-								fullWidth
-								error={!!errors.vehicleTypeId}
-							>
-								<InputLabel>Select a vehicle type</InputLabel>
-								<Select
-									value={formData.vehicleTypeId}
-									label="Select a vehicle type"
-									onChange={(e) =>
-										handleInputChange(
-											"vehicleTypeId",
-											Number(e.target.value)
-										)
-									}
-									disabled={loadingTypes}
-								>
-									{loadingTypes ? (
-										<MenuItem disabled>Loading...</MenuItem>
-									) : (
-										vehicleTypes.map((type) => (
-											<MenuItem
-												key={type.id}
-												value={type.id}
-												onClick={() =>
-													setSelectedVehicleType(type)
-												}
-											>
-												{type.name}
-											</MenuItem>
-										))
-									)}
-								</Select>
-								{errors.vehicleTypeId && (
-									<Typography
-										variant="caption"
-										color="error"
-										sx={{ mt: 1, ml: 2 }}
+							<Controller
+								name="vehicleTypeId"
+								control={control}
+								render={({ field }) => (
+									<FormControl
+										fullWidth
+										error={!!errors.vehicleTypeId}
 									>
-										{errors.vehicleTypeId}
-									</Typography>
+										<InputLabel>Select a vehicle type</InputLabel>
+										<Select
+											{...field}
+											label="Select a vehicle type"
+											value={field.value || ""}
+											onChange={(e) => field.onChange(Number(e.target.value))}
+											disabled={loadingTypes}
+										>
+											{loadingTypes ? (
+												<MenuItem disabled>Loading...</MenuItem>
+											) : (
+												vehicleTypes.map((type) => (
+													<MenuItem
+														key={type.id}
+														value={type.id}
+													>
+														{type.name}
+													</MenuItem>
+												))
+											)}
+										</Select>
+										<FormHelperText>{errors.vehicleTypeId?.message}</FormHelperText>
+									</FormControl>
 								)}
-							</FormControl>
+							/>
 						</Grid>
 
 						<Grid size={{ xs: 12, md: 6 }}>
-							<FormControl fullWidth error={!!errors.numberPlate}>
-								<TextField
-									fullWidth
-									label="Number Plate"
-									value={formData.numberPlate}
-									onChange={(e) =>
-										handleInputChange(
-											"numberPlate",
-											e.target.value
-										)
-									}
-									error={!!errors.numberPlate}
-									helperText={errors.numberPlate}
-									placeholder="Enter number plate"
-								/>
-							</FormControl>
+							<Controller
+								name="numberPlate"
+								control={control}
+								render={({ field }) => (
+									<TextField
+										{...field}
+										fullWidth
+										label="Number Plate"
+										error={!!errors.numberPlate}
+										helperText={errors.numberPlate?.message}
+										placeholder="Enter number plate"
+									/>
+								)}
+							/>
 						</Grid>
 
 						<Grid size={{ xs: 12, md: 6 }}>
-							<FormControl
-								fullWidth
-								error={!!errors.manufacturer}
-							>
-								<TextField
-									fullWidth
-									label="Manufacturer"
-									value={formData.manufacturer}
-									onChange={(e) =>
-										handleInputChange(
-											"manufacturer",
-											e.target.value
-										)
-									}
-									error={!!errors.manufacturer}
-									helperText={errors.manufacturer}
-									placeholder="Enter manufacturer"
-								/>
-							</FormControl>
+							<Controller
+								name="manufacturer"
+								control={control}
+								render={({ field }) => (
+									<TextField
+										{...field}
+										fullWidth
+										label="Manufacturer"
+										error={!!errors.manufacturer}
+										helperText={errors.manufacturer?.message}
+										placeholder="Enter manufacturer"
+									/>
+								)}
+							/>
 						</Grid>
 
 						<Grid size={{ xs: 12, md: 6 }}>
-							<FormControl fullWidth error={!!errors.model}>
-								<TextField
-									fullWidth
-									label="Model"
-									value={formData.model}
-									onChange={(e) =>
-										handleInputChange(
-											"model",
-											e.target.value
-										)
-									}
-									error={!!errors.model}
-									helperText={errors.model}
-									placeholder="Enter model"
-								/>
-							</FormControl>
+							<Controller
+								name="model"
+								control={control}
+								render={({ field }) => (
+									<TextField
+										{...field}
+										fullWidth
+										label="Model"
+										error={!!errors.model}
+										helperText={errors.model?.message}
+										placeholder="Enter model"
+									/>
+								)}
+							/>
 						</Grid>
 
 						{/* Status */}
 						<Grid size={{ xs: 12, sm: 3 }}>
-							<FormControl fullWidth error={!!errors.status}>
-								<InputLabel>Select a status</InputLabel>
-								<Select
-									value={formData.status}
-									label="Select a status"
-									onChange={(e) =>
-										handleInputChange(
-											"status",
-											e.target.value
-										)
-									}
-								>
-									{(
-										Object.values(
-											VehicleStatus
-										) as UpdateVehicleDTO["status"][]
-									).map((status) => (
-										<MenuItem key={status} value={status}>
-											{status!.charAt(0).toUpperCase() +
-												status!.slice(1).toLowerCase()}
-										</MenuItem>
-									))}
-								</Select>
-								{errors.vehicleTypeId && (
-									<Typography
-										variant="caption"
-										color="error"
-										sx={{ mt: 1, ml: 2 }}
-									>
-										{errors.vehicleTypeId}
-									</Typography>
+							<Controller
+								name="status"
+								control={control}
+								render={({ field }) => (
+									<FormControl fullWidth error={!!errors.status}>
+										<InputLabel>Select a status</InputLabel>
+										<Select
+											{...field}
+											label="Select a status"
+										>
+											{Object.values(VehicleStatus).map((status) => (
+												<MenuItem key={status} value={status}>
+													{status.charAt(0).toUpperCase() +
+														status.slice(1).toLowerCase()}
+												</MenuItem>
+											))}
+										</Select>
+										<FormHelperText>{errors.status?.message}</FormHelperText>
+									</FormControl>
 								)}
-							</FormControl>
+							/>
 						</Grid>
 
 						{selectedVehicleType && (
@@ -379,14 +305,15 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 				<Button
 					type="submit"
 					variant="contained"
-					startIcon={isLoading ? <CircularProgress /> : <EditIcon />}
+					startIcon={isSubmitting ? <CircularProgress size={20} /> : <EditIcon />}
 					sx={{
 						backgroundColor: "#1976d2",
 						"&:hover": { backgroundColor: "#1565c0" },
 					}}
-					onClick={handleSubmit}
+					disabled={isSubmitting}
+					onClick={handleSubmit(onSubmit)}
 				>
-					{isLoading ? "Updating..." : "Edit"}
+					{isSubmitting ? "Updating..." : "Edit"}
 				</Button>
 			</DialogActions>
 		</Dialog>

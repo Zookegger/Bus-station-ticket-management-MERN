@@ -7,6 +7,7 @@ import {
 } from "sequelize";
 import { TripSchedule } from "@models/tripSchedule";
 import { DbModels } from "@models";
+import { Gender } from "./user";
 
 /**
  * Enum representing the status of a Driver on the server side.
@@ -44,6 +45,7 @@ export interface DriverAttributes {
 	id: number;
 	fullname: string | null;
 	dateOfBirth?: Date | null;
+	gender: Gender;
 	citizenId?: string | null;
 	email?: string | null;
 	phoneNumber?: string | null;
@@ -130,6 +132,7 @@ export class Driver
 	 * @property {Date | null} dateOfBirth - Driver's date of birth
 	 */
 	public dateOfBirth?: Date | null;
+	public gender!: Gender;
 	/**
 	 * @property {string | null} citizenId - National ID / citizen identification number
 	 */
@@ -218,8 +221,13 @@ export class Driver
 					allowNull: true,
 				},
 				email: {
-					type: DataTypes.STRING(100),
+					type: DataTypes.STRING(150),
 					allowNull: true,
+				},
+				gender: {
+					type: DataTypes.ENUM(...Object.values(typeof Gender)),
+					defaultValue: Gender.OTHER,
+					allowNull: false,
 				},
 				phoneNumber: {
 					type: DataTypes.STRING(16),

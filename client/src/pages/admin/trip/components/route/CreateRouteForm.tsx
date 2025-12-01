@@ -45,6 +45,28 @@ import {
 } from "@dnd-kit/sortable";
 import callApi from "@utils/apiCaller";
 
+const DEFAULT_PRICE_PER_KM = 5000;
+const DEFAULT_PRICE_PER_MINUTE = 0;
+
+/**
+ * Calculates estimated price based on distance and duration.
+ * @param distanceMeters Distance in meters
+ * @param durationSeconds Duration in seconds
+ * @returns Estimated price rounded to nearest 1000
+ */
+const calculateEstimatedPrice = (
+	distanceMeters: number,
+	durationSeconds: number
+): number => {
+	const distanceKm = distanceMeters / 1000;
+	const durationMinutes = durationSeconds / 60;
+
+	const price =
+		distanceKm * DEFAULT_PRICE_PER_KM +
+		durationMinutes * DEFAULT_PRICE_PER_MINUTE;
+	return Math.round(price / 1000) * 1000;
+};
+
 type UILocation = Partial<Location> & {
 	tempId: string;
 	durationFromStart?: number;
@@ -561,6 +583,19 @@ const CreateRouteForm: React.FC<CreateRouteFormProps> = ({
 					);
 					setDistance(routeMetrics.distance);
 					setDuration(routeMetrics.duration);
+
+					// Auto-calculate price if metrics are available
+					if (
+						routeMetrics.distance != null &&
+						routeMetrics.duration != null
+					) {
+						const estimatedPrice = calculateEstimatedPrice(
+							routeMetrics.distance,
+							routeMetrics.duration
+						);
+						setPrice(estimatedPrice);
+					}
+
 					setMapOpen(false);
 				}}
 			/>

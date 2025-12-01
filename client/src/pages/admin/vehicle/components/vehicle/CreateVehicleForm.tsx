@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
 	Box,
-	Typography,
 	TextField,
 	FormControl,
 	InputLabel,
@@ -14,17 +13,22 @@ import {
 	DialogContent,
 	DialogActions,
 	Alert,
+	FormHelperText,
+	CircularProgress,
 } from "@mui/material";
 import {
 	ArrowBack as ArrowBackIcon,
 	Add as AddIcon,
 	Error as ErrorIcon,
 } from "@mui/icons-material";
-import { VehicleStatus, type CreateVehicleDTO } from "@my-types/vehicle";
-import { APP_CONFIG, API_ENDPOINTS } from "@constants/index";
+import { VehicleStatus } from "@my-types/vehicle";
+import { API_ENDPOINTS } from "@constants/index";
 import type { VehicleType } from "@my-types/vehicleType";
 import callApi from "@utils/apiCaller";
 import { SeatLayoutPreview } from "@components/seatmap";
+import { useForm, Controller, type SubmitHandler } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { vehicleSchema, type VehicleFormData } from "@schemas/vehicleSchema";
 
 interface CreateVehicleFormProps {
 	open: boolean;
@@ -35,36 +39,42 @@ const CreateVehicleForm: React.FC<CreateVehicleFormProps> = ({
 	open,
 	onClose,
 }) => {
-	const [errors, setErrors] = useState<Record<string, string>>({
-		numberPlate: "",
-		vehicleTypeId: "",
-		manufacturer: "",
-		status: "",
-		model: "",
+	const {
+		control,
+		handleSubmit,
+		reset,
+		watch,
+		formState: { errors, isSubmitting },
+	} = useForm<VehicleFormData>({
+		resolver: zodResolver(vehicleSchema),
+		defaultValues: {
+			numberPlate: "",
+			manufacturer: "",
+			model: "",
+			status: VehicleStatus.ACTIVE,
+			vehicleTypeId: undefined,
+		},
 	});
+
 	const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
-	const [formData, setFormData] = useState<CreateVehicleDTO>({
-		numberPlate: "",
-		manufacturer: "",
-		model: "",
-		status: VehicleStatus.ACTIVE,
-		vehicleTypeId: 0,
-	});
-	const [isLoading, setIsLoading] = useState<boolean>(false);
-	const [selectedVehicleTypes, setSelectedVehicleTypes] =
-		useState<VehicleType | null>(null);
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
+	const [selectedVehicleType, setSelectedVehicleType] = useState<VehicleType | null>(null);
+
+	const watchedVehicleTypeId = watch("vehicleTypeId");
 
 	useEffect(() => {
-		// Reset form
-		setFormData({
-			numberPlate: "",
-			vehicleTypeId: -1,
-			model: "",
-			status: "ACTIVE",
-			manufacturer: "",
-		});
-	}, [open]);
+		if (open) {
+			reset({
+				numberPlate: "",
+				manufacturer: "",
+				model: "",
+				status: VehicleStatus.ACTIVE,
+				vehicleTypeId: undefined,
+			});
+			setErrorMessage(null);
+			setSelectedVehicleType(null);
+		}
+	}, [open, reset]);
 
 	useEffect(() => {
 		const getVehicleTypes = async () => {
@@ -78,92 +88,49 @@ const CreateVehicleForm: React.FC<CreateVehicleFormProps> = ({
 				);
 
 				if (status === 200 || status === 304) {
-					if (data && data.length <= 0) {
-						throw new Error("Server returned empty set");
-					}
-
 					if (Array.isArray(data)) {
 						setVehicleTypes(data);
-					} else {
-						throw new Error("Invalid data format from server");
+					} else if (data && Array.isArray(data.data)) {
+						setVehicleTypes(data.data);
 					}
-					return;
 				}
-				throw new Error("Server Error");
 			} catch (err: any) {
 				setErrorMessage(err.message);
 				console.error("Vehicle type fetch error:", err);
 			}
 		};
 
-		getVehicleTypes();
-	}, []);
-
-	const handleInputChange = (field: string, value: string | number) => {
-		setFormData((prev) => ({
-			...prev,
-			[field]: value,
-		}));
-
-		if (errors[field as keyof typeof errors]) {
-			setErrors((prev) => ({
-				...prev,
-				[field]: "",
-			}));
+		if (open) {
+			getVehicleTypes();
 		}
-	};
+	}, [open]);
 
-	const validateForm = () => {
-		const newErrors = {
-			vehicleTypeId: "",
-			manufacturer: "",
-			numberPlate: "",
-			model: "",
-		};
-
-		if (!formData.vehicleTypeId || formData.vehicleTypeId === -1) {
-			newErrors.vehicleTypeId = "Please select a vehicle type";
+	useEffect(() => {
+		if (watchedVehicleTypeId) {
+			const type = vehicleTypes.find((t) => t.id === watchedVehicleTypeId);
+			setSelectedVehicleType(type || null);
+		} else {
+			setSelectedVehicleType(null);
 		}
+	}, [watchedVehicleTypeId, vehicleTypes]);
 
-		if (!formData.manufacturer?.trim()) {
-			newErrors.manufacturer = "Vehicle name is required";
-		}
-
-		if (!formData.numberPlate.trim()) {
-			newErrors.numberPlate = "License plate is required";
-		}
-
-		setErrors(newErrors);
-		return Object.values(newErrors).every((error) => error === "");
-	};
-
-	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-
-		if (!validateForm()) {
-			return;
-		}
-
+	const onSubmit: SubmitHandler<VehicleFormData> = async (data) => {
 		try {
-			setIsLoading(true);
-			const { status, data } = await callApi({
+			const { status, data: resData } = await callApi({
 				method: "POST",
-				url: `${APP_CONFIG.apiBaseUrl}${API_ENDPOINTS.VEHICLE.BASE}`,
-				data: formData,
+				url: API_ENDPOINTS.VEHICLE.BASE,
+				data: data,
 			});
 			if (status !== 201) {
-				throw new Error(data.message ?? "Failed to create vehicle");
+				throw new Error(resData.message ?? "Failed to create vehicle");
 			}
 			alert("Vehicle created successfully!");
-			onClose(); // Close dialog on success
+			onClose();
 		} catch (err: any) {
 			console.error("Error creating vehicle:", err);
 			setErrorMessage(
 				err.message ?? "Failed to create vehicle. Please try again."
 			);
-			return;
-		} finally {
-			setIsLoading(false);
 		}
 	};
 
@@ -171,162 +138,120 @@ const CreateVehicleForm: React.FC<CreateVehicleFormProps> = ({
 		<Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
 			<DialogTitle>Add new Vehicle</DialogTitle>
 			<DialogContent>
-				{/* Form */}
-				<Box component="form" onSubmit={handleSubmit}>
+				<Box component="form" onSubmit={handleSubmit(onSubmit)}>
 					<Grid container spacing={3} marginTop={1}>
 						{/* Vehicle Type */}
 						<Grid size={{ xs: 12, sm: 6 }}>
-							<FormControl
-								fullWidth
-								error={!!errors.vehicleTypeId}
-							>
-								<InputLabel>Vehicle type</InputLabel>
-								<Select
-									value={formData.vehicleTypeId}
-									label="Select a vehicle type"
-									displayEmpty
-									renderValue={(selected) => {
-										if (selected === -1) {
-											return "Select a vehicle type"; // Your placeholder text
-										}
-										const selectedType = vehicleTypes.find(
-											(type) => type.id === selected
-										);
-										return selectedType
-											? selectedType.name
-											: "Unknown";
-									}}
-									onChange={(e) => {
-										handleInputChange(
-											"vehicleTypeId",
-											e.target.value as number
-										);
-										const selectedType = vehicleTypes.find(
-											(type) =>
-												type.id ===
-												(e.target.value as number)
-										);
-										if (selectedType)
-											setSelectedVehicleTypes(
-												selectedType
-											);
-									}}
-								>
-									<MenuItem disabled value={-1}>
-										Select a vehicle type
-									</MenuItem>
-									{vehicleTypes.map((type) => (
-										<MenuItem key={type.id} value={type.id}>
-											{type.name}
-										</MenuItem>
-									))}
-								</Select>
-								{errors.vehicleTypeId && (
-									<Typography
-										variant="caption"
-										color="error"
-										sx={{ mt: 1, ml: 2 }}
+							<Controller
+								name="vehicleTypeId"
+								control={control}
+								render={({ field }) => (
+									<FormControl
+										fullWidth
+										error={!!errors.vehicleTypeId}
 									>
-										{errors.vehicleTypeId}
-									</Typography>
+										<InputLabel>Vehicle type</InputLabel>
+										<Select
+											{...field}
+											label="Vehicle type"
+											value={field.value || ""}
+											onChange={(e) => field.onChange(Number(e.target.value))}
+										>
+											{vehicleTypes.map((type) => (
+												<MenuItem key={type.id} value={type.id}>
+													{type.name}
+												</MenuItem>
+											))}
+										</Select>
+										<FormHelperText>{errors.vehicleTypeId?.message}</FormHelperText>
+									</FormControl>
 								)}
-							</FormControl>
+							/>
 						</Grid>
 
 						{/* Manufacturer */}
 						<Grid size={{ xs: 12, sm: 6 }}>
-							<TextField
-								fullWidth
-								label="Manufacturer"
-								value={formData.manufacturer}
-								onChange={(e) =>
-									handleInputChange(
-										"manufacturer",
-										e.target.value
-									)
-								}
-								error={!!errors.manufacturer}
-								helperText={errors.manufacturer}
-								placeholder="Enter manufacturer name"
+							<Controller
+								name="manufacturer"
+								control={control}
+								render={({ field }) => (
+									<TextField
+										{...field}
+										fullWidth
+										label="Manufacturer"
+										error={!!errors.manufacturer}
+										helperText={errors.manufacturer?.message}
+										placeholder="Enter manufacturer name"
+									/>
+								)}
 							/>
 						</Grid>
 
 						{/* Model */}
 						<Grid size={{ xs: 12, sm: 4 }}>
-							<TextField
-								fullWidth
-								label="Model"
-								value={formData.model}
-								onChange={(e) =>
-									handleInputChange("model", e.target.value)
-								}
-								error={!!errors.model}
-								helperText={errors.model}
-								placeholder="Enter vehicle model"
+							<Controller
+								name="model"
+								control={control}
+								render={({ field }) => (
+									<TextField
+										{...field}
+										fullWidth
+										label="Model"
+										error={!!errors.model}
+										helperText={errors.model?.message}
+										placeholder="Enter vehicle model"
+									/>
+								)}
 							/>
 						</Grid>
 
 						{/* License Plate */}
 						<Grid size={{ xs: 12, sm: 5 }}>
-							<TextField
-								fullWidth
-								label="License Plate"
-								value={formData.numberPlate}
-								onChange={(e) =>
-									handleInputChange(
-										"numberPlate",
-										e.target.value
-									)
-								}
-								error={!!errors.numberPlate}
-								helperText={errors.numberPlate}
-								placeholder="Enter license plate (e.g., 51N 0000)"
+							<Controller
+								name="numberPlate"
+								control={control}
+								render={({ field }) => (
+									<TextField
+										{...field}
+										fullWidth
+										label="License Plate"
+										error={!!errors.numberPlate}
+										helperText={errors.numberPlate?.message}
+										placeholder="Enter license plate (e.g., 51N 0000)"
+									/>
+								)}
 							/>
 						</Grid>
 
 						{/* Status */}
 						<Grid size={{ xs: 12, sm: 3 }}>
-							<FormControl fullWidth error={!!errors.status}>
-								<InputLabel>Select a status</InputLabel>
-								<Select
-									value={formData.status}
-									label="Select a status"
-									onChange={(e) =>
-										handleInputChange(
-											"status",
-											e.target.value
-										)
-									}
-								>
-									{(
-										Object.values(
-											VehicleStatus
-										) as CreateVehicleDTO["status"][]
-									).map((status) => (
-										<MenuItem key={status} value={status}>
-											{status.charAt(0).toUpperCase() +
-												status.slice(1).toLowerCase()}
-										</MenuItem>
-									))}
-								</Select>
-								{errors.vehicleTypeId && (
-									<Typography
-										variant="caption"
-										color="error"
-										sx={{ mt: 1, ml: 2 }}
-									>
-										{errors.vehicleTypeId}
-									</Typography>
+							<Controller
+								name="status"
+								control={control}
+								render={({ field }) => (
+									<FormControl fullWidth error={!!errors.status}>
+										<InputLabel>Status</InputLabel>
+										<Select
+											{...field}
+											label="Status"
+										>
+											{Object.values(VehicleStatus).map((status) => (
+												<MenuItem key={status} value={status}>
+													{status.charAt(0).toUpperCase() +
+														status.slice(1).toLowerCase()}
+												</MenuItem>
+											))}
+										</Select>
+										<FormHelperText>{errors.status?.message}</FormHelperText>
+									</FormControl>
 								)}
-							</FormControl>
+							/>
 						</Grid>
 
-						{selectedVehicleTypes && (
+						{selectedVehicleType && (
 							<Grid size={{ xs: 12 }}>
 								<SeatLayoutPreview
-									seatLayout={
-										selectedVehicleTypes?.seatLayout
-									}
+									seatLayout={selectedVehicleType.seatLayout}
 								/>
 							</Grid>
 						)}
@@ -359,7 +284,7 @@ const CreateVehicleForm: React.FC<CreateVehicleFormProps> = ({
 				<Button
 					type="submit"
 					variant="contained"
-					startIcon={<AddIcon />}
+					startIcon={isSubmitting ? <CircularProgress size={20} /> : <AddIcon />}
 					sx={{
 						backgroundColor: "#1976d2",
 						"&:hover": {
@@ -367,20 +292,10 @@ const CreateVehicleForm: React.FC<CreateVehicleFormProps> = ({
 						},
 						minWidth: 120,
 					}}
-					disabled={
-						// Disable when any required field is empty or no vehicle type selected
-						!(
-							formData.manufacturer &&
-							formData.manufacturer.trim() &&
-							formData.model &&
-							formData.model.trim() &&
-							formData.numberPlate.trim() &&
-							formData.vehicleTypeId >= 0
-						)
-					}
-					onClick={handleSubmit}
+					disabled={isSubmitting}
+					onClick={handleSubmit(onSubmit)}
 				>
-					{isLoading ? "Adding..." : "Confirm"}
+					{isSubmitting ? "Adding..." : "Confirm"}
 				</Button>
 			</DialogActions>
 		</Dialog>

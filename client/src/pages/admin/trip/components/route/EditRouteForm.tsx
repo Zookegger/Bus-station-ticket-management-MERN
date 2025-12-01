@@ -51,7 +51,33 @@ import type { UpdateRouteDTO } from "@my-types";
 
 axios.defaults.withCredentials = true;
 
-type UILocation = Partial<Location> & { tempId: string };
+const DEFAULT_PRICE_PER_KM = 5000;
+const DEFAULT_PRICE_PER_MINUTE = 0;
+
+/**
+ * Calculates estimated price based on distance and duration.
+ * @param distanceMeters Distance in meters
+ * @param durationSeconds Duration in seconds
+ * @returns Estimated price rounded to nearest 1000
+ */
+const calculateEstimatedPrice = (
+	distanceMeters: number,
+	durationSeconds: number
+): number => {
+	const distanceKm = distanceMeters / 1000;
+	const durationMinutes = durationSeconds / 60;
+
+	const price =
+		distanceKm * DEFAULT_PRICE_PER_KM +
+		durationMinutes * DEFAULT_PRICE_PER_MINUTE;
+	return Math.round(price / 1000) * 1000;
+};
+
+type UILocation = Partial<Location> & {
+	tempId: string;
+	durationFromStart?: number;
+	distanceFromStart?: number;
+};
 
 /**
  * Internal shape used to keep the form state strongly typed while allowing optional fields.
@@ -171,7 +197,9 @@ const EditRouteForm: React.FC<EditRouteFormProps> = ({
 				name: activeRoute.name ?? "",
 				stops: (activeRoute.stops || []).map(
 					(stop: any, index: number) => ({
-						...stop.location,
+						...(stop.locations || stop.location || {}),
+						durationFromStart: stop.durationFromStart,
+						distanceFromStart: stop.distanceFromStart,
 						tempId: `stop-${Date.now()}-${index}`,
 					})
 				),
@@ -313,6 +341,8 @@ const EditRouteForm: React.FC<EditRouteFormProps> = ({
 				address: s.address ?? s.name,
 				latitude: s.latitude,
 				longitude: s.longitude,
+				durationFromStart: s.durationFromStart,
+				distanceFromStart: s.distanceFromStart,
 			}));
 
 			const payload: UpdateRouteDTO = {
@@ -731,15 +761,29 @@ const EditRouteForm: React.FC<EditRouteFormProps> = ({
 					) as LocationData[]
 				}
 				onConfirm={(confirmedStops, routeMetrics) => {
+					let newPrice = formData.price;
+					if (
+						routeMetrics.distance != null &&
+						routeMetrics.duration != null
+					) {
+						newPrice = calculateEstimatedPrice(
+							routeMetrics.distance,
+							routeMetrics.duration
+						);
+					}
+
 					// Map confirmed LocationData[] back into UILocation[] by adding tempId
 					setFormData((prev) => ({
 						...prev,
 						stops: confirmedStops.map((s) => ({
 							...s,
 							tempId: getTempStopId(),
+							durationFromStart: s.durationFromStart,
+							distanceFromStart: s.distanceFromStart,
 						})),
 						distance: routeMetrics.distance,
 						duration: routeMetrics.duration,
+						price: newPrice,
 					}));
 					setMapOpen(false);
 				}}

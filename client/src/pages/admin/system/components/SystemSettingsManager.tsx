@@ -20,7 +20,10 @@ import {
 } from "@mui/icons-material";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import callApi from "@utils/apiCaller";
-import { API_ENDPOINTS } from "@constants/index";;
+import { API_ENDPOINTS } from "@constants/index";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { settingSchema, type SettingForm } from "@schemas/settingSchema";
 
 /**
  * Interface representing a system setting record loaded from the backend.
@@ -61,11 +64,20 @@ const SystemSettingsManager: React.FC = () => {
 		open: false,
 		editing: null,
 	});
-	// Local form fields
-	const [formKey, setFormKey] = useState("");
-	const [formValue, setFormValue] = useState("");
-	const [formDescription, setFormDescription] = useState("");
-	const [saving, setSaving] = useState(false);
+
+	const {
+		control,
+		handleSubmit,
+		reset,
+		formState: { errors, isSubmitting },
+	} = useForm<SettingForm>({
+		resolver: zodResolver(settingSchema),
+		defaultValues: {
+			key: "",
+			value: "",
+			description: "",
+		},
+	});
 
 	/**
 	 * Fetch all settings from backend and normalize into array.
@@ -108,9 +120,11 @@ const SystemSettingsManager: React.FC = () => {
 	 */
 	const handleOpenCreate = () => {
 		setDialog({ open: true, editing: null });
-		setFormKey("");
-		setFormValue("");
-		setFormDescription("");
+		reset({
+			key: "",
+			value: "",
+			description: "",
+		});
 	};
 
 	/**
@@ -118,58 +132,56 @@ const SystemSettingsManager: React.FC = () => {
 	 */
 	const handleOpenEdit = (row: SystemSetting) => {
 		setDialog({ open: true, editing: row });
-		setFormKey(row.key);
-		setFormValue(row.rawValue);
-		setFormDescription(row.description || "");
+		reset({
+			key: row.key,
+			value: row.rawValue,
+			description: row.description || "",
+		});
 	};
 
 	/**
 	 * Close dialog and reset form state.
 	 */
 	const handleCloseDialog = () => {
-		if (saving) return; // prevent closing while saving
+		if (isSubmitting) return; // prevent closing while saving
 		setDialog({ open: false, editing: null });
-		setFormKey("");
-		setFormValue("");
-		setFormDescription("");
+		reset();
 	};
 
 	/**
 	 * Persist setting via PUT /settings/:key (upsert).
 	 * Attempts to parse formValue as JSON; falls back to raw string.
 	 */
-	const handleSave = async () => {
-		if (!formKey.trim()) {
-			return; // basic guard; could surface error UI
-		}
-		setSaving(true);
-		let valueForServer: any = formValue;
+	const onSubmit = async (formData: SettingForm) => {
+		let valueForServer: any = formData.value;
 		try {
-			valueForServer = JSON.parse(formValue);
+			valueForServer = JSON.parse(formData.value);
 		} catch {
 			// keep as string
 		}
 		try {
-			const { status, data } = await callApi(
+			const response = await callApi(
 				{
 					method: "PUT",
-					url: API_ENDPOINTS.SETTINGS.UPDATE.replace(":key", formKey),
+					url: API_ENDPOINTS.SETTINGS.UPDATE.replace(
+						":key",
+						formData.key
+					),
 					data: {
 						value: valueForServer,
-						description: formDescription,
+						description: formData.description,
 					},
 				},
 				{ returnFullResponse: true }
 			);
-			if (status === 200) {
+
+			if (response.status === 200) {
 				// Update local state
-				setSettings(data);
+				setSettings(response.data);
 				handleCloseDialog();
 			}
 		} catch (err) {
 			console.error("Failed to save setting", err);
-		} finally {
-			setSaving(false);
 		}
 	};
 
@@ -192,7 +204,8 @@ const SystemSettingsManager: React.FC = () => {
 			headerName: "Description",
 			flex: 2,
 			minWidth: 220,
-		},{
+		},
+		{
 			field: "updatedAt",
 			headerName: "Updated At",
 			width: 190,
@@ -271,7 +284,7 @@ const SystemSettingsManager: React.FC = () => {
 					}}
 				/>
 			</Box>
-			<Paper elevation={3} >
+			<Paper elevation={3}>
 				<DataGrid
 					rows={rows}
 					columns={columns}
@@ -297,64 +310,88 @@ const SystemSettingsManager: React.FC = () => {
 						? `Edit Setting: ${dialog.editing.key}`
 						: "Create Setting"}
 				</DialogTitle>
-				<DialogContent
-					sx={{
-						display: "flex",
-						flexDirection: "column",
-						gap: 2,
-						mt: 1,
-					}}
-				>
-					<TextField
-						label="Key"
-						value={formKey}
-						onChange={(e) => setFormKey(e.target.value)}
-						disabled={!!dialog.editing}
-						fullWidth
-						size="small"
-					/>
-					<TextField
-						label="Value (JSON or plain text)"
-						value={formValue}
-						onChange={(e) => setFormValue(e.target.value)}
-						multiline
-						minRows={4}
-						fullWidth
-						size="small"
-					/>
-					<TextField
-						label="Description"
-						value={formDescription}
-						onChange={(e) => setFormDescription(e.target.value)}
-						fullWidth
-						size="small"
-					/>
-				</DialogContent>
-				<DialogActions>
-					<Tooltip title="Cancel">
-						<span>
-							<Button
-								onClick={handleCloseDialog}
-								disabled={saving}
-								startIcon={<CloseIcon />}
-							>
-								Cancel
-							</Button>
-						</span>
-					</Tooltip>
-					<Tooltip title="Save setting">
-						<span>
-							<Button
-								onClick={handleSave}
-								disabled={saving || !formKey.trim()}
-								variant="contained"
-								startIcon={<SaveIcon />}
-							>
-								Save
-							</Button>
-						</span>
-					</Tooltip>
-				</DialogActions>
+				<form onSubmit={handleSubmit(onSubmit)}>
+					<DialogContent
+						sx={{
+							display: "flex",
+							flexDirection: "column",
+							gap: 2,
+							mt: 1,
+						}}
+					>
+						<Controller
+							name="key"
+							control={control}
+							render={({ field }) => (
+								<TextField
+									{...field}
+									label="Key"
+									disabled={!!dialog.editing}
+									fullWidth
+									size="small"
+									error={!!errors.key}
+									helperText={errors.key?.message}
+								/>
+							)}
+						/>
+						<Controller
+							name="value"
+							control={control}
+							render={({ field }) => (
+								<TextField
+									{...field}
+									label="Value (JSON or plain text)"
+									multiline
+									minRows={4}
+									fullWidth
+									size="small"
+									error={!!errors.value}
+									helperText={errors.value?.message}
+								/>
+							)}
+						/>
+						<Controller
+							name="description"
+							control={control}
+							render={({ field }) => (
+								<TextField
+									{...field}
+									label="Description"
+									fullWidth
+									size="small"
+									error={!!errors.description}
+									helperText={errors.description?.message}
+									value={field.value || ""}
+								/>
+							)}
+						/>
+					</DialogContent>
+					<DialogActions>
+						<Tooltip title="Cancel">
+							<span>
+								<Button
+									onClick={handleCloseDialog}
+									disabled={isSubmitting}
+									startIcon={<CloseIcon />}
+								>
+									Cancel
+								</Button>
+							</span>
+						</Tooltip>
+						<Tooltip title="Save setting">
+							<span>
+								<Button
+									type="submit"
+									disabled={isSubmitting}
+									variant="contained"
+									startIcon={<SaveIcon />}
+								>
+									Save
+								</Button>
+							</span>
+						</Tooltip>
+					</DialogActions>
+				</form>
 			</Dialog>
 		</Box>
 	);

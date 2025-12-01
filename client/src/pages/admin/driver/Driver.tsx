@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
 	Box,
 	Typography,
@@ -14,18 +14,23 @@ import {
 	MenuItem,
 	Button,
 	InputAdornment,
+	Alert,
 } from "@mui/material";
-import { MOCK_DRIVERS } from "@data/mockDrivers";
 import { type Driver, DriverStatus } from "@my-types/driver";
-import DriverDetails from "./components/DriverDetails";
-import DriverCreate from "./components/DriverForm";
+import { callApi } from "@utils/apiCaller";
+import { API_ENDPOINTS } from "@constants/index";
+import { DriverForm, DriverDetails } from "./components";
 import { DataGridPageLayout } from "@components/admin";
 import {
 	DataGrid,
 	type GridColDef,
 	type GridRenderCellParams,
 } from "@mui/x-data-grid";
-import { Add as AddIcon, Search as SearchIcon } from "@mui/icons-material";
+import {
+	Add as AddIcon,
+	Error as ErrorIcon,
+	Search as SearchIcon,
+} from "@mui/icons-material";
 
 const Driver: React.FC = () => {
 	const [search, setSearch] = useState("");
@@ -37,11 +42,13 @@ const Driver: React.FC = () => {
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
 	const [dataVersion, setDataVersion] = useState(0);
-	const [isLoading] = useState<boolean>(false);
+	const [isLoading, setIsLoading] = useState<boolean>(false);
+	const [drivers, setDrivers] = useState<Driver[]>([]);
+	const [fetchError, setFetchError] = useState<string | null>(null);
 
 	const filtered = useMemo(() => {
 		const term = search.trim().toLowerCase();
-		return MOCK_DRIVERS.filter((d) => {
+		return drivers.filter((d) => {
 			const matchesSearch =
 				!term ||
 				[
@@ -62,7 +69,7 @@ const Driver: React.FC = () => {
 				statusFilter === "all" || rowStatus === statusFilter;
 			return matchesSearch && matchesStatus;
 		});
-	}, [search, statusFilter, dataVersion]);
+	}, [search, statusFilter, dataVersion, drivers]);
 
 	const visibleRows = filtered;
 
@@ -259,8 +266,40 @@ const Driver: React.FC = () => {
 		setDrawerOpen(true);
 	};
 
+	// Fetch drivers from API
+	useEffect(() => {
+		let mounted = true;
+		const fetchDrivers = async () => {
+			setIsLoading(true);
+			setFetchError(null);
+			try {
+				const data = await callApi<Driver[]>({
+					method: "GET",
+					url: API_ENDPOINTS.DRIVER.BASE,
+				});
+				if (mounted) setDrivers((data as Driver[]) ?? []);
+			} catch (err: any) {
+				setFetchError(err?.message || "Failed to load drivers");
+			} finally {
+				if (mounted) setIsLoading(false);
+			}
+		};
+
+		fetchDrivers();
+
+		return () => {
+			mounted = false;
+		};
+	}, [dataVersion]);
+
 	return (
 		<DataGridPageLayout title={`Driver Management`} actionBar={actionBar}>
+			{fetchError && (
+				<Alert color="error" icon={<ErrorIcon />}>
+					{fetchError}
+				</Alert>
+			)}
+
 			<Paper elevation={3} sx={{ width: "100%" }}>
 				<DataGrid
 					rows={visibleRows}
@@ -303,7 +342,7 @@ const Driver: React.FC = () => {
 				)}
 			</Drawer>
 
-			<DriverCreate
+			<DriverForm
 				open={dialogOpen}
 				onClose={() => {
 					setDialogOpen(false);

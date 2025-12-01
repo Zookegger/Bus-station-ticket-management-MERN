@@ -151,6 +151,8 @@ export interface Trip {
 	vehicle: Vehicle | null;
 	/**The departure time of the trip. */
 	startTime: Date;
+	/**The arrival time of the trip (virtual field for sub-trips). */
+	arrivalTime?: string | Date;
 	/**The start time of the return trip (if round trip). */
 	returnStartTime?: Date | null;
 	/**The ticket price assigned to this trip. */

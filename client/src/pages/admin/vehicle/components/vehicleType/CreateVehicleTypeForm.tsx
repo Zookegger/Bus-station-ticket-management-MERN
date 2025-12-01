@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback } from "react";
 import {
 	Box,
 	TextField,
@@ -18,177 +18,161 @@ import SeatLayoutEditor from "@components/seatmap/SeatLayoutEditor";
 import type { CreateVehicleTypeFormProps } from "./types";
 import type { SeatLayout } from "@my-types/vehicleType";
 import callApi from "@utils/apiCaller";
-import { API_ENDPOINTS } from "@constants/index";;
-
-type CreateVehicleTypeErrors = Partial<
-	Record<keyof CreateVehicleTypeDTO, string>
->;
+import { API_ENDPOINTS } from "@constants/index";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { vehicleTypeSchema, type VehicleTypeFormData } from "@schemas/vehicleTypeSchema";
 
 const CreateVehicleTypeForm: React.FC<CreateVehicleTypeFormProps> = ({
 	open,
 	onClose,
 	onCreate,
 }) => {
-	const [formData, setFormData] = useState<CreateVehicleTypeDTO>({
-		name: "",
-		totalFloors: 0,
-		totalSeats: 0,
-		price: 0,
-		seatLayout: "",
+	const {
+		control,
+		handleSubmit,
+		setValue,
+		watch,
+		formState: { errors, isSubmitting },
+	} = useForm<VehicleTypeFormData>({
+		resolver: zodResolver(vehicleTypeSchema),
+		defaultValues: {
+			name: "",
+			price: 0,
+			totalFloors: 0,
+			totalSeats: 0,
+			seatLayout: {},
+		},
 	});
-	const [errors, setErrors] = useState<CreateVehicleTypeErrors>({});
-	const [isSubmitting, setIsSubmitting] = useState(false);
 
-	const handleInputChange =
-		(key: keyof CreateVehicleTypeDTO) =>
-		(event: React.ChangeEvent<HTMLInputElement>) => {
-			const { value } = event.target;
-			setFormData((prev) => ({ ...prev, [key]: value }));
+	const seatLayout = watch("seatLayout");
+	const totalFloors = watch("totalFloors");
 
-			// Basic client-side validation
-			if (value.trim() === "") {
-				setErrors((prev) => ({ ...prev, [key]: `${key} is required` }));
-			} else {
-				setErrors((prev) => ({ ...prev, [key]: undefined }));
-			}
-		};
-
-	const validateForm = (): boolean => {
-		let newErrors: CreateVehicleTypeErrors = {};
-
-		if (!formData.name || !formData.name.trim()) {
-			newErrors.name = "Name is required";
-		}
-
-		if (formData.totalFloors <= 0) {
-			newErrors.totalFloors = "Total floors must be greater than 0";
-		}
-
-		if (formData.totalSeats <= 0) {
-			newErrors.totalSeats = "Total seats must be greater than 0";
-		}
-
-		if (formData.price <= 0) {
-			newErrors.price = "Price must be greater than 0";
-		}
-
-		setErrors(newErrors);
-		return Object.keys(newErrors).length === 0;
-	};
-
-	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-		if (!validateForm()) return;
-
-		setIsSubmitting(true);
+	const onSubmit = async (data: VehicleTypeFormData) => {
 		try {
-			const { data, status } = await callApi({
+			const { data: responseData, status } = await callApi({
 				method: "POST",
 				url: `${API_ENDPOINTS.VEHICLE_TYPE.CREATE}`,
-				data: formData,
+				data: data,
 			}, { returnFullResponse: true });
 
 			if (status === 200) {
-				alert(data.message);
+				alert(responseData.message);
 			}
 
-			onCreate(formData as CreateVehicleTypeDTO);
+			onCreate(data as CreateVehicleTypeDTO);
 			onClose();
 		} catch (err) {
-		} finally {
-			setIsSubmitting(false);
+			console.error(err);
 		}
 	};
 
 	const handleLayoutChange = useCallback(
 		(layout: SeatLayout, totalSeats: number) => {
-			setFormData((prev) => ({
-				...prev,
-				seatLayout: JSON.stringify(layout),
-				totalSeats: totalSeats,
-				totalFloors: layout.length,
-			}));
+			setValue("seatLayout", JSON.stringify(layout));
+			setValue("totalSeats", totalSeats);
+			setValue("totalFloors", layout.length);
 		},
-		[]
+		[setValue]
 	);
 
 	return (
 		<Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
 			<DialogTitle>Create Vehicle Type</DialogTitle>
 			<DialogContent>
-				<Box component="form" onSubmit={handleSubmit} sx={{ pt: 2 }}>
+				<Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ pt: 2 }}>
 					<Grid container spacing={3}>
 						<Grid size={{ xs: 12 }}>
-							<TextField
-								fullWidth
-								label="Name"
-								placeholder="e.g. Electric Bus"
-								value={formData.name || ""}
-								onChange={handleInputChange("name")}
-								error={!!errors.name}
-								helperText={errors.name}
-								required
+							<Controller
+								name="name"
+								control={control}
+								render={({ field }) => (
+									<TextField
+										{...field}
+										fullWidth
+										label="Name"
+										placeholder="e.g. Electric Bus"
+										error={!!errors.name}
+										helperText={errors.name?.message}
+										required
+									/>
+								)}
 							/>
 						</Grid>
 
 						<Grid size={{ xs: 12, sm: 4 }}>
-							<TextField
-								fullWidth
-								label="Total Floors"
-								variant="outlined"
-								type="number"
-								value={formData.totalFloors || ""}
-								onChange={handleInputChange("totalFloors")}
-								error={!!errors.totalFloors}
-								slotProps={{
-									htmlInput: {
-										min: 0,
-									},
-									input: {
-										readOnly: true,
-									},
-								}}
-								helperText="Set in layout editor"
+							<Controller
+								name="totalFloors"
+								control={control}
+								render={({ field }) => (
+									<TextField
+										{...field}
+										fullWidth
+										label="Total Floors"
+										variant="outlined"
+										type="number"
+										error={!!errors.totalFloors}
+										helperText={errors.totalFloors?.message || "Set in layout editor"}
+										slotProps={{
+											htmlInput: {
+												min: 0,
+											},
+											input: {
+												readOnly: true,
+											},
+										}}
+									/>
+								)}
 							/>
 						</Grid>
 
 						<Grid size={{ xs: 12, sm: 4 }}>
-							<TextField
-								fullWidth
-								label="Total Seats"
-								variant="outlined"
-								type="number"
-								value={formData.totalSeats || ""}
-								onChange={handleInputChange("totalSeats")}
-								error={!!errors.totalSeats}
-								slotProps={{
-									htmlInput: {
-										min: 0,
-									},
-									input: {
-										readOnly: true,
-									},
-								}}
-								helperText="Calculated from layout"
+							<Controller
+								name="totalSeats"
+								control={control}
+								render={({ field }) => (
+									<TextField
+										{...field}
+										fullWidth
+										label="Total Seats"
+										variant="outlined"
+										type="number"
+										error={!!errors.totalSeats}
+										helperText={errors.totalSeats?.message || "Calculated from layout"}
+										slotProps={{
+											htmlInput: {
+												min: 0,
+											},
+											input: {
+												readOnly: true,
+											},
+										}}
+									/>
+								)}
 							/>
 						</Grid>
 
 						<Grid size={{ xs: 12, sm: 4 }}>
-							<TextField
-								fullWidth
-								label="Price"
-								variant="outlined"
-								type="number"
-								placeholder="e.g. 100000"
-								value={formData.price || ""}
-								onChange={handleInputChange("price")}
-								error={!!errors.price}
-								helperText={errors.price}
-								slotProps={{
-									input: {
-										endAdornment: "₫",
-									},
-								}}
+							<Controller
+								name="price"
+								control={control}
+								render={({ field }) => (
+									<TextField
+										{...field}
+										fullWidth
+										label="Price"
+										variant="outlined"
+										type="number"
+										placeholder="e.g. 100000"
+										error={!!errors.price}
+										helperText={errors.price?.message}
+										slotProps={{
+											input: {
+												endAdornment: "₫",
+											},
+										}}
+									/>
+								)}
 							/>
 						</Grid>
 
@@ -196,8 +180,8 @@ const CreateVehicleTypeForm: React.FC<CreateVehicleTypeFormProps> = ({
 							<SeatLayoutEditor
 								onLayoutChange={handleLayoutChange}
 								onCancel={onClose}
-								initialLayout={formData.seatLayout}
-								totalFloors={formData.totalFloors}
+								initialLayout={seatLayout || undefined}
+								totalFloors={totalFloors || 1}
 							/>
 						</Grid>
 					</Grid>
@@ -215,7 +199,7 @@ const CreateVehicleTypeForm: React.FC<CreateVehicleTypeFormProps> = ({
 					type="submit"
 					variant="contained"
 					startIcon={<AddIcon />}
-					onClick={handleSubmit}
+					onClick={handleSubmit(onSubmit)}
 					disabled={isSubmitting}
 				>
 					{isSubmitting ? "Creating..." : "Create"}
