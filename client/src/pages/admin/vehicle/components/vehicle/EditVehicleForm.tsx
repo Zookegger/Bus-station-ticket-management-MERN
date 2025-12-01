@@ -1,274 +1,389 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
-	Box,
-	Typography,
-	TextField,
-	FormControl,
-	InputLabel,
-	Select,
-	MenuItem,
-	Button,
-	Grid,
 	Dialog,
 	DialogTitle,
 	DialogContent,
 	DialogActions,
-	Alert,
+	Button,
+	TextField,
+	MenuItem,
+	Grid,
+	Typography,
+	Divider,
+	Box,
+	IconButton,
+	InputAdornment,
 	CircularProgress,
-	FormHelperText,
 } from "@mui/material";
 import {
-	ArrowBack as ArrowBackIcon,
-	Edit as EditIcon,
-	Error as ErrorIcon,
+	Close as CloseIcon,
+	Visibility,
+	VisibilityOff,
+	Person as PersonIcon,
+	Email as EmailIcon,
+	Phone as PhoneIcon,
+	Home as HomeIcon,
+	AccountCircle,
+	Badge,
+	AdminPanelSettings,
+	Wc,
+	Save as SaveIcon,
 } from "@mui/icons-material";
-import { VehicleStatus, type UpdateVehicleDTO } from "@my-types/vehicle";
-import type { VehicleDetail } from "@my-types/vehicleList";
-import type { VehicleType } from "@my-types/vehicleType";
-import { API_ENDPOINTS } from "@constants/index";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { Gender, type User } from "@my-types/user";
+import { Role } from "@my-types/user";
 import callApi from "@utils/apiCaller";
-import { SeatLayoutPreview } from "@components/seatmap";
-import { useForm, Controller, type SubmitHandler } from "react-hook-form";
+import { API_ENDPOINTS } from "@constants/index";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { vehicleSchema, type VehicleFormData } from "@schemas/vehicleSchema";
+import { userSchema } from "@schemas/userSchema";
+import type { UserForm } from "@schemas/userSchema";
+import { VehicleStatus } from "@my-types";
 
-interface EditVehicleFormProps {
+interface Props {
 	open: boolean;
-	vehicle: VehicleDetail | null;
+	user: User | null;
 	onClose: () => void;
-	onSave: (updatedVehicle: UpdateVehicleDTO) => void;
+	onSaved: (updated: User) => void;
 }
 
-const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
-	open,
-	vehicle,
-	onClose,
-	onSave,
-}) => {
+const EditUserForm: React.FC<Props> = ({ open, user, onClose, onSaved }) => {
+	const [showPassword, setShowPassword] = useState(false);
+
 	const {
 		control,
 		handleSubmit,
-		reset,
-		watch,
 		formState: { errors, isSubmitting },
-	} = useForm<VehicleFormData>({
-		resolver: zodResolver(vehicleSchema),
+		reset,
+	} = useForm<UserForm>({
+		resolver: zodResolver(userSchema),
 		defaultValues: {
-			numberPlate: "",
-			manufacturer: "",
-			model: "",
-			status: VehicleStatus.ACTIVE,
-			vehicleTypeId: undefined,
+			email: "",
+			firstName: "",
+			lastName: "",
+			userName: "",
+			phoneNumber: "",
+			role: Role.USER,
+			password: "",
+			address: "",
+			gender: Gender.OTHER,
+			dateOfBirth: null,
 		},
 	});
 
-	const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
-	const [loadingTypes, setLoadingTypes] = useState(false);
-	const [errorMessage, setErrorMessage] = useState<string | null>(null);
-	const [selectedVehicleType, setSelectedVehicleType] = useState<VehicleType | null>(null);
-
-	const watchedVehicleTypeId = watch("vehicleTypeId");
-
 	useEffect(() => {
-		if (vehicle) {
+		if (user) {
 			reset({
-				numberPlate: vehicle.numberPlate || "",
-				vehicleTypeId: vehicle.vehicleType.id,
-				manufacturer: vehicle.manufacturer || "",
-				status: vehicle.status as VehicleStatus,
-				model: vehicle.model || "",
+				email: user.email,
+				firstName: user.firstName || "",
+				lastName: user.lastName || "",
+				userName: user.userName,
+				phoneNumber: user.phoneNumber || "",
+				role: user.role,
+				password: "",
+				address: user.address || "",
+				gender: user.gender || Gender.OTHER,
+				dateOfBirth: user.dateOfBirth
+					? new Date(user.dateOfBirth)
+					: null,
 			});
 		}
-	}, [vehicle, reset]);
+	}, [user, reset]);
 
-	useEffect(() => {
-		const getVehicleTypes = async () => {
-			setLoadingTypes(true);
-			try {
-				const { status, data } = await callApi(
-					{
-						method: "GET",
-						url: API_ENDPOINTS.VEHICLE_TYPE.BASE,
-					},
-					{ returnFullResponse: true }
-				);
-
-				const items = Array.isArray(data) ? data : data?.data || [];
-
-				if (Array.isArray(items)) {
-					setVehicleTypes(items);
-				}
-			} catch (err: any) {
-				setErrorMessage(err.message);
-				console.error("Vehicle type fetch error:", err);
-			} finally {
-				setLoadingTypes(false);
-			}
-		};
-
-		if (open) {
-			getVehicleTypes();
-		}
-	}, [open]);
-
-	useEffect(() => {
-		if (watchedVehicleTypeId) {
-			const type = vehicleTypes.find((t) => t.id === watchedVehicleTypeId);
-			setSelectedVehicleType(type || null);
-		} else {
-			setSelectedVehicleType(null);
-		}
-	}, [watchedVehicleTypeId, vehicleTypes]);
-
-	if (!vehicle) {
-		return (
-			<Box sx={{ p: 3 }}>
-				<Typography variant="h6" color="error">
-					Vehicle data not found
-				</Typography>
-			</Box>
-		);
-	}
-
-	const onSubmit: SubmitHandler<VehicleFormData> = async (data) => {
+	const onSubmit = async (data: UserForm) => {
+		if (!user) return;
 		try {
-			const { status, data: resData } = await callApi({
+			const res = await callApi<User>({
 				method: "PUT",
-				url: API_ENDPOINTS.VEHICLE.UPDATE(vehicle.id),
-				data: data,
+				url: API_ENDPOINTS.ADMIN.UPDATE(String(user.id)),
+				data: {
+					...data,
+					dateOfBirth: data.dateOfBirth
+						? data.dateOfBirth.toISOString()
+						: undefined,
+					password: data.password || undefined, // Only send if provided
+				},
 			});
-
-			if (status !== 200) {
-				throw new Error(`Server Error: ${resData.message}`);
-			}
-			onSave({
-				id: resData.vehicle.id,
-				numberPlate: resData.vehicle.numberPlate,
-				vehicleTypeId: resData.vehicle.vehicleTypeId,
-				manufacturer: resData.vehicle.manufacturer,
-				model: resData.vehicle.model,
-				status: resData.vehicle.status,
-			});
+			const updated = (res as any).user ?? (res as any).data ?? res;
+			onSaved(updated as User);
 			onClose();
-		} catch (err: any) {
-			setErrorMessage(err.message);
-			console.error(err);
+		} catch (err) {
+			console.error("Failed to update user", err);
 		}
 	};
 
+	const handleTogglePasswordVisibility = () => {
+		setShowPassword((prev) => !prev);
+	};
+
 	return (
-		<Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-			<DialogTitle>Update vehicle information</DialogTitle>
-			<DialogContent>
-				{errorMessage && (
-					<Alert
-						color="error"
-						icon={<ErrorIcon color="error" />}
-						sx={{ mb: 2 }}
-					>
-						<Typography variant="body2">{errorMessage}</Typography>
-					</Alert>
-				)}
-				<Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ p: 1 }}>
-					<Grid container spacing={3}>
-						<Grid size={{ xs: 12, md: 6 }}>
-							<Controller
-								name="vehicleTypeId"
-								control={control}
-								render={({ field }) => (
-									<FormControl
-										fullWidth
-										error={!!errors.vehicleTypeId}
-									>
-										<InputLabel>Select a vehicle type</InputLabel>
-										<Select
+		<LocalizationProvider dateAdapter={AdapterDateFns}>
+			<Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+				<DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+					Edit User
+					<IconButton aria-label="close" onClick={onClose} size="small">
+						<CloseIcon />
+					</IconButton>
+				</DialogTitle>
+				<Divider />
+				<form onSubmit={handleSubmit(onSubmit)}>
+					<DialogContent sx={{ pt: 3 }}>
+						<Grid container spacing={3}>
+							{/* Account Information Section */}
+							<Grid size={{ xs: 12 }}>
+								<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+									<AdminPanelSettings color="primary" />
+									<Typography variant="h6" color="primary">
+										Account Information
+									</Typography>
+								</Box>
+							</Grid>
+
+							<Grid size={{ xs: 12, sm: 6 }}>
+								<Controller
+									name="userName"
+									control={control}
+									render={({ field }) => (
+										<TextField
 											{...field}
-											label="Select a vehicle type"
-											value={field.value || ""}
-											onChange={(e) => field.onChange(Number(e.target.value))}
-											disabled={loadingTypes}
+											label="Username"
+											fullWidth
+											error={!!errors.userName}
+											helperText={errors.userName?.message}
+											slotProps={{
+												input: {
+													startAdornment: (
+														<InputAdornment position="start">
+															<AccountCircle color="action" />
+														</InputAdornment>
+													),
+												},
+											}}
+										/>
+									)}
+								/>
+							</Grid>
+
+							<Grid size={{ xs: 12, sm: 6 }}>
+								<Controller
+									name="role"
+									control={control}
+									render={({ field }) => (
+										<TextField
+											{...field}
+											select
+											label="Role"
+											fullWidth
+											error={!!errors.role}
+											helperText={errors.role?.message}
+											slotProps={{
+												input: {
+													startAdornment: (
+														<InputAdornment position="start">
+															<AdminPanelSettings color="action" />
+														</InputAdornment>
+													),
+												},
+											}}
 										>
-											{loadingTypes ? (
-												<MenuItem disabled>Loading...</MenuItem>
-											) : (
-												vehicleTypes.map((type) => (
-													<MenuItem
-														key={type.id}
-														value={type.id}
-													>
-														{type.name}
-													</MenuItem>
-												))
-											)}
-										</Select>
-										<FormHelperText>{errors.vehicleTypeId?.message}</FormHelperText>
-									</FormControl>
-								)}
-							/>
-						</Grid>
+											<MenuItem value={Role.USER}>User</MenuItem>
+											<MenuItem value={Role.ADMIN}>Admin</MenuItem>
+										</TextField>
+									)}
+								/>
+							</Grid>
 
-						<Grid size={{ xs: 12, md: 6 }}>
-							<Controller
-								name="numberPlate"
-								control={control}
-								render={({ field }) => (
-									<TextField
-										{...field}
-										fullWidth
-										label="Number Plate"
-										error={!!errors.numberPlate}
-										helperText={errors.numberPlate?.message}
-										placeholder="Enter number plate"
-									/>
-								)}
-							/>
-						</Grid>
-
-						<Grid size={{ xs: 12, md: 6 }}>
-							<Controller
-								name="manufacturer"
-								control={control}
-								render={({ field }) => (
-									<TextField
-										{...field}
-										fullWidth
-										label="Manufacturer"
-										error={!!errors.manufacturer}
-										helperText={errors.manufacturer?.message}
-										placeholder="Enter manufacturer"
-									/>
-								)}
-							/>
-						</Grid>
-
-						<Grid size={{ xs: 12, md: 6 }}>
-							<Controller
-								name="model"
-								control={control}
-								render={({ field }) => (
-									<TextField
-										{...field}
-										fullWidth
-										label="Model"
-										error={!!errors.model}
-										helperText={errors.model?.message}
-										placeholder="Enter model"
-									/>
-								)}
-							/>
-						</Grid>
-
-						{/* Status */}
-						<Grid size={{ xs: 12, sm: 3 }}>
-							<Controller
-								name="status"
-								control={control}
-								render={({ field }) => (
-									<FormControl fullWidth error={!!errors.status}>
-										<InputLabel>Select a status</InputLabel>
-										<Select
+							<Grid size={{ xs: 12, sm: 6 }}>
+								<Controller
+									name="email"
+									control={control}
+									render={({ field }) => (
+										<TextField
 											{...field}
-											label="Select a status"
+											label="Email"
+											type="email"
+											fullWidth
+											error={!!errors.email}
+											helperText={errors.email?.message}
+											slotProps={{
+												input: {
+													startAdornment: (
+														<InputAdornment position="start">
+															<EmailIcon color="action" />
+														</InputAdornment>
+													),
+												},
+											}}
+										/>
+									)}
+								/>
+							</Grid>
+
+							<Grid size={{ xs: 12, sm: 6 }}>
+								<Controller
+									name="password"
+									control={control}
+									render={({ field }) => (
+										<TextField
+											{...field}
+											label="Password"
+											type={showPassword ? "text" : "password"}
+											fullWidth
+											error={!!errors.password}
+											helperText={
+												errors.password?.message ||
+												"Leave blank to keep current password"
+											}
+											slotProps={{
+												input: {
+													endAdornment: (
+														<InputAdornment position="end">
+															<IconButton
+																onClick={handleTogglePasswordVisibility}
+																edge="end"
+															>
+																{showPassword ? <VisibilityOff /> : <Visibility />}
+															</IconButton>
+														</InputAdornment>
+													),
+												},
+											}}
+										/>
+									)}
+								/>
+							</Grid>
+
+							{/* Personal Details Section */}
+							<Grid size={{ xs: 12 }}>
+								<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2, mb: 1 }}>
+									<PersonIcon color="primary" />
+									<Typography variant="h6" color="primary">
+										Personal Details
+									</Typography>
+								</Box>
+								<Divider sx={{ mb: 2 }} />
+							</Grid>
+
+							<Grid size={{ xs: 12, sm: 6 }}>
+								<Controller
+									name="firstName"
+									control={control}
+									render={({ field }) => (
+										<TextField
+											{...field}
+											label="First Name"
+											fullWidth
+											error={!!errors.firstName}
+											helperText={errors.firstName?.message}
+											slotProps={{
+												input: {
+													startAdornment: (
+														<InputAdornment position="start">
+															<Badge color="action" />
+														</InputAdornment>
+													),
+												},
+											}}
+										/>
+									)}
+								/>
+							</Grid>
+
+							<Grid size={{ xs: 12, sm: 6 }}>
+								<Controller
+									name="lastName"
+									control={control}
+									render={({ field }) => (
+										<TextField
+											{...field}
+											label="Last Name"
+											fullWidth
+											error={!!errors.lastName}
+											helperText={errors.lastName?.message}
+											slotProps={{
+												input: {
+													startAdornment: (
+														<InputAdornment position="start">
+															<Badge color="action" />
+														</InputAdornment>
+													),
+												},
+											}}
+										/>
+									)}
+								/>
+							</Grid>
+
+							<Grid size={{ xs: 12, sm: 6 }}>
+								<Controller
+									name="phoneNumber"
+									control={control}
+									render={({ field }) => (
+										<TextField
+											{...field}
+											label="Phone Number"
+											fullWidth
+											error={!!errors.phoneNumber}
+											helperText={errors.phoneNumber?.message}
+											slotProps={{
+												input: {
+													startAdornment: (
+														<InputAdornment position="start">
+															<PhoneIcon color="action" />
+														</InputAdornment>
+													),
+												},
+											}}
+										/>
+									)}
+								/>
+							</Grid>
+
+							<Grid size={{ xs: 12, sm: 6 }}>
+								<Controller
+									name="dateOfBirth"
+									control={control}
+									render={({ field }) => (
+										<DatePicker
+											label="Date of Birth"
+											value={field.value ? new Date(field.value) : null}
+											onChange={(newValue) => field.onChange(newValue)}
+											slotProps={{
+												textField: {
+													fullWidth: true,
+													error: !!errors.dateOfBirth,
+													helperText: errors.dateOfBirth?.message as string,
+												},
+											}}
+										/>
+									)}
+								/>
+							</Grid>
+
+							<Grid size={{ xs: 12, sm: 6 }}>
+								<Controller
+									name="gender"
+									control={control}
+									render={({ field }) => (
+										<TextField
+											{...field}
+											select
+											label="Gender"
+											fullWidth
+											error={!!errors.gender}
+											helperText={errors.gender?.message}
+											value={field.value || ""}
+											slotProps={{
+												input: {
+													startAdornment: (
+														<InputAdornment position="start">
+															<Wc color="action" />
+														</InputAdornment>
+													),
+												},
+											}}
 										>
 											{Object.values(VehicleStatus).map((status) => (
 												<MenuItem key={status} value={status}>
@@ -276,48 +391,59 @@ const EditVehicleForm: React.FC<EditVehicleFormProps> = ({
 														status.slice(1).toLowerCase()}
 												</MenuItem>
 											))}
-										</Select>
-										<FormHelperText>{errors.status?.message}</FormHelperText>
-									</FormControl>
-								)}
-							/>
-						</Grid>
-
-						{selectedVehicleType && (
-							<Grid size={{ xs: 12 }}>
-								<SeatLayoutPreview
-									seatLayout={selectedVehicleType.seatLayout}
+										</TextField>
+									)}
 								/>
 							</Grid>
-						)}
-					</Grid>
-				</Box>
-			</DialogContent>
-			<DialogActions>
-				<Button
-					variant="outlined"
-					startIcon={<ArrowBackIcon />}
-					onClick={onClose}
-					sx={{ borderColor: "#666", color: "#666" }}
-				>
-					Back
-				</Button>
-				<Button
-					type="submit"
-					variant="contained"
-					startIcon={isSubmitting ? <CircularProgress size={20} /> : <EditIcon />}
-					sx={{
-						backgroundColor: "#1976d2",
-						"&:hover": { backgroundColor: "#1565c0" },
-					}}
-					disabled={isSubmitting}
-					onClick={handleSubmit(onSubmit)}
-				>
-					{isSubmitting ? "Updating..." : "Edit"}
-				</Button>
-			</DialogActions>
-		</Dialog>
+
+							<Grid size={{ xs: 12 }}>
+								<Controller
+									name="address"
+									control={control}
+									render={({ field }) => (
+										<TextField
+											{...field}
+											label="Address"
+											fullWidth
+											multiline
+											rows={2}
+											error={!!errors.address}
+											helperText={errors.address?.message}
+											value={field.value || ""}
+											slotProps={{
+												input: {
+													startAdornment: (
+														<InputAdornment position="start" sx={{ mt: 1.5, alignSelf: 'flex-start' }}>
+															<HomeIcon color="action" />
+														</InputAdornment>
+													),
+												},
+											}}
+										/>
+									)}
+								/>
+							</Grid>
+						</Grid>
+					</DialogContent>
+					<Divider />
+					<DialogActions sx={{ p: 2 }}>
+						<Button onClick={onClose} color="inherit" disabled={isSubmitting}>
+							Cancel
+						</Button>
+						<Button
+							type="submit"
+							variant="contained"
+							disabled={isSubmitting}
+							startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+							sx={{ px: 4 }}
+						>
+							{isSubmitting ? "Saving..." : "Save Changes"}
+						</Button>
+					</DialogActions>
+				</form>
+			</Dialog>
+		</LocalizationProvider>
 	);
 };
 
-export default EditVehicleForm;
+export default EditUserForm;

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-const emptyToNullString = z.union([z.string(), z.null(), z.undefined()])
+const emptyToNullString = z
+	.union([z.string(), z.null(), z.undefined()])
 	.transform((val) => {
 		if (val === "" || val === null || val === undefined) return null;
 		return val;
@@ -22,9 +23,29 @@ const preprocessNumberOptional = numericInput
 
 export const vehicleTypeSchema = z.object({
 	name: z.string().min(1, "Name is required"),
-	price: preprocessNumberOptional.optional().refine((v) => v === null || v === undefined || v >= 0, { message: "Price must be non-negative" }),
-	totalFloors: preprocessNumberOptional.optional().refine((v) => v === null || v === undefined || (Number.isInteger(v) && v >= 1), { message: "Must have at least 1 floor" }),
-	totalSeats: preprocessNumberOptional.optional().refine((v) => v === null || v === undefined || (Number.isInteger(v) && v >= 0), { message: "Total seats must be non-negative" }),
+	price: preprocessNumberOptional
+		.optional()
+		.refine((v) => v === null || v === undefined || v >= 0, {
+			message: "Price must be non-negative",
+		}),
+	totalFloors: preprocessNumberOptional
+		.optional()
+		.refine(
+			(v) =>
+				v === null ||
+				v === undefined ||
+				(Number.isInteger(v) && v >= 1),
+			{ message: "Must have at least 1 floor" }
+		),
+	totalSeats: preprocessNumberOptional
+		.optional()
+		.refine(
+			(v) =>
+				v === null ||
+				v === undefined ||
+				(Number.isInteger(v) && v >= 0),
+			{ message: "Total seats must be non-negative" }
+		),
 	seatLayout: emptyToNullString.optional().refine(
 		(val) => {
 			if (!val) return true;
@@ -39,4 +60,8 @@ export const vehicleTypeSchema = z.object({
 	),
 });
 
+// The output type (after transformation) - used for API calls
 export type VehicleTypeFormData = z.infer<typeof vehicleTypeSchema>;
+
+// The input type (before transformation) - used for React Hook Form state
+export type VehicleTypeInput = z.input<typeof vehicleTypeSchema>;

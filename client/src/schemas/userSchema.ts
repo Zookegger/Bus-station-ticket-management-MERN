@@ -13,8 +13,10 @@ export const userSchema = z.object({
 	role: z.enum(Role),
 	password: z
 		.string()
-		.min(6, "Password must be at least 6 characters")
-		.optional(), // Optional for edit, required for create usually, but we can handle that with refinement or separate schemas if needed. For now, optional to support edit.
+		.optional()
+		.refine((val) => !val || val.length >= 6, {
+			message: "Password must be at least 6 characters",
+		}),
 });
 
 export type UserForm = z.infer<typeof userSchema>;

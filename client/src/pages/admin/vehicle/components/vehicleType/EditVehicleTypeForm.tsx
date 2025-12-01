@@ -22,6 +22,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
 	vehicleTypeSchema,
 	type VehicleTypeFormData,
+	type VehicleTypeInput,
 } from "@schemas/vehicleTypeSchema";
 
 const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
@@ -37,7 +38,7 @@ const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
 		setValue,
 		watch,
 		formState: { errors, isSubmitting },
-	} = useForm<VehicleTypeFormData>({
+	} = useForm<VehicleTypeInput, any, VehicleTypeFormData>({
 		resolver: zodResolver(vehicleTypeSchema),
 		defaultValues: {
 			name: "",
@@ -103,6 +104,7 @@ const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
 								render={({ field }) => (
 									<TextField
 										{...field}
+										value={field.value || ""}
 										fullWidth
 										label="Name"
 										error={!!errors.name}
@@ -120,6 +122,7 @@ const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
 								render={({ field }) => (
 									<TextField
 										{...field}
+										value={field.value || ""}
 										fullWidth
 										label="Floors"
 										type="number"
@@ -144,6 +147,7 @@ const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
 								render={({ field }) => (
 									<TextField
 										{...field}
+										value={field.value || ""}
 										fullWidth
 										label="Seats"
 										type="number"
@@ -169,6 +173,7 @@ const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
 								render={({ field }) => (
 									<TextField
 										{...field}
+										value={field.value || ""}
 										fullWidth
 										label="Price"
 										type="number"
@@ -186,8 +191,16 @@ const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
 						<Grid size={{ xs: 12 }}>
 							<SeatLayoutEditor
 								onLayoutChange={handleLayoutChange}
-								initialLayout={seatLayout || undefined}
-								totalFloors={totalFloors || 1}
+								initialLayout={
+									typeof seatLayout === "string"
+										? seatLayout
+										: undefined
+								}
+								totalFloors={
+									typeof totalFloors === "number"
+										? totalFloors
+										: 1
+								}
 							/>
 						</Grid>
 					</Grid>

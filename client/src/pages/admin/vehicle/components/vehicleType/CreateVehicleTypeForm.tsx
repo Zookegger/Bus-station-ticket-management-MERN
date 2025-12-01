@@ -21,40 +21,49 @@ import callApi from "@utils/apiCaller";
 import { API_ENDPOINTS } from "@constants/index";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { vehicleTypeSchema, type VehicleTypeFormData } from "@schemas/vehicleTypeSchema";
+import {
+	vehicleTypeSchema,
+	type VehicleTypeFormData,
+	type VehicleTypeInput,
+} from "@schemas/vehicleTypeSchema";
 
 const CreateVehicleTypeForm: React.FC<CreateVehicleTypeFormProps> = ({
 	open,
 	onClose,
 	onCreate,
 }) => {
+	// Use <Input, Context, Output> generics
 	const {
 		control,
 		handleSubmit,
 		setValue,
 		watch,
 		formState: { errors, isSubmitting },
-	} = useForm<VehicleTypeFormData>({
+	} = useForm<VehicleTypeInput, any, VehicleTypeFormData>({
 		resolver: zodResolver(vehicleTypeSchema),
 		defaultValues: {
 			name: "",
 			price: 0,
 			totalFloors: 0,
 			totalSeats: 0,
-			seatLayout: {},
+			seatLayout: "",
 		},
 	});
 
 	const seatLayout = watch("seatLayout");
 	const totalFloors = watch("totalFloors");
 
+	// data here is correctly inferred as VehicleTypeFormData (Output)
 	const onSubmit = async (data: VehicleTypeFormData) => {
 		try {
-			const { data: responseData, status } = await callApi({
-				method: "POST",
-				url: `${API_ENDPOINTS.VEHICLE_TYPE.CREATE}`,
-				data: data,
-			}, { returnFullResponse: true });
+			const { data: responseData, status } = await callApi(
+				{
+					method: "POST",
+					url: `${API_ENDPOINTS.VEHICLE_TYPE.CREATE}`,
+					data: data,
+				},
+				{ returnFullResponse: true }
+			);
 
 			if (status === 200) {
 				alert(responseData.message);
@@ -80,7 +89,11 @@ const CreateVehicleTypeForm: React.FC<CreateVehicleTypeFormProps> = ({
 		<Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
 			<DialogTitle>Create Vehicle Type</DialogTitle>
 			<DialogContent>
-				<Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ pt: 2 }}>
+				<Box
+					component="form"
+					onSubmit={handleSubmit(onSubmit)}
+					sx={{ pt: 2 }}
+				>
 					<Grid container spacing={3}>
 						<Grid size={{ xs: 12 }}>
 							<Controller
@@ -89,6 +102,7 @@ const CreateVehicleTypeForm: React.FC<CreateVehicleTypeFormProps> = ({
 								render={({ field }) => (
 									<TextField
 										{...field}
+										value={field.value || ""}
 										fullWidth
 										label="Name"
 										placeholder="e.g. Electric Bus"
@@ -107,12 +121,16 @@ const CreateVehicleTypeForm: React.FC<CreateVehicleTypeFormProps> = ({
 								render={({ field }) => (
 									<TextField
 										{...field}
+										value={field.value || ""}
 										fullWidth
 										label="Total Floors"
 										variant="outlined"
 										type="number"
 										error={!!errors.totalFloors}
-										helperText={errors.totalFloors?.message || "Set in layout editor"}
+										helperText={
+											errors.totalFloors?.message ||
+											"Set in layout editor"
+										}
 										slotProps={{
 											htmlInput: {
 												min: 0,
@@ -133,12 +151,16 @@ const CreateVehicleTypeForm: React.FC<CreateVehicleTypeFormProps> = ({
 								render={({ field }) => (
 									<TextField
 										{...field}
+										value={field.value || ""}
 										fullWidth
 										label="Total Seats"
 										variant="outlined"
 										type="number"
 										error={!!errors.totalSeats}
-										helperText={errors.totalSeats?.message || "Calculated from layout"}
+										helperText={
+											errors.totalSeats?.message ||
+											"Calculated from layout"
+										}
 										slotProps={{
 											htmlInput: {
 												min: 0,
@@ -159,6 +181,7 @@ const CreateVehicleTypeForm: React.FC<CreateVehicleTypeFormProps> = ({
 								render={({ field }) => (
 									<TextField
 										{...field}
+										value={field.value || ""}
 										fullWidth
 										label="Price"
 										variant="outlined"
@@ -180,8 +203,16 @@ const CreateVehicleTypeForm: React.FC<CreateVehicleTypeFormProps> = ({
 							<SeatLayoutEditor
 								onLayoutChange={handleLayoutChange}
 								onCancel={onClose}
-								initialLayout={seatLayout || undefined}
-								totalFloors={totalFloors || 1}
+								initialLayout={
+									typeof seatLayout === "string"
+										? seatLayout
+										: undefined
+								}
+								totalFloors={
+									typeof totalFloors === "number"
+										? totalFloors
+										: 1
+								}
 							/>
 						</Grid>
 					</Grid>

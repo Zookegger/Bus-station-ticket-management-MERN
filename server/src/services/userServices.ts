@@ -197,15 +197,10 @@ export const addUser = async (
 		);
 	}
 
-	const firstName = data.firstName ?? "";
-	const lastName = data.lastName ?? "";
-	const fullName = `${firstName} ${lastName}`.trim();
-
 	const created = await db.User.create({
 		userName: data.userName ?? data.email,
 		firstName: data.firstName ?? null,
 		lastName: data.lastName ?? null,
-		fullName: fullName || null,
 		address: data.address ?? null,
 		gender: (data as any).gender ?? null,
 		email: data.email ?? null,

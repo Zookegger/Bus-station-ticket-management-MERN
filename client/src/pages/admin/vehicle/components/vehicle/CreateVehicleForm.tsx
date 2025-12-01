@@ -26,9 +26,9 @@ import { API_ENDPOINTS } from "@constants/index";
 import type { VehicleType } from "@my-types/vehicleType";
 import callApi from "@utils/apiCaller";
 import { SeatLayoutPreview } from "@components/seatmap";
-import { useForm, Controller, type SubmitHandler } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { vehicleSchema, type VehicleFormData } from "@schemas/vehicleSchema";
+import { vehicleSchema, type VehicleFormData, type VehicleInput } from "@schemas/vehicleSchema";
 
 interface CreateVehicleFormProps {
 	open: boolean;
@@ -45,7 +45,7 @@ const CreateVehicleForm: React.FC<CreateVehicleFormProps> = ({
 		reset,
 		watch,
 		formState: { errors, isSubmitting },
-	} = useForm<VehicleFormData>({
+	} = useForm<VehicleInput, any, VehicleFormData>({
 		resolver: zodResolver(vehicleSchema),
 		defaultValues: {
 			numberPlate: "",
@@ -107,14 +107,14 @@ const CreateVehicleForm: React.FC<CreateVehicleFormProps> = ({
 
 	useEffect(() => {
 		if (watchedVehicleTypeId) {
-			const type = vehicleTypes.find((t) => t.id === watchedVehicleTypeId);
+			const type = vehicleTypes.find((t) => t.id === Number(watchedVehicleTypeId));
 			setSelectedVehicleType(type || null);
 		} else {
 			setSelectedVehicleType(null);
 		}
 	}, [watchedVehicleTypeId, vehicleTypes]);
 
-	const onSubmit: SubmitHandler<VehicleFormData> = async (data) => {
+	const onSubmit = async (data: VehicleFormData) => {
 		try {
 			const { status, data: resData } = await callApi({
 				method: "POST",
@@ -155,7 +155,7 @@ const CreateVehicleForm: React.FC<CreateVehicleFormProps> = ({
 											{...field}
 											label="Vehicle type"
 											value={field.value || ""}
-											onChange={(e) => field.onChange(Number(e.target.value))}
+											// Note: onChange value is handled by controller based on schema
 										>
 											{vehicleTypes.map((type) => (
 												<MenuItem key={type.id} value={type.id}>
@@ -177,6 +177,7 @@ const CreateVehicleForm: React.FC<CreateVehicleFormProps> = ({
 								render={({ field }) => (
 									<TextField
 										{...field}
+										value={field.value || ""}
 										fullWidth
 										label="Manufacturer"
 										error={!!errors.manufacturer}
@@ -195,6 +196,7 @@ const CreateVehicleForm: React.FC<CreateVehicleFormProps> = ({
 								render={({ field }) => (
 									<TextField
 										{...field}
+										value={field.value || ""}
 										fullWidth
 										label="Model"
 										error={!!errors.model}
