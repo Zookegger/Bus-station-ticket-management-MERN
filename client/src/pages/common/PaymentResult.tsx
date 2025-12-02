@@ -1,124 +1,71 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import {
-	Box,
-	Typography,
-	CircularProgress,
-	Button,
-	Paper,
-} from "@mui/material";
-import { CheckCircle, Error as ErrorIcon } from "@mui/icons-material";
-import callApi from "@utils/apiCaller";
-import { API_ENDPOINTS } from "@constants/index";;
+import { Box, Typography, Button, Container, Paper } from "@mui/material";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import { ROUTES } from "@constants/routes";
 
 const PaymentResult: React.FC = () => {
 	const [searchParams] = useSearchParams();
 	const navigate = useNavigate();
-
-	// State
-	const [verifying, setVerifying] = useState(true);
-	const [success, setSuccess] = useState(false);
-	const [message, setMessage] = useState("");
+	const [status, setStatus] = useState<"success" | "failure" | "error" | null>(null);
 
 	useEffect(() => {
-		const verifyPayment = async () => {
-			// 1. Get query params returned by the gateway (e.g., ?vnp_ResponseCode=00&orderId=...)
-			// The params depend heavily on your specific gateway (Momo, VNPay, Stripe, etc.)
-			const params = Object.fromEntries(searchParams.entries());
-
-			if (Object.keys(params).length === 0) {
-				setVerifying(false);
-				setSuccess(false);
-				setMessage("No payment information found.");
-				return;
-			}
-
-			try {
-				// 2. Send these params to YOUR backend.
-				// NEVER trust the URL params alone. Let the backend validate the signature.
-				const res = await callApi({
-					method: "GET", // or POST depending on your backend implementation
-					url: API_ENDPOINTS.ORDER.VERIFY_PAYMENT,
-					params: params, // Send the gateway params to backend
-				});
-
-				if (res.status === "success" || res.isPaid) {
-					setSuccess(true);
-					setMessage("Payment successful! Your seats are booked.");
-				} else {
-					setSuccess(false);
-					setMessage("Payment failed or was cancelled.");
-				}
-			} catch (err: any) {
-				setSuccess(false);
-				setMessage(
-					err.message || "An error occurred while verifying payment."
-				);
-			} finally {
-				setVerifying(false);
-			}
-		};
-
-		verifyPayment();
+		const statusParam = searchParams.get("status");
+		if (statusParam === "success") {
+			setStatus("success");
+		} else if (statusParam === "failure") {
+			setStatus("failure");
+		} else {
+			setStatus("error");
+		}
 	}, [searchParams]);
 
+	const handleGoHome = () => {
+		navigate(ROUTES.HOME);
+	};
+
+	const handleGoToOrders = () => {
+		navigate(ROUTES.PROFILE);
+	};
+
+	if (!status) {
+		return null;
+	}
+
 	return (
-		<Box
-			display="flex"
-			justifyContent="center"
-			alignItems="center"
-			minHeight="60vh"
-			p={3}
-		>
-			<Paper
-				elevation={3}
-				sx={{ p: 5, textAlign: "center", maxWidth: 500 }}
-			>
-				{verifying ? (
-					<>
-						<CircularProgress size={60} sx={{ mb: 3 }} />
-						<Typography variant="h6">
-							Verifying your transaction...
-						</Typography>
-						<Typography variant="body2" color="text.secondary">
-							Please do not close this window.
-						</Typography>
-					</>
-				) : (
-					<>
-						{success ? (
-							<CheckCircle
-								color="success"
-								sx={{ fontSize: 80, mb: 2 }}
-							/>
-						) : (
-							<ErrorIcon
-								color="error"
-								sx={{ fontSize: 80, mb: 2 }}
-							/>
-						)}
+		<Container maxWidth="sm" sx={{ mt: 8, mb: 4 }}>
+			<Paper elevation={3} sx={{ p: 4, textAlign: "center", borderRadius: 2 }}>
+				<Box sx={{ mb: 2 }}>
+					{status === "success" ? (
+						<CheckCircleOutlineIcon color="success" sx={{ fontSize: 80 }} />
+					) : (
+						<ErrorOutlineIcon color="error" sx={{ fontSize: 80 }} />
+					)}
+				</Box>
 
-						<Typography variant="h5" fontWeight="bold" gutterBottom>
-							{success ? "Booking Confirmed!" : "Payment Failed"}
-						</Typography>
+				<Typography variant="h4" component="h1" gutterBottom fontWeight="bold">
+					{status === "success" ? "Payment Successful!" : "Payment Failed"}
+				</Typography>
 
-						<Typography color="text.secondary" paragraph>
-							{message}
-						</Typography>
+				<Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+					{status === "success"
+						? "Thank you for your purchase. Your booking has been confirmed."
+						: "We were unable to process your payment. Please try again or contact support."}
+				</Typography>
 
-						<Button
-							variant="contained"
-							onClick={() =>
-								navigate(success ? "/my-tickets" : "/")
-							}
-							sx={{ mt: 2 }}
-						>
-							{success ? "View My Tickets" : "Return Home"}
+				<Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
+					<Button variant="outlined" onClick={handleGoHome}>
+						Back to Home
+					</Button>
+					{status === "success" && (
+						<Button variant="contained" onClick={handleGoToOrders}>
+							View My Orders
 						</Button>
-					</>
-				)}
+					)}
+				</Box>
 			</Paper>
-		</Box>
+		</Container>
 	);
 };
 

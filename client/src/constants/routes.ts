@@ -18,12 +18,16 @@ export const ROUTES = {
 	DASHBOARD_SYSTEM: "/dashboard/system",
 	CHECK_IN: "/check-in/:orderId",
 	PROFILE: "/user/profile",
+	USER_ORDERS: "/user/orders",
+	ORDER_LOOKUP: "/orders/lookup",
 	VERIFY_EMAIL: "/verify-email",
 	SETTINGS: "/settings",
 	LOGIN: "/login",
 	REGISTER: "/register",
 	NOT_FOUND: "/404",
 	PRIVACY_POLICY: "/privacy",
+	PAYMENT_RESULT: "/payment-result",
+	DASHBOARD_DEBUG: "/dashboard/debug",
 } as const;
 
 export const getSearchRoute = (q?: string) => {

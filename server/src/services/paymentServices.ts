@@ -25,6 +25,7 @@ import db from "@models/index";
 import { Op, Transaction } from "sequelize";
 import { TicketStatus } from "@my_types/ticket";
 import { voidTicket } from "./ticketServices";
+import { broadcastDashboardUpdate } from "@services/dashboardServices";
 
 /**
  * Payment gateway interface - all gateways must implement this
@@ -473,6 +474,12 @@ export const handlePaymentCallback = async (
 		}
 
 		await transaction.commit();
+
+		// Broadcast dashboard update
+		broadcastDashboardUpdate().catch((err) =>
+			logger.error("Failed to broadcast dashboard update:", err)
+		);
+
 		return payment;
 	} catch (error) {
 		await transaction.rollback();
@@ -669,15 +676,7 @@ export const cleanupExpiredPayments = async (
 			],
 			limit: batchSize,
 		});
-
-		logger.info(
-			`[Payment Cleanup] Found ${expired_payments.length} expired payments`
-		);
-
 		if (dryRun) {
-			logger.info(
-				`[Payment Cleanup] DRY RUN: Would expire ${expired_payments.length} payments`
-			);
 			result.expiredPayments = expired_payments.length;
 			return result;
 		}
@@ -749,6 +748,11 @@ export const cleanupExpiredPayments = async (
 
 		logger.info(
 			`[Payment Cleanup] Completed: ${result.expiredPayments} expired, ${result.cancelledOrders} orders cancelled, ${result.releasedCoupons} coupons released, ${result.errors} errors`
+		);
+
+		// Broadcast dashboard update
+		broadcastDashboardUpdate().catch((err) =>
+			logger.error("Failed to broadcast dashboard update:", err)
 		);
 
 		return result;

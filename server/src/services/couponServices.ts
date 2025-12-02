@@ -177,10 +177,16 @@ export const listCoupons = async (
 export const getCouponByCode = async (
 	code: string,
 	...attributes: (keyof CouponAttributes)[]
-): Promise<Coupon | Coupon[] | null> => {
-	return attributes.length > 0
-		? await db.Coupon.findAll({ where: { code }, attributes })
-		: await db.Coupon.findAll({ where: { code } });
+): Promise<Coupon | null> => {
+	const coupons = attributes.length > 0
+		? await db.Coupon.findOne({ where: { code }, attributes })
+		: await db.Coupon.findOne({ where: { code } });
+
+	if (!coupons) {
+		throw { status: 404, message: "Coupon not found, invalid coupon code."}
+	}
+
+	return coupons;
 };
 
 /**

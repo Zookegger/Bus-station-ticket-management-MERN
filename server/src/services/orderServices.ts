@@ -22,6 +22,7 @@ import { TripStatus } from "@my_types/trip";
 import * as ticketServices from "@services/ticketServices";
 import { TicketStatus } from "@my_types/ticket";
 import { NotificationPriorities, NotificationTypes } from "@my-types";
+import { emitBulkSeatUpdates } from "./realtimeEvents";
 
 /**
  * Creates an order, reserves seats, applies coupons, and initiates payment.
@@ -195,6 +196,22 @@ export const createOrder = async (
 				.catch((err) =>
 					logger.error("Failed to send order notification", err)
 				);
+		}
+
+		try {
+			// We use the 'seats' array fetched earlier in step 1
+			const seatUpdates = seats.map((seat) => ({
+				...seat.toJSON(),
+				status: SeatStatus.RESERVED,
+				reservedBy,
+			}));
+
+			if (seatUpdates && seatUpdates.length > 0 && seats[0] && seats[0].tripId) {
+				emitBulkSeatUpdates(seats[0]!.tripId!, seatUpdates);
+			}
+		} catch (socketError) {
+			logger.error("Failed to emit realtime seat update", socketError);
+			// Don't fail the request if socket fails, just log it
 		}
 
 		return {
@@ -649,7 +666,7 @@ const buildOrderQueryOptions = (
 											as: "vehicleType",
 										},
 									],
-									as: "vehicle"
+									as: "vehicle",
 								},
 							],
 							as: "trip",

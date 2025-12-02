@@ -23,6 +23,7 @@ import {
 	Logout as LogoutIcon,
 	Notifications as NotificationsIcon,
 	Window as WindowIcon,
+	ShoppingBasket,
 } from "@mui/icons-material";
 import buildAvatarUrl from "@utils/avatarImageHelper";
 import { useNotifications } from "@contexts/NotificationContext";
@@ -145,6 +146,16 @@ const Header: React.FC = () => {
 											sx={{ marginRight: 1 }}
 										/>
 										Profile
+									</MenuItem>
+									<MenuItem
+										onClick={handleMenuClose}
+										component={RouterLink}
+										to={ROUTES.USER_ORDERS}
+									>
+										<ShoppingBasket
+											sx={{ marginRight: 1 }}
+										/>
+										Orders
 									</MenuItem>
 									{isAdmin && (
 										<MenuItem

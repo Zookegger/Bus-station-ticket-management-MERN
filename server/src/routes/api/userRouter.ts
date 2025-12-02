@@ -69,6 +69,16 @@ userRouter.post(
 	errorHandler
 );
 
+// POST /users/websocket-token/:id - Get WebSocket auth token
+userRouter.post(
+	"/websocket-token/:id",
+	csrfUserProtectionRoute,
+	validateUserIdParam,
+	handleValidationResult,
+	userController.GetWebsocketToken,
+	errorHandler
+);
+
 // GET /users - Get all users (Admin only)
 userRouter.get(
 	"/",

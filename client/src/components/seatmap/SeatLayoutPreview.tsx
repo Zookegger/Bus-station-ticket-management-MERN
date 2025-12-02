@@ -10,7 +10,7 @@ import {
 	Typography,
 } from "@mui/material";
 import {
-	Chair as ChairIcon,
+	EventSeat as EventSeatIcon ,
 	Accessible as AccessibleIcon,
 	NotInterested as NotInterestedIcon,
 } from "@mui/icons-material";
@@ -28,7 +28,7 @@ const seatTypeDetails: {
 	{
 		type: "available",
 		label: "Available",
-		icon: <ChairIcon />,
+		icon: <EventSeatIcon  />,
 		color: "primary",
 	},
 	{
@@ -46,7 +46,7 @@ const seatTypeDetails: {
 	{
 		type: "occupied",
 		label: "Occupied",
-		icon: <ChairIcon />,
+		icon: <EventSeatIcon  />,
 		color: "error",
 	},
 ];
@@ -109,7 +109,7 @@ const SeatLayoutPreview: React.FC<SeatLayoutPreviewProps> = ({
 												size="small"
 											>
 												{seatDetails?.icon || (
-													<ChairIcon />
+													<EventSeatIcon  />
 												)}
 											</IconButton>
 										</Tooltip>

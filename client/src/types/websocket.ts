@@ -9,6 +9,7 @@ export interface WebsocketOptions {
 	debug?: boolean;
 	max_reconnect_attempts?: number;
 	reconnect_delay?: number;
+	requireAuth?: boolean;
 }
 
 export type NotificationEventData = {

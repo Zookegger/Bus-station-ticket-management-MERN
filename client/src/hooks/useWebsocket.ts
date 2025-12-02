@@ -53,6 +53,7 @@ const useWebsocket = (options: WebsocketOptions = {}) => {
 		debug = false,
 		max_reconnect_attempts = 5,
 		reconnect_delay = 1000,
+		requireAuth = true,
 	} = options;
 
 	const socket_ref = useRef<Socket | null>(null);
@@ -124,36 +125,73 @@ const useWebsocket = (options: WebsocketOptions = {}) => {
 	);
 
 	// Authentication function
+	const getAuthToken = useCallback(async () => {
+		if (!userAuth.isAuthenticated || !userAuth.user) return null;
+
+		try {
+			const data = await callApi({
+				method: "POST",
+				url: API_ENDPOINTS.USERS.WEBSOCKET_AUTH(userAuth.user.id),
+			});
+
+			if (data && data.websocket_token) {
+				return data.websocket_token;
+			}
+
+			return null;
+		} catch (error) {
+			console.error("Failed to get WebSocket token:", error);
+			return null;
+		}
+	}, [userAuth.isAuthenticated, userAuth.user]);
+
+	// Authentication function
 	const authenticateSocket = useCallback(async () => {
 		try {
 			// If already authenticated, don't try again
 			if (
-				connection_state === WEBSOCKET_CONNECTION_STATES.AUTHENTICATED
+				global_connection_state ===
+				WEBSOCKET_CONNECTION_STATES.AUTHENTICATED
 			) {
 				debugLog(`Already authenticated, skipping authentication`);
 				return true;
 			}
 
-			// If authentication is in progress, don't try again
-			if (
-				authentication_attempted &&
-				connection_state === WEBSOCKET_CONNECTION_STATES.CONNECTED
-			) {
-				debugLog(
-					"Authentication already in progress, skipping duplicate attempt"
-				);
-				return false;
-			}
-
 			const token = await getAuthToken();
-			if (!token || !socket_ref.current || !isConnected) {
-				debugLog(
-					`Cannot authenticate: missing token, socket, or not connected.`
-				);
+			if (!token) {
+				if (requireAuth) {
+					debugLog(`Cannot authenticate: missing token.`);
+				}
 				return false;
 			}
 
-			debugLog(`Authenticating websocket connection...`);
+			if (!socket_ref.current) {
+				debugLog("No socket to authenticate");
+				return false;
+			}
+
+			// Check if we need to update token and reconnect
+			const currentSocketToken = (socket_ref.current.auth as any)?.token;
+			if (currentSocketToken !== token) {
+				debugLog("Updating socket auth token and reconnecting...");
+				socket_ref.current.auth = { token };
+				
+				if (socket_ref.current.connected) {
+					socket_ref.current.disconnect().connect();
+				} else {
+					socket_ref.current.connect();
+				}
+				// The reconnection will trigger 'connect' event which calls authenticateSocket again
+				return true;
+			}
+
+			// If we are here, token is set, just waiting for response
+			if (authentication_attempted) {
+				debugLog("Authentication already in progress...");
+				return true;
+			}
+
+			debugLog(`Waiting for authentication response...`);
 			authentication_attempted = true;
 
 			return new Promise((resolve) => {
@@ -183,6 +221,7 @@ const useWebsocket = (options: WebsocketOptions = {}) => {
 						WEBSOCKET_CONNECTION_STATES.AUTHENTICATED
 					);
 					debugLog("Authentication successful for user:", data.user);
+					resolve(true);
 				};
 
 				const errorHandler = (data: any) => {
@@ -193,6 +232,13 @@ const useWebsocket = (options: WebsocketOptions = {}) => {
 					authentication_attempted = false;
 					resolve(false);
 				};
+
+				if (socket_ref.current) {
+					// Listen for the event (it might have already fired if we are late, 
+					// but usually it fires after connect)
+					socket_ref.current.once(`authorization_success`, successHandler);
+					socket_ref.current.once(`authorization_error`, errorHandler);
+				}
 			});
 		} catch (err: any) {
 			debugLog("Authentication Error:", err);
@@ -200,7 +246,19 @@ const useWebsocket = (options: WebsocketOptions = {}) => {
 			authentication_attempted = false;
 			return false;
 		}
-	}, [debugLog, isConnected, updateConnectionStatus, connection_state]);
+	}, [debugLog, updateConnectionStatus, getAuthToken, requireAuth]);
+
+	// Effect to handle authentication when user logs in or auth state loads
+	useEffect(() => {
+		if (
+			userAuth.isAuthenticated &&
+			socket_ref.current?.connected &&
+			connection_state !== WEBSOCKET_CONNECTION_STATES.AUTHENTICATED
+		) {
+			// Only try if we haven't authenticated yet
+			authenticateSocket();
+		}
+	}, [userAuth.isAuthenticated, connection_state, authenticateSocket]);
 
 	// Reconnect with exponential backoff
 	const attemptReconnection = useCallback(() => {
@@ -273,26 +331,6 @@ const useWebsocket = (options: WebsocketOptions = {}) => {
 		},
 		[]
 	);
-
-	const getAuthToken = async () => {
-		if (!userAuth.isAuthenticated || !userAuth.user) return null;
-
-		try {
-			const response = await callApi({
-				method: "POST",
-				url: API_ENDPOINTS.USERS.WEBSOCKET_AUTH(userAuth.user.id),
-			});
-
-			if (response.status && response.data.websocket_token) {
-				return response.data.websocket_token;
-			}
-
-			return null;
-		} catch (error) {
-			console.error("Failed to get WebSocket token:", error);
-			return null;
-		}
-	};
 
 	// Connection management
 	useEffect(() => {

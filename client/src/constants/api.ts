@@ -38,7 +38,7 @@ export const API_ENDPOINTS: ApiEndpoints = {
 		UPDATE_PROFILE: (id: string) => `/users/profile/${id}`,
 		ADMIN_UPDATE: (id: string) => `/users/${id}`,
 		ADMIN_DELETE: (id: string) => `/users/${id}`,
-		WEBSOCKET_AUTH: (id: string) => `/websocket-token/${id}`
+		WEBSOCKET_AUTH: (id: string) => `/users/websocket-token/${id}`
 	},
 	VEHICLE: {
 		BASE: "/vehicles",
@@ -96,7 +96,7 @@ export const API_ENDPOINTS: ApiEndpoints = {
 		BASE: "/coupons",
 		SEARCH: "/coupons",
 		BY_ID: "/coupons/:id",
-		BY_CODE: "/coupons/code/:code",
+		BY_CODE: (code: string) => `/coupons/code/${code}`,
 		ADD: "/coupons",
 		UPDATE: (id: number) => `/coupons/${id}`,
 		DELETE: (id: number) => `/coupons/${id}`,
@@ -122,7 +122,7 @@ export const API_ENDPOINTS: ApiEndpoints = {
 		CREATE: "/orders",
 		BY_ID: "/orders/:id",
 		BY_USER: "/orders/user/:id",
-		BY_GUEST: "/orders/guest/:id",
+		BY_GUEST: "/orders/guest",
 		REFUND: "/orders/:id/refund",
 	},
 	SETTINGS: {
@@ -141,6 +141,8 @@ export const API_ENDPOINTS: ApiEndpoints = {
 	DEBUG: {
 		TRIGGER_PAYMENT_CLEANUP: "/debug/trigger-payment-cleanup",
 		PAYMENT_QUEUE_STATS: "/debug/payment-queue-stats",
+		TEST_WEBSOCKET: "/debug/test-websocket",
+		WEBSOCKET_STATS: "/debug/websocket-stats",
 	},
 	ADMIN: {
 		BASE: "/admin/users",

@@ -1,6 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import { addCleanupJob } from "@utils/queues/paymentQueue";
 import logger from "@utils/logger";
+import { getIO } from "@utils/socket";
+import { REALTIME_NAMESPACE } from "@constants/realtime";
 
 /**
  * Manually trigger payment cleanup job (admin/debug only).
@@ -84,3 +86,82 @@ export const GetPaymentQueueStats = async (
 		next(err);
 	}
 };
+
+/**
+ * Test WebSocket broadcasting to a specific room or globally.
+ * 
+ * @route POST /api/debug/test-websocket
+ * @access Admin
+ */
+export const TestWebsocketBroadcast = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+): Promise<void> => {
+	try {
+		const { room, event = "test:event", data = { message: "WebSocket test from debug endpoint" } } = req.body;
+
+		const io = getIO();
+		const namespace = io.of(REALTIME_NAMESPACE);
+
+		if (room) {
+			// Broadcast to specific room
+			namespace.to(room).emit(event, data);
+			logger.info(`[Debug] WebSocket test broadcast to room '${room}': ${event}`);
+		} else {
+			// Broadcast to all connected clients
+			namespace.emit(event, data);
+			logger.info(`[Debug] WebSocket test broadcast to all clients: ${event}`);
+		}
+
+		res.status(200).json({
+			success: true,
+			message: `WebSocket test broadcast sent.`,
+			data: { room, event, data },
+		});
+	} catch (err) {
+		next(err);
+	}
+};
+
+/**
+ * Get WebSocket connection statistics.
+ * 
+ * @route GET /api/debug/websocket-stats
+ * @access Admin
+ */
+export const GetWebsocketStats = async (
+	_req: Request,
+	res: Response,
+	next: NextFunction
+): Promise<void> => {
+	try {
+		const io = getIO();
+		const namespace = io.of(REALTIME_NAMESPACE);
+
+		// Get connected sockets
+		const sockets = await namespace.fetchSockets();
+		const connectedCount = sockets.length;
+
+		// Group by rooms
+		const roomStats: Record<string, number> = {};
+		sockets.forEach(socket => {
+			socket.rooms.forEach(room => {
+				if (room !== socket.id) { // Exclude the socket's own room
+					roomStats[room] = (roomStats[room] || 0) + 1;
+				}
+			});
+		});
+
+		res.status(200).json({
+			success: true,
+			data: {
+				connectedClients: connectedCount,
+				rooms: roomStats,
+			},
+		});
+	} catch (err) {
+		next(err);
+	}
+};
+

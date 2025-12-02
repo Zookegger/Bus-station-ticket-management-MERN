@@ -16,6 +16,9 @@ import {
 	CircularProgress,
 	Portal,
 	type PopperPlacementType,
+	Card,
+	CardContent,
+	CardHeader,
 } from "@mui/material";
 import {
 	Notifications as NotificationsIcon,
@@ -94,7 +97,7 @@ const NotificationPopper: React.FC<NotificationPopperProps> = ({
 	onMarkAllAsRead,
 	maxHeight = 400,
 	width = 350,
-	placement = "bottom"
+	placement = "bottom",
 }) => {
 	const [open, setOpen] = useState(false);
 	const anchorRef = useRef<HTMLDivElement>(null);
@@ -133,9 +136,12 @@ const NotificationPopper: React.FC<NotificationPopperProps> = ({
 
 	const effectiveNotifications = notifications ?? ctxNotifications ?? [];
 	const effectiveLoading = loading || ctxLoading || false;
-	const effectiveOnMarkAsRead = onMarkAsRead ?? (ctxMarkAsRead ?? (() => Promise.resolve()));
-	const effectiveOnDelete = onDelete ?? (ctxDeleteNotification ?? (() => Promise.resolve()));
-	const effectiveOnMarkAllAsRead = onMarkAllAsRead ?? (ctxMarkAllAsRead ?? (() => Promise.resolve()));
+	const effectiveOnMarkAsRead =
+		onMarkAsRead ?? ctxMarkAsRead ?? (() => Promise.resolve());
+	const effectiveOnDelete =
+		onDelete ?? ctxDeleteNotification ?? (() => Promise.resolve());
+	const effectiveOnMarkAllAsRead =
+		onMarkAllAsRead ?? ctxMarkAllAsRead ?? (() => Promise.resolve());
 
 	const handleMarkAsRead = (notificationId: number) => {
 		effectiveOnMarkAsRead(notificationId);
@@ -223,219 +229,258 @@ const NotificationPopper: React.FC<NotificationPopperProps> = ({
 						},
 					]}
 					sx={{
-						zIndex: 1000,
+						zIndex: 2000,
 					}}
 				>
 					<ClickAwayListener onClickAway={handleClose}>
 						<Paper
 							sx={{
 								width,
-								maxHeight,
-								overflow: "auto",
+
 								boxShadow: (theme) => theme.shadows[8],
 								border: 1,
 								borderColor: "divider",
 								zIndex: 2000,
 							}}
 						>
-							{/* Header */}
-							<Box
-								sx={{
-									p: 2,
-									display: "flex",
-									alignItems: "center",
-									justifyContent: "space-between",
-									borderBottom: 1,
-									borderColor: "divider",
-								}}
-							>
-								<Typography variant="h6" component="div">
-									Notifications
-									{unreadCount > 0 && (
-										<Badge
-											badgeContent={unreadCount}
-											color="error"
-											sx={{ ml: 1 }}
-										/>
-									)}
-								</Typography>
-								<Box>
-									{unreadCount > 0 && (
-										<Button
-											size="small"
-											onClick={handleMarkAllAsRead}
-											sx={{ mr: 1 }}
-										>
-											Mark all read
-										</Button>
-									)}
-									<IconButton
-										size="small"
-										onClick={handleClose}
-									>
-										<CloseIcon />
-									</IconButton>
-								</Box>
-							</Box>
-
-							{/* Content */}
-							{effectiveLoading ? (
-								<Box
+							<Card>
+								{/* Header */}
+								<CardHeader
 									sx={{
+										p: 2,
 										display: "flex",
-										justifyContent: "center",
-										p: 3,
+										alignItems: "center",
+										justifyContent: "space-between",
+										borderBottom: 1,
+										borderColor: "divider",
+										maxHeight,
+										overflow: "auto",
 									}}
-								>
-									<CircularProgress size={24} />
-								</Box>
-							) : effectiveNotifications.length === 0 ? (
-								<Box sx={{ p: 3, textAlign: "center" }}>
-									<NotificationsNoneIcon
-										sx={{
-											fontSize: 48,
-											color: "text.secondary",
-											mb: 1,
-										}}
-									/>
-									<Typography
-										variant="body2"
-										color="text.secondary"
-									>
-										No notifications
-									</Typography>
-								</Box>
-							) : (
-								<List sx={{ py: 0 }}>
-									{effectiveNotifications.map((notification, index) => (
-											<React.Fragment
-												key={notification.id}
-											>
-												<ListItem
-													sx={{
-														py: 1.5,
-														px: 2,
-														"&:hover": {
-															backgroundColor:
-																"action.hover",
-														},
-														backgroundColor:
-															notification.status ===
-															"unread"
-																? "action.selected"
-																: "transparent",
-													}}
-												>
-													<ListItemIcon
-														sx={{ minWidth: 40 }}
-													>
-														<Badge
-															color={getPriorityColor(
-																notification.priority
-															)}
-															variant="dot"
-															invisible={
-																notification.status ===
-																"read"
-															}
+									title={
+										<Typography
+											variant="h6"
+											component="div"
+										>
+											Notifications
+											{unreadCount > 0 && (
+												<Badge
+													badgeContent={
+														<Typography
+															sx={{
+																alignItems:
+																	"center",
+															}}
+															variant="button"
 														>
-															{getTypeIcon(
-																notification.type
-															)}
-														</Badge>
-													</ListItemIcon>
-													<ListItemText
-														primary={
-															<Typography
-																variant="subtitle2"
+															{unreadCount}
+														</Typography>
+													}
+													color="error"
+													sx={{
+														ml: 1.75,
+														left: -4,
+														top: -10,
+													}}
+													slotProps={{}}
+												/>
+											)}
+										</Typography>
+									}
+									action={
+										<Box>
+											{unreadCount > 0 && (
+												<Button
+													size="small"
+													onClick={
+														handleMarkAllAsRead
+													}
+													sx={{ mr: 1 }}
+												>
+													Mark all read
+												</Button>
+											)}
+											<IconButton
+												size="small"
+												onClick={handleClose}
+											>
+												<CloseIcon />
+											</IconButton>
+										</Box>
+									}
+								/>
+
+								{/* Content */}
+								<CardContent sx={{ p: 0, maxHeight: 320, overflow: "auto" }}>
+									{effectiveLoading ? (
+										<Box
+											sx={{
+												display: "flex",
+												justifyContent: "center",
+												p: 3,
+											}}
+										>
+											<CircularProgress size={24} />
+										</Box>
+									) : effectiveNotifications.length === 0 ? (
+										<Box sx={{ p: 3, textAlign: "center" }}>
+											<NotificationsNoneIcon
+												sx={{
+													fontSize: 48,
+													color: "text.secondary",
+													mb: 1,
+												}}
+											/>
+											<Typography
+												variant="body2"
+												color="text.secondary"
+											>
+												No notifications
+											</Typography>
+										</Box>
+									) : (
+										<List sx={{ py: 0, gap: 1 }}>
+											{effectiveNotifications.map(
+												(notification, index) => (
+													<React.Fragment
+														key={notification.id}
+													>
+														<ListItem
+															sx={{
+																px: 2,
+																"&:hover": {
+																	backgroundColor:
+																		"action.hover",
+																},
+																backgroundColor:
+																	notification.status ===
+																	"unread"
+																		? "action.selected"
+																		: "transparent",
+															}}
+														>
+															<ListItemIcon
 																sx={{
-																	fontWeight:
-																		notification.status ===
-																		"unread"
-																			? "bold"
-																			: "normal",
+																	minWidth: 40,
 																}}
 															>
-																{
-																	notification.title
-																}
-															</Typography>
-														}
-														secondary={
-															<Box>
-																<Typography
-																	variant="body2"
-																	color="text.secondary"
-																	sx={{
-																		display:
-																			"-webkit-box",
-																		WebkitLineClamp: 2,
-																		WebkitBoxOrient:
-																			"vertical",
-																		overflow:
-																			"hidden",
-																		lineHeight: 1.3,
-																	}}
-																>
-																	{
-																		notification.content
+																<Badge
+																	color={getPriorityColor(
+																		notification.priority
+																	)}
+																	variant="dot"
+																	invisible={
+																		notification.status ===
+																		"read"
 																	}
-																</Typography>
-																<Typography
-																	variant="caption"
-																	color="text.secondary"
+																>
+																	{getTypeIcon(
+																		notification.type
+																	)}
+																</Badge>
+															</ListItemIcon>
+															<ListItemText
+																primary={
+																	<Typography
+																		variant="subtitle2"
+																		sx={{
+																			fontWeight:
+																				notification.status ===
+																				"unread"
+																					? "bold"
+																					: "normal",
+																		}}
+																	>
+																		{
+																			notification.title
+																		}
+																	</Typography>
+																}
+																secondary={
+																	<Box>
+																		<Typography
+																			variant="body2"
+																			color="text.secondary"
+																			sx={{
+																				display:
+																					"-webkit-box",
+																				WebkitLineClamp: 2,
+																				WebkitBoxOrient:
+																					"vertical",
+																				overflow:
+																					"hidden",
+																				lineHeight: 1.5,
+																			}}
+																		>
+																			{
+																				notification.content
+																			}
+																		</Typography>
+																		<Typography
+																			variant="caption"
+																			color="text.secondary"
+																			sx={{
+																				mt: 0.5,
+																			}}
+																		>
+																			{notification.createdAt
+																				? new Date(
+																						notification.createdAt
+																				  ).toLocaleDateString()
+																				: ""}
+																		</Typography>
+																	</Box>
+																}
+															/>
+															<Box
+																sx={{
+																	display:
+																		"flex",
+																	gap: 0.5,
+																}}
+															>
+																{notification.status ===
+																	"unread" && (
+																	<IconButton
+																		size="small"
+																		onClick={() =>
+																			handleMarkAsRead(
+																				notification.id
+																			)
+																		}
+																		sx={{
+																			p: 0.5,
+																		}}
+																	>
+																		<DoneIcon fontSize="small" />
+																	</IconButton>
+																)}
+																<IconButton
+																	size="small"
+																	onClick={() =>
+																		handleDelete(
+																			notification.id
+																		)
+																	}
 																	sx={{
-																		mt: 0.5,
+																		p: 0.5,
 																	}}
 																>
-																	{notification.createdAt
-																		? new Date(
-																				notification.createdAt
-																		  ).toLocaleDateString()
-																		: ""}
-																</Typography>
+																	<DeleteIcon fontSize="small" />
+																</IconButton>
 															</Box>
-														}
-													/>
-													<Box
-														sx={{
-															display: "flex",
-															gap: 0.5,
-														}}
-													>
-														{notification.status ===
-															"unread" && (
-															<IconButton
-																size="small"
-																onClick={() =>
-																	handleMarkAsRead(
-																		notification.id
-																	)
-																}
-																sx={{ p: 0.5 }}
-															>
-																<DoneIcon fontSize="small" />
-															</IconButton>
+														</ListItem>
+														{index <
+															effectiveNotifications.length -
+																1 && (
+															<Divider />
 														)}
-														<IconButton
-															size="small"
-															onClick={() =>
-																handleDelete(
-																	notification.id
-																)
-															}
-															sx={{ p: 0.5 }}
-														>
-															<DeleteIcon fontSize="small" />
-														</IconButton>
-													</Box>
-												</ListItem>
-												{index < effectiveNotifications.length - 1 && <Divider />}
-											</React.Fragment>
-										)
+													</React.Fragment>
+												)
+											)}
+										</List>
 									)}
-								</List>
-							)}
+								</CardContent>
+							</Card>
 						</Paper>
 					</ClickAwayListener>
 				</Popper>

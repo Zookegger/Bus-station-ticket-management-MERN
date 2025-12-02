@@ -94,7 +94,7 @@ export interface ApiEndpoints {
 		readonly BASE: string;
 		readonly SEARCH: string;
 		readonly BY_ID: string;
-		readonly BY_CODE: string;
+		readonly BY_CODE: (code: string) => string;
 		readonly ADD: string;
 		readonly UPDATE: (id: number) => string;
 		readonly DELETE: (id: number) => string;
@@ -133,6 +133,8 @@ export interface ApiEndpoints {
 	readonly DEBUG: {
 		readonly TRIGGER_PAYMENT_CLEANUP: string;
 		readonly PAYMENT_QUEUE_STATS: string;
+		readonly TEST_WEBSOCKET: string;
+		readonly WEBSOCKET_STATS: string;
 	};
 	readonly NOTIFICATION: {
 		readonly BASE: string;

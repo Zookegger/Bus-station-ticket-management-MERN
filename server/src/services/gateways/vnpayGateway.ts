@@ -513,14 +513,7 @@ const stringifyAndSortParams = (params: object): string => {
 			// Encode value to match .NET WebUtility.UrlEncode
 			// 1. encodeURIComponent handles most chars
 			// 2. Replace %20 with + (standard form encoding)
-			// 3. Manually encode specific special chars that encodeURIComponent skips but VNPay might expect
-			const encodedValue = encodeURIComponent(value)
-				.replace(/%20/g, "+")
-				.replace(/%2C/g, ",")
-				.replace(/!/g, "%21")
-				.replace(/\(/g, "%28")
-				.replace(/\)/g, "%29")
-				.replace(/\*/g, "%2A");
+			const encodedValue = encodeURIComponent(value).replace(/%20/g, "+");
 
 			// The key is NOT encoded in the C# implementation provided, so we leave it raw.
 			return `${key}=${encodedValue}`;
@@ -609,7 +602,10 @@ export class VNPayGateway implements IPaymentGateway {
 					.join(", ")}`,
 			vnp_OrderType: config.VNP_ORDER_TYPE || "travel",
 			vnp_ReturnUrl: config.VNP_RETURN_URL,
-			vnp_IpAddr: additionalData.ipAddress || "127.0.0.1",
+			vnp_IpAddr:
+				additionalData.ipAddress && additionalData.ipAddress !== "::1"
+					? additionalData.ipAddress
+					: "127.0.0.1",
 			vnp_CreateDate: createDate,
 		} as VNPayBaseParams;
 
@@ -764,3 +760,4 @@ export class VNPayGateway implements IPaymentGateway {
 		};
 	}
 }
+	

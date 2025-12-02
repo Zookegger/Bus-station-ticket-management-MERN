@@ -12,23 +12,56 @@ import {
 	useTheme,
 } from "@mui/material";
 import { useState, useMemo, type FC } from "react";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import {
-	Chair as ChairIcon,
+	EventSeat as EventSeatIcon,
 	CheckCircle as SelectedIcon,
 	Cancel as BookedIcon,
 } from "@mui/icons-material";
 import type { SeatLayout, SeatType } from "./types";
+import { SeatStatus } from "@my-types/seat";
 
 // --- Types ---
+
+const Size = {
+	large: 85,
+	medium: 65,
+	small: 50,
+} as const;
+
+type Size = (typeof Size)[keyof typeof Size];
+type SizeName = keyof typeof Size;
 
 export interface SeatBookingSelectorProps {
 	initialLayout: string | SeatLayout; // JSON string or object
 	bookedSeats?: { floor: number; row: number; col: number }[]; // Coordinates of sold tickets
 	selectedSeats?: { floor: number; row: number; col: number }[]; // Externally controlled selection
+	/**
+	 * Optional map of seat status keyed by "{floor}_{row}_{col}" (0-based)
+	 * e.g. { '0_0_1': { id: 123, status: 'reserved', number: '1' } }
+	 */
+	seatStatusMap?: Record<
+		string,
+		{ id: number; status: string; number?: string }
+	>;
+	/**
+	 * Optional detailed occupied seats list (0-based coords)
+	 */
+	occupiedSeatsDetailed?: {
+		id: number;
+		floor: number;
+		row: number;
+		col: number;
+		status: string;
+		number?: string;
+	}[];
 	onSelectionChange?: (
 		seats: { floor: number; row: number; col: number; label: string }[]
 	) => void;
 	maxSelectable?: number;
+
+	// Accept either a preset name ('small'|'medium'|'large') or a numeric pixel value
+	size?: SizeName | Size | number;
 }
 
 // --- Helper to parse layout consistently ---
@@ -48,7 +81,7 @@ const parseLayout = (layoutInput: string | SeatLayout): SeatLayout => {
 const LEGEND_ITEMS = [
 	{
 		label: "Available",
-		icon: <ChairIcon />,
+		icon: <EventSeatIcon />,
 		color: "primary.main",
 		variant: "outlined",
 	},
@@ -72,6 +105,9 @@ const SeatBookingSelector: FC<SeatBookingSelectorProps> = ({
 	selectedSeats: externalSelectedSeats,
 	onSelectionChange,
 	maxSelectable = 5,
+	seatStatusMap,
+	occupiedSeatsDetailed,
+	size = "medium",
 }) => {
 	const theme = useTheme();
 	const [activeTab, setActiveTab] = useState(0);
@@ -80,6 +116,22 @@ const SeatBookingSelector: FC<SeatBookingSelectorProps> = ({
 	>([]);
 
 	const [warning, setWarning] = useState<string | null>(null);
+
+	// Normalize size prop to numeric pixels so callers can pass either names or numbers
+	const sizePx: number =
+		typeof size === "string" ? Size[size as SizeName] : (size as number);
+	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+	const isTablet = useMediaQuery(theme.breakpoints.between("sm", "lg"));
+	const isDesktop = useMediaQuery(theme.breakpoints.up("lg"));
+	const scale = isMobile ? 0.1 : isTablet ? 0.2 : 0.3;
+	const adjustedSizePx = Math.max(28, Math.round(sizePx * scale));
+
+	// Derive spacing and label offsets from the adjusted seat size so everything scales together
+	const vSeatGap = Math.max(6, Math.round(adjustedSizePx * 0.35));
+	const hSeatGap = Math.max(6, Math.round(adjustedSizePx * 0.25));
+	const tooltipOffset = -Math.round(adjustedSizePx * 0.3);
+	const labelBottom = Math.round(adjustedSizePx * 0.4) * -1; // negative value for bottom offset
+	const labelFontPx = Math.max(10, Math.round(adjustedSizePx * 0.5));
 
 	// Use external state if provided, otherwise local
 	const selected = useMemo(() => {
@@ -102,7 +154,9 @@ const SeatBookingSelector: FC<SeatBookingSelectorProps> = ({
 			floor.forEach((row, rIdx) => {
 				row.forEach((type, cIdx) => {
 					const key = `${fIdx}-${rIdx}-${cIdx}`;
-					if (type === "available") {
+					// Layout `type` is part of the vehicle layout (e.g. 'aisle' or seat spec).
+					// Treat any non-aisle, truthy entry as a seat for labeling purposes.
+					if (type && type !== "aisle") {
 						labels[key] = `${counter++}`; // Simple numeric increment
 					}
 				});
@@ -114,6 +168,14 @@ const SeatBookingSelector: FC<SeatBookingSelectorProps> = ({
 	// --- Helpers ---
 
 	const isBooked = (f: number, r: number, c: number) => {
+		// Prefer explicit status map if provided (keys are 0-based)
+		const key = `${f}_${r}_${c}`;
+		const entry = seatStatusMap && seatStatusMap[key];
+		if (entry) {
+			return String(entry.status).toUpperCase() !== SeatStatus.AVAILABLE;
+		}
+
+		// Fallback to simple bookedSeats list
 		return bookedSeats.some(
 			(s) => s.floor === f && s.row === r && s.col === c
 		);
@@ -137,14 +199,16 @@ const SeatBookingSelector: FC<SeatBookingSelectorProps> = ({
 
 		const alreadySelected = isSelected(floor, row, col);
 		// Use external selection as the base if provided, otherwise use internal state
-		const baseSelection = externalSelectedSeats && externalSelectedSeats.length
-			? externalSelectedSeats.map((s) => ({
-				floor: s.floor,
-				row: s.row,
-				col: s.col,
-				label: seatLabels[`${s.floor}-${s.row}-${s.col}`] || "?",
-			}))
-			: [...(internalSelected || [])];
+		const baseSelection =
+			externalSelectedSeats && externalSelectedSeats.length
+				? externalSelectedSeats.map((s) => ({
+						floor: s.floor,
+						row: s.row,
+						col: s.col,
+						label:
+							seatLabels[`${s.floor}-${s.row}-${s.col}`] || "?",
+				  }))
+				: [...(internalSelected || [])];
 
 		let newSelection = [...baseSelection];
 
@@ -188,7 +252,6 @@ const SeatBookingSelector: FC<SeatBookingSelectorProps> = ({
 			<Grid size={{ xs: 12 }}>
 				<Stack
 					direction="row"
-					spacing={3}
 					justifyContent="center"
 					flexWrap="wrap"
 					sx={{
@@ -196,6 +259,7 @@ const SeatBookingSelector: FC<SeatBookingSelectorProps> = ({
 						p: 1,
 						backgroundColor: "background.paper",
 						borderRadius: 1,
+						gap: 2,
 					}}
 				>
 					{LEGEND_ITEMS.map((item) => (
@@ -240,7 +304,10 @@ const SeatBookingSelector: FC<SeatBookingSelectorProps> = ({
 			)}
 
 			{/* --- Seat Map Grid --- */}
-			<Grid size={{ xs: 12, lg: 8 }}>
+			<Grid
+				size={{ xs: 12, lg: 8 }}
+				sx={{ minWidth: isDesktop ? 550 : undefined }}
+			>
 				<Paper
 					elevation={3}
 					sx={{
@@ -280,13 +347,13 @@ const SeatBookingSelector: FC<SeatBookingSelectorProps> = ({
 					</Box>
 
 					{/* The Grid */}
-					<Stack spacing={1}>
+					<Stack sx={{ gap: `${vSeatGap}px` }}>
 						{layout[activeTab]?.map((rowArr, rIdx) => (
 							<Stack
 								key={rIdx}
 								direction="row"
-								spacing={1}
 								justifyContent="center"
+								sx={{ gap: `${hSeatGap}px` }}
 							>
 								{rowArr.map((type, cIdx) => {
 									const seatKey = `${activeTab}-${rIdx}-${cIdx}`;
@@ -309,7 +376,10 @@ const SeatBookingSelector: FC<SeatBookingSelectorProps> = ({
 										return (
 											<Box
 												key={cIdx}
-												sx={{ width: 60, height: 60 }}
+												sx={{
+													width: sizePx,
+													height: sizePx,
+												}}
 											/>
 										);
 									}
@@ -320,11 +390,48 @@ const SeatBookingSelector: FC<SeatBookingSelectorProps> = ({
 											arrow
 											placement="top"
 											key={cIdx}
-											title={
-												booked
-													? "Booked"
-													: `Seat ${label}`
-											}
+											title={(() => {
+												if (booked) {
+													// try to show status/number if available
+													const key = `${activeTab}_${rIdx}_${cIdx}`;
+													const entry =
+														(seatStatusMap &&
+															seatStatusMap[
+																key
+															]) ||
+														(occupiedSeatsDetailed &&
+															occupiedSeatsDetailed.find(
+																(s) =>
+																	s.floor ===
+																		activeTab &&
+																	s.row ===
+																		rIdx &&
+																	s.col ===
+																		cIdx
+															));
+													if (entry) {
+														const st = String(
+															entry.status
+														).toLowerCase();
+														const num =
+															(entry as any)
+																.number ??
+															(label || "");
+														return `${
+															st
+																.charAt(0)
+																.toUpperCase() +
+															st.slice(1)
+														}${
+															num
+																? ` — Seat ${num}`
+																: ""
+														}`;
+													}
+													return "Booked";
+												}
+												return `Seat ${label}`;
+											})()}
 											slotProps={{
 												popper: {
 													modifiers: [
@@ -332,7 +439,8 @@ const SeatBookingSelector: FC<SeatBookingSelectorProps> = ({
 															name: "offset",
 															options: {
 																offset: [
-																	0, -12,
+																	0,
+																	tooltipOffset,
 																],
 															},
 														},
@@ -357,8 +465,8 @@ const SeatBookingSelector: FC<SeatBookingSelectorProps> = ({
 															: "default"
 													}
 													sx={{
-														width: 50,
-														height: 50,
+														width: sizePx,
+														height: sizePx,
 														border: selected
 															? `2px solid ${theme.palette.primary.main}`
 															: "1px solid #e0e0e0",
@@ -383,12 +491,36 @@ const SeatBookingSelector: FC<SeatBookingSelectorProps> = ({
 																? "scale(1.1)"
 																: undefined,
 														},
+														borderRadius: 4,
 													}}
 												>
 													{selected ? (
-														<SelectedIcon />
+														<SelectedIcon
+															fontSize={
+																isDesktop ||
+																isTablet
+																	? "large"
+																	: "medium"
+															}
+														/>
+													) : booked ? (
+														<BookedIcon
+															fontSize={
+																isDesktop ||
+																isTablet
+																	? "large"
+																	: "medium"
+															}
+														/>
 													) : (
-														<ChairIcon />
+														<EventSeatIcon
+															fontSize={
+																isDesktop ||
+																isTablet
+																	? "large"
+																	: "medium"
+															}
+														/>
 													)}
 												</IconButton>
 
@@ -401,12 +533,11 @@ const SeatBookingSelector: FC<SeatBookingSelectorProps> = ({
 															sx={{
 																position:
 																	"absolute",
-																bottom: -8,
+																bottom: `${labelBottom}px`,
 																left: "50%",
 																transform:
 																	"translateX(-50%)",
-																fontSize:
-																	"0.65rem",
+																fontSize: `${labelFontPx}px`,
 																fontWeight:
 																	"bold",
 																color: "text.secondary",
@@ -422,6 +553,33 @@ const SeatBookingSelector: FC<SeatBookingSelectorProps> = ({
 							</Stack>
 						))}
 					</Stack>
+
+					{/* Front of Bus Indicator */}
+					<Box
+						sx={{
+							width: "80%",
+							height: 8,
+							borderRadius: 4,
+							bgcolor: "grey.300",
+							mt: 4,
+							position: "relative",
+						}}
+					>
+						<Typography
+							variant="caption"
+							sx={{
+								position: "absolute",
+								bottom: -20,
+								left: "50%",
+								transform: "translateX(-50%)",
+								color: "text.secondary",
+								textTransform: "uppercase",
+								fontSize: "0.7rem",
+							}}
+						>
+							Back
+						</Typography>
+					</Box>
 				</Paper>
 			</Grid>
 		</Grid>

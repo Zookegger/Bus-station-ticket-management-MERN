@@ -17,7 +17,7 @@ import {
 } from "@mui/material";
 import { useEffect, useState, type FC, type JSX } from "react";
 import {
-	Chair as ChairIcon,
+	EventSeat as EventSeatIcon ,
 	Accessible as AccessibleIcon,
 	NotInterested as NotInterestedIcon,
 } from "@mui/icons-material";
@@ -32,7 +32,7 @@ const seatTypes: {
 	{
 		type: "available",
 		label: "Available",
-		icon: <ChairIcon />,
+		icon: <EventSeatIcon  />,
 		color: "primary",
 	},
 	{
@@ -326,7 +326,7 @@ const SeatLayoutEditor: FC<SeatLayoutEditorProps> = ({
 												}}
 											>
 												{seatType?.icon || (
-													<ChairIcon />
+													<EventSeatIcon  />
 												)}
 											</IconButton>
 										</Tooltip>

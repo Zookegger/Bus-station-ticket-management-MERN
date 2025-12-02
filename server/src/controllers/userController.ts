@@ -9,6 +9,7 @@ import { Request, Response, NextFunction } from "express";
 import * as userServices from "@services/userServices";
 import { UpdateProfileDTO } from "@my_types/user";
 import { getParamStringId } from "@utils/request";
+import jwt from "jsonwebtoken";
 
 /**
  * Updates the authenticated user's profile information.
@@ -305,6 +306,37 @@ export const ChangeEmail = async (
 		res.status(200).json({
 			message: "Verification email sent to the new address",
 		});
+	} catch (err) {
+		next(err);
+	}
+};
+
+export const GetWebsocketToken = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+): Promise<void> => {
+	try {
+		const authenticatedUserId: string | undefined =
+			(req as any).user?.userId ?? (req as any).user?.id;
+		if (!authenticatedUserId) {
+			throw { status: 401, message: "Unauthorized request" };
+		}
+
+		const targetUserId = getParamStringId(req);
+		if (authenticatedUserId !== targetUserId) {
+			throw { status: 403, message: "Access denied" };
+		}
+
+		// Generate a short-lived token specifically for WebSocket
+		// We use the same secret as the main auth because socket.ts uses it
+		const token = jwt.sign(
+			{ id: authenticatedUserId, type: "websocket" },
+			process.env.JWT_SECRET || "dev_secret",
+			{ expiresIn: "1m" } // Short expiration, just for handshake
+		);
+
+		res.status(200).json({ websocket_token: token });
 	} catch (err) {
 		next(err);
 	}

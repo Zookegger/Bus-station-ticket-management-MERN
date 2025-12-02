@@ -4,6 +4,7 @@ import {
 	ApiTest,
 	SystemSettingsManager,
 	PaymentMethodManager,
+	WebsocketTest,
 } from "./components";
 import TabPanel from "@components/common/TabPanel";
 
@@ -44,6 +45,7 @@ const System: React.FC = () => {
 				}}
 			>
 				<Tab label="Api Test" />
+				<Tab label="Websocket Test" />
 				<Tab label="System Settings" />
 				<Tab label="Payment Methods" />
 			</Tabs>
@@ -52,9 +54,12 @@ const System: React.FC = () => {
 				<ApiTest key={activeTab} />
 			</TabPanel>
 			<TabPanel value={activeTab} index={1}>
-				<SystemSettingsManager key={activeTab} />
+				<WebsocketTest key={activeTab} />
 			</TabPanel>
 			<TabPanel value={activeTab} index={2}>
+				<SystemSettingsManager key={activeTab} />
+			</TabPanel>
+			<TabPanel value={activeTab} index={3}>
 				<PaymentMethodManager key={activeTab} />
 			</TabPanel>
 		</Box>

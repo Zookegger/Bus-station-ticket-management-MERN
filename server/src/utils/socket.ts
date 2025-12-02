@@ -39,13 +39,13 @@ export const initSocket = (httpServer: HttpServer): SocketServer => {
 	namespace.use(async (socket, next) => {
 		try {
 			const token = socket.handshake.auth?.token;
-			if (!token) return next(new Error("Missing token"));
-
-			const decoded: any = jwt.verify(
-				token,
-				process.env.JWT_SECRET || "dev_secret"
-			);
-			(socket.data as any).userId = decoded.id;
+			if (token) {
+				const decoded: any = jwt.verify(
+					token,
+					process.env.JWT_SECRET || "dev_secret"
+				);
+				(socket.data as any).userId = decoded.id;
+			}
 			next();
 		} catch (err) {
 			next(new Error("Invalid token"));
@@ -54,12 +54,15 @@ export const initSocket = (httpServer: HttpServer): SocketServer => {
 
 	namespace.on("connection", (socket) => {
 		const user_id = (socket.data as any).userId;
-		logger.debug(`Realtime connected ${socket.id} (user ${user_id})`);
 
-		// Auto join personal room
-		if (user_id) socket.join(ROOMS.user(user_id));
-
-		socket.emit(RT_EVENTS.AUTH_SUCCESS, { user: user_id });
+		if (user_id) {
+			logger.debug(`Realtime connected ${socket.id} (user ${user_id})`);
+			// Auto join personal room
+			socket.join(ROOMS.user(user_id));
+			socket.emit(RT_EVENTS.AUTH_SUCCESS, { user: user_id });
+		} else {
+			logger.debug(`Realtime connected ${socket.id} (Guest)`);
+		}
 
 		socket.on(IN_EVENTS.ROOM_JOIN, (payload: { room: string }) => {
 			if (!payload?.room) return;

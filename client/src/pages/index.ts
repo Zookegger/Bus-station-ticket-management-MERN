@@ -18,3 +18,4 @@ export { default as System } from "./admin/system/System";
 // Common pages
 export { default as NotFound } from "@pages/common/NotFound";
 export { default as PrivacyPolicy } from "@pages/common/PrivacyPolicy";
+export { default as WebsocketTest } from "./admin/system/components/WebsocketTest";

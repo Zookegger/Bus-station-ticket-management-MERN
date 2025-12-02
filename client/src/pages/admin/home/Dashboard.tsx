@@ -1,16 +1,25 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Box, CircularProgress, Alert } from "@mui/material";
 import { Statistics } from "./components"; // Note: Ensure this import name matches your export (Statistic vs Statistics)
 import { callApi } from "@utils/apiCaller";
 import type { DashboardStats } from "@my-types/dashboard";
+import { useSocket } from "@contexts/SocketContext";
+import { ROOMS, RT_EVENTS } from "@constants/realtime";
 
 const Dashboard: React.FC = () => {
 	const [loading, setLoading] = useState<boolean>(true);
 	const [error, setError] = useState<string | null>(null);
 	const [data, setData] = useState<DashboardStats | null>(null);
+	const filterRef = useRef<{ from?: string; to?: string }>({});
 
-	const fetchDashboardData = async (fromDate?: string, toDate?: string) => {
-		setLoading(true);
+	const { socket, joinRoom, leaveRoom } = useSocket();
+
+	const fetchDashboardData = async (
+		fromDate?: string,
+		toDate?: string,
+		isBackground = false
+	) => {
+		if (!isBackground) setLoading(true);
 		try {
 			const params: any = {};
 			if (fromDate) params.from = fromDate;
@@ -27,21 +36,37 @@ const Dashboard: React.FC = () => {
 			setError(null);
 		} catch (err: any) {
 			console.error("Dashboard fetch error:", err);
-			setError(err.message || "Failed to load dashboard statistics");
+			if (!isBackground)
+				setError(err.message || "Failed to load dashboard statistics");
 		} finally {
-			setLoading(false);
+			if (!isBackground) setLoading(false);
 		}
 	};
 
 	useEffect(() => {
 		fetchDashboardData();
-	}, []);
+		joinRoom(ROOMS.dashboard);
+
+		const handleMetricsUpdate = () => {
+			// Re-fetch data with current filters silently
+			fetchDashboardData(filterRef.current.from, filterRef.current.to, true);
+		};
+
+		socket?.on(RT_EVENTS.DASHBOARD_METRICS, handleMetricsUpdate);
+
+		return () => {
+			leaveRoom(ROOMS.dashboard);
+			socket?.off(RT_EVENTS.DASHBOARD_METRICS, handleMetricsUpdate);
+		};
+	}, [socket, joinRoom, leaveRoom]);
 
 	const handleApplyFilter = (from: string, to: string) => {
+		filterRef.current = { from, to };
 		fetchDashboardData(from, to);
 	};
 
 	const handleClearFilter = () => {
+		filterRef.current = {};
 		fetchDashboardData(); // Reloads with default (last 30 days)
 	};
 

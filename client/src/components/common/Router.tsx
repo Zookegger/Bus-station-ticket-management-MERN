@@ -115,6 +115,26 @@ export const router = createBrowserRouter([
 				},
 			},
 			{
+				path: ROUTES.PAYMENT_RESULT,
+				handle: { title: "Payment Result • EasyRide" },
+				lazy: async () => {
+					const { default: PaymentResult } = await import(
+						"@pages/common/PaymentResult"
+					);
+					return { Component: PaymentResult };
+				},
+			},
+			{
+				path: ROUTES.ORDER_LOOKUP,
+				handle: { title: "Find Order • EasyRide" },
+				lazy: async () => {
+					const { default: OrderLookup } = await import(
+						"@pages/common/OrderLookup"
+					);
+					return { Component: OrderLookup };
+				},
+			},
+			{
 				path: ROUTES.CHECK_IN,
 				handle: { title: "Check In • EasyRide" },
 				lazy: async () => {
@@ -158,6 +178,16 @@ export const router = createBrowserRouter([
 						"@pages/user/Profile"
 					);
 					return { Component: Profile };
+				},
+			},
+			{
+				path: ROUTES.USER_ORDERS,
+				handle: { title: "My Orders • EasyRide" },
+				lazy: async () => {
+					const { default: UserOrders } = await import(
+						"@pages/user/Orders"
+					);
+					return { Component: UserOrders };
 				},
 			},
 			{ path: "*", element: <Navigate to={ROUTES.NOT_FOUND} replace /> },

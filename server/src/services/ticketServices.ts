@@ -17,6 +17,7 @@ import * as notificationServices from "@services/notificationServices";
 import { emitBulkSeatUpdates, emitSeatUpdate } from "./realtimeEvents";
 import { SeatPayload } from "@my_types/realtime";
 import { NotificationPriorities, NotificationTypes } from "@my-types";
+import { broadcastDashboardUpdate } from "@services/dashboardServices";
 
 export const updateTicketAdmin = async (
 	ticket_id: number,
@@ -181,6 +182,11 @@ export const updateTicketAdmin = async (
 				reservedUntil: newSeat.reservedUntil ?? null,
 			});
 
+		// Broadcast dashboard update
+		broadcastDashboardUpdate().catch((err) =>
+			logger.error("Failed to broadcast dashboard update:", err)
+		);
+
 		return ticket;
 	} catch (err) {
 		await transaction.rollback();
@@ -240,13 +246,13 @@ export const voidTicket = async (
  * @returns Promise resolving when cleanup is complete.
  */
 export const cleanUpExpiredTickets = async (): Promise<void> => {
-	const transaction = await db.sequelize.transaction();
+	// No transaction for the initial find to avoid long-running locks
+	// We will process each order in its own transaction
+	const expirationTime = new Date(
+		Date.now() - COMPUTED.TICKET_RESERVATION_MILLISECONDS + 2000
+	);
 
 	try {
-		const expirationTime = new Date(
-			Date.now() - COMPUTED.TICKET_RESERVATION_MILLISECONDS + 2000
-		);
-
 		// Find expired pending orders
 		const expiredOrders = await db.Order.findAll({
 			where: {
@@ -263,101 +269,127 @@ export const cleanUpExpiredTickets = async (): Promise<void> => {
 				{
 					model: db.Payment,
 					as: "payment",
-					required: true,
+					required: false,
 					attributes: ["paymentStatus"],
 				},
 			],
-			transaction,
 		});
 
 		if (expiredOrders.length === 0) {
 			logger.info("No expired pending orders to clean up");
-			await transaction.commit();
 			return;
 		}
 
 		logger.info(`Found ${expiredOrders.length} expired orders to clean up`);
 
 		for (const order of expiredOrders) {
-			if (order.tickets && order.payment) {
-				if (
-					order.payment.paymentStatus === PaymentStatus.PENDING ||
-					order.payment.paymentStatus === PaymentStatus.EXPIRED ||
-					order.payment.paymentStatus === PaymentStatus.FAILED
-				) {
-					const ticketIds = order.tickets.map((t) => t.id);
-					const seatIds = order.tickets
-						.map((t) => t.seatId)
-						.filter((id) => id != null);
+			const transaction = await db.sequelize.transaction();
+			try {
+				// Check if order has any successful payment (handle singular or array association)
+				const payments = Array.isArray(order.payment)
+					? order.payment
+					: order.payment
+					? [order.payment]
+					: [];
+				const hasSuccessfulPayment = payments.some(
+					(p) => p.paymentStatus === PaymentStatus.COMPLETED
+				);
 
-					// 1. Update Order status to EXPIRED
-					await order.update(
-						{ status: OrderStatus.EXPIRED },
-						{ transaction }
-					);
+				if (hasSuccessfulPayment) {
+					await transaction.rollback();
+					continue;
+				}
 
-					// 2. Update associated Tickets to EXPIRED
-					if (ticketIds.length > 0) {
-						await db.Ticket.update(
-							{ status: TicketStatus.EXPIRED },
-							{ where: { id: ticketIds }, transaction }
-						);
-					}
+				const ticketIds = order.tickets?.map((t) => t.id) || [];
+				const seatIds = order.tickets
+					?.map((t) => t.seatId)
+					.filter((id) => id != null) || [];
 
-					// 3. Release associated Seats
-					if (seatIds.length > 0) {
-						const result = await db.Seat.update(
-							{
-								status: SeatStatus.AVAILABLE,
-								reservedBy: null,
-								reservedUntil: null,
-							},
-							{
-								where: { id: seatIds },
-								transaction,
-								returning: true,
-							}
-						);
+				// 1. Update Order status to EXPIRED
+				// Use static update to avoid potential instance-based issues
+				await db.Order.update(
+					{ status: OrderStatus.EXPIRED },
+					{ where: { id: order.id }, transaction }
+				);
 
-						const releasedSeats = result[1];
-						const groupedByTrip: Record<number, SeatPayload[]> = {};
-
-						for (const s of releasedSeats) {
-							if (!s.tripId) continue;
-							groupedByTrip[s.tripId] ||= [];
-							groupedByTrip[s.tripId]!.push({
-								id: s.id,
-								number: s.number,
-								status: s.status,
-								tripId: s.tripId,
-								reservedBy: s.reservedBy ?? null,
-								reservedUntil: s.reservedUntil ?? null,
-							});
-						}
-
-						for (const [tripId, payloads] of Object.entries(
-							groupedByTrip
-						)) {
-							emitBulkSeatUpdates(Number(tripId), payloads);
-						}
-					}
-
-					// 4. Release coupon usage
-					await couponServices.releaseCouponUsage(
-						order.id,
-						transaction
+				// 2. Update associated Tickets to EXPIRED
+				if (ticketIds.length > 0) {
+					await db.Ticket.update(
+						{ status: TicketStatus.EXPIRED },
+						{ where: { id: ticketIds }, transaction }
 					);
 				}
+
+				// 3. Release associated Seats
+				if (seatIds.length > 0) {
+					// Fetch seats first to get details for broadcasting
+					const seatsToRelease = await db.Seat.findAll({
+						where: { id: seatIds },
+						attributes: ["id", "number", "tripId"],
+						transaction,
+					});
+
+					await db.Seat.update(
+						{
+							status: SeatStatus.AVAILABLE,
+							reservedBy: null,
+							reservedUntil: null,
+						},
+						{
+							where: { id: seatIds },
+							transaction,
+						}
+					);
+
+					const groupedByTrip: Record<number, SeatPayload[]> = {};
+
+					for (const s of seatsToRelease) {
+						if (!s.tripId) continue;
+						groupedByTrip[s.tripId] ||= [];
+						groupedByTrip[s.tripId]!.push({
+							id: s.id,
+							number: s.number,
+							status: SeatStatus.AVAILABLE,
+							tripId: s.tripId,
+							reservedBy: null,
+							reservedUntil: null,
+						});
+					}
+
+					// Broadcast updates after commit (or inside, but better after)
+					// We'll collect them and emit after commit to ensure consistency
+					// But for now, emitting here is acceptable as it's "fire and forget"
+					for (const [tripId, payloads] of Object.entries(
+						groupedByTrip
+					)) {
+						emitBulkSeatUpdates(Number(tripId), payloads);
+					}
+				}
+
+				// 4. Release coupon usage
+				await couponServices.releaseCouponUsage(
+					order.id,
+					transaction
+				);
+
+				await transaction.commit();
+			} catch (err) {
+				await transaction.rollback();
+				logger.error(`Failed to cleanup order ${order.id}:`, err);
+				// Continue with next order
 			}
 		}
 
-		await transaction.commit();
 		logger.info(
-			`Successfully cleaned up ${expiredOrders.length} expired orders.`
+			`Finished processing ${expiredOrders.length} expired orders.`
+		);
+
+		// Broadcast dashboard update
+		broadcastDashboardUpdate().catch((err) =>
+			logger.error("Failed to broadcast dashboard update:", err)
 		);
 	} catch (err) {
-		await transaction.rollback();
-		logger.error(err);
+		logger.error("Critical error in cleanUpExpiredTickets:", err);
 		throw err;
 	}
 };
@@ -406,6 +438,11 @@ export const cleanUpMissedTripTickets = async (): Promise<void> => {
 
 		await transaction.commit();
 		logger.info(`Cleaned up ${missedTickets.length} missed trip tickets.`);
+
+		// Broadcast dashboard update
+		broadcastDashboardUpdate().catch((err) =>
+			logger.error("Failed to broadcast dashboard update:", err)
+		);
 	} catch (err) {
 		await transaction.rollback();
 		logger.error("Failed to clean up missed trip tickets:", err);
@@ -534,6 +571,11 @@ export const confirmTickets = async (
 				})
 				.catch((e) => logger.error("Check-in notification error", e));
 		});
+
+		// Broadcast dashboard update
+		broadcastDashboardUpdate().catch((err) =>
+			logger.error("Failed to broadcast dashboard update:", err)
+		);
 
 		return tickets;
 	} catch (err) {

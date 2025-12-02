@@ -5,6 +5,7 @@ import ticketWorker from "@utils/workers/ticketWorker";
 import tripSchedulingWorker from "@utils/workers/tripSchedulingWorker";
 import notificationWorker from "@utils/workers/notificationWorker";
 import tripStatusWorker from "@utils/workers/tripStatusWorker";
+import { CONFIG } from "@constants/config";
 
 /**
  * Initializes all background workers and schedules recurring maintenance jobs.
@@ -98,7 +99,7 @@ export const initializeWorkersAndSchedules = async (): Promise<void> => {
 		logger.info("✓ Enqueued initial ticket cleanup job");
 
 		// Schedule periodic ticket cleanup using interval (configurable)
-		const t_minutes = Number(process.env.TICKET_CLEANUP_INTERVAL_MIN || 30);
+		const t_minutes = CONFIG.TICKET_CLEANUP_INTERVAL_MIN;
 		const t_interval_ms = Math.max(1, t_minutes) * 60 * 1000;
 
 		setInterval(async () => {
