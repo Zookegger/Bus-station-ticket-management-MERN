@@ -21,6 +21,7 @@ import {
 import {
 	Close as CloseIcon,
 	Edit as EditIcon,
+	Delete as DeleteIcon,
 	CalendarToday as CalendarIcon,
 	DirectionsBus as BusIcon,
 	AttachMoney as MoneyIcon,
@@ -40,9 +41,10 @@ import { formatDistance, formatDuration } from "@utils/map";
 
 interface TripDetailsDrawerProps {
 	open: boolean;
-	onClose: () => void;
 	trip: Trip | null;
+	onClose: () => void;
 	onEdit: (trip: Trip) => void;
+	onDelete: (tripId: number) => void;
 }
 
 interface TabPanelProps {
@@ -77,9 +79,10 @@ const CustomTabPanel = (props: TabPanelProps) => {
 
 const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
 	open,
-	onClose,
 	trip,
+	onClose,
 	onEdit,
+	onDelete,
 }) => {
 	const [tabValue, setTabValue] = useState(0);
 
@@ -285,7 +288,7 @@ const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
 							alignItems: "center",
 							gap: 0.5,
 							boxShadow: 3,
-							opacity: .8,
+							opacity: 0.8,
 						}}
 					>
 						<MoneyIcon color="success" fontSize="small" />
@@ -312,10 +315,14 @@ const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
 								width: 150,
 								boxShadow: 3,
 								bgcolor: "background.paper",
-								opacity: .95
+								opacity: 0.95,
 							}}
 						>
-							<Stack direction={"row"} gap={2} alignItems={"center"}>
+							<Stack
+								direction={"row"}
+								gap={2}
+								alignItems={"center"}
+							>
 								<MapIcon fontSize="small" />
 								<Box>
 									<Typography
@@ -739,6 +746,16 @@ const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
 						className="hvr-icon-pop"
 					>
 						Edit
+					</Button>
+					<Button
+						fullWidth
+						variant="contained"
+						color="error"
+						onClick={() => onDelete(trip.id)}
+						startIcon={<DeleteIcon className="hvr-icon" />}
+						className="hvr-icon-pop"
+					>
+						Delete
 					</Button>
 					<Button
 						fullWidth

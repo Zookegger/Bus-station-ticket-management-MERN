@@ -179,6 +179,8 @@ export interface Order {
 	status: OrderStatus;
 	createdAt?: Date | string;
 	updatedAt?: Date | string;
+	/** HMAC-signed token for physical check-in */
+	checkInToken?: string;
 }
 
 /**

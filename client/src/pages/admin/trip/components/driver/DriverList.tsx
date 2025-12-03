@@ -4,7 +4,6 @@ import {
 	Typography,
 	Paper,
 	TextField,
-	Drawer,
 	Stack,
 	Chip,
 	Avatar,
@@ -19,7 +18,7 @@ import {
 import { type Driver, DriverStatus } from "@my-types/driver";
 import { callApi } from "@utils/apiCaller";
 import { API_ENDPOINTS } from "@constants/index";
-import { DriverForm, DriverDetails } from "./components";
+import { DriverForm, DriverDetails } from "./index";
 import { DataGridPageLayout } from "@components/admin";
 import {
 	DataGrid,
@@ -32,7 +31,7 @@ import {
 	Search as SearchIcon,
 } from "@mui/icons-material";
 
-const Driver: React.FC = () => {
+const DriverList: React.FC = () => {
 	const [search, setSearch] = useState("");
 	const [statusFilter, setStatusFilter] = useState<"all" | DriverStatus>(
 		"all"
@@ -321,26 +320,18 @@ const Driver: React.FC = () => {
 				/>
 			</Paper>
 
-			<Drawer
-				anchor="right"
-				open={drawerOpen}
-				onClose={() => setDrawerOpen(false)}
-				slotProps={{
-					paper: { sx: { width: { xs: 360, sm: 420, md: 560 } } },
-				}}
-			>
-				{selectedDriver && (
-					<DriverDetails
-						driver={selectedDriver}
-						onClose={() => setDrawerOpen(false)}
-						onEdit={(d) => {
-							setEditingDriver(d);
-							setDialogOpen(true);
-							setDrawerOpen(false);
-						}}
-					/>
-				)}
-			</Drawer>
+			{selectedDriver && (
+				<DriverDetails
+					open={drawerOpen}
+					driver={selectedDriver}
+					onClose={() => setDrawerOpen(false)}
+					onEdit={(d) => {
+						setEditingDriver(d);
+						setDialogOpen(true);
+						setDrawerOpen(false);
+					}}
+				/>
+			)}
 
 			<DriverForm
 				open={dialogOpen}
@@ -355,4 +346,4 @@ const Driver: React.FC = () => {
 	);
 };
 
-export default Driver;
+export default DriverList;

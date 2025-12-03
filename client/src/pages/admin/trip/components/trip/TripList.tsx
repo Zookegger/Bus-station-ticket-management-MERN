@@ -22,7 +22,6 @@ import { DataGridPageLayout } from "@components/admin";
 import callApi from "@utils/apiCaller";
 import { API_ENDPOINTS } from "@constants/index";
 import { TripStatus, type Trip } from "@my-types/trip";
-
 import CreateTrip from "./CreateTrip";
 import EditTrip from "./EditTrip";
 import DeleteTrip from "./DeleteTrip";
@@ -342,16 +341,6 @@ const TripList: React.FC = () => {
 				/>
 			</Paper>
 
-			<TripDetailsDrawer
-				open={drawerOpen}
-				onClose={handleCloseDrawer}
-				trip={selectedTrip}
-				onEdit={(trip) => {
-					handleCloseDrawer();
-					handleOpenEdit(trip);
-				}}
-			/>
-
 			<CreateTrip
 				open={createOpen}
 				onClose={() => setCreateOpen(false)}
@@ -359,26 +348,40 @@ const TripList: React.FC = () => {
 			/>
 
 			{selectedTrip && (
-				<EditTrip
-					open={editOpen}
-					onClose={() => setEditOpen(false)}
-					trip={selectedTrip}
-					onEdited={() => {
-						setEditOpen(false);
-						fetchTrips();
-					}}
-				/>
-			)}
-			{selectedTrip && (
-				<DeleteTrip
-					open={deleteOpen}
-					onClose={() => setDeleteOpen(false)}
-					trip={selectedTrip}
-					onDeleted={() => {
-						setDeleteOpen(false);
-						fetchTrips();
-					}}
-				/>
+				<>
+					<TripDetailsDrawer
+						open={drawerOpen}
+						onClose={handleCloseDrawer}
+						trip={selectedTrip}
+						onEdit={(trip) => {
+							handleCloseDrawer();
+							handleOpenEdit(trip);
+						}}
+						onDelete={() => {
+							handleOpenDelete(selectedTrip);
+							handleCloseDrawer();
+							fetchTrips();
+						}}
+					/>
+					<EditTrip
+						open={editOpen}
+						onClose={() => setEditOpen(false)}
+						trip={selectedTrip}
+						onEdited={() => {
+							setEditOpen(false);
+							fetchTrips();
+						}}
+					/>
+					<DeleteTrip
+						open={deleteOpen}
+						onClose={() => setDeleteOpen(false)}
+						trip={selectedTrip}
+						onDeleted={() => {
+							setDeleteOpen(false);
+							fetchTrips();
+						}}
+					/>
+				</>
 			)}
 		</DataGridPageLayout>
 	);

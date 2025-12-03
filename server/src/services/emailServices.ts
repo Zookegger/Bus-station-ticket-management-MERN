@@ -10,6 +10,7 @@ import nodemailer from "nodemailer";
 import { EmailJobData } from "@utils/queues/emailQueue";
 import logger from "@utils/logger";
 import { SMTP_CONFIG } from "@constants/email";
+import { Order } from "@models/orders";
 
 /**
  * Nodemailer transporter instance.
@@ -38,7 +39,7 @@ const transporter = nodemailer.createTransport({
  * @throws {Error} When email sending fails due to SMTP errors or invalid data
  */
 export const sendEmail = async (data: EmailJobData): Promise<void> => {
-    const FROM_EMAIL: string = process.env.FROM_EMAIL || SMTP_CONFIG.AUTH.USER;
+	const FROM_EMAIL: string = process.env.FROM_EMAIL || SMTP_CONFIG.AUTH.USER;
 
 	const result = await transporter.sendMail({
 		from: FROM_EMAIL,
@@ -212,4 +213,123 @@ export const generateResetPasswordHTML = (
         </body>
     </html>
     `;
+};
+
+export const generateReceiptHTML = (orderInfo: Order): string => {
+	const clientUrl =
+		(process.env.CLIENT_URL || "http://localhost") +
+		(process.env.CLIENT_PORT ? `:${process.env.CLIENT_PORT}` : "");
+	const checkoutUrl = `${clientUrl}/checkout/${orderInfo.id}`;
+	const qrImageUrl = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(
+		checkoutUrl
+	)}&chld=L|1`;
+
+	const issuedAt = orderInfo.createdAt
+		? new Date(orderInfo.createdAt).toLocaleString()
+		: new Date().toLocaleString();
+
+	const ticketRows = (orderInfo.tickets || [])
+		.map((t: any) => {
+			const seat = t?.seat?.number || "N/A";
+			const route =
+				t?.seat?.trip?.route?.name ||
+				t?.seat?.trip?.routeName ||
+				"Bus Trip";
+			const depart = t?.seat?.trip?.startTime
+				? new Date(t.seat.trip.startTime).toLocaleString()
+				: "-";
+			const price =
+				typeof t.finalPrice !== "undefined"
+					? (Number(t.finalPrice) || 0).toLocaleString()
+					: "-";
+			return `
+                <tr>
+                    <td style="padding:8px 6px;border-bottom:1px solid #eee">${seat}</td>
+                    <td style="padding:8px 6px;border-bottom:1px solid #eee">${route}</td>
+                    <td style="padding:8px 6px;border-bottom:1px solid #eee">${depart}</td>
+                    <td style="padding:8px 6px;border-bottom:1px solid #eee;text-align:right">${price}</td>
+                </tr>`;
+		})
+		.join("");
+
+	const total =
+		typeof orderInfo.totalFinalPrice !== "undefined"
+			? (Number(orderInfo.totalFinalPrice) || 0).toLocaleString()
+			: "0";
+
+	return `
+        <!doctype html>
+        <html lang="en">
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width,initial-scale=1">
+            <title>Receipt - ${orderInfo.id}</title>
+            <style>
+                body { font-family: Arial, Helvetica, sans-serif; background:#f6f7fb; color:#333; margin:0; padding:20px; }
+                .card { max-width:600px; margin:0 auto; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 4px 18px rgba(0,0,0,0.08); }
+                .header { background:linear-gradient(90deg,#0d6efd,#6610f2); color:#fff; padding:20px; }
+                .header h2 { margin:0 0 6px 0; font-size:20px; }
+                .header p { margin:0; font-size:13px; opacity:0.95 }
+                .body { padding:20px; }
+                .meta { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+                .meta .left { font-size:13px; color:#666 }
+                .meta .right { text-align:right }
+                table { width:100%; border-collapse:collapse; margin-top:8px; }
+                th { text-align:left; padding:8px 6px; font-size:12px; color:#666; text-transform:uppercase; letter-spacing:0.6px }
+                td { padding:8px 6px; font-size:14px }
+                .total { display:flex; justify-content:space-between; margin-top:12px; font-weight:bold; font-size:16px }
+                .qr { text-align:center; margin-top:18px }
+                .footer { padding:16px 20px; font-size:12px; color:#888; border-top:1px solid #f0f0f0; }
+                a.button { display:inline-block; padding:10px 14px; background:#0d6efd; color:#fff; border-radius:6px; text-decoration:none }
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <div class="header">
+                    <h2>EasyRide - Payment Receipt</h2>
+                    <p>Order #: ${orderInfo.id}</p>
+                </div>
+                <div class="body">
+                    <div class="meta">
+                        <div class="left">
+                            <div>Issued: ${issuedAt}</div>
+                            <div>Items: ${
+								(orderInfo.tickets || []).length
+							}</div>
+                        </div>
+                        <div class="right">
+                            <div style="font-size:12px;color:#666">Total</div>
+                            <div style="font-size:18px;color:#111;font-weight:700">${total} VND</div>
+                        </div>
+                    </div>
+
+                    <table role="presentation">
+                        <thead>
+                            <tr>
+                                <th>Seat</th>
+                                <th>Route</th>
+                                <th>Depart</th>
+                                <th style="text-align:right">Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${
+								ticketRows ||
+								`<tr><td colspan="4" style="padding:12px 6px;color:#666">No tickets found</td></tr>`
+							}
+                        </tbody>
+                    </table>
+
+                    <div class="qr">
+                        <p style="margin:6px 0 8px 0;font-size:13px;color:#555">Scan to complete checkout</p>
+                        <a href="${checkoutUrl}" target="_blank" rel="noopener noreferrer"><img src="${qrImageUrl}" alt="QR code" style="border:0; max-width:200px; height:auto;" /></a>
+                        <div style="margin-top:8px;"><a class="button" href="${checkoutUrl}">Open Checkout</a></div>
+                    </div>
+                </div>
+                <div class="footer">
+                    Thank you for booking with EasyRide. If you have questions, reply to this email or contact customer support.
+                </div>
+            </div>
+        </body>
+        </html>`;
 };

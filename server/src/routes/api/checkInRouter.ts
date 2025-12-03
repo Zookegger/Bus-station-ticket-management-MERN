@@ -16,7 +16,7 @@ const checkInRateLimiter = rateLimit({
 /**
  * @swagger
  * /api/check-in/{orderId}:
- *   get:
+ *   post:
  *     summary: Check in all tickets for an order via a scanned QR code URL.
  *     tags: [CheckIn]
  *     parameters:

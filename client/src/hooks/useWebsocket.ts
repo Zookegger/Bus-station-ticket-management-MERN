@@ -85,13 +85,15 @@ const useWebsocket = (options: WebsocketOptions = {}) => {
 	// Debug logging helper
 	const debugLog = useCallback(
 		(message: string, ...args: unknown[]) => {
-			if (debug_ref.current) {
-				console.log(
-					`🔌 [WebSocket-${component_id.current.slice(
-						-6
-					)}] ${message}`,
-					...args
-				);
+			if (import.meta.env.NODE_ENV === "development") {
+				if (debug_ref.current) {
+					console.log(
+						`🔌 [WebSocket-${component_id.current.slice(
+							-6
+						)}] ${message}`,
+						...args
+					);
+				}
 			}
 		},
 		[debug_ref]
@@ -175,7 +177,7 @@ const useWebsocket = (options: WebsocketOptions = {}) => {
 			if (currentSocketToken !== token) {
 				debugLog("Updating socket auth token and reconnecting...");
 				socket_ref.current.auth = { token };
-				
+
 				if (socket_ref.current.connected) {
 					socket_ref.current.disconnect().connect();
 				} else {
@@ -234,10 +236,16 @@ const useWebsocket = (options: WebsocketOptions = {}) => {
 				};
 
 				if (socket_ref.current) {
-					// Listen for the event (it might have already fired if we are late, 
+					// Listen for the event (it might have already fired if we are late,
 					// but usually it fires after connect)
-					socket_ref.current.once(`authorization_success`, successHandler);
-					socket_ref.current.once(`authorization_error`, errorHandler);
+					socket_ref.current.once(
+						`authorization_success`,
+						successHandler
+					);
+					socket_ref.current.once(
+						`authorization_error`,
+						errorHandler
+					);
 				}
 			});
 		} catch (err: any) {

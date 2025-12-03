@@ -8,6 +8,7 @@ import {
 	AvailabilityBasedStrategy,
 	IDriverAssignmentStrategy,
 } from "@utils/schedulingStrategy";
+import logger from "@utils/logger";
 
 /**
  * Auto-assigns a driver to a trip using the provided strategy.
@@ -32,7 +33,7 @@ export const autoAssignDriver = async (
 		});
 
 		if (!trip) {
-			await transaction.rollback();
+			logger.error(`[Auto Assign Driver]: Trip ${tripId} not found`);
 			throw { status: 404, message: `Trip ${tripId} not found.` };
 		}
 
@@ -43,7 +44,9 @@ export const autoAssignDriver = async (
 		});
 
 		if (existing_schedule) {
-			await transaction.rollback();
+			logger.warn(
+				`[Auto Assign Driver]: Trip ${tripId} already has assignment id=${existing_schedule.id}`
+			);
 			throw {
 				status: 409,
 				message: `Trip ${tripId} already has a driver assigned`,
@@ -54,7 +57,9 @@ export const autoAssignDriver = async (
 		const selected_driver_id = await strategy.selectDriver(tripId);
 
 		if (!selected_driver_id) {
-			await transaction.rollback();
+			logger.warn(
+				`[Auto Assign Driver]: No available driver for trip ${tripId}`
+			);
 			throw {
 				status: 404,
 				message: `No available driver found for trip ${tripId}`,
@@ -80,7 +85,33 @@ export const autoAssignDriver = async (
 		await transaction.commit();
 		return schedule;
 	} catch (err) {
-		await transaction.rollback();
+		try {
+			if (
+				transaction &&
+				(transaction as any).finished !== "commit" &&
+				(transaction as any).finished !== "rollback"
+			) {
+				await transaction.rollback();
+				logger.info(
+					`transaction rolled back for autoAssignDriver(tripId=${tripId})`
+				);
+			} else {
+				logger.warn(
+					`transaction already finished for autoAssignDriver(tripId=${tripId}): ${
+						(transaction as any).finished
+					}`
+				);
+			}
+		} catch (rbErr) {
+			logger.error(
+				`Error during transaction rollback for trip ${tripId}:`,
+				rbErr as Error
+			);
+		}
+		logger.error(
+			`Auto Assign Driver failed for trip ${tripId}:`,
+			err as Error
+		);
 		throw err;
 	}
 };
@@ -111,29 +142,31 @@ export const manualAssignDriver = async (
 			transaction,
 		});
 		if (!trip) {
-			await transaction.rollback();
+			logger.warn(`manualAssignDriver: Trip ${tripId} not found`);
 			throw { status: 404, message: `Trip ${tripId} not found.` };
 		}
 
 		// Validate driver exists and is eligible
-		const driver = await getDriverById(tripId);
+		const driver = await getDriverById(driverId);
 		if (!driver) {
-			await transaction.rollback();
+			logger.warn(`manualAssignDriver: Driver ${driverId} not found`);
 			throw { status: 404, message: `Driver ${driverId} not found.` };
 		}
 
 		if (!driver.isActive) {
-			await transaction.rollback();
+			logger.info(`manualAssignDriver: Driver ${driverId} not active`);
 			throw { status: 400, message: "Driver is not active" };
 		}
 
 		if (driver.isSuspended) {
-			await transaction.rollback();
+			logger.info(`manualAssignDriver: Driver ${driverId} suspended`);
 			throw { status: 400, message: "Driver is suspended" };
 		}
 
 		if (driver.licenseExpiryDate && driver.licenseExpiryDate < new Date()) {
-			await transaction.rollback();
+			logger.info(
+				`manualAssignDriver: Driver ${driverId} license expired`
+			);
 			throw { status: 400, message: "Driver license has expired" };
 		}
 
@@ -174,7 +207,33 @@ export const manualAssignDriver = async (
 		await transaction.commit();
 		return schedule;
 	} catch (err) {
-		await transaction.rollback();
+		try {
+			if (
+				transaction &&
+				(transaction as any).finished !== "commit" &&
+				(transaction as any).finished !== "rollback"
+			) {
+				await transaction.rollback();
+				logger.info(
+					`transaction rolled back for manualAssignDriver(tripId=${tripId})`
+				);
+			} else {
+				logger.warn(
+					`transaction already finished for manualAssignDriver(tripId=${tripId}): ${
+						(transaction as any).finished
+					}`
+				);
+			}
+		} catch (rbErr) {
+			logger.error(
+				`Error during transaction rollback for manual assign trip ${tripId}:`,
+				rbErr as Error
+			);
+		}
+		logger.error(
+			`manualAssignDriver failed for trip ${tripId}:`,
+			err as Error
+		);
 		throw err;
 	}
 };
@@ -242,7 +301,9 @@ export const unassignDriver = async (tripId: number): Promise<void> => {
 		});
 
 		if (!schedule) {
-			await transaction.rollback();
+			logger.info(
+				`unassignDriver: No assignment found for trip ${tripId}`
+			);
 			throw {
 				status: 404,
 				message: `No driver assigned to trip ${tripId}`,
@@ -251,7 +312,7 @@ export const unassignDriver = async (tripId: number): Promise<void> => {
 
 		await schedule.destroy({ transaction });
 
-		// Uppdate trip status back to PENDING
+		// Update trip status back to PENDING
 		await db.Trip.update(
 			{ status: TripStatus.PENDING },
 			{
@@ -260,9 +321,32 @@ export const unassignDriver = async (tripId: number): Promise<void> => {
 			}
 		);
 
-        await transaction.commit();
+		await transaction.commit();
 	} catch (err) {
-		await transaction.rollback();
+		try {
+			if (
+				transaction &&
+				(transaction as any).finished !== "commit" &&
+				(transaction as any).finished !== "rollback"
+			) {
+				await transaction.rollback();
+				logger.info(
+					`transaction rolled back for unassignDriver(tripId=${tripId})`
+				);
+			} else {
+				logger.warn(
+					`transaction already finished for unassignDriver(tripId=${tripId}): ${
+						(transaction as any).finished
+					}`
+				);
+			}
+		} catch (rbErr) {
+			logger.error(
+				`Error during transaction rollback for unassignDriver ${tripId}:`,
+				rbErr as Error
+			);
+		}
+		logger.error(`unassignDriver failed for trip ${tripId}:`, err as Error);
 		throw err;
 	}
 };

@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import * as orderServices from "@services/orderServices";
 import { verifyCheckInToken } from "@middlewares/checkInToken";
-import { OrderCheckInRequest } from "@my-types";
 
 /**
  * Handles a check-in request from a scanned QR code.
@@ -11,7 +10,7 @@ import { OrderCheckInRequest } from "@my-types";
  * @param res Express response object.
  * @param next Express next function for error handling.
  *
- * @route GET /api/check-in/:orderId
+ * @route POST /api/check-in/:orderId
  * @access Public (but secured by token)
  */
 
@@ -20,7 +19,8 @@ export const executeCheckIn = async (
 	res: Response,
 	next: NextFunction
 ): Promise<void> => {
-	const { orderId, token }: OrderCheckInRequest = req.body;
+	const orderId: string = req.params.orderId as string;
+	const token: string = ((req.body && req.body.token) as string) || "";
 
 	try {
 		// 1. Validate inputs

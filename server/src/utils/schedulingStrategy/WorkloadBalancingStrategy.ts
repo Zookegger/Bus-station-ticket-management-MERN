@@ -26,8 +26,8 @@ class WorkloadBalancingStrategy implements IDriverAssignmentStrategy {
 					required: false,
 					include: [
 						{
-							model: db.Trip,
-							as: "trips",
+								model: db.Trip,
+								as: "trip",
 							where: {
 								startTime: { [Op.gte]: new Date() },
 								status: {
@@ -43,7 +43,7 @@ class WorkloadBalancingStrategy implements IDriverAssignmentStrategy {
 					],
 				},
 			],
-			order: [[{ model: db.TripSchedule, as: "schedule" }, "id", "ASC"]],
+				order: [[{ model: db.TripSchedule, as: "tripAssignments" }, "id", "ASC"]],
 		});
 
         // Sort by assignment count (fewest first)

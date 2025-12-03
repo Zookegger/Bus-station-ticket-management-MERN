@@ -21,9 +21,7 @@ import {
 	Switch,
 	Avatar,
 } from "@mui/material";
-import {
-	CloudUpload as CloudUploadIcon,
-} from "@mui/icons-material";
+import { CloudUpload as CloudUploadIcon } from "@mui/icons-material";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -542,32 +540,31 @@ const DriverForm: React.FC<DriverFormProps> = ({
 							/>
 						</Stack>
 					</Stack>
-
-					<DialogActions sx={{ mt: 3, px: 0 }}>
-						<Button
-							onClick={onClose}
-							disabled={isSubmitting}
-							variant="outlined"
-						>
-							Cancel
-						</Button>
-						<Button
-							type="submit"
-							variant="contained"
-							disabled={isSubmitting}
-							startIcon={
-								isSubmitting && <CircularProgress size={20} />
-							}
-						>
-							{isSubmitting
-								? "Saving..."
-								: initialData
-								? "Save Changes"
-								: "Add Driver"}
-						</Button>
-					</DialogActions>
 				</Box>
 			</DialogContent>
+			<DialogActions>
+				<Button
+					onClick={onClose}
+					disabled={isSubmitting}
+					variant="outlined"
+					size="large"
+				>
+					Cancel
+				</Button>
+				<Button
+					type="submit"
+					variant="contained"
+					disabled={isSubmitting}
+					size="large"
+					startIcon={isSubmitting && <CircularProgress size={20} />}
+				>
+					{isSubmitting
+						? "Saving..."
+						: initialData
+						? "Save Changes"
+						: "Add Driver"}
+				</Button>
+			</DialogActions>
 		</Dialog>
 	);
 };

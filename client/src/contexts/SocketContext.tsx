@@ -20,7 +20,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
 		debug: true,
 		events: {
 			// Global handlers can go here, but we'll specific ones in dedicated contexts
-			connect: () => console.log("Socket connected globally"),
+			connect: () => console.debug("Socket connected globally"),
 		},
 	});
 

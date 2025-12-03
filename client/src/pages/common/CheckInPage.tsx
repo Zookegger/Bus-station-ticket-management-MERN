@@ -1,14 +1,13 @@
 import { API_ENDPOINTS, APP_CONFIG } from "@constants/index";
 import { Check } from "@mui/icons-material";
-import { Box, Paper, Typography } from "@mui/material";
+import { Box, CircularProgress, Paper, Typography } from "@mui/material";
 import type {
 	Order,
 	OrderCheckInRequest,
 	OrderCheckInResponse,
 } from "@my-types";
 import callApi from "@utils/apiCaller";
-import axios from "axios";
-import { useEffect, useState } from "react";
+import { Activity, useEffect, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 
 const CheckInPage: React.FC = () => {
@@ -47,28 +46,23 @@ const CheckInPage: React.FC = () => {
 				}${API_ENDPOINTS.CHECKIN.VERIFY.replace(":orderId", orderId)}`;
 
 				// callApi returns OrderCheckInResponse when returnFullResponse is not set
-				const response = await callApi<OrderCheckInResponse>({
+				const response = (await callApi<OrderCheckInResponse>({
 					method: "POST",
 					url: verify_endpoint,
 					data: request,
-				}) as OrderCheckInResponse;
+				})) as OrderCheckInResponse;
 
 				// Validate the response
 				if (!response || !response.order) {
-					throw new Error(response?.message || "Check-in verification failed.");
+					throw new Error(
+						response?.message || "Check-in verification failed."
+					);
 				}
 
 				setOrder(response.order);
 				setIsCheckedIn(true);
-			} catch (err) {
-				if (axios.isAxiosError(err) && err.response) {
-					setMessage(
-						err.response.data.message ||
-							"Invalid or expired ticket."
-					);
-				} else {
-					setMessage("An unknown error occurred.");
-				}
+			} catch (err: any) {
+				setMessage(err.message || "Invalid or expired ticket.");
 			} finally {
 				setIsLoading(false);
 			}
@@ -77,58 +71,6 @@ const CheckInPage: React.FC = () => {
 		verifyCheckIn();
 	}, [orderId, token, location]);
 
-	if (is_loading) {
-		return (
-			<Box>
-				<Typography variant="h3">Verifying your ticket...</Typography>
-			</Box>
-		);
-	}
-
-	if (is_checked_in) {
-		return (
-			<Paper
-				elevation={4}
-				sx={{
-					display: "flex",
-					flexDirection: "column",
-					justifyContent: "center",
-					alignItems: "center",
-					p: 4,
-					minHeight: "50vh",
-				}}
-			>
-				<Check color="success" sx={{ fontSize: 64, mb: 2 }} />
-				<Typography variant="h4" color="success.main" gutterBottom>
-					Check-in Successful!
-				</Typography>
-				<Typography variant="body1" color="text.secondary" gutterBottom>
-					Your ticket has been verified.
-				</Typography>
-				{order && (
-					<Box sx={{ mt: 3, textAlign: "left", width: "100%", maxWidth: 400 }}>
-						<Typography variant="h6" gutterBottom>
-							Order Details
-						</Typography>
-						<Typography>
-							<strong>Order ID:</strong> {order.id}
-						</Typography>
-						<Typography>
-							<strong>Status:</strong> {order.status}
-						</Typography>
-						<Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
-							Tickets
-						</Typography>
-						{order.tickets?.map((ticket) => (
-							<Typography key={ticket.id}>
-								<strong>Seat:</strong> {ticket.seat?.number}
-							</Typography>
-						))}
-					</Box>
-				)}
-			</Paper>
-		);
-	}
 	return (
 		<Paper
 			elevation={4}
@@ -138,15 +80,99 @@ const CheckInPage: React.FC = () => {
 				justifyContent: "center",
 				alignItems: "center",
 				p: 4,
-				minHeight: "50vh",
+				flex: 1,
 			}}
 		>
-			<Typography variant="h4" color="error" gutterBottom>
-				Check-in Failed
-			</Typography>
-			<Typography variant="body1" color="text.secondary">
-				{message}
-			</Typography>
+			<Activity
+				mode={is_loading ? "visible" : "hidden"}
+				children={<CircularProgress size={"6rem"} />}
+			/>
+			{is_checked_in ? (
+				<>
+					<Activity
+						mode={!is_loading ? "visible" : "hidden"}
+						children={
+							<>
+								<Check
+									color="success"
+									sx={{ fontSize: 64, mb: 2 }}
+								/>
+								<Typography
+									variant="h4"
+									color="success.main"
+									gutterBottom
+								>
+									Check-in Successful!
+								</Typography>
+								<Typography
+									variant="body1"
+									color="text.secondary"
+									gutterBottom
+								>
+									Your ticket has been verified.
+								</Typography>
+								{order && (
+									<Box
+										sx={{
+											mt: 3,
+											textAlign: "left",
+											width: "100%",
+											maxWidth: 400,
+										}}
+									>
+										<Typography variant="h6" gutterBottom>
+											Order Details
+										</Typography>
+										<Typography>
+											<strong>Order ID:</strong>{" "}
+											{order.id}
+										</Typography>
+										<Typography>
+											<strong>Status:</strong>{" "}
+											{order.status}
+										</Typography>
+										<Typography
+											variant="h6"
+											sx={{ mt: 2, mb: 1 }}
+										>
+											Tickets
+										</Typography>
+										{order.tickets?.map((ticket) => (
+											<Typography key={ticket.id}>
+												<strong>Seat:</strong>{" "}
+												{ticket.seat?.number}
+											</Typography>
+										))}
+									</Box>
+								)}
+							</>
+						}
+					/>
+				</>
+			) : (
+				<>
+					<Activity
+						mode={!is_loading ? "visible" : "hidden"}
+						children={
+							<>
+								<Typography
+									variant="h4"
+									color="error"
+									gutterBottom
+								>
+									Check-in Failed
+								</Typography>
+								<Typography
+									variant="body1"
+									color="text.secondary"
+								>
+									{message}
+								</Typography>
+							</>
+						}
+					/>
+				</>
+			)}
 		</Paper>
 	);
 };

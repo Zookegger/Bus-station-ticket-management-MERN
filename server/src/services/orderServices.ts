@@ -51,6 +51,14 @@ export const createOrder = async (
 			transaction,
 		});
 
+		const now = new Date();
+		// Safely read the trip start time from the first seat (if present)
+		const tripStartTime = seats?.[0]?.trip?.startTime;
+		// Ensure we check for empty result set before accessing seats[0], and only compare startTime when present
+		if (!seats || seats.length === 0 || (tripStartTime && new Date(tripStartTime) <= now)) {
+			throw { status: 410, code: "TRIP_EXPIRED" };
+		}
+
 		if (seats.length !== dto.seatIds.length)
 			throw { status: 404, message: "One or more seats not found." };
 
@@ -206,7 +214,12 @@ export const createOrder = async (
 				reservedBy,
 			}));
 
-			if (seatUpdates && seatUpdates.length > 0 && seats[0] && seats[0].tripId) {
+			if (
+				seatUpdates &&
+				seatUpdates.length > 0 &&
+				seats[0] &&
+				seats[0].tripId
+			) {
 				emitBulkSeatUpdates(seats[0]!.tripId!, seatUpdates);
 			}
 		} catch (socketError) {
