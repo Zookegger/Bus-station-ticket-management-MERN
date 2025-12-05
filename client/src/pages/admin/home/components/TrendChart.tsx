@@ -136,11 +136,13 @@ const TrendChart: React.FC<TrendChartProps> = ({
 					</Box>
 				}
 				action={extra}
-				slotProps={{ action: {
-					sx: {
-						alignSelf: "stretch",
-					}
-				}}}
+				slotProps={{
+					action: {
+						sx: {
+							alignSelf: "stretch",
+						},
+					},
+				}}
 			/>
 			<Divider />
 
