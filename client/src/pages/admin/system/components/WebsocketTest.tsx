@@ -87,7 +87,7 @@ const WebsocketTest: React.FC = () => {
 				method: "GET",
 				url: API_ENDPOINTS.DEBUG.WEBSOCKET_STATS,
 			});
-			setWsStats(response.data);
+			setWsStats(response);
 			showAlert("success", "WebSocket stats retrieved!");
 		} catch (error: any) {
 			showAlert(
