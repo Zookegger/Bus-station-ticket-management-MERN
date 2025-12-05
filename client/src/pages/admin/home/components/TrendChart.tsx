@@ -132,7 +132,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
 							opacity: 0.2,
 						}}
 					>
-						<ShowChart fontSize="large"  />
+						<ShowChart fontSize="large" />
 					</Box>
 				}
 				action={extra}
