@@ -375,13 +375,15 @@ const RouteForm: React.FC<RouteFormProps> = ({
 											error={!!errors.price}
 											helperText={errors.price}
 											placeholder="Enter price (e.g., 100000)"
-											InputProps={{
-												endAdornment: (
-													<InputAdornment position="end">
-														đ
-													</InputAdornment>
-												),
-												inputMode: "numeric",
+											slotProps={{
+												input: {
+													endAdornment: (
+														<InputAdornment position="end">
+															đ
+														</InputAdornment>
+													),
+													inputMode: "numeric",
+												},
 											}}
 										/>
 									</FormControl>

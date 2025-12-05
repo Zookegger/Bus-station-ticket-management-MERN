@@ -66,7 +66,9 @@ const CouponForm: React.FC<CouponFormProps> = ({
 		reset,
 		formState: { errors, isSubmitting },
 	} = useForm<CouponFormData>({
-		resolver: zodResolver(couponSchema) as unknown as Resolver<CouponFormData>,
+		resolver: zodResolver(
+			couponSchema
+		) as unknown as Resolver<CouponFormData>,
 		defaultValues: {
 			code: "",
 			title: "",
@@ -205,7 +207,9 @@ const CouponForm: React.FC<CouponFormProps> = ({
 
 	return (
 		<Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-			<DialogTitle>{isEditMode ? "Edit Coupon" : "Add New Coupon"}</DialogTitle>
+			<DialogTitle>
+				{isEditMode ? "Edit Coupon" : "Add New Coupon"}
+			</DialogTitle>
 			<form onSubmit={handleSubmit(onSubmit)}>
 				<DialogContent dividers>
 					{serverError && (
@@ -216,7 +220,7 @@ const CouponForm: React.FC<CouponFormProps> = ({
 
 					<Grid container spacing={2}>
 						{/* Title */}
-						<Grid size={{ xs: 12, sm: 6 }} >
+						<Grid size={{ xs: 12, sm: 6 }}>
 							<Controller
 								name="title"
 								control={control}
@@ -233,7 +237,7 @@ const CouponForm: React.FC<CouponFormProps> = ({
 						</Grid>
 
 						{/* Code */}
-						<Grid size={{ xs: 12, sm: 6 }} >
+						<Grid size={{ xs: 12, sm: 6 }}>
 							<Controller
 								name="code"
 								control={control}
@@ -242,7 +246,11 @@ const CouponForm: React.FC<CouponFormProps> = ({
 										{...field}
 										label="Code"
 										fullWidth
-										onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+										onChange={(e) =>
+											field.onChange(
+												e.target.value.toUpperCase()
+											)
+										}
 										error={!!errors.code}
 										helperText={errors.code?.message}
 									/>
@@ -251,18 +259,19 @@ const CouponForm: React.FC<CouponFormProps> = ({
 						</Grid>
 
 						{/* Type */}
-						<Grid size={{ xs: 12, sm: 6 }} >
+						<Grid size={{ xs: 12, sm: 6 }}>
 							<Controller
 								name="type"
 								control={control}
 								render={({ field }) => (
 									<FormControl fullWidth>
 										<InputLabel>Type</InputLabel>
-										<Select
-											{...field}
-											label="Type"
-										>
-											<MenuItem value={CouponType.PERCENTAGE}>Percentage</MenuItem>
+										<Select {...field} label="Type">
+											<MenuItem
+												value={CouponType.PERCENTAGE}
+											>
+												Percentage
+											</MenuItem>
 											<MenuItem value={CouponType.FIXED}>
 												Fixed Amount
 											</MenuItem>
@@ -273,7 +282,7 @@ const CouponForm: React.FC<CouponFormProps> = ({
 						</Grid>
 
 						{/* Value */}
-						<Grid size={{ xs: 12, sm: 6 }} >
+						<Grid size={{ xs: 12, sm: 6 }}>
 							<Controller
 								name="value"
 								control={control}
@@ -283,12 +292,18 @@ const CouponForm: React.FC<CouponFormProps> = ({
 										label="Value"
 										type="number"
 										fullWidth
-										InputProps={{
-											endAdornment: (
-												<InputAdornment position="end">
-													{control._formValues.type === CouponType.PERCENTAGE ? "%" : "VND"}
-												</InputAdornment>
-											),
+										slotProps={{
+											input: {
+												endAdornment: (
+													<InputAdornment position="end">
+														{control._formValues
+															.type ===
+														CouponType.PERCENTAGE
+															? "%"
+															: "VND"}
+													</InputAdornment>
+												),
+											},
 										}}
 										error={!!errors.value}
 										helperText={errors.value?.message}
@@ -298,21 +313,27 @@ const CouponForm: React.FC<CouponFormProps> = ({
 						</Grid>
 
 						{/* Start Period */}
-						<Grid size={{ xs: 12, sm: 6 }} >
+						<Grid size={{ xs: 12, sm: 6 }}>
 							<Controller
 								name="startPeriod"
 								control={control}
 								render={({ field }) => (
-									<LocalizationProvider dateAdapter={AdapterDateFns}>
+									<LocalizationProvider
+										dateAdapter={AdapterDateFns}
+									>
 										<DateTimePicker
 											label="Start Period"
 											value={field.value}
-											onChange={(newValue) => field.onChange(newValue)}
+											onChange={(newValue) =>
+												field.onChange(newValue)
+											}
 											slotProps={{
 												textField: {
 													fullWidth: true,
 													error: !!errors.startPeriod,
-													helperText: errors.startPeriod?.message,
+													helperText:
+														errors.startPeriod
+															?.message,
 												},
 											}}
 										/>
@@ -322,21 +343,27 @@ const CouponForm: React.FC<CouponFormProps> = ({
 						</Grid>
 
 						{/* End Period */}
-						<Grid size={{ xs: 12, sm: 6 }} >
+						<Grid size={{ xs: 12, sm: 6 }}>
 							<Controller
 								name="endPeriod"
 								control={control}
 								render={({ field }) => (
-									<LocalizationProvider dateAdapter={AdapterDateFns}>
+									<LocalizationProvider
+										dateAdapter={AdapterDateFns}
+									>
 										<DateTimePicker
 											label="End Period"
 											value={field.value}
-											onChange={(newValue) => field.onChange(newValue)}
+											onChange={(newValue) =>
+												field.onChange(newValue)
+											}
 											slotProps={{
 												textField: {
 													fullWidth: true,
 													error: !!errors.endPeriod,
-													helperText: errors.endPeriod?.message,
+													helperText:
+														errors.endPeriod
+															?.message,
 												},
 											}}
 										/>
@@ -346,7 +373,7 @@ const CouponForm: React.FC<CouponFormProps> = ({
 						</Grid>
 
 						{/* Max Usage */}
-						<Grid size={{ xs: 12, sm: 6 }} >
+						<Grid size={{ xs: 12, sm: 6 }}>
 							<Controller
 								name="maxUsage"
 								control={control}
@@ -364,7 +391,10 @@ const CouponForm: React.FC<CouponFormProps> = ({
 						</Grid>
 
 						{/* Is Active */}
-						<Grid size={{ xs: 12, sm: 6 }} sx={{ display: "flex", alignItems: "center" }}>
+						<Grid
+							size={{ xs: 12, sm: 6 }}
+							sx={{ display: "flex", alignItems: "center" }}
+						>
 							<Controller
 								name="isActive"
 								control={control}
@@ -373,7 +403,11 @@ const CouponForm: React.FC<CouponFormProps> = ({
 										control={
 											<Checkbox
 												checked={field.value}
-												onChange={(e) => field.onChange(e.target.checked)}
+												onChange={(e) =>
+													field.onChange(
+														e.target.checked
+													)
+												}
 											/>
 										}
 										label="Is Active"
@@ -406,7 +440,11 @@ const CouponForm: React.FC<CouponFormProps> = ({
 							<Typography variant="subtitle2" gutterBottom>
 								Coupon Image
 							</Typography>
-							<Stack direction="row" spacing={2} alignItems="center">
+							<Stack
+								direction="row"
+								spacing={2}
+								alignItems="center"
+							>
 								<Button variant="outlined" component="label">
 									Upload Image
 									<input
@@ -418,7 +456,12 @@ const CouponForm: React.FC<CouponFormProps> = ({
 									/>
 								</Button>
 								{previewUrl && (
-									<Box sx={{ position: "relative", display: "inline-block" }}>
+									<Box
+										sx={{
+											position: "relative",
+											display: "inline-block",
+										}}
+									>
 										<Box
 											component="img"
 											src={previewUrl}
@@ -440,7 +483,10 @@ const CouponForm: React.FC<CouponFormProps> = ({
 												right: -8,
 												bgcolor: "background.paper",
 												boxShadow: 1,
-												"&:hover": { bgcolor: "error.light", color: "white" },
+												"&:hover": {
+													bgcolor: "error.light",
+													color: "white",
+												},
 											}}
 										>
 											<Clear fontSize="small" />
@@ -449,7 +495,9 @@ const CouponForm: React.FC<CouponFormProps> = ({
 								)}
 							</Stack>
 							{imageError && (
-								<FormHelperText error>{imageError}</FormHelperText>
+								<FormHelperText error>
+									{imageError}
+								</FormHelperText>
 							)}
 						</Grid>
 					</Grid>
@@ -458,8 +506,16 @@ const CouponForm: React.FC<CouponFormProps> = ({
 					<Button onClick={onClose} color="inherit">
 						Cancel
 					</Button>
-					<Button type="submit" variant="contained" disabled={isSubmitting}>
-						{isSubmitting ? "Saving..." : isEditMode ? "Update" : "Create"}
+					<Button
+						type="submit"
+						variant="contained"
+						disabled={isSubmitting}
+					>
+						{isSubmitting
+							? "Saving..."
+							: isEditMode
+							? "Update"
+							: "Create"}
 					</Button>
 				</DialogActions>
 			</form>

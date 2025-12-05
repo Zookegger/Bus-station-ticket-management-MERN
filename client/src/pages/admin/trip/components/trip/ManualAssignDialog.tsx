@@ -151,12 +151,14 @@ const ManualAssignDialog: React.FC<ManualAssignDialogProps> = ({
 						placeholder="Search driver..."
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
-						InputProps={{
-							startAdornment: (
-								<InputAdornment position="start">
-									<SearchIcon />
-								</InputAdornment>
-							),
+						slotProps={{
+							input: {
+								startAdornment: (
+									<InputAdornment position="start">
+										<SearchIcon />
+									</InputAdornment>
+								),
+							},
 						}}
 						size="small"
 					/>

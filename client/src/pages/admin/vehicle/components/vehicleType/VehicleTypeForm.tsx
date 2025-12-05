@@ -184,9 +184,11 @@ const VehicleTypeForm: React.FC<VehicleTypeFormProps> = ({
 											errors.totalFloors?.message ||
 											"Set in layout editor"
 										}
-										InputProps={{
-											readOnly: true,
-											inputProps: { min: 0 },
+										slotProps={{
+											input: {
+												readOnly: true,
+												inputProps: { min: 0 },
+											},
 										}}
 									/>
 								)}
@@ -210,9 +212,11 @@ const VehicleTypeForm: React.FC<VehicleTypeFormProps> = ({
 											errors.totalSeats?.message ||
 											"Calculated from layout"
 										}
-										InputProps={{
-											readOnly: true,
-											inputProps: { min: 0 },
+										slotProps={{
+											input: {
+												readOnly: true,
+												inputProps: { min: 0 },
+											},
 										}}
 									/>
 								)}
@@ -234,8 +238,10 @@ const VehicleTypeForm: React.FC<VehicleTypeFormProps> = ({
 										placeholder="e.g. 100000"
 										error={!!errors.price}
 										helperText={errors.price?.message}
-										InputProps={{
-											endAdornment: "₫",
+										slotProps={{
+											input: {
+												endAdornment: "₫",
+											},
 										}}
 									/>
 								)}
