@@ -8,25 +8,31 @@ import {
 	IconButton,
 	Chip,
 	Typography,
+	Tooltip,
 } from "@mui/material";
 import {
 	Add as AddIcon,
 	Search as SearchIcon,
 	Edit as EditIcon,
 	Delete as DeleteIcon,
+	AutoMode as AutoModeIcon,
+	PersonAdd as PersonAddIcon,
+	PersonRemove as PersonRemoveIcon,
 } from "@mui/icons-material";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import { format } from "date-fns";
+import { Snackbar, Alert } from "@mui/material";
 
 import { DataGridPageLayout } from "@components/admin";
 import callApi from "@utils/apiCaller";
 import { API_ENDPOINTS } from "@constants/index";
 import { TripStatus, type Trip } from "@my-types/trip";
-import CreateTrip from "./CreateTrip";
-import EditTrip from "./EditTrip";
+import TripForm from "./TripForm";
 import DeleteTrip from "./DeleteTrip";
 import TripDetailsDrawer from "./TripDetailsDrawer";
 import { Stack } from "@mui/system";
+import { useAdminRealtime } from "@hooks/useAdminRealtime";
+import ManualAssignDialog from "./ManualAssignDialog";
 
 const TripList: React.FC = () => {
 	// --- State ---
@@ -34,11 +40,19 @@ const TripList: React.FC = () => {
 	const [searchTerm, setSearchTerm] = useState("");
 
 	// Selection & Dialogs
+	const [manualAssignOpen, setManualAssignOpen] = useState(false);
 	const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
 	const [drawerOpen, setDrawerOpen] = useState(false);
-	const [createOpen, setCreateOpen] = useState(false);
-	const [editOpen, setEditOpen] = useState(false);
+	const [formOpen, setFormOpen] = useState(false);
+	const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
 	const [deleteOpen, setDeleteOpen] = useState(false);
+	const [snackbar, setSnackbar] = useState<{
+		open: boolean;
+		message: string;
+		severity: "success" | "error" | "info" | "warning";
+	}>({ open: false, message: "", severity: "info" });
+
+	const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
 
 	// --- Actions ---
 	const fetchTrips = async () => {
@@ -64,6 +78,81 @@ const TripList: React.FC = () => {
 		fetchTrips();
 	}, []);
 
+	useAdminRealtime({
+		entity: "trip",
+		onRefresh: fetchTrips,
+		onNotify: (message, severity) =>
+			setSnackbar({
+				open: true,
+				message,
+				severity: severity || "info",
+			}),
+	});
+
+	const handleAutoAssign = async (tripId: number) => {
+		try {
+			const url = API_ENDPOINTS.TRIP.AUTO_ASSIGN_DRIVER(tripId);
+			const { status, data } = await callApi(
+				{ method: "POST", url },
+				{ returnFullResponse: true }
+			);
+			if (status === 200) {
+				setSnackbar({
+					open: true,
+					message: "Auto-assignment triggered successfully",
+					severity: "success",
+				});
+				fetchTrips();
+			} else {
+				setSnackbar({
+					open: true,
+					message: data.message || "Auto-assignment failed",
+					severity: "error",
+				});
+			}
+		} catch (error: any) {
+			setSnackbar({
+				open: true,
+				message:
+					error.response?.data?.message || "Auto-assignment failed",
+				severity: "error",
+			});
+		}
+	};
+
+	const handleUnassign = async (tripId: number) => {
+		if (!window.confirm("Are you sure you want to unassign the driver?"))
+			return;
+
+		try {
+			const url = API_ENDPOINTS.TRIP.UNASSIGN_DRIVER(tripId);
+			const { status, data } = await callApi(
+				{ method: "DELETE", url },
+				{ returnFullResponse: true }
+			);
+			if (status === 200) {
+				setSnackbar({
+					open: true,
+					message: "Driver unassigned successfully",
+					severity: "success",
+				});
+				fetchTrips();
+			} else {
+				setSnackbar({
+					open: true,
+					message: data.message || "Unassignment failed",
+					severity: "error",
+				});
+			}
+		} catch (error: any) {
+			setSnackbar({
+				open: true,
+				message: error.response?.data?.message || "Unassignment failed",
+				severity: "error",
+			});
+		}
+	};
+
 	const handleViewDetails = (trip: Trip) => {
 		setSelectedTrip(trip);
 		setDrawerOpen(true);
@@ -75,8 +164,8 @@ const TripList: React.FC = () => {
 	};
 
 	const handleOpenEdit = (trip: Trip) => {
-		setSelectedTrip(trip);
-		setEditOpen(true);
+		setEditingTrip(trip);
+		setFormOpen(true);
 	};
 
 	const handleOpenDelete = (trip: Trip) => {
@@ -253,34 +342,91 @@ const TripList: React.FC = () => {
 		{
 			field: "actions",
 			headerName: "Actions",
-			width: 120,
+			width: 160,
 			sortable: false,
 			renderCell: (params) => {
 				const trip = params.row as Trip;
+				const status = (trip.status as string)?.toUpperCase();
+				const isScheduled = status === TripStatus.SCHEDULED;
+				const hasDriver = trip.drivers && trip.drivers.length > 0;
+
 				return (
-					<Box onClick={(e) => e.stopPropagation()}>
-						<IconButton
-							size="small"
-							color="primary"
-							onClick={(e) => {
-								e.stopPropagation();
-								handleOpenEdit(trip);
-							}}
-							title="Edit"
-						>
-							<EditIcon />
-						</IconButton>
-						<IconButton
-							size="small"
-							color="error"
-							onClick={(e) => {
-								e.stopPropagation();
-								handleOpenDelete(trip);
-							}}
-							title="Delete"
-						>
-							<DeleteIcon />
-						</IconButton>
+					<Box
+						onClick={(e) => e.stopPropagation()}
+						sx={{
+							display: "flex",
+							alignItems: "center",
+							gap: 0.5,
+							width: "100%",
+							height: "100%",
+						}}
+					>
+						<Tooltip title={hasDriver ? "Re-assign Driver" : "Manual Assign"}>
+							<IconButton
+								size="small"
+								onClick={(e) => {
+									e.stopPropagation();
+									setSelectedTrip(trip);
+									setManualAssignOpen(true);
+								}}
+							>
+								<PersonAddIcon color="primary" />
+							</IconButton>
+						</Tooltip>
+
+						{!isScheduled && !hasDriver && (
+							<Tooltip title="Auto Assign">
+								<IconButton
+									size="small"
+									onClick={(e) => {
+										e.stopPropagation();
+										handleAutoAssign(trip.id);
+									}}
+								>
+									<AutoModeIcon color="secondary" />
+								</IconButton>
+							</Tooltip>
+						)}
+
+						{isScheduled && hasDriver && (
+							<Tooltip title="Unassign">
+								<IconButton
+									size="small"
+									onClick={(e) => {
+										e.stopPropagation();
+										handleUnassign(trip.id);
+									}}
+								>
+									<PersonRemoveIcon color="error" />
+								</IconButton>
+							</Tooltip>
+						)}
+
+						<Tooltip title="Edit">
+							<IconButton
+								size="small"
+								color="primary"
+								onClick={(e) => {
+									e.stopPropagation();
+									handleOpenEdit(trip);
+								}}
+							>
+								<EditIcon />
+							</IconButton>
+						</Tooltip>
+
+						<Tooltip title="Delete">
+							<IconButton
+								size="small"
+								color="error"
+								onClick={(e) => {
+									e.stopPropagation();
+									handleOpenDelete(trip);
+								}}
+							>
+								<DeleteIcon />
+							</IconButton>
+						</Tooltip>
 					</Box>
 				);
 			},
@@ -302,7 +448,10 @@ const TripList: React.FC = () => {
 					<Button
 						variant="contained"
 						startIcon={<AddIcon />}
-						onClick={() => setCreateOpen(true)}
+						onClick={() => {
+							setEditingTrip(null);
+							setFormOpen(true);
+						}}
 					>
 						Add Trip
 					</Button>
@@ -341,10 +490,14 @@ const TripList: React.FC = () => {
 				/>
 			</Paper>
 
-			<CreateTrip
-				open={createOpen}
-				onClose={() => setCreateOpen(false)}
-				onCreated={fetchTrips}
+			<TripForm
+				open={formOpen}
+				onClose={() => {
+					setFormOpen(false);
+					setEditingTrip(null);
+				}}
+				onSaved={fetchTrips}
+				initialData={editingTrip}
 			/>
 
 			{selectedTrip && (
@@ -360,16 +513,6 @@ const TripList: React.FC = () => {
 						onDelete={() => {
 							handleOpenDelete(selectedTrip);
 							handleCloseDrawer();
-							fetchTrips();
-						}}
-					/>
-					<EditTrip
-						open={editOpen}
-						onClose={() => setEditOpen(false)}
-						trip={selectedTrip}
-						onEdited={() => {
-							setEditOpen(false);
-							fetchTrips();
 						}}
 					/>
 					<DeleteTrip
@@ -381,8 +524,32 @@ const TripList: React.FC = () => {
 							fetchTrips();
 						}}
 					/>
+					<ManualAssignDialog
+						open={manualAssignOpen}
+						tripId={selectedTrip.id}
+						onClose={() => setManualAssignOpen(false)}
+						onAssignSuccess={() => {
+							// fetchTrips();
+							setManualAssignOpen(false);
+						}}
+					/>
 				</>
 			)}
+
+			<Snackbar
+				open={snackbar.open}
+				autoHideDuration={6000}
+				onClose={handleCloseSnackbar}
+				anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+			>
+				<Alert
+					onClose={handleCloseSnackbar}
+					severity={snackbar.severity}
+					sx={{ width: "100%" }}
+				>
+					{snackbar.message}
+				</Alert>
+			</Snackbar>
 		</DataGridPageLayout>
 	);
 };

@@ -63,9 +63,9 @@ export const API_ENDPOINTS: ApiEndpoints = {
 		CREATE: "/trips",
 		UPDATE: (id: number) => `/trips/${id}`,
 		DELETE: (id: number) => `/trips/${id}`,
-		ASSIGN_DRIVER: "/trips/:id/assign-driver",
-		AUTO_ASSIGN_DRIVER: "/trips/:id/auto-assign",
-		UNASSIGN_DRIVER: "/trips/:id/assign-driver",
+		ASSIGN_DRIVER: (id: number) => `/trips/${id}/assign-driver`,
+		AUTO_ASSIGN_DRIVER: (id: number) => `/trips/${id}/auto-assign`,
+		UNASSIGN_DRIVER: (id: number) => `/trips/${id}/assign-driver`,
 	},
 	DRIVER: {
 		BASE: "/drivers",
@@ -87,7 +87,7 @@ export const API_ENDPOINTS: ApiEndpoints = {
 	},
 	ROUTE: {
 		BASE: "/routes",
-		BY_ID: "/routes/:id",
+		BY_ID: (id: number) => `/routes/${id}`,
 		CREATE: "/routes",
 		UPDATE: (id: number) => `/routes/${id}`,
 		DELETE: (id: number) => `/routes/${id}`,

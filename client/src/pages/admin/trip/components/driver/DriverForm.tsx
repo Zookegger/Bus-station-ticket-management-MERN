@@ -17,19 +17,17 @@ import {
 	DialogTitle,
 	DialogContent,
 	DialogActions,
-	FormControlLabel,
-	Switch,
 	Avatar,
 } from "@mui/material";
 import { CloudUpload as CloudUploadIcon } from "@mui/icons-material";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format } from "date-fns";
 import { callApi } from "@utils/apiCaller";
 import { API_ENDPOINTS, APP_CONFIG } from "@constants/index";
 import { driverSchema, type DriverFormData } from "@schemas/driverSchema";
 import type { Driver } from "@my-types/driver";
 import { DriverStatus, Gender } from "@my-types";
+import { formatDateForInput } from "@utils/formatting";
 
 interface DriverFormProps {
 	open: boolean;
@@ -56,8 +54,6 @@ const DriverForm: React.FC<DriverFormProps> = ({
 		resolver: zodResolver(driverSchema),
 		defaultValues: {
 			gender: Gender.OTHER,
-			isActive: true,
-			isSuspended: false,
 			status: DriverStatus.ACTIVE,
 		},
 	});
@@ -85,31 +81,31 @@ const DriverForm: React.FC<DriverFormProps> = ({
 		}
 	}, [avatarValue]);
 
-	// Helper to format date for input type="date" (YYYY-MM-DD)
-	const formatDateForInput = (date: string | Date | null | undefined) => {
-		if (!date) return "";
-		const d = new Date(date);
-		return isNaN(d.getTime()) ? "" : format(d, "yyyy-MM-dd");
-	};
-
 	useEffect(() => {
 		if (open) {
 			setServerError(null);
 			if (initialData) {
 				// Map initial data to form values
-				const formattedData: any = {
+				const formattedData: Record<string, unknown> = {
 					...initialData,
+					fullname: initialData.fullname ?? "",
+					email: initialData.email ?? "",
+					phoneNumber: initialData.phoneNumber ?? "",
+					citizenId: initialData.citizenId ?? "",
+					address: initialData.address ?? "",
 					dateOfBirth: formatDateForInput(initialData.dateOfBirth),
 					hiredAt: formatDateForInput(initialData.hiredAt),
+					licenseNumber: initialData.licenseNumber ?? "",
+					licenseCategory: initialData.licenseCategory ?? "",
 					licenseIssueDate: formatDateForInput(
 						initialData.licenseIssueDate
 					),
 					licenseExpiryDate: formatDateForInput(
 						initialData.licenseExpiryDate
 					),
-					status: initialData.status || "ACTIVE",
-					licenseCategory: initialData.licenseCategory || "",
-					avatar: initialData.avatar, // Keep existing avatar URL
+					issuingAuthority: initialData.issuingAuthority ?? "",
+					status: initialData.status || DriverStatus.ACTIVE,
+					avatar: initialData.avatar,
 				};
 				reset(formattedData);
 				if (initialData.avatar) {
@@ -128,15 +124,13 @@ const DriverForm: React.FC<DriverFormProps> = ({
 					citizenId: "",
 					address: "",
 					licenseNumber: "",
-					licenseCategory: undefined,
+					licenseCategory: "",
 					issuingAuthority: "",
-					isActive: true,
-					isSuspended: false,
 					status: DriverStatus.ACTIVE,
-					dateOfBirth: undefined,
-					hiredAt: undefined,
-					licenseIssueDate: undefined,
-					licenseExpiryDate: undefined,
+					dateOfBirth: "",
+					hiredAt: "",
+					licenseIssueDate: "",
+					licenseExpiryDate: "",
 					avatar: undefined,
 				});
 				setPreview(null);
@@ -198,7 +192,14 @@ const DriverForm: React.FC<DriverFormProps> = ({
 	};
 
 	return (
-		<Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+		<Dialog
+			open={open}
+			onClose={(_event, reason) => {
+				if (reason !== "backdropClick") onClose();
+			}}
+			fullWidth
+			maxWidth="md"
+		>
 			<DialogTitle>
 				{initialData ? "Edit Driver" : "Add New Driver"}
 			</DialogTitle>
@@ -278,7 +279,8 @@ const DriverForm: React.FC<DriverFormProps> = ({
 								label="Date of Birth"
 								type="date"
 								fullWidth
-								InputLabelProps={{ shrink: true }}
+								required
+								slotProps={{ inputLabel: { shrink: true } }}
 								{...register("dateOfBirth")}
 								error={!!errors.dateOfBirth}
 								helperText={errors.dateOfBirth?.message}
@@ -287,6 +289,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
 							<TextField
 								label="Citizen ID"
 								fullWidth
+								required
 								{...register("citizenId")}
 								error={!!errors.citizenId}
 								helperText={errors.citizenId?.message}
@@ -314,7 +317,9 @@ const DriverForm: React.FC<DriverFormProps> = ({
 												{String(g)
 													.charAt(0)
 													.toUpperCase() +
-													String(g).slice(1)}
+													String(g)
+														.slice(1)
+														.toLowerCase()}
 											</MenuItem>
 										))}
 									</Select>
@@ -342,6 +347,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
 								label="Email"
 								type="email"
 								fullWidth
+								required
 								{...register("email")}
 								error={!!errors.email}
 								helperText={errors.email?.message}
@@ -374,7 +380,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
 								label="Hired At"
 								type="date"
 								fullWidth
-								InputLabelProps={{ shrink: true }}
+								slotProps={{ inputLabel: { shrink: true } }}
 								{...register("hiredAt")}
 								error={!!errors.hiredAt}
 								helperText={errors.hiredAt?.message}
@@ -405,46 +411,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
 							</FormControl>
 						</Stack>
 
-						<Stack direction="row" spacing={2}>
-							<FormControlLabel
-								control={
-									<Controller
-										name="isActive"
-										control={control}
-										render={({ field }) => (
-											<Switch
-												checked={field.value}
-												onChange={(e) =>
-													field.onChange(
-														e.target.checked
-													)
-												}
-											/>
-										)}
-									/>
-								}
-								label="Is Active"
-							/>
-							<FormControlLabel
-								control={
-									<Controller
-										name="isSuspended"
-										control={control}
-										render={({ field }) => (
-											<Switch
-												checked={field.value}
-												onChange={(e) =>
-													field.onChange(
-														e.target.checked
-													)
-												}
-											/>
-										)}
-									/>
-								}
-								label="Is Suspended"
-							/>
-						</Stack>
+						{/* Status selection above replaces legacy boolean toggles. */}
 
 						<Divider />
 
@@ -459,17 +426,23 @@ const DriverForm: React.FC<DriverFormProps> = ({
 							direction={{ xs: "column", sm: "row" }}
 							spacing={2}
 						>
-							<TextField
-								label="License Number"
+							<FormControl
 								fullWidth
-								required
-								{...register("licenseNumber")}
 								error={!!errors.licenseNumber}
-								helperText={errors.licenseNumber?.message}
-							/>
+							>
+								<TextField
+									label="License Number"
+									fullWidth
+									required
+									{...register("licenseNumber")}
+									error={!!errors.licenseNumber}
+									helperText={errors.licenseNumber?.message}
+								/>
+							</FormControl>
 
 							<FormControl
 								fullWidth
+								required
 								error={!!errors.licenseCategory}
 							>
 								<InputLabel>License Class</InputLabel>
@@ -482,8 +455,8 @@ const DriverForm: React.FC<DriverFormProps> = ({
 											label="License Class"
 											value={field.value || ""}
 										>
-											<MenuItem value="">
-												<em>None</em>
+											<MenuItem value="" disabled>
+												<em>Select a category</em>
 											</MenuItem>
 											{[
 												"B1",
@@ -509,6 +482,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
 
 						<TextField
 							label="Issuing Authority"
+							required
 							fullWidth
 							{...register("issuingAuthority")}
 							error={!!errors.issuingAuthority}
@@ -522,8 +496,9 @@ const DriverForm: React.FC<DriverFormProps> = ({
 							<TextField
 								label="Issue Date"
 								type="date"
+								required
 								fullWidth
-								InputLabelProps={{ shrink: true }}
+								slotProps={{ inputLabel: { shrink: true } }}
 								{...register("licenseIssueDate")}
 								error={!!errors.licenseIssueDate}
 								helperText={errors.licenseIssueDate?.message}
@@ -532,8 +507,9 @@ const DriverForm: React.FC<DriverFormProps> = ({
 							<TextField
 								label="Expiry Date"
 								type="date"
+								required
 								fullWidth
-								InputLabelProps={{ shrink: true }}
+								slotProps={{ inputLabel: { shrink: true } }}
 								{...register("licenseExpiryDate")}
 								error={!!errors.licenseExpiryDate}
 								helperText={errors.licenseExpiryDate?.message}
@@ -552,11 +528,11 @@ const DriverForm: React.FC<DriverFormProps> = ({
 					Cancel
 				</Button>
 				<Button
-					type="submit"
 					variant="contained"
 					disabled={isSubmitting}
 					size="large"
 					startIcon={isSubmitting && <CircularProgress size={20} />}
+					onClick={handleSubmit(onSubmit)}
 				>
 					{isSubmitting
 						? "Saving..."

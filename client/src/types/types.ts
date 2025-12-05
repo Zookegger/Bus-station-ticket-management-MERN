@@ -61,9 +61,9 @@ export interface ApiEndpoints {
 		readonly CREATE: string;
 		readonly UPDATE: (id: number) => string;
 		readonly DELETE: (id: number) => string;
-		readonly ASSIGN_DRIVER: string;
-		readonly AUTO_ASSIGN_DRIVER: string;
-		readonly UNASSIGN_DRIVER: string;
+		readonly ASSIGN_DRIVER: (id: number) =>  string;
+		readonly AUTO_ASSIGN_DRIVER: (id: number) =>  string;
+		readonly UNASSIGN_DRIVER: (id: number) =>  string;
 	};
 	readonly DRIVER: {
 		readonly BASE: string;
@@ -85,7 +85,7 @@ export interface ApiEndpoints {
 	};
 	readonly ROUTE: {
 		readonly BASE: string;
-		readonly BY_ID: string;
+		readonly BY_ID: (id: number) =>  string;
 		readonly CREATE: string;
 		readonly UPDATE: (id: number) => string;
 		readonly DELETE: (id: number) => string;

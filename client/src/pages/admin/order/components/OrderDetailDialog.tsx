@@ -20,7 +20,6 @@ import {
 	DirectionsBus as BusIcon,
 	Person as PersonIcon,
 	Receipt as ReceiptIcon,
-	Info as InfoIcon,
 	CreditCard as CreditCardIcon,
 	LocalOffer as CouponIcon,
 } from "@mui/icons-material";

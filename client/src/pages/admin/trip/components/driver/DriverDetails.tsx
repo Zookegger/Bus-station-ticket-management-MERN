@@ -26,7 +26,7 @@ import {
 	Delete,
 	Edit,
 } from "@mui/icons-material";
-import { type Driver } from "@my-types/driver";
+import { DriverStatus, type Driver } from "@my-types/driver";
 import callApi from "@utils/apiCaller";
 import { API_ENDPOINTS } from "@constants/index";
 
@@ -58,6 +58,20 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({
 	onClose,
 	onEdit,
 }) => {
+	const statusLabel =
+		driver.status === DriverStatus.SUSPENDED
+			? "Suspended"
+			: driver.status === DriverStatus.INACTIVE
+			? "Inactive"
+			: "Active";
+
+	const statusChipColor: "error" | "success" | "warning" =
+		driver.status === DriverStatus.SUSPENDED
+			? "error"
+			: driver.status === DriverStatus.ACTIVE
+			? "success"
+			: "warning";
+
 	const handleDelete = async () => {
 		if (
 			!confirm(
@@ -167,20 +181,8 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({
 								</Typography>
 								<Chip
 									size="small"
-									label={
-										driver.isSuspended
-											? "Suspended"
-											: driver.isActive
-											? "Active"
-											: "Inactive"
-									}
-									color={
-										driver.isSuspended
-											? "error"
-											: driver.isActive
-											? "success"
-											: "default"
-									}
+									label={statusLabel}
+									color={statusChipColor}
 									slotProps={{
 										label: {
 											sx: {

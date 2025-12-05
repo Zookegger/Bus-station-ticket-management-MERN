@@ -33,11 +33,18 @@ import {
 	Info as InfoIcon,
 	Route as RouteIcon,
 	ArrowBack as ArrowBackIcon,
+	PersonAdd as PersonAddIcon,
+	PersonRemove as PersonRemoveIcon,
+	AutoMode as AutoModeIcon,
 } from "@mui/icons-material";
 import { addSeconds, format, isValid } from "date-fns";
 import { TripStatus, type Trip } from "@my-types/trip";
 import { RouteMap } from "@components/map";
 import { formatDistance, formatDuration } from "@utils/map";
+import { Snackbar, Alert } from "@mui/material";
+import callApi from "@utils/apiCaller";
+import { API_ENDPOINTS } from "@constants/api";
+import ManualAssignDialog from "./ManualAssignDialog";
 
 interface TripDetailsDrawerProps {
 	open: boolean;
@@ -85,12 +92,84 @@ const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
 	onDelete,
 }) => {
 	const [tabValue, setTabValue] = useState(0);
+	const [manualAssignOpen, setManualAssignOpen] = useState(false);
+	const [snackbar, setSnackbar] = useState<{
+		open: boolean;
+		message: string;
+		severity: "success" | "error" | "info" | "warning";
+	}>({ open: false, message: "", severity: "info" });
+
+	const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
 
 	const handleTabChange = (
 		_event: React.SyntheticEvent,
 		newValue: number
 	) => {
 		setTabValue(newValue);
+	};
+
+	const handleAutoAssign = async (tripId: number) => {
+		try {
+			const url = API_ENDPOINTS.TRIP.AUTO_ASSIGN_DRIVER(tripId);
+			const { status, data } = await callApi(
+				{ method: "POST", url },
+				{ returnFullResponse: true }
+			);
+			if (status === 200) {
+				setSnackbar({
+					open: true,
+					message: "Auto-assignment triggered successfully",
+					severity: "success",
+				});
+				onClose(); // Close drawer to refresh list (or trigger refresh callback if available)
+			} else {
+				setSnackbar({
+					open: true,
+					message: data.message || "Auto-assignment failed",
+					severity: "error",
+				});
+			}
+		} catch (error: any) {
+			setSnackbar({
+				open: true,
+				message:
+					error.response?.data?.message || "Auto-assignment failed",
+				severity: "error",
+			});
+		}
+	};
+
+	const handleUnassign = async (tripId: number) => {
+		if (!window.confirm("Are you sure you want to unassign the driver?"))
+			return;
+
+		try {
+			const url = API_ENDPOINTS.TRIP.UNASSIGN_DRIVER(tripId);
+			const { status, data } = await callApi(
+				{ method: "DELETE", url },
+				{ returnFullResponse: true }
+			);
+			if (status === 200) {
+				setSnackbar({
+					open: true,
+					message: "Driver unassigned successfully",
+					severity: "success",
+				});
+				onClose();
+			} else {
+				setSnackbar({
+					open: true,
+					message: data.message || "Unassignment failed",
+					severity: "error",
+				});
+			}
+		} catch (error: any) {
+			setSnackbar({
+				open: true,
+				message: error.response?.data?.message || "Unassignment failed",
+				severity: "error",
+			});
+		}
 	};
 
 	// --- Calculations ---
@@ -491,15 +570,67 @@ const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
 											variant="body1"
 											fontWeight="500"
 										>
-											{/* Placeholder as Driver isn't in Trip type directly yet */}
-											Unassigned
+											{trip.drivers &&
+											trip.drivers.length > 0
+												? trip.drivers[0].fullname
+												: "Unassigned"}
 										</Typography>
-										<Typography
-											variant="caption"
-											color="text.secondary"
-										>
-											--
-										</Typography>
+										<Box display="flex" gap={1} mt={1}>
+											{(!trip.drivers ||
+												trip.drivers.length === 0) &&
+											trip.status ===
+												TripStatus.PENDING ? (
+												<>
+													<Button
+														size="small"
+														variant="outlined"
+														startIcon={
+															<AutoModeIcon />
+														}
+														onClick={() =>
+															handleAutoAssign(
+																trip.id
+															)
+														}
+													>
+														Auto
+													</Button>
+													<Button
+														size="small"
+														variant="outlined"
+														startIcon={
+															<PersonAddIcon />
+														}
+														onClick={() =>
+															setManualAssignOpen(
+																true
+															)
+														}
+													>
+														Manual
+													</Button>
+												</>
+											) : (
+												trip.drivers &&
+												trip.drivers.length > 0 && (
+													<Button
+														size="small"
+														variant="outlined"
+														color="error"
+														startIcon={
+															<PersonRemoveIcon />
+														}
+														onClick={() =>
+															handleUnassign(
+																trip.id
+															)
+														}
+													>
+														Unassign
+													</Button>
+												)
+											)}
+										</Box>
 									</Paper>
 								</Grid>
 							</Grid>
@@ -712,13 +843,6 @@ const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
 												variant="subtitle2"
 												fontWeight="600"
 											>
-												{stop.name ||
-													`Stop #${index + 1}`}
-											</Typography>
-											<Typography
-												variant="caption"
-												color="text.secondary"
-											>
 												{stop.address ||
 													"No address provided"}
 											</Typography>
@@ -769,6 +893,29 @@ const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
 					</Button>
 				</CardActions>
 			</Card>
+			<ManualAssignDialog
+				open={manualAssignOpen}
+				tripId={trip.id}
+				onClose={() => setManualAssignOpen(false)}
+				onAssignSuccess={() => {
+					setManualAssignOpen(false);
+					onClose(); // Close drawer to refresh
+				}}
+			/>
+			<Snackbar
+				open={snackbar.open}
+				autoHideDuration={6000}
+				onClose={handleCloseSnackbar}
+				anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+			>
+				<Alert
+					onClose={handleCloseSnackbar}
+					severity={snackbar.severity}
+					sx={{ width: "100%" }}
+				>
+					{snackbar.message}
+				</Alert>
+			</Snackbar>
 		</Drawer>
 	);
 };

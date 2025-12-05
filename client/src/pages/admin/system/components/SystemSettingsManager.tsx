@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
 	Box,
 	Button,
@@ -24,6 +24,7 @@ import { API_ENDPOINTS } from "@constants/index";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { settingSchema, type SettingForm } from "@schemas/settingSchema";
+import { useAdminRealtime } from "@hooks/useAdminRealtime";
 
 /**
  * Interface representing a system setting record loaded from the backend.
@@ -82,22 +83,28 @@ const SystemSettingsManager: React.FC = () => {
 	/**
 	 * Fetch all settings from backend and normalize into array.
 	 */
-	useEffect(() => {
-		const fetchSettings = async () => {
-			try {
-				const { status, data } = await callApi(
-					{ method: "GET", url: API_ENDPOINTS.SETTINGS.BASE },
-					{ returnFullResponse: true }
-				);
-				if (status === 200) {
-					setSettings(data);
-				}
-			} catch (err) {
-				console.error("Failed to load settings", err);
+	const fetchSettings = useCallback(async () => {
+		try {
+			const { status, data } = await callApi(
+				{ method: "GET", url: API_ENDPOINTS.SETTINGS.BASE },
+				{ returnFullResponse: true }
+			);
+			if (status === 200) {
+				setSettings(data);
 			}
-		};
-		fetchSettings();
+		} catch (err) {
+			console.error("Failed to load settings", err);
+		}
 	}, []);
+
+	useAdminRealtime({
+		entity: "setting",
+		onRefresh: fetchSettings,
+	});
+
+	useEffect(() => {
+		fetchSettings();
+	}, [fetchSettings]);
 
 	/**
 	 * Memoized filtered settings based on search term matching key, description or raw value.

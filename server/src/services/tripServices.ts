@@ -211,6 +211,7 @@ export const getTripById = async (id: number): Promise<Trip | null> => {
 				],
 			},
 			{ model: db.Seat, as: "seats" },
+			{ model: db.Driver, as: "drivers" },
 		],
 	});
 };
@@ -442,6 +443,11 @@ export const searchTrip = async (
 				},
 			],
 			...(vehicleTypeId ? { required: true } : {}),
+		},
+		{
+			model: db.Driver,
+			as: "drivers",
+			required: false,
 		},
 	];
 

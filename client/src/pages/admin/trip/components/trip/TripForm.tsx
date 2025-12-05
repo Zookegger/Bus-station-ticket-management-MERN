@@ -38,23 +38,27 @@ import { addSeconds, format, isValid } from "date-fns";
 // Mock imports based on context
 import { API_ENDPOINTS } from "@constants/api";
 import type { Route, Vehicle } from "@my-types";
-import type { CreateTripDTO } from "@my-types/trip";
+import type { CreateTripDTO, UpdateTripDTO, Trip } from "@my-types/trip";
 import { TripStatus, TripRepeatFrequency } from "@my-types/trip";
 import { formatDistance } from "@utils/map";
 import { RouteMap } from "@components/map";
 import callApi from "@utils/apiCaller";
 
-interface CreateTripFormProps {
+interface TripFormProps {
 	open: boolean;
 	onClose: () => void;
-	onCreated?: () => void;
+	onSaved?: () => void;
+	initialData?: Trip | null; // If provided, we are in "Edit" mode
 }
 
-const CreateTripForm: React.FC<CreateTripFormProps> = ({
+const TripForm: React.FC<TripFormProps> = ({
 	open,
 	onClose,
-	onCreated,
+	onSaved,
+	initialData,
 }) => {
+	const isEditMode = !!initialData;
+
 	const [tripType, setTripType] = useState<"oneWay" | "roundTrip">("oneWay");
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -67,8 +71,7 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 	const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
 	// Form State
-	const [selectedOutboundRoute, setSelectedOutboundRoute] =
-		useState<Route | null>(null);
+	const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
 	const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(
 		null
 	);
@@ -81,41 +84,6 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 		returnDepart: null,
 	});
 
-	const mapStops = useMemo(() => {
-		if (!selectedOutboundRoute?.stops) return undefined;
-
-		// Convert RouteStops to the format RouteMap expects
-		return [...selectedOutboundRoute.stops]
-			.sort((a, b) => a.stopOrder - b.stopOrder)
-			.map((s) => ({
-				latitude: Number(s.locations?.latitude),
-				longitude: Number(s.locations?.longitude),
-				name: s.locations?.name,
-				address: s.locations?.address,
-			}));
-	}, [selectedOutboundRoute]);
-
-	// Derived state for read-only arrivals
-	const outboundArrivalISO = useMemo(() => {
-		if (
-			!dates.outboundDepart ||
-			!isValid(dates.outboundDepart) ||
-			!selectedOutboundRoute?.duration
-		)
-			return null;
-		return addSeconds(dates.outboundDepart, selectedOutboundRoute.duration);
-	}, [dates.outboundDepart, selectedOutboundRoute]);
-
-	const returnArrivalISO = useMemo(() => {
-		if (
-			!dates.returnDepart ||
-			!isValid(dates.returnDepart) ||
-			!selectedOutboundRoute?.duration
-		)
-			return null;
-		return addSeconds(dates.returnDepart, selectedOutboundRoute.duration);
-	}, [dates.returnDepart, selectedOutboundRoute]);
-
 	// Recurrence State
 	const [isRepeated, setIsRepeated] = useState(false);
 	const [repeatFrequency, setRepeatFrequency] = useState<TripRepeatFrequency>(
@@ -126,6 +94,8 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 	// Data Fetching
 	useEffect(() => {
 		if (!open) return;
+		let mounted = true;
+
 		const fetchData = async () => {
 			setIsLoadingData(true);
 			setFormErrors({});
@@ -134,10 +104,8 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 					axios.get(API_ENDPOINTS.ROUTE.BASE),
 					axios.get(API_ENDPOINTS.VEHICLE.BASE),
 				]);
-				// const [routesRes, vehiclesRes] = await Promise.all([
-				// 	callApi({method: "GET", url: API_ENDPOINTS.ROUTE.BASE}),
-				// 	callApi({method: "GET", url: API_ENDPOINTS.VEHICLE.BASE}),
-				// ]);
+				if (!mounted) return;
+
 				setRoutes(
 					Array.isArray(routesRes.data)
 						? routesRes.data
@@ -150,24 +118,109 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 				);
 			} catch (err) {
 				console.error("Failed to load form data", err);
-				setError("Could not load routes or vehicles.");
+				if (mounted) setError("Could not load routes or vehicles.");
 			} finally {
-				setIsLoadingData(false);
+				if (mounted) setIsLoadingData(false);
 			}
 		};
 		fetchData();
+
+		return () => {
+			mounted = false;
+		};
 	}, [open]);
+
+	// Populate form when initialData changes (Edit Mode)
+	useEffect(() => {
+		if (initialData) {
+			setTripType(
+				initialData.returnTripId && initialData.returnStartTime
+					? "roundTrip"
+					: "oneWay"
+			);
+			setSelectedRoute(initialData.route || null);
+			setSelectedVehicle(initialData.vehicle || null);
+			setDates({
+				outboundDepart: initialData.startTime
+					? new Date(initialData.startTime)
+					: null,
+				returnDepart: initialData.returnStartTime
+					? new Date(initialData.returnStartTime)
+					: null,
+			});
+
+			if (
+				initialData.repeatFrequency &&
+				initialData.repeatFrequency !== TripRepeatFrequency.NONE
+			) {
+				setIsRepeated(true);
+				setRepeatFrequency(initialData.repeatFrequency);
+				setRepeatEndDate(
+					initialData.repeatEndDate
+						? new Date(initialData.repeatEndDate)
+						: null
+				);
+			} else {
+				setIsRepeated(false);
+				setRepeatFrequency(TripRepeatFrequency.NONE);
+				setRepeatEndDate(null);
+			}
+		} else {
+			// Reset for Create Mode
+			setTripType("oneWay");
+			setSelectedRoute(null);
+			setSelectedVehicle(null);
+			setDates({ outboundDepart: null, returnDepart: null });
+			setIsRepeated(false);
+			setRepeatFrequency(TripRepeatFrequency.NONE);
+			setRepeatEndDate(null);
+		}
+	}, [initialData, open]);
+
+	const mapStops = useMemo(() => {
+		// Use selected route if available, otherwise fallback to initialData's route (though selectedRoute should be populated)
+		const routeToUse = selectedRoute || initialData?.route;
+		if (!routeToUse?.stops) return undefined;
+
+		// Convert RouteStops to the format RouteMap expects
+		return [...routeToUse.stops]
+			.sort((a, b) => a.stopOrder - b.stopOrder)
+			.map((s) => ({
+				latitude: Number(s.locations?.latitude),
+				longitude: Number(s.locations?.longitude),
+				name: s.locations?.name,
+				address: s.locations?.address,
+			}));
+	}, [selectedRoute, initialData]);
+
+	// Derived state for read-only arrivals
+	const outboundArrivalISO = useMemo(() => {
+		const duration =
+			selectedRoute?.duration ?? initialData?.route?.duration;
+		if (
+			!dates.outboundDepart ||
+			!isValid(dates.outboundDepart) ||
+			!duration
+		)
+			return null;
+		return addSeconds(dates.outboundDepart, duration);
+	}, [dates.outboundDepart, selectedRoute, initialData]);
+
+	const returnArrivalISO = useMemo(() => {
+		const duration =
+			selectedRoute?.duration ?? initialData?.route?.duration;
+		if (!dates.returnDepart || !isValid(dates.returnDepart) || !duration)
+			return null;
+		return addSeconds(dates.returnDepart, duration);
+	}, [dates.returnDepart, selectedRoute, initialData]);
 
 	const handleSubmit = async () => {
 		setError(null);
 		setFormErrors({});
 		setIsSubmitting(true);
 
-		if (
-			!selectedOutboundRoute ||
-			!selectedVehicle ||
-			!dates.outboundDepart
-		) {
+		// Basic validation
+		if (!selectedRoute || !selectedVehicle || !dates.outboundDepart) {
 			setError("Missing required outbound fields.");
 			setIsSubmitting(false);
 			return;
@@ -179,48 +232,80 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 		}
 
 		try {
-			const payload: CreateTripDTO = {
-				routeId: selectedOutboundRoute.id,
-				vehicleId: selectedVehicle.id,
-				startTime: dates.outboundDepart,
-				endTime: outboundArrivalISO,
-				status: TripStatus.PENDING,
-				isTemplate: isRepeated,
-				isRoundTrip: tripType === "roundTrip",
-			};
+			if (isEditMode && initialData) {
+				// UPDATE Logic
+				const payload: Partial<UpdateTripDTO> = {
+					startTime: dates.outboundDepart,
+					isRoundTrip: tripType === "roundTrip",
+					returnStartTime:
+						tripType === "roundTrip" ? dates.returnDepart : null,
+				};
 
-			if (tripType === "roundTrip" && dates.returnDepart) {
-				payload.returnStartTime = dates.returnDepart;
-				payload.returnEndTime = returnArrivalISO;
-			}
-
-			if (isRepeated) {
-				if (
-					!repeatFrequency ||
-					repeatFrequency === TripRepeatFrequency.NONE
-				) {
-					throw new Error(
-						"Select a frequency for the recurring trip."
-					);
+				if (selectedVehicle.id !== initialData.vehicleId) {
+					payload.vehicleId = selectedVehicle.id;
 				}
-				(payload as any).repeatFrequency = repeatFrequency;
-				(payload as any).repeatEndDate = repeatEndDate;
-			}
+				if (selectedRoute.id !== initialData.routeId) {
+					payload.routeId = selectedRoute.id;
+				}
 
-			const { status, data } = await callApi(
-				{
-					method: "POST",
-					url: API_ENDPOINTS.TRIP.CREATE,
+				if (isRepeated) {
+					payload.repeatFrequency = repeatFrequency;
+					payload.repeatEndDate = repeatEndDate;
+				} else {
+					payload.repeatFrequency = TripRepeatFrequency.NONE;
+					payload.repeatEndDate = null;
+				}
+
+				await callApi({
+					method: "PUT",
+					url: API_ENDPOINTS.TRIP.UPDATE(initialData.id),
 					data: payload,
-				},
-				{ returnFullResponse: true }
-			);
+				});
+			} else {
+				// CREATE Logic
+				const payload: CreateTripDTO = {
+					routeId: selectedRoute.id,
+					vehicleId: selectedVehicle.id,
+					startTime: dates.outboundDepart,
+					endTime: outboundArrivalISO, // Backend might recalculate, but good to send
+					status: TripStatus.PENDING,
+					isTemplate: isRepeated,
+					isRoundTrip: tripType === "roundTrip",
+				};
 
-			if (status !== 201 || !data) {
-				throw new Error("Failed to create trip.");
+				if (tripType === "roundTrip" && dates.returnDepart) {
+					payload.returnStartTime = dates.returnDepart;
+					payload.returnEndTime = returnArrivalISO;
+				}
+
+				if (isRepeated) {
+					if (
+						!repeatFrequency ||
+						repeatFrequency === TripRepeatFrequency.NONE
+					) {
+						throw new Error(
+							"Select a frequency for the recurring trip."
+						);
+					}
+					(payload as any).repeatFrequency = repeatFrequency;
+					(payload as any).repeatEndDate = repeatEndDate;
+				}
+
+				const { status, data } = await callApi(
+					{
+						method: "POST",
+						url: API_ENDPOINTS.TRIP.CREATE,
+						data: payload,
+					},
+					{ returnFullResponse: true }
+				);
+
+				if (status !== 201 || !data) {
+					throw new Error("Failed to create trip.");
+				}
 			}
 
-			onCreated?.();
+			onSaved?.();
 			onClose();
 		} catch (err: any) {
 			const validationArray =
@@ -244,7 +329,7 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 				setError(
 					err.response?.data?.message ||
 						err.message ||
-						"Failed to create trip."
+						`Failed to ${isEditMode ? "update" : "create"} trip.`
 				);
 			}
 		} finally {
@@ -275,7 +360,14 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 
 	return (
 		<LocalizationProvider dateAdapter={AdapterDateFns}>
-			<Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+			<Dialog
+				open={open}
+				onClose={(_event, reason) => {
+					if (reason !== "backdropClick") onClose();
+				}}
+				fullWidth
+				maxWidth="md"
+			>
 				<DialogTitle
 					sx={{
 						display: "flex",
@@ -283,8 +375,14 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 						alignItems: "center",
 					}}
 				>
-					<Typography variant="h5" fontWeight={"bold"}>
-						Create Trip
+					<Typography
+						variant="h5"
+						component={"h1"}
+						fontWeight={"bold"}
+					>
+						{isEditMode
+							? `Edit Trip #${initialData.id}`
+							: "Create Trip"}
 					</Typography>
 					<ToggleButtonGroup
 						value={tripType}
@@ -324,9 +422,9 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 										getOptionLabel={(r) =>
 											r.name || `Route #${r.id}`
 										}
-										value={selectedOutboundRoute}
+										value={selectedRoute}
 										onChange={(_, val) =>
-											setSelectedOutboundRoute(val)
+											setSelectedRoute(val)
 										}
 										renderInput={(params) => (
 											<TextField
@@ -346,9 +444,9 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 												error={!!formErrors.routeId}
 												helperText={
 													formErrors.routeId ||
-													(selectedOutboundRoute?.distance
+													(selectedRoute?.distance
 														? `Total Distance: ${formatDistance(
-																selectedOutboundRoute.distance
+																selectedRoute.distance
 														  )}`
 														: " ")
 												}
@@ -371,13 +469,15 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 												{...params}
 												label="Vehicle"
 												placeholder="Select Vehicle"
-												InputProps={{
-													...params.InputProps,
-													startAdornment: (
-														<InputAdornment position="start">
-															<CarIcon color="action" />
-														</InputAdornment>
-													),
+												slotProps={{
+													input: {
+														...params.InputProps,
+														startAdornment: (
+															<InputAdornment position="start">
+																<CarIcon color="action" />
+															</InputAdornment>
+														),
+													},
 												}}
 												error={!!formErrors.vehicleId}
 												helperText={
@@ -396,7 +496,7 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 										height: 200,
 										overflow: "hidden",
 										borderRadius: 1,
-										mt: -2, // Pull it up slightly closer to inputs
+										mt: -2,
 									}}
 								>
 									<RouteMap
@@ -535,7 +635,9 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 												variant="caption"
 												color="text.secondary"
 											>
-												Create a repeating template
+												{isEditMode
+													? "Update template/recurrence settings"
+													: "Create a repeating template"}
 											</Typography>
 										</Box>
 									</Box>
@@ -645,7 +747,11 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 							)
 						}
 					>
-						{isSubmitting ? "Processing..." : "Confirm Trip"}
+						{isSubmitting
+							? "Processing..."
+							: isEditMode
+							? "Save Changes"
+							: "Confirm Trip"}
 					</Button>
 				</DialogActions>
 			</Dialog>
@@ -653,4 +759,4 @@ const CreateTripForm: React.FC<CreateTripFormProps> = ({
 	);
 };
 
-export default CreateTripForm;
+export default TripForm;

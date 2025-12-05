@@ -1,32 +1,38 @@
 import { API_ENDPOINTS } from "@constants/index";
-import { Button, InputAdornment, Paper, TextField } from "@mui/material";
+import { Button, InputAdornment, Paper, TextField, Snackbar, Alert } from "@mui/material";
 import type { Coupon, CouponType } from "@my-types";
 import { handleAxiosError } from "@utils/handleError";
 import axios from "axios";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import {
-	AddCouponForm,
+	CouponForm,
 	CouponDetailsDrawer,
 	DeleteCouponForm,
 } from "./components";
-import EditCouponForm from "./components/EditCouponForm";
 import { DataGridPageLayout } from "@components/admin";
 import callApi from "@utils/apiCaller";
 import { Search as SearchIcon } from "@mui/icons-material";
 import { Box } from "@mui/system";
+import { useAdminRealtime } from "@hooks/useAdminRealtime";
 
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 
 const CouponPage: React.FC = () => {
 	const [isLoading, setIsLoading] = useState(true);
 	const [coupons, setCoupons] = useState<Coupon[]>([]);
-	const [addOpen, setAddOpen] = useState<boolean>(false);
-	const [editOpen, setEditOpen] = useState<boolean>(false);
+	const [formOpen, setFormOpen] = useState<boolean>(false);
 	const [deleteOpen, setDeleteOpen] = useState<boolean>(false);
 	const [detailOpen, setDetailOpen] = useState<boolean>(false);
 	const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
 	const [searchTerm, setSearchTerm] = useState<string>("");
+	const [snackbar, setSnackbar] = useState<{
+		open: boolean;
+		message: string;
+		severity: "success" | "error" | "info" | "warning";
+	}>({ open: false, message: "", severity: "info" });
+
+	const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
 
 	const handleOpenDrawer = (id: number) => {
 		if (coupons === null || typeof coupons === "undefined") {
@@ -51,7 +57,7 @@ const CouponPage: React.FC = () => {
 			detail.type = detail.type.toUpperCase() as CouponType;
 			setSelectedCoupon(detail);
 			setDetailOpen(false);
-			setEditOpen(true);
+			setFormOpen(true);
 		}
 	};
 
@@ -144,54 +150,50 @@ const CouponPage: React.FC = () => {
 		});
 	}, [coupons, searchTerm]);
 
-	useEffect(() => {
-		let mounted = true;
+	const fetchData = useCallback(async () => {
+		setIsLoading(true);
+		try {
+			const response = await callApi<{ coupons: Coupon[] }>({
+				method: "GET",
+				url: API_ENDPOINTS.COUPON.BASE,
+			});
 
-		if (!isLoading) return;
-
-		const fetchData = async () => {
-			try {
-				const response = await callApi<{ coupons: Coupon[] }>({
-					method: "GET",
-					url: API_ENDPOINTS.COUPON.BASE,
-				});
-
-				if (response) {
-					const couponPayload =
-						(response as any).coupons ??
-						(response as any).data?.coupons ??
-						(response as any);
-					// Only update state if the component is still mounted.
-					// The `mounted` flag is set to false in the cleanup function
-					// to avoid calling `setState` on an unmounted component
-					// which would otherwise trigger a React warning.
-					if (mounted) {
-						setCoupons(
-							Array.isArray(couponPayload) ? couponPayload : []
-						);
-					}
-				}
-			} catch (err) {
-				const message = handleAxiosError(err);
-				console.error(message);
-			} finally {
-				if (mounted) {
-					setIsLoading(false);
-				}
+			if (response) {
+				const couponPayload =
+					(response as any).coupons ??
+					(response as any).data?.coupons ??
+					(response as any);
+				setCoupons(Array.isArray(couponPayload) ? couponPayload : []);
 			}
-		};
+		} catch (err) {
+			const message = handleAxiosError(err);
+			console.error(message);
+		} finally {
+			setIsLoading(false);
+		}
+	}, []);
 
+	useEffect(() => {
 		fetchData();
-		return () => {
-			mounted = false;
-		};
-	}, [isLoading]);
+	}, [fetchData]);
+
+	useAdminRealtime({
+		entity: "coupon",
+		onRefresh: fetchData,
+		onNotify: (message, severity) =>
+			setSnackbar({
+				open: true,
+				message,
+				severity: severity || "info",
+			}),
+	});
 
 	const actionBar = (
 		<Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
 			<Button
 				onClick={() => {
-					setAddOpen(true);
+					setSelectedCoupon(null);
+					setFormOpen(true);
 				}}
 				variant="contained"
 			>
@@ -232,23 +234,17 @@ const CouponPage: React.FC = () => {
 					pagination
 				/>
 			</Paper>
-			<AddCouponForm
-				open={addOpen}
-				onClose={() => setAddOpen(false)}
-				onCreated={() => setIsLoading(true)}
+			<CouponForm
+				open={formOpen}
+				initialData={selectedCoupon}
+				onClose={() => {
+					setFormOpen(false);
+					setSelectedCoupon(null);
+				}}
+				onSuccess={fetchData}
 			/>
 			{selectedCoupon && (
 				<>
-					<EditCouponForm
-						coupon={selectedCoupon}
-						key={selectedCoupon ? selectedCoupon.id : "new"}
-						open={editOpen}
-						onClose={() => setEditOpen(false)}
-						onEdited={() => {
-							setEditOpen(false);
-							setIsLoading(true);
-						}}
-					/>
 					<CouponDetailsDrawer
 						coupon={selectedCoupon}
 						open={detailOpen}
@@ -273,6 +269,20 @@ const CouponPage: React.FC = () => {
 					/>
 				</>
 			)}
+			<Snackbar
+				open={snackbar.open}
+				autoHideDuration={6000}
+				onClose={handleCloseSnackbar}
+				anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+			>
+				<Alert
+					onClose={handleCloseSnackbar}
+					severity={snackbar.severity}
+					sx={{ width: "100%" }}
+				>
+					{snackbar.message}
+				</Alert>
+			</Snackbar>
 		</DataGridPageLayout>
 	);
 };

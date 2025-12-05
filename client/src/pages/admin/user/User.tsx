@@ -15,6 +15,7 @@ import {
 	Stack,
 	Alert,
 	Button,
+	Snackbar,
 } from "@mui/material";
 import {
 	Error as ErrorIcon,
@@ -35,10 +36,10 @@ import type { Role, User } from "@my-types/user";
 import buildAvatarUrl from "@utils/avatarImageHelper";
 import {
 	InfoDrawer,
-	EditUserForm,
 	DeleteUserConfirm,
-	AddUserForm,
+	UserForm,
 } from "./components";
+import { useAdminRealtime } from "@hooks/useAdminRealtime";
 
 const UserPage: React.FC = () => {
 	const [users, setUsers] = useState<User[]>([]);
@@ -47,12 +48,18 @@ const UserPage: React.FC = () => {
 
 	// UI States
 	const [drawerOpen, setDrawerOpen] = useState(false);
-	const [editOpen, setEditOpen] = useState(false);
+	const [formOpen, setFormOpen] = useState(false);
 	const [deleteOpen, setDeleteOpen] = useState(false);
-	const [addOpen, setAddOpen] = useState(false);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [roleFilter, setRoleFilter] = useState<"all" | Role>("all");
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
+	const [snackbar, setSnackbar] = useState<{
+		open: boolean;
+		message: string;
+		severity: "success" | "error" | "info" | "warning";
+	}>({ open: false, message: "", severity: "info" });
+
+	const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
 
 	// Helper to get initials
 	const getInitials = (name: string) => {
@@ -90,19 +97,16 @@ const UserPage: React.FC = () => {
 
 	const handleOpenEdit = (user: User) => {
 		setSelectedUser(user);
-		setEditOpen(true);
+		setFormOpen(true);
 	};
 
 	const handleOpenAdd = () => {
-		setAddOpen(true);
+		setSelectedUser(null);
+		setFormOpen(true);
 	};
 
-	const handleCloseAdd = () => {
-		setAddOpen(false);
-	};
-
-	const handleCloseEdit = () => {
-		setEditOpen(false);
+	const handleCloseForm = () => {
+		setFormOpen(false);
 		setSelectedUser(null);
 	};
 
@@ -271,42 +275,53 @@ const UserPage: React.FC = () => {
 		},
 	];
 
-	useEffect(() => {
-		const fetchUsers = async () => {
-			setLoading(true);
-			try {
-				// Matches admin GET /admin/users
-				const res = await callApi<{ users: User[] }>({
-					method: "GET",
-					url: API_ENDPOINTS.ADMIN.BASE,
-				});
+	const fetchUsers = React.useCallback(async () => {
+		setLoading(true);
+		try {
+			// Matches admin GET /admin/users
+			const res = await callApi<{ users: User[] }>({
+				method: "GET",
+				url: API_ENDPOINTS.ADMIN.BASE,
+			});
 
-				if (res) {
-					// Normalize different possible response envelopes and extract users array
-					const usersPayload =
-						// direct shape: { users: User[] }
-						(res as any).users ??
-						// common envelope: { data: { users: User[] } }
-						(res as any).data?.users ??
-						// alternative envelope: { payload: { users: User[] } }
-						(res as any).payload?.users ??
-						// fallback if the response itself is the array
-						(res as any);
+			if (res) {
+				// Normalize different possible response envelopes and extract users array
+				const usersPayload =
+					// direct shape: { users: User[] }
+					(res as any).users ??
+					// common envelope: { data: { users: User[] } }
+					(res as any).data?.users ??
+					// alternative envelope: { payload: { users: User[] } }
+					(res as any).payload?.users ??
+					// fallback if the response itself is the array
+					(res as any);
 
-					setUsers(Array.isArray(usersPayload) ? usersPayload : []);
-				}
-			} catch (err: any) {
-				console.error("Failed to fetch users:", err);
-				setErrorMessage(
-					err.message ?? "Failed to load users. Please try again."
-				);
-			} finally {
-				setLoading(false);
+				setUsers(Array.isArray(usersPayload) ? usersPayload : []);
 			}
-		};
-
-		fetchUsers();
+		} catch (err: any) {
+			console.error("Failed to fetch users:", err);
+			setErrorMessage(
+				err.message ?? "Failed to load users. Please try again."
+			);
+		} finally {
+			setLoading(false);
+		}
 	}, []);
+
+	useEffect(() => {
+		fetchUsers();
+	}, [fetchUsers]);
+
+	useAdminRealtime({
+		entity: "user",
+		onRefresh: fetchUsers,
+		onNotify: (message, severity) =>
+			setSnackbar({
+				open: true,
+				message,
+				severity: severity || "info",
+			}),
+	});
 
 	return (
 		<DataGridPageLayout
@@ -386,20 +401,6 @@ const UserPage: React.FC = () => {
 
 			{selectedUser && (
 				<>
-					<EditUserForm
-						open={editOpen}
-						user={selectedUser}
-						onClose={handleCloseEdit}
-						onSaved={(updated) => {
-							setUsers((u) =>
-								u.map((x) =>
-									x.id === updated.id ? updated : x
-								)
-							);
-							setEditOpen(false);
-						}}
-					/>
-
 					<DeleteUserConfirm
 						open={deleteOpen}
 						user={selectedUser}
@@ -423,20 +424,41 @@ const UserPage: React.FC = () => {
 									x.id === updated.id ? updated : x
 								)
 							);
-							setEditOpen(false);
+							setFormOpen(false);
 						}}
 					/>
 				</>
 			)}
 
-			<AddUserForm
-				open={addOpen}
-				onClose={handleCloseAdd}
-				onSaved={(created) => {
-					setUsers((u) => [created, ...u]);
-					setAddOpen(false);
+			<UserForm
+				open={formOpen}
+				initialData={selectedUser}
+				onClose={handleCloseForm}
+				onSaved={(saved) => {
+					if (selectedUser) {
+						setUsers((u) =>
+							u.map((x) => (x.id === saved.id ? saved : x))
+						);
+					} else {
+						setUsers((u) => [saved, ...u]);
+					}
+					setFormOpen(false);
 				}}
 			/>
+			<Snackbar
+				open={snackbar.open}
+				autoHideDuration={6000}
+				onClose={handleCloseSnackbar}
+				anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+			>
+				<Alert
+					onClose={handleCloseSnackbar}
+					severity={snackbar.severity}
+					sx={{ width: "100%" }}
+				>
+					{snackbar.message}
+				</Alert>
+			</Snackbar>
 		</DataGridPageLayout>
 	);
 };

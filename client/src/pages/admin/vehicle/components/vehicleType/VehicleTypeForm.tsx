@@ -8,15 +8,16 @@ import {
 	DialogTitle,
 	DialogContent,
 	DialogActions,
+	CircularProgress,
+	Alert,
 } from "@mui/material";
 import {
 	ArrowBack as ArrowBackIcon,
 	Save as SaveIcon,
+	Add as AddIcon,
 } from "@mui/icons-material";
-import type { EditVehicleTypeFormProps } from "./types";
 import type { SeatLayout } from "@my-types/vehicleType";
 import SeatLayoutEditor from "@components/seatmap/SeatLayoutEditor";
-import type { UpdateVehicleTypeDTO } from "@my-types/vehicleType";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -24,13 +25,25 @@ import {
 	type VehicleTypeFormData,
 	type VehicleTypeInput,
 } from "@schemas/vehicleTypeSchema";
+import callApi from "@utils/apiCaller";
+import { API_ENDPOINTS } from "@constants/index";
 
-const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
+interface VehicleTypeFormProps {
+	open: boolean;
+	onClose: () => void;
+	onSaved: (vehicleType: any) => void;
+	initialData?: any;
+}
+
+const VehicleTypeForm: React.FC<VehicleTypeFormProps> = ({
 	open,
 	onClose,
-	vehicleType,
-	onUpdate,
+	onSaved,
+	initialData,
 }) => {
+	const isEditMode = !!initialData;
+	const [serverError, setServerError] = React.useState<string | null>(null);
+
 	const {
 		control,
 		handleSubmit,
@@ -50,27 +63,54 @@ const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
 	});
 
 	useEffect(() => {
-		if (vehicleType) {
-			reset({
-				name: vehicleType.name,
-				price: vehicleType.price,
-				totalFloors: vehicleType.totalFloors,
-				totalSeats: vehicleType.totalSeats,
-				seatLayout: vehicleType.seatLayout,
-			});
+		if (open) {
+			if (initialData) {
+				reset({
+					name: initialData.name,
+					price: initialData.price,
+					totalFloors: initialData.totalFloors,
+					totalSeats: initialData.totalSeats,
+					seatLayout: initialData.seatLayout,
+				});
+			} else {
+				reset({
+					name: "",
+					totalFloors: 0,
+					totalSeats: 0,
+					price: 0,
+					seatLayout: "",
+				});
+			}
+			setServerError(null);
 		}
-	}, [vehicleType, reset]);
+	}, [open, initialData, reset]);
 
 	const seatLayout = watch("seatLayout");
 	const totalFloors = watch("totalFloors");
 
-	const onSubmit = (data: VehicleTypeFormData) => {
-		if (vehicleType) {
-			onUpdate({
-				id: vehicleType.id,
-				...data,
-			} as UpdateVehicleTypeDTO);
+	const onSubmit = async (data: VehicleTypeFormData) => {
+		try {
+			let res;
+			if (isEditMode) {
+				res = await callApi({
+					method: "PUT",
+					url: API_ENDPOINTS.VEHICLE_TYPE.UPDATE(initialData.id),
+					data: data,
+				});
+			} else {
+				res = await callApi({
+					method: "POST",
+					url: API_ENDPOINTS.VEHICLE_TYPE.CREATE,
+					data: data,
+				});
+			}
+
+			const savedData = (res as any).data ?? res;
+			onSaved(savedData);
 			onClose();
+		} catch (err: any) {
+			console.error(err);
+			setServerError(err.message || "Failed to save vehicle type");
 		}
 	};
 
@@ -83,14 +123,25 @@ const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
 		[setValue]
 	);
 
-	if (!vehicleType) {
-		return null;
-	}
-
 	return (
-		<Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-			<DialogTitle>Edit Vehicle Type</DialogTitle>
+		<Dialog
+			open={open}
+			maxWidth="md"
+			fullWidth
+			// Prevent accidental closure when clicking backdrop
+			onClose={(_event, reason) => {
+				if (reason !== "backdropClick") onClose();
+			}}
+		>
+			<DialogTitle>
+				{isEditMode ? "Edit Vehicle Type" : "Create Vehicle Type"}
+			</DialogTitle>
 			<DialogContent>
+				{serverError && (
+					<Alert severity="error" sx={{ mb: 2 }}>
+						{serverError}
+					</Alert>
+				)}
 				<Box
 					component="form"
 					onSubmit={handleSubmit(onSubmit)}
@@ -107,6 +158,7 @@ const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
 										value={field.value || ""}
 										fullWidth
 										label="Name"
+										placeholder="e.g. Electric Bus"
 										error={!!errors.name}
 										helperText={errors.name?.message}
 										required
@@ -124,23 +176,24 @@ const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
 										{...field}
 										value={field.value || ""}
 										fullWidth
-										label="Floors"
+										label="Total Floors"
+										variant="outlined"
 										type="number"
 										error={!!errors.totalFloors}
 										helperText={
 											errors.totalFloors?.message ||
 											"Set in layout editor"
 										}
-										slotProps={{
-											input: {
-												readOnly: true,
-											},
+										InputProps={{
+											readOnly: true,
+											inputProps: { min: 0 },
 										}}
 									/>
 								)}
 							/>
 						</Grid>
-						<Grid size={{ xs: 12, sm: 6 }}>
+
+						<Grid size={{ xs: 12, sm: 4 }}>
 							<Controller
 								name="totalSeats"
 								control={control}
@@ -149,17 +202,17 @@ const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
 										{...field}
 										value={field.value || ""}
 										fullWidth
-										label="Seats"
+										label="Total Seats"
+										variant="outlined"
 										type="number"
 										error={!!errors.totalSeats}
 										helperText={
 											errors.totalSeats?.message ||
 											"Calculated from layout"
 										}
-										slotProps={{
-											input: {
-												readOnly: true,
-											},
+										InputProps={{
+											readOnly: true,
+											inputProps: { min: 0 },
 										}}
 									/>
 								)}
@@ -176,21 +229,23 @@ const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
 										value={field.value || ""}
 										fullWidth
 										label="Price"
+										variant="outlined"
 										type="number"
+										placeholder="e.g. 100000"
 										error={!!errors.price}
 										helperText={errors.price?.message}
-										slotProps={{
-											input: {
-												endAdornment: "₫",
-											},
+										InputProps={{
+											endAdornment: "₫",
 										}}
 									/>
 								)}
 							/>
 						</Grid>
+
 						<Grid size={{ xs: 12 }}>
 							<SeatLayoutEditor
 								onLayoutChange={handleLayoutChange}
+								onCancel={onClose}
 								initialLayout={
 									typeof seatLayout === "string"
 										? seatLayout
@@ -217,15 +272,27 @@ const EditVehicleTypeForm: React.FC<EditVehicleTypeFormProps> = ({
 				<Button
 					type="submit"
 					variant="contained"
-					startIcon={<SaveIcon />}
+					startIcon={
+						isSubmitting ? (
+							<CircularProgress size={20} />
+						) : isEditMode ? (
+							<SaveIcon />
+						) : (
+							<AddIcon />
+						)
+					}
 					onClick={handleSubmit(onSubmit)}
 					disabled={isSubmitting}
 				>
-					Update
+					{isSubmitting
+						? "Saving..."
+						: isEditMode
+						? "Update"
+						: "Create"}
 				</Button>
 			</DialogActions>
 		</Dialog>
 	);
 };
 
-export default EditVehicleTypeForm;
+export default VehicleTypeForm;

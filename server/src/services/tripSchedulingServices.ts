@@ -9,6 +9,8 @@ import {
 	IDriverAssignmentStrategy,
 } from "@utils/schedulingStrategy";
 import logger from "@utils/logger";
+import { emitCrudChange } from "./realtimeEvents";
+import { User } from "@models/user";
 
 /**
  * Auto-assigns a driver to a trip using the provided strategy.
@@ -83,6 +85,14 @@ export const autoAssignDriver = async (
 		);
 
 		await transaction.commit();
+
+		emitCrudChange(
+			"trip_assignment",
+			"create",
+			{ tripId, driverId: selected_driver_id, mode: "auto" },
+			{ id: "system", name: "System Auto-Assign" }
+		);
+
 		return schedule;
 	} catch (err) {
 		try {
@@ -205,6 +215,23 @@ export const manualAssignDriver = async (
 		);
 
 		await transaction.commit();
+
+		// Fetch user for notification
+		let actorName = "Admin";
+		try {
+			const user = await User.findByPk(assignedBy);
+			if (user) actorName = `${user.firstName} ${user.lastName}`;
+		} catch (e) {
+			// ignore
+		}
+
+		emitCrudChange(
+			"trip_assignment",
+			"update",
+			{ tripId, driverId, mode: "manual" },
+			{ id: assignedBy, name: actorName }
+		);
+
 		return schedule;
 	} catch (err) {
 		try {
@@ -288,10 +315,14 @@ export const getDriverSchedule = async (
  * Sets trip status back to PENDING.
  *
  * @param {number} trip_id - ID of the trip
+ * @param {string} [userId] - ID of the user performing the action
  * @returns {Promise<void>}
  * @throws {Object} Error with status code and message if schedule not found
  */
-export const unassignDriver = async (tripId: number): Promise<void> => {
+export const unassignDriver = async (
+	tripId: number,
+	userId?: string
+): Promise<void> => {
 	const transaction = await db.sequelize.transaction();
 
 	try {
@@ -322,6 +353,23 @@ export const unassignDriver = async (tripId: number): Promise<void> => {
 		);
 
 		await transaction.commit();
+
+		let actorName = "Admin";
+		if (userId) {
+			try {
+				const user = await User.findByPk(userId);
+				if (user) actorName = `${user.firstName} ${user.lastName}`;
+			} catch (e) {
+				// ignore
+			}
+		}
+
+		emitCrudChange(
+			"trip_assignment",
+			"delete",
+			{ tripId },
+			userId ? { id: userId, name: actorName } : undefined
+		);
 	} catch (err) {
 		try {
 			if (

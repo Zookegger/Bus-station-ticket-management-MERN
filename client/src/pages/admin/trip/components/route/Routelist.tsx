@@ -1,15 +1,15 @@
 import { API_ENDPOINTS } from "@constants/index";
-import { Button, Paper, Box, CircularProgress } from "@mui/material";
+import { Button, Paper, Box, CircularProgress, Snackbar, Alert } from "@mui/material";
 import type { Route } from "@my-types";
 import { handleAxiosError } from "@utils/handleError";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { CreateRouteForm, RouteDetailsDrawer, DeleteRouteForm } from "./index";
-import EditRouteForm from "./EditRouteForm";
+import { RouteForm, RouteDetailsDrawer, DeleteRouteForm } from "./index";
 import { DataGridPageLayout } from "@components/admin";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import { formatDistance } from "@utils/map";
+import { useAdminRealtime } from "@hooks/useAdminRealtime";
 
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 
@@ -20,11 +20,17 @@ axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 const RouteList: React.FC = () => {
 	const [isLoading, setIsLoading] = useState(true);
 	const [routes, setRoutes] = useState<Route[]>([]);
-	const [addOpen, setAddOpen] = useState(false);
-	const [editOpen, setEditOpen] = useState(false);
+	const [formOpen, setFormOpen] = useState(false);
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [detailOpen, setDetailOpen] = useState(false);
 	const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
+	const [snackbar, setSnackbar] = useState<{
+		open: boolean;
+		message: string;
+		severity: "success" | "error" | "info" | "warning";
+	}>({ open: false, message: "", severity: "info" });
+
+	const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
 
 	const handleOpenDrawer = (id: number) => {
 		const detail = routes.find((r) => r.id === id);
@@ -39,7 +45,7 @@ const RouteList: React.FC = () => {
 		if (detail) {
 			setSelectedRoute(detail);
 			setDetailOpen(false);
-			setEditOpen(true);
+			setFormOpen(true);
 		}
 	};
 
@@ -85,6 +91,17 @@ const RouteList: React.FC = () => {
 	useEffect(() => {
 		fetchData();
 	}, []);
+
+	useAdminRealtime({
+		entity: "route",
+		onRefresh: fetchData,
+		onNotify: (message, severity) =>
+			setSnackbar({
+				open: true,
+				message,
+				severity: severity || "info",
+			}),
+	});
 
 	const columns: GridColDef[] = [
 		{ field: "id", headerName: "ID", width: 70 },
@@ -142,7 +159,10 @@ const RouteList: React.FC = () => {
 	});
 
 	const actionBar = (
-		<Button variant="contained" onClick={() => setAddOpen(true)}>
+		<Button variant="contained" onClick={() => {
+			setSelectedRoute(null);
+			setFormOpen(true);
+		}}>
 			Add new route
 		</Button>
 	);
@@ -172,24 +192,18 @@ const RouteList: React.FC = () => {
 				</Paper>
 			)}
 
-			<EditRouteForm
-				route={selectedRoute}
-				routeId={selectedRoute ? selectedRoute.id : undefined}
-				key={selectedRoute ? selectedRoute.id : "new"}
-				open={editOpen}
-				onClose={() => setEditOpen(false)}
-				onEdited={() => {
-					setEditOpen(false);
-					setIsLoading(true);
-					fetchData(); // Refresh list after edit
+			<RouteForm
+				open={formOpen}
+				initialData={selectedRoute}
+				onClose={() => {
+					setFormOpen(false);
+					setSelectedRoute(null);
 				}}
-			/>
-			<CreateRouteForm
-				open={addOpen}
-				onClose={() => setAddOpen(false)}
-				onCreated={() => {
+				onSaved={() => {
+					setFormOpen(false);
+					setSelectedRoute(null);
 					setIsLoading(true);
-					fetchData(); // Refresh list after create
+					fetchData();
 				}}
 			/>
 			{selectedRoute && (
@@ -213,6 +227,20 @@ const RouteList: React.FC = () => {
 					/>
 				</>
 			)}
+			<Snackbar
+				open={snackbar.open}
+				autoHideDuration={6000}
+				onClose={handleCloseSnackbar}
+				anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+			>
+				<Alert
+					onClose={handleCloseSnackbar}
+					severity={snackbar.severity}
+					sx={{ width: "100%" }}
+				>
+					{snackbar.message}
+				</Alert>
+			</Snackbar>
 		</DataGridPageLayout>
 	);
 };

@@ -11,6 +11,7 @@ import { getParamNumericId } from "@utils/request";
 import { CreateTripDTO, UpdateTripDTO } from "@my_types/trip";
 import * as tripServices from "@services/tripServices";
 import * as tripSchedulingServices from "@services/tripSchedulingServices";
+import { emitCrudChange } from "@services/realtimeEvents";
 import logger from "@utils/logger";
 
 /**
@@ -178,6 +179,19 @@ export const AddTrip = async (
 			trip,
 			message: "Trip added successfully.",
 		});
+
+		// Emit CRUD change to admins
+		try {
+			const actor: User | undefined = req.user as User;
+			emitCrudChange(
+				"trip",
+				"create",
+				{ id: trip.id, routeId: trip.routeId },
+				actor ? { id: String(actor.id), name: `${actor.firstName} ${actor.lastName}` } : undefined
+			);
+		} catch (e) {
+			// ignore emit errors
+		}
 	} catch (err) {
 		next(err);
 	}
@@ -221,6 +235,19 @@ export const UpdateTrip = async (
 			trip,
 			message: "Trip updated successfully.",
 		});
+
+		// Emit CRUD change to admins
+		try {
+			const actor: User | undefined = req.user as User;
+			emitCrudChange(
+				"trip",
+				"update",
+				{ id: trip.id },
+				actor ? { id: String(actor.id), name: `${actor.firstName} ${actor.lastName}` } : undefined
+			);
+		} catch (e) {
+			// ignore
+		}
 	} catch (err) {
 		next(err);
 	}
@@ -256,6 +283,19 @@ export const DeleteTrip = async (
 			success: true,
 			message: "Trip deleted successfully.",
 		});
+
+		// Emit CRUD change to admins
+		try {
+			const actor: User | undefined = req.user as User;
+			emitCrudChange(
+				"trip",
+				"delete",
+				{ id },
+				actor ? { id: String(actor.id), name: `${actor.firstName} ${actor.lastName}` } : undefined
+			);
+		} catch (e) {
+			// ignore
+		}
 	} catch (err) {
 		next(err);
 	}

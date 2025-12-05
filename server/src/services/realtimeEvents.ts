@@ -47,3 +47,19 @@ export const emitDashboardMetrics = (payload: DashboardMetricsPayload) => {
 export const emitTripStatus = (payload: TripStatusPayload) => {
 	safeEmit(RT_EVENTS.TRIP_STATUS, ROOMS.trip(payload.tripId), payload);
 };
+
+export const emitCrudChange = (
+	entity: string,
+	action: "create" | "update" | "delete",
+	data: any,
+	actor?: { id: string; name: string }
+) => {
+	// Broadcast to all admins (using dashboard room as admin room)
+	safeEmit(RT_EVENTS.CRUD_CHANGE, ROOMS.dashboard, {
+		entity,
+		action,
+		data,
+		actor,
+		timestamp: new Date(),
+	});
+};

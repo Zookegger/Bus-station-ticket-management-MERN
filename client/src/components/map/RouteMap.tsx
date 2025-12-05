@@ -91,12 +91,12 @@ const RouteMap: React.FC<RouteMapProps> = ({
 	if (route?.route?.geometry?.coordinates) {
 		// Legacy OSRM format [lon, lat]
 		routeCoords = route.route.geometry.coordinates
-			.map((c: any[]) => [c[1], c[0]])
+			.map((c: any[]) => [c[1], c[0]] as [number, number])
 			.filter((pair) => Number.isFinite(pair[0]) && Number.isFinite(pair[1]));
 	} else if (fetchedRoute?.features?.[0]?.geometry?.coordinates) {
 		// ORS format [lon, lat]
 		routeCoords = fetchedRoute.features[0].geometry.coordinates
-			.map((c) => [c[1], c[0]])
+			.map((c) => [c[1], c[0]] as [number, number])
 			.filter((pair) => Number.isFinite(pair[0]) && Number.isFinite(pair[1]));
 	}
 

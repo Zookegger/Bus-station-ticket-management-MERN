@@ -1,127 +1,215 @@
-import { useState, useMemo } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  TextField,
-  Box,
-  Stack,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  TablePagination,
-} from "@mui/material";
-import { mockOrders } from "@data/mockData";
+import { Box, Chip, Typography } from "@mui/material";
+import { DataGrid } from "@mui/x-data-grid";
+import type { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
+import type { Order } from "@my-types/order";
+import type { Ticket } from "@my-types/ticket";
+import type { Trip } from "@my-types";
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    minimumFractionDigits: 0,
-  }).format(value);
+interface OrderTableProps {
+	orders: Order[];
+	loading?: boolean;
+	onViewDetail: (order: Order) => void;
+}
 
-export const OrderTable = () => {
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<
-    "All" | "Paid" | "Cancelled"
-  >("All");
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+const OrderTable = ({ orders, loading, onViewDetail }: OrderTableProps) => {
+	const columns: GridColDef<Order>[] = [
+		{
+			field: "id",
+			headerName: "Order ID",
+			width: 250,
+			minWidth: 150,
+			renderCell: (params: GridRenderCellParams<Order>) => {
+				return (
+					<Typography
+						sx={{
+							textOverflow: "ellipsis",
+							overflow: "hidden",
+							textWrap: "nowrap",
+						}}
+					>
+						{params.row.id}
+					</Typography>
+				);
+			},
+		},
+		{
+			field: "customer",
+			headerName: "Customer",
+			width: 150,
+			renderCell: (params: GridRenderCellParams<Order>) => {
+				const order = params.row;
+				return (
+					<Box sx={{ py: 1 }}>
+						<Typography variant="body2" fontWeight="medium">
+							{order.guestPurchaserName ||
+								(order.userId
+									? order.user?.fullName
+									: order.guestPurchaserName)}
+						</Typography>
+						<Typography variant="caption" color="text.secondary">
+							{order.guestPurchaserEmail ||
+								order.guestPurchaserPhone ||
+								""}
+						</Typography>
+					</Box>
+				);
+			},
+		},
+		{
+			field: "tripTime",
+			headerName: "Departure Time",
+			width: 185,
+			renderCell: (params: GridRenderCellParams<Order>) => {
+				const order = params.row;
+				const first: Ticket | undefined = order.tickets?.at(0);
+				const trip: Trip = first?.seat?.trip as any;
+				const depTime = trip?.startTime
+					? new Date(trip.startTime).toLocaleString("vn-VN")
+					: "-";
 
-  const filteredData = useMemo(() => {
-    return mockOrders.filter((order) => {
-      const matchesSearch =
-        order.ticketId.toLowerCase().includes(search.toLowerCase()) ||
-        order.trip.toLowerCase().includes(search.toLowerCase()) ||
-        order.customer.toLowerCase().includes(search.toLowerCase());
-      const matchesStatus =
-        statusFilter === "All" || order.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    });
-  }, [search, statusFilter]);
+				return <Typography variant="body2">{depTime}</Typography>;
+			},
+		},
+		{
+			field: "tripInfo",
+			headerName: "Trip Info",
+			width: 300,
+			renderCell: (params: GridRenderCellParams<Order>) => {
+				const order = params.row;
+				const first: Ticket | undefined = order.tickets?.at(0);
+				const trip: Trip = first?.seat?.trip as any;
+				const origin = trip?.route?.stops[0]?.locations?.name || "N/A";
+				const destination =
+					trip?.route?.stops[trip?.route?.stops.length - 1]?.locations
+						?.name || "N/A";
 
-  const paginatedData = filteredData.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
-  );
+				return (
+					<Typography
+						variant="body2"
+						fontWeight="medium"
+						sx={{
+							textOverflow: "ellipsis",
+							overflow: "hidden",
+							textWrap: "nowrap",
+						}}
+					>
+						{origin} → {destination}
+					</Typography>
+				);
+			},
+		},
+		{
+			field: "tickets",
+			headerName: "Qty",
+			width: 80,
+			valueGetter: (_value, row) => row.tickets?.length || 0,
+		},
+		{
+			field: "totalFinalPrice",
+			headerName: "Total Amount",
+			width: 150,
+			valueFormatter: (value: number) =>
+				`${value.toLocaleString("vi-VN")} ₫`,
+		},
+		{
+			field: "status",
+			headerName: "Status",
+			width: 180,
+			renderCell: (params: GridRenderCellParams<Order>) => {
+				const status = params.value as string;
+				let label = status;
+				let color:
+					| "default"
+					| "primary"
+					| "secondary"
+					| "error"
+					| "info"
+					| "success"
+					| "warning" = "default";
 
-  return (
-    <Box>
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} mb={2}>
-        <TextField
-          placeholder="Search..."
-          size="small"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          sx={{ minWidth: 200 }}
-        />
-        <FormControl size="small" sx={{ minWidth: 120 }}>
-          <InputLabel>Status</InputLabel>
-          <Select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
-            label="Status"
-          >
-            <MenuItem value="All">All</MenuItem>
-            <MenuItem value="Paid">Paid</MenuItem>
-            <MenuItem value="Cancelled">Cancelled</MenuItem>
-          </Select>
-        </FormControl>
-      </Stack>
+				switch (status) {
+					case "CONFIRMED":
+						label = "Paid";
+						color = "success";
+						break;
+					case "PENDING":
+						label = "Awaiting Payment";
+						color = "warning";
+						break;
+					case "PARTIALLY_REFUNDED":
+						label = "Partially Refunded";
+						color = "info";
+						break;
+					case "REFUNDED":
+						label = "Refunded";
+						color = "info";
+						break;
+					case "CANCELLED":
+						label = "Cancelled";
+						color = "error";
+						break;
+					case "EXPIRED":
+						label = "Expired";
+						color = "default";
+						break;
+				}
 
-      <TableContainer component={Paper}>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Ticket ID</TableCell>
-              <TableCell>Trip</TableCell>
-              <TableCell>Vehicle</TableCell>
-              <TableCell>Customer</TableCell>
-              <TableCell>Seat</TableCell>
-              <TableCell>Price</TableCell>
-              <TableCell>Booking Date</TableCell>
-              <TableCell>Status</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {paginatedData.map((order) => (
-              <TableRow key={order.ticketId}>
-                <TableCell>{order.ticketId}</TableCell>
-                <TableCell>{order.trip}</TableCell>
-                <TableCell>{order.vehicle}</TableCell>
-                <TableCell>{order.customer}</TableCell>
-                <TableCell>{order.seat}</TableCell>
-                <TableCell>{formatCurrency(order.price)}</TableCell>
-                <TableCell>{order.bookingDate}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={order.status}
-                    color={order.status === "Paid" ? "success" : "error"}
-                    size="small"
-                  />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+				return (
+					<Chip
+						label={label}
+						color={color}
+						size="small"
+						variant="outlined"
+					/>
+				);
+			},
+		},
+		{
+			field: "updatedAt",
+			headerName: "Updated At",
+			width: 190,
+			valueFormatter: (value: Date) => {
+				return value
+					? `${new Date(value).toLocaleDateString()} - ${new Date(
+							value
+					  ).toLocaleTimeString()}`
+					: "N/A";
+			},
+		},
+		{
+			field: "createdAt",
+			headerName: "Created At",
+			width: 190,
+			valueFormatter: (value: Date) => {
+				return value
+					? `${new Date(value).toLocaleDateString()} - ${new Date(
+							value
+					  ).toLocaleTimeString()}`
+					: "N/A";
+			},
+		},
+	];
 
-      <TablePagination
-        component="div"
-        count={filteredData.length}
-        page={page}
-        onPageChange={(_, p) => setPage(p)}
-        rowsPerPage={rowsPerPage}
-        onRowsPerPageChange={(e) =>
-          setRowsPerPage(parseInt(e.target.value, 10))
-        }
-      />
-    </Box>
-  );
+	return (
+		<DataGrid
+			rows={orders}
+			columns={columns}
+			loading={loading}
+			disableRowSelectionOnClick
+			initialState={{
+				pagination: { paginationModel: { pageSize: 10 } },
+			}}
+			onRowClick={(params) => onViewDetail(params.row)}
+			pageSizeOptions={[5, 10, 25]}
+			getRowHeight={() => "auto"}
+			sx={{
+				"& .MuiDataGrid-cell": {
+					display: "flex",
+					alignItems: "center",
+				},
+			}}
+		/>
+	);
 };
+
+export default OrderTable;

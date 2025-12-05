@@ -15,9 +15,16 @@ import {
 import { Box } from "@mui/system";
 import { GridCloseIcon } from "@mui/x-data-grid";
 import { format } from "date-fns";
-import type { CouponDetailsDrawerProps } from "./types/Props";
 import { CouponType, type Coupon } from "@my-types";
 import { Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
+
+interface CouponDetailsDrawerProps {
+	open: boolean;
+	onClose: () => void;
+	coupon: Coupon | null;
+	onEdit?: (coupon: Coupon) => void;
+	onDelete?: (id: number) => void;
+}
 
 /**
  * Renders a drawer that shows a read-only summary of the selected coupon.

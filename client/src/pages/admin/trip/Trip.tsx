@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Box, Tabs, Tab } from "@mui/material";
 import DriverList from "./components/driver/DriverList";
-import { AssignmentList } from "../assignment";
 import TabPanel from "@components/common/TabPanel";
 import TripList from "./components/trip/TripList";
 import RouteList from "./components/route/Routelist";
@@ -38,10 +37,6 @@ const Trip: React.FC = () => {
 
 			<TabPanel value={activeTab} index={2}>
 				<DriverList />
-			</TabPanel>
-
-			<TabPanel value={activeTab} index={3}>
-				<AssignmentList />
 			</TabPanel>
 		</Box>
 	);

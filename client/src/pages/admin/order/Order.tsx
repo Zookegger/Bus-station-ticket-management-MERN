@@ -27,6 +27,7 @@ import type { Order } from "@my-types/order";
 import { OrderStatus } from "@my-types/order";
 import callApi from "@utils/apiCaller";
 import { API_ENDPOINTS } from "@constants/index";
+import { useAdminRealtime } from "@hooks/useAdminRealtime";
 
 export default function OrderManagement() {
 	const [search, setSearch] = useState("");
@@ -40,6 +41,11 @@ export default function OrderManagement() {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+	useAdminRealtime({
+		entity: "order",
+		onRefresh: () => setRefreshTrigger((prev) => prev + 1),
+	});
 
 	useEffect(() => {
 		const fetchOrders = async () => {

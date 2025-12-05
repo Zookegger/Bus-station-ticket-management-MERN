@@ -42,6 +42,7 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
 	onClose,
 	vehicle,
 	onEdit,
+	onDelete,
 }) => {
 	const getStatusColor = (status?: string): ChipColor => {
 		if (!status) return "default";
@@ -58,10 +59,9 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
 				return "default";
 		}
 	};
+
 	if (!vehicle) return null;
-	function onDelete(_vehicle: VehicleDetail) {
-		throw new Error("Function not implemented.");
-	}
+
 	return (
 		<Drawer
 			anchor="right"
@@ -277,7 +277,10 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
 							<Grid container spacing={2}>
 								<Grid size={{ xs: 6 }} p={1}>
 									<Box display={"flex"} alignItems={"center"}>
-										<CreatedAtIcon fontSize="small" sx={{ marginRight: 0.5}}/>
+										<CreatedAtIcon
+											fontSize="small"
+											sx={{ marginRight: 0.5 }}
+										/>
 										<Typography
 											variant="body1"
 											color="text.secondary"
@@ -300,7 +303,10 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
 								</Grid>
 								<Grid size={{ xs: 6 }} p={1}>
 									<Box display={"flex"} alignItems={"center"}>
-										<UpdatedAtIcon fontSize="small" sx={{ marginRight: 0.5}}/>
+										<UpdatedAtIcon
+											fontSize="small"
+											sx={{ marginRight: 0.5 }}
+										/>
 										<Typography
 											variant="body1"
 											color="text.secondary"
@@ -360,8 +366,8 @@ const VehicleDetailsDrawer: React.FC<VehicleDetailsDrawerProps> = ({
 						startIcon={<DeleteIcon className="hvr-icon" />}
 						onClick={() => {
 							if (vehicle && onDelete) {
-								onDelete(vehicle); // gọi hàm xóa từ parent
-								onClose(); // đóng Drawer sau khi xóa
+								onDelete(vehicle);
+								onClose();
 							}
 						}}
 					>

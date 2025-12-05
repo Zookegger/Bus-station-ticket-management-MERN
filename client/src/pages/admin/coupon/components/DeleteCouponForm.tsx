@@ -1,88 +1,57 @@
-import {
-	Alert,
-	Button,
-	Dialog,
-	DialogActions,
-	DialogContent,
-	DialogContentText,
-	DialogTitle,
-} from "@mui/material";
-import type { DeleteCouponFormProps } from "./types/Props";
-import { useEffect, useState } from "react";
-import { handleAxiosError } from "@utils/handleError";
-import axios from "axios";
-import { API_ENDPOINTS } from "@constants/index";;
-import { Warning } from "@mui/icons-material";
+import { useCallback, useMemo } from "react";
+import type { FC } from "react";
+import ConfirmDeleteDialog from "@components/common/ConfirmDeleteDialog";
+import { API_ENDPOINTS } from "@constants/index";
+import callApi from "@utils/apiCaller";
+interface DeleteCouponFormProps {
+	id?: number;
+	open: boolean;
+	onClose: () => void;
+	onConfirm?: (id: number) => void;
+}
 
-const DeleteCouponForm: React.FC<DeleteCouponFormProps> = ({
+const DeleteCouponForm: FC<DeleteCouponFormProps> = ({
 	id,
 	open,
 	onClose,
 	onConfirm,
 }) => {
-	const [errors, setErrors] = useState<string | null>(null);
-	const [isDeleting, setIsDeleting] = useState<boolean>(false);
+	const validationError = useMemo(
+		() =>
+			open && (typeof id !== "number" || !Number.isInteger(id))
+				? "Invalid coupon identifier."
+				: null,
+		[open, id]
+	);
 
-	useEffect(() => {
-		if (!(typeof id === "number" && Number.isInteger(id))) {
-			setErrors("Invalid ID");
-		} else {
-			setErrors(null);
+	const deleteCoupon = useCallback(async () => {
+		if (typeof id !== "number" || !Number.isInteger(id)) {
+			throw new Error("No coupon id provided.");
 		}
+
+		// Remove the coupon via API before notifying parent components.
+		await callApi({
+			method: "DELETE",
+			url: API_ENDPOINTS.COUPON.DELETE(id),
+		});
 	}, [id]);
-	
-	const handleSubmit = async () => {
-		if (errors) return;
 
-		setIsDeleting(true);
-		setErrors(null);
-
-		if (!id) throw new Error("No ID provided");
-
-		try {
-			const response = await axios.delete(
-				API_ENDPOINTS.COUPON.DELETE(id)
-			);
-			if (!response || response.status !== 200) {
-				throw new Error("No response from server");
-			}
+	const handleSuccess = useCallback(() => {
+		if (typeof id === "number" && Number.isInteger(id)) {
 			onConfirm?.(id);
-			onClose();
-		} catch (err: unknown) {
-			const message = handleAxiosError(err);
-			setErrors(message.message);
-		} finally {
-			setIsDeleting(false);
 		}
-	};
+	}, [id, onConfirm]);
 
 	return (
-		<Dialog open={open} onClose={onClose}>
-			<DialogTitle>
-				<Warning color="error" />
-				{errors && <Alert>{errors.toString()}</Alert>}
-			</DialogTitle>
-
-			<DialogContent>
-				<DialogContentText>
-					Are you sure you want to delete this coupon?
-				</DialogContentText>
-			</DialogContent>
-			<DialogActions sx={{ px: 2 }}>
-				<Button onClick={onClose} color="inherit">
-					Cancel
-				</Button>
-				<Button
-					type="button"
-					variant="contained"
-					color="error"
-					disabled={isDeleting || errors != null}
-					onClick={handleSubmit}
-				>
-					{isDeleting ? "Delete..." : "Confirm Delete"}
-				</Button>
-			</DialogActions>
-		</Dialog>
+		<ConfirmDeleteDialog
+			open={open}
+			title="Delete Coupon"
+			description="Are you sure you want to delete this coupon?"
+			onClose={onClose}
+			deleteAction={deleteCoupon}
+			onSuccess={handleSuccess}
+			blockingError={validationError}
+		/>
 	);
 };
 

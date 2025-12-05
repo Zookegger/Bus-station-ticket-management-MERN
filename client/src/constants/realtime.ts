@@ -17,6 +17,7 @@ export const RT_EVENTS = {
 	SEAT_BULK: "seat:bulk",
 	DASHBOARD_METRICS: "dashboard:metrics",
 	TRIP_STATUS: "trip:status",
+	CRUD_CHANGE: "crud:change",
 };
 
 /** Inbound events (client -> server) */

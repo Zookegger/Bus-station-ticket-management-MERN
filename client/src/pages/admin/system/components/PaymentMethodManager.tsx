@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
 	Box,
 	Button,
@@ -32,6 +32,7 @@ import {
 	paymentMethodSchema,
 	type PaymentMethodForm,
 } from "@schemas/paymentMethodSchema";
+import { useAdminRealtime } from "@hooks/useAdminRealtime";
 
 interface EditDialogState {
 	open: boolean;
@@ -63,7 +64,7 @@ const PaymentMethodManager: React.FC = () => {
 	});
 
 	// Fetch Methods
-	const fetchMethods = async () => {
+	const fetchMethods = useCallback(async () => {
 		setLoading(true);
 		try {
 			const { status, data } = await callApi(
@@ -78,11 +79,16 @@ const PaymentMethodManager: React.FC = () => {
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, []);
+
+	useAdminRealtime({
+		entity: "payment_method",
+		onRefresh: fetchMethods,
+	});
 
 	useEffect(() => {
 		fetchMethods();
-	}, []);
+	}, [fetchMethods]);
 
 	// Filter
 	const filteredMethods = useMemo(() => {

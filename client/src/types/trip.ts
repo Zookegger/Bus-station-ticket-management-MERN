@@ -1,5 +1,6 @@
 import type { Route } from "./route";
 import type { Vehicle } from "./vehicle";
+import type { Driver } from "./driver";
 
 /**
  * Enum for the status of a trip.
@@ -177,6 +178,8 @@ export interface Trip {
 	createdAt?: Date;
 	/**The date and time the trip was last updated. */
 	updatedAt?: Date;
+	/** The drivers assigned to this trip */
+	drivers?: Driver[];
 }
 
 export interface TripResponse {

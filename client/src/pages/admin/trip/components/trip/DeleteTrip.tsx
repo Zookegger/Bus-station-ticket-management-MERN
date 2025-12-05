@@ -1,17 +1,8 @@
-import React, { useState, useEffect } from "react";
-import {
-	Alert,
-	Button,
-	Dialog,
-	DialogActions,
-	DialogContent,
-	DialogContentText,
-	DialogTitle,
-} from "@mui/material";
-import { Warning } from "@mui/icons-material";
-import axios from "axios";
-import { API_ENDPOINTS } from "@constants/index";;
-import { handleAxiosError } from "@utils/handleError";
+import { useCallback, useMemo } from "react";
+import type { FC } from "react";
+import ConfirmDeleteDialog from "@components/common/ConfirmDeleteDialog";
+import callApi from "@utils/apiCaller";
+import { API_ENDPOINTS } from "@constants/index";
 import type { Trip } from "@my-types/trip";
 
 interface DeleteTripProps {
@@ -21,73 +12,47 @@ interface DeleteTripProps {
 	trip: Trip | null;
 }
 
-const DeleteTrip: React.FC<DeleteTripProps> = ({
-	open,
-	onClose,
-	onDeleted,
-	trip,
-}) => {
-	const [isDeleting, setIsDeleting] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+const DeleteTrip: FC<DeleteTripProps> = ({ open, onClose, onDeleted, trip }) => {
+	const blockingError = useMemo(
+		() => (open && !trip ? "No trip selected for deletion." : null),
+		[open, trip]
+	);
 
-	useEffect(() => {
-		// Reset error state when the dialog opens with a valid trip
-		if (open && trip) {
-			setError(null);
-		}
-		// Set an error if the trip is missing when the dialog is open
-		if (open && !trip) {
-			setError("No trip selected for deletion.");
-		}
-	}, [trip, open]);
+	const dialogDescription = useMemo(
+		() =>
+			trip
+				? `Are you sure you want to delete Trip #${trip.id}? This action cannot be undone.`
+				: "Select a trip before attempting to delete.",
+		[trip]
+	);
 
-	const handleDelete = async () => {
+	const deleteTrip = useCallback(async () => {
 		if (!trip) {
-			setError("Cannot delete: Trip data is missing.");
-			return;
+			throw new Error("Cannot delete without a selected trip.");
 		}
 
-		setIsDeleting(true);
-		setError(null);
+		// Ensure the server removes the trip before any UI updates execute.
+		await callApi({
+			method: "DELETE",
+			url: API_ENDPOINTS.TRIP.DELETE(trip.id),
+		});
+	}, [trip]);
 
-		try {
-			await axios.delete(API_ENDPOINTS.TRIP.DELETE(trip.id));
-			onDeleted(); // Callback to refresh the list
-			onClose(); // Close the dialog on success
-		} catch (err: unknown) {
-			const axiosError = handleAxiosError(err);
-			setError(axiosError.message || "An unknown error occurred.");
-		} finally {
-			setIsDeleting(false);
-		}
-	};
+	const handleSuccess = useCallback(() => {
+		// Refresh parent state to reflect the deleted trip.
+		onDeleted();
+	}, [onDeleted]);
 
 	return (
-		<Dialog open={open} onClose={onClose}>
-			<DialogTitle sx={{ display: "flex", alignItems: "center" }}>
-				<Warning color="error" sx={{ mr: 1 }} />
-				Delete Trip
-			</DialogTitle>
-			<DialogContent>
-				{error && <Alert severity="error">{error}</Alert>}
-				<DialogContentText sx={{ mt: error ? 2 : 0 }}>
-					{`Are you sure you want to delete Trip #${trip?.id}? This action cannot be undone.`}
-				</DialogContentText>
-			</DialogContent>
-			<DialogActions sx={{ px: 3, pb: 2 }}>
-				<Button onClick={onClose} color="inherit">
-					Cancel
-				</Button>
-				<Button
-					onClick={handleDelete}
-					variant="contained"
-					color="error"
-					disabled={isDeleting || !trip}
-				>
-					{isDeleting ? "Deleting..." : "Confirm Delete"}
-				</Button>
-			</DialogActions>
-		</Dialog>
+		<ConfirmDeleteDialog
+			open={open}
+			title="Delete Trip"
+			description={dialogDescription}
+			onClose={onClose}
+			deleteAction={deleteTrip}
+			onSuccess={handleSuccess}
+			blockingError={blockingError}
+		/>
 	);
 };
 
