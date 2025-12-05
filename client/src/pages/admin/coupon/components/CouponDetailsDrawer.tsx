@@ -10,11 +10,21 @@ import {
 	Typography,
 	Grid,
 	CardActions,
+	useTheme,
 } from "@mui/material";
 import { Box } from "@mui/system";
 import { GridCloseIcon } from "@mui/x-data-grid";
 import { format } from "date-fns";
-import type { CouponDetailsDrawerProps } from "./types/Props";
+import { CouponType, type Coupon } from "@my-types";
+import { Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
+
+interface CouponDetailsDrawerProps {
+	open: boolean;
+	onClose: () => void;
+	coupon: Coupon | null;
+	onEdit?: (coupon: Coupon) => void;
+	onDelete?: (id: number) => void;
+}
 
 /**
  * Renders a drawer that shows a read-only summary of the selected coupon.
@@ -28,6 +38,8 @@ const CouponDetailsDrawer: React.FC<CouponDetailsDrawerProps> = ({
 	onEdit,
 	onDelete,
 }) => {
+	const theme = useTheme();
+
 	/**
 	 * Converts an ISO-8601 string into a friendly date-time label for display.
 	 * @param {string} iso_value - Raw ISO string saved on the coupon.
@@ -41,7 +53,7 @@ const CouponDetailsDrawer: React.FC<CouponDetailsDrawerProps> = ({
 	 * Invokes the upstream edit handler with the currently selected coupon.
 	 * @returns {void}
 	 */
-	const handleEditClick = (): void => {
+	const handleEditClick = (coupon: Coupon): void => {
 		if (!coupon || !onEdit) {
 			return;
 		}
@@ -53,22 +65,30 @@ const CouponDetailsDrawer: React.FC<CouponDetailsDrawerProps> = ({
 	 * Invokes the upstream delete handler with the currently selected coupon.
 	 * @returns {void}
 	 */
-	const handleDeleteClick = (): void => {
-		if (!coupon || !onDelete) {
+	const handleDeleteClick = (id: number): void => {
+		if (!id || !onDelete) {
 			return;
 		}
 
-		onDelete(coupon);
+		onDelete(id);
 	};
 
 	const formatted_details = coupon
 		? {
-				start_period: formatDateTime(coupon.startPeriod),
-				end_period: formatDateTime(coupon.endPeriod),
-				created_at: formatDateTime(coupon.createdAt),
-				updated_at: formatDateTime(coupon.updatedAt),
+				start_period: coupon.startPeriod
+					? formatDateTime(coupon.startPeriod.toString())
+					: "N/A",
+				end_period: coupon.endPeriod
+					? formatDateTime(coupon.endPeriod.toString())
+					: "N/A",
+				created_at: coupon.createdAt
+					? formatDateTime(coupon.createdAt.toString())
+					: "N/A",
+				updated_at: coupon.updatedAt
+					? formatDateTime(coupon.updatedAt.toString())
+					: "N/A",
 				value_label:
-					coupon.type === "percentage"
+					coupon.type === CouponType.PERCENTAGE
 						? `${coupon.value}%`
 						: coupon.value.toLocaleString("en-US", {
 								style: "currency",
@@ -119,7 +139,10 @@ const CouponDetailsDrawer: React.FC<CouponDetailsDrawerProps> = ({
 									<CardHeader
 										title={coupon.title ?? coupon.code}
 										subheader={
-											<Box display={'flex'} justifyContent={'space-between'}>
+											<Box
+												display={"flex"}
+												justifyContent={"space-between"}
+											>
 												<Chip
 													color={
 														coupon.isActive
@@ -309,28 +332,47 @@ const CouponDetailsDrawer: React.FC<CouponDetailsDrawerProps> = ({
 											</Grid>
 										</Stack>
 									</CardContent>
-									<CardActions>
-										<Stack direction="row" spacing={1}>
-											{onEdit ? (
-												<Button
-													size="small"
-													variant="outlined"
-													onClick={handleEditClick}
-												>
-													Edit
-												</Button>
-											) : null}
-											{onDelete ? (
-												<Button
-													color="error"
-													size="small"
-													variant="outlined"
-													onClick={handleDeleteClick}
-												>
-													Delete
-												</Button>
-											) : null}
-										</Stack>
+									<CardActions sx={{ gap: 1 }}>
+										<Button
+											variant="contained"
+											startIcon={<EditIcon />}
+											onClick={() =>
+												handleEditClick(coupon)
+											}
+											sx={{
+												bgcolor: "#1976d2",
+												flex: 1,
+												"&:hover": {
+													borderColor: "primary.main",
+													bgcolor: "#165799ff",
+													boxShadow:
+														theme.shadows?.[2] ||
+														"none",
+												},
+											}}
+										>
+											Edit
+										</Button>
+										<Button
+											variant="contained"
+											startIcon={<DeleteIcon />}
+											onClick={() =>
+												handleDeleteClick(coupon.id)
+											}
+											sx={{
+												bgcolor: "#d32f2f",
+												flex: 1,
+												"&:hover": {
+													borderColor: "primary.main",
+													bgcolor: "#811e1eff",
+													boxShadow:
+														theme.shadows?.[2] ||
+														"none",
+												},
+											}}
+										>
+											Delete
+										</Button>
 									</CardActions>
 								</Card>
 							</Grid>

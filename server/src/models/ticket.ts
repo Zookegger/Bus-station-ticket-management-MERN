@@ -232,14 +232,20 @@ implements TicketAttributes
 		Ticket.belongsTo(models.User, {
 			foreignKey: "userId",
 			as: "user",
+			onDelete: "SET NULL",
+			onUpdate: "CASCADE",
 		});
 		Ticket.belongsTo(models.Seat, {
 			foreignKey: "seatId",
 			as: "seat",
+			onDelete: "RESTRICT",
+			onUpdate: "CASCADE",
 		});
 		Ticket.belongsTo(models.Order, {
 			foreignKey: "orderId",
 			as: "order",
+			onDelete: "CASCADE",
+			onUpdate: "CASCADE",
 		});
 	}
 }

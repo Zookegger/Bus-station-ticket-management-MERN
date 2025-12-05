@@ -25,7 +25,7 @@ import {
 	Delete as DeleteIcon,
 } from "@mui/icons-material";
 import type { VehicleType } from "@my-types/vehicleType";
-import SeatLayoutPreview from "./SeatLayoutPreview";
+import SeatLayoutPreview from "@components/seatmap/SeatLayoutPreview";
 
 interface VehicleTypeDetailsDrawerProps {
 	open: boolean;
@@ -132,8 +132,8 @@ const VehicleTypeDetailsDrawer: React.FC<VehicleTypeDetailsDrawerProps> = ({
 						</Typography>
 					}
 					action={
-						<IconButton onClick={onClose}>
-							<CloseIcon />
+						<IconButton className="hvr-icon-grow" onClick={onClose}>
+							<CloseIcon className="hvr-icon" />
 						</IconButton>
 					}
 				/>

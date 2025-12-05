@@ -38,6 +38,7 @@ export const API_ENDPOINTS: ApiEndpoints = {
 		UPDATE_PROFILE: (id: string) => `/users/profile/${id}`,
 		ADMIN_UPDATE: (id: string) => `/users/${id}`,
 		ADMIN_DELETE: (id: string) => `/users/${id}`,
+		WEBSOCKET_AUTH: (id: string) => `/users/websocket-token/${id}`
 	},
 	VEHICLE: {
 		BASE: "/vehicles",
@@ -58,13 +59,13 @@ export const API_ENDPOINTS: ApiEndpoints = {
 	TRIP: {
 		BASE: "/trips",
 		SEARCH: "/trips/search",
-		BY_ID: "/trips/:id",
+		BY_ID: (id: number) => `/trips/${id}`,
 		CREATE: "/trips",
 		UPDATE: (id: number) => `/trips/${id}`,
 		DELETE: (id: number) => `/trips/${id}`,
-		ASSIGN_DRIVER: "/trips/:id/assign-driver",
-		AUTO_ASSIGN_DRIVER: "/trips/:id/auto-assign",
-		UNASSIGN_DRIVER: "/trips/:id/assign-driver",
+		ASSIGN_DRIVER: (id: number) => `/trips/${id}/assign-driver`,
+		AUTO_ASSIGN_DRIVER: (id: number) => `/trips/${id}/auto-assign`,
+		UNASSIGN_DRIVER: (id: number) => `/trips/${id}/assign-driver`,
 	},
 	DRIVER: {
 		BASE: "/drivers",
@@ -86,7 +87,7 @@ export const API_ENDPOINTS: ApiEndpoints = {
 	},
 	ROUTE: {
 		BASE: "/routes",
-		BY_ID: "/routes/:id",
+		BY_ID: (id: number) => `/routes/${id}`,
 		CREATE: "/routes",
 		UPDATE: (id: number) => `/routes/${id}`,
 		DELETE: (id: number) => `/routes/${id}`,
@@ -95,7 +96,7 @@ export const API_ENDPOINTS: ApiEndpoints = {
 		BASE: "/coupons",
 		SEARCH: "/coupons",
 		BY_ID: "/coupons/:id",
-		BY_CODE: "/coupons/code/:code",
+		BY_CODE: (code: string) => `/coupons/code/${code}`,
 		ADD: "/coupons",
 		UPDATE: (id: number) => `/coupons/${id}`,
 		DELETE: (id: number) => `/coupons/${id}`,
@@ -103,7 +104,8 @@ export const API_ENDPOINTS: ApiEndpoints = {
 	},
 	SEAT: {
 		BASE: "/seats",
-		BY_ID: "/seats/:id",
+		BY_ID: (id: number) => `/seats/${id}`,
+		BY_TRIP_ID: (tripId: number) => `/seats/seat-by-trip/${tripId}`,
 		UPDATE: "/seats/:id",
 	},
 	PAYMENT_METHOD: {
@@ -120,7 +122,7 @@ export const API_ENDPOINTS: ApiEndpoints = {
 		CREATE: "/orders",
 		BY_ID: "/orders/:id",
 		BY_USER: "/orders/user/:id",
-		BY_GUEST: "/orders/guest/:id",
+		BY_GUEST: "/orders/guest",
 		REFUND: "/orders/:id/refund",
 	},
 	SETTINGS: {
@@ -130,8 +132,22 @@ export const API_ENDPOINTS: ApiEndpoints = {
 	CHECKIN: {
 		VERIFY: "/check-in/:orderId",
 	},
+	NOTIFICATION: {
+		BASE: "/notifications",
+		READ_ALL: "/notifications/read-all",
+		READ: (id: number) => `/notifications/${id}/read`,
+		DELETE: (id: number) => `/notifications/${id}`,
+	},
 	DEBUG: {
 		TRIGGER_PAYMENT_CLEANUP: "/debug/trigger-payment-cleanup",
 		PAYMENT_QUEUE_STATS: "/debug/payment-queue-stats",
+		TEST_WEBSOCKET: "/debug/test-websocket",
+		WEBSOCKET_STATS: "/debug/websocket-stats",
 	},
+	ADMIN: {
+		BASE: "/admin/users",
+		ADD: "/admin/users",
+		UPDATE: (id: string) => `/admin/users/${id}`,
+		DELETE: (id: string) => `/admin/users/${id}`,
+	}
 } as const;

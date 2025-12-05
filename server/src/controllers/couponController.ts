@@ -106,6 +106,7 @@ export const GetCouponByCode = async (
 		);
 
 		res.status(200).json(coupons);
+
 	} catch (err) {
 		next(err);
 	}

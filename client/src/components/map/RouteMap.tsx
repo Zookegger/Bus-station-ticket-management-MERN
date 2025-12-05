@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
 	MapContainer,
 	TileLayer,
@@ -8,114 +8,166 @@ import {
 	useMap,
 } from "react-leaflet";
 import L from "leaflet";
-import { Box } from "@mui/material";
-import type { RouteWithLocations } from "@utils/map";
+import { Box, CircularProgress } from "@mui/material";
+import {
+	fetchRoutePolyline,
+	type RouteWithLocations,
+	type ORSRouteResponse,
+} from "@utils/map/routing";
+import { stopIcon } from "./types";
 
-// Fix for default marker icons in Leaflet with Webpack/Vite
-import "leaflet/dist/leaflet.css";
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-	iconRetinaUrl:
-		"https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-	iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-	shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
-
-/**
- * Custom icons for start and end markers.
- */
-const startIcon = new L.Icon({
-	iconUrl:
-		"https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
-	shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-	iconSize: [25, 41],
-	iconAnchor: [12, 41],
-	popupAnchor: [1, -34],
-	shadowSize: [41, 41],
-});
-
-const endIcon = new L.Icon({
-	iconUrl:
-		"https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
-	shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-	iconSize: [25, 41],
-	iconAnchor: [12, 41],
-	popupAnchor: [1, -34],
-	shadowSize: [41, 41],
-});
-
-/**
- * Component to auto-fit map bounds to show the entire route.
- */
-interface FitBoundsProps {
-	routeCoords: [number, number][];
-}
-
-function FitBounds({ routeCoords }: FitBoundsProps) {
+// --- HELPER: Auto Fit Bounds ---
+function FitBounds({ coords }: { coords: [number, number][] }) {
 	const map = useMap();
-
 	useEffect(() => {
-		if (routeCoords.length > 0) {
-			const bounds = L.latLngBounds(routeCoords);
+		if (coords.length > 0) {
+			const bounds = L.latLngBounds(coords);
 			map.fitBounds(bounds, { padding: [50, 50] });
 		}
-	}, [routeCoords, map]);
-
+	}, [coords, map]);
 	return null;
 }
 
-/**
- * Props for RouteMap component.
- */
+// --- PROPS ---
 export interface RouteMapProps {
-	/** Route data to display */
-	route: RouteWithLocations | null;
-	/** Map height in CSS units */
+	/** Legacy: Display a pre-calculated route from useRouting hook */
+	route?: RouteWithLocations | null;
+	/** New: Display a saved route from DB stops */
+	stops?: {
+		latitude: number;
+		longitude: number;
+		name?: string;
+		address?: string;
+	}[];
+	/** Map height */
 	height?: string | number;
-	/** Initial center coordinates [lat, lon] */
+	/** Default center */
 	center?: [number, number];
-	/** Initial zoom level */
 	zoom?: number;
-	/** Show route polyline */
-	showRoute?: boolean;
-	/** Show start/end markers */
 	showMarkers?: boolean;
+	showRoute?: boolean;
 }
 
 /**
- * Leaflet map component for displaying routes.
- * Shows start/end markers, route polyline, and travel information.
- *
- * @param {RouteMapProps} props - Component props
- * @returns {JSX.Element} Map component
+ * Leaflet map component.
+ * Supports two modes:
+ * 1. Legacy: Takes `route` object (OSRM)
+ * 2. Load Mode: Takes `stops` array (DB) and fetches Polyline (ORS)
  */
 const RouteMap: React.FC<RouteMapProps> = ({
 	route,
+	stops,
 	height = 400,
-	center = [10.762622, 106.660172], // Default: Ho Chi Minh City
+	center = [10.762622, 106.660172],
 	zoom = 13,
-	showRoute = true,
 	showMarkers = true,
+	showRoute = true,
 }) => {
 	const mapRef = useRef<L.Map | null>(null);
+	const [fetchedRoute, setFetchedRoute] = useState<ORSRouteResponse | null>(
+		null
+	);
+	const [loading, setLoading] = useState(false);
 
-	// Convert route geometry to lat/lon pairs
-	const routeCoords: [number, number][] =
-		route?.route.geometry.coordinates.map(
-			(coord) => [coord[1], coord[0]] // Convert [lon, lat] to [lat, lon]
-		) || [];
+	// MODE: Load from DB (Fetch Polyline if stops provided)
+	useEffect(() => {
+		if (stops && stops.length >= 2 && !route) {
+			setLoading(true);
+			fetchRoutePolyline(stops)
+				.then((data) => {
+					setFetchedRoute(data);
+				})
+				.catch((err) =>
+					console.error("Failed to load saved route path", err)
+				)
+				.finally(() => setLoading(false));
+		}
+	}, [stops, route]);
 
-	// Calculate map center based on route
+	// --- Data Normalization ---
+	// 1. Geometry (Polyline)
+	let routeCoords: [number, number][] = [];
+
+	if (route?.route?.geometry?.coordinates) {
+		// Legacy OSRM format [lon, lat]
+		routeCoords = route.route.geometry.coordinates
+			.map((c: any[]) => [c[1], c[0]] as [number, number])
+			.filter((pair) => Number.isFinite(pair[0]) && Number.isFinite(pair[1]));
+	} else if (fetchedRoute?.features?.[0]?.geometry?.coordinates) {
+		// ORS format [lon, lat]
+		routeCoords = fetchedRoute.features[0].geometry.coordinates
+			.map((c) => [c[1], c[0]] as [number, number])
+			.filter((pair) => Number.isFinite(pair[0]) && Number.isFinite(pair[1]));
+	}
+
+	// 2. Markers (Stops)
+	// If 'stops' prop exists, use it. Otherwise try to infer from legacy 'route' object (only has start/end).
+	const markersToRender = stops
+		? stops
+			  .map((s, i) => ({
+				  lat: Number(s.latitude),
+				  lon: Number(s.longitude),
+				  name:
+					  s.name ||
+					  (i === 0 ? "Start" : i === stops.length - 1 ? "End" : `Stop ${i + 1}`),
+				  index: i,
+				  total: stops.length,
+			  }))
+			  .filter((m) => Number.isFinite(m.lat) && Number.isFinite(m.lon))
+		: [];
+
+	// Fallback for legacy route object (only has start/end)
+	if (markersToRender.length === 0 && route) {
+		if (route.startLocation) {
+			markersToRender.push({
+				lat: route.startLocation.lat,
+				lon: route.startLocation.lon,
+				name: route.startLocation.displayName,
+				index: 0,
+				total: 2,
+			});
+		}
+		if (route.endLocation) {
+			markersToRender.push({
+				lat: route.endLocation.lat,
+				lon: route.endLocation.lon,
+				name: route.endLocation.displayName,
+				index: 1,
+				total: 2,
+			});
+		}
+	}
+
+	// Default center calculation - ensure numeric values
+	const firstMarker = markersToRender.length > 0 ? markersToRender[0] : null;
 	const mapCenter: [number, number] =
-		route?.startLocation && route?.endLocation
-			? [
-					(route.startLocation.lat + route.endLocation.lat) / 2,
-					(route.startLocation.lon + route.endLocation.lon) / 2,
-			  ]
-			: center;
+		firstMarker && Number.isFinite(firstMarker.lat) && Number.isFinite(firstMarker.lon)
+			? [firstMarker.lat, firstMarker.lon]
+			: Array.isArray(center) && Number.isFinite(center[0]) && Number.isFinite(center[1])
+			? [center[0], center[1]]
+			: [10.762622, 106.660172];
 
 	return (
 		<Box sx={{ height, width: "100%", position: "relative" }}>
+			{loading && (
+				<Box
+					sx={{
+						position: "absolute",
+						top: 0,
+						left: 0,
+						right: 0,
+						bottom: 0,
+						zIndex: 999,
+						bgcolor: "rgba(255,255,255,0.6)",
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "center",
+					}}
+				>
+					<CircularProgress />
+				</Box>
+			)}
+
 			<MapContainer
 				center={mapCenter}
 				zoom={zoom}
@@ -123,53 +175,39 @@ const RouteMap: React.FC<RouteMapProps> = ({
 				ref={mapRef}
 			>
 				<TileLayer
-					attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+					attribution="&copy; OpenStreetMap contributors"
 					url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 				/>
 
-				{/* Start Marker */}
-				{showMarkers && route?.startLocation && (
-					<Marker
-						position={[
-							route.startLocation.lat,
-							route.startLocation.lon,
-						]}
-						icon={startIcon}
-					>
-						<Popup>
-							<strong>Start:</strong>
-							<br />
-							{route.startLocation.displayName}
-						</Popup>
-					</Marker>
-				)}
+				{/* Render Markers */}
+				{showMarkers &&
+					markersToRender.map((marker, idx) => (
+						<Marker
+							key={idx}
+							position={[marker.lat, marker.lon]}
+							icon={stopIcon(marker.index, marker.total)}
+						>
+							<Popup>
+								<strong>
+									{marker.index === 0
+										? "Start"
+										: marker.index === marker.total - 1
+										? "End"
+										: "Stop"}
+								</strong>
+								<br />
+								{marker.name}
+							</Popup>
+						</Marker>
+					))}
 
-				{/* End Marker */}
-				{showMarkers && route?.endLocation && (
-					<Marker
-						position={[
-							route.endLocation.lat,
-							route.endLocation.lon,
-						]}
-						icon={endIcon}
-					>
-						<Popup>
-							<strong>End:</strong>
-							<br />
-							{route.endLocation.displayName}
-						</Popup>
-					</Marker>
-				)}
-
-				{/* Route Polyline */}
+				{/* Render Path */}
 				{showRoute && routeCoords.length > 0 && (
 					<Polyline positions={routeCoords} color="blue" weight={4} />
 				)}
 
-				{/* Auto-fit bounds */}
-				{routeCoords.length > 0 && (
-					<FitBounds routeCoords={routeCoords} />
-				)}
+				{/* Auto-fit */}
+				{routeCoords.length > 0 && <FitBounds coords={routeCoords} />}
 			</MapContainer>
 		</Box>
 	);

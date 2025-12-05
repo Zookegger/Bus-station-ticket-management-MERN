@@ -6,8 +6,7 @@ import type {
 
 export type { VehicleType };
 
-export type SeatType = "available" | "aisle" | "disabled" | "occupied";
-export type SeatLayout = SeatType[][][];
+
 
 export interface CreateVehicleTypeFormProps {
 	open: boolean;
@@ -35,9 +34,4 @@ export interface VehicleTypeDetailsDrawerProps {
 	vehicleType: VehicleType | null;
 }
 
-export interface SeatLayoutEditorProps {
-	onLayoutChange: (layout: SeatLayout, totalSeats: number) => void;
-	onCancel?: () => void;
-	initialLayout?: string | null;
-	totalFloors?: number | null;
-}
+

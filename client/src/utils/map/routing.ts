@@ -1,286 +1,186 @@
-/**
- * Routing utilities.
- * - Primary: OpenRouteService for multi-stop heavy vehicle / bus style routing.
- * - Fallback: OSRM for simple start/end when ORS fails.
- */
-import type { Location } from "@my-types";
 import { reverseGeocode, type GeocodingResult } from "./geocoding";
 
 const OSRM_URL = "https://router.project-osrm.org/route/v1/driving/";
 const ORS_API_KEY = import.meta.env.VITE_OPENROUTESERVICE_API_KEY;
-const DEFAULT_PROFILE = "driving-hgv"; // bus approximation
 const ORS_BASE = "https://api.openrouteservice.org/v2/directions";
+const DEFAULT_PROFILE = "driving-hgv";
 
-// -------------------- ORS TYPE DEFINITIONS --------------------
-export interface ORSSegmentSummary {
-    distance: number;
-    duration: number;
-}
-export interface ORSFeatureProperties {
-    segments: { distance: number; duration: number }[];
-    summary: ORSSegmentSummary;
-    way_points: number[];
-}
-export interface ORSGeometry {
-    type: string;
-    coordinates: [number, number][];
-}
-export interface ORSFeature {
-    type: "Feature";
-    geometry: ORSGeometry;
-    properties: ORSFeatureProperties;
-}
+// --- Interfaces ---
+
 export interface ORSRouteResponse {
-    type: "FeatureCollection";
-    features: ORSFeature[];
-    bbox?: number[];
-    metadata?: Record<string, unknown>;
+	type: "FeatureCollection";
+	features: Array<{
+		type: "Feature";
+		geometry: { type: string; coordinates: [number, number][] };
+		properties: {
+			segments: { distance: number; duration: number }[];
+			summary: { distance: number; duration: number };
+			way_points: number[];
+		};
+	}>;
+	bbox?: number[];
 }
+
 export interface RouteMetricsNormalized {
-    distanceMeters: number;
-    durationSeconds: number;
+	distanceMeters: number;
+	durationSeconds: number;
 }
-export interface RoutingStop {
-    latitude?: number;
-    longitude?: number;
-    lat?: number;
-    lon?: number;
-    name?: string;
+
+export interface StopMetric {
+	durationFromStart: number; // minutes
+	distanceFromStart: number; // km
 }
+
+export interface RoutingInputPoint {
+	latitude?: number | string;
+	longitude?: number | string;
+	lat?: number;
+	lon?: number;
+}
+
+// Legacy Interfaces (Restored for compatibility)
+export interface RouteData {
+	geometry: {
+		coordinates: [number, number][];
+	};
+	distance: number;
+	duration: number;
+}
+
+export interface RouteWithLocations {
+	route: RouteData;
+	startLocation: GeocodingResult | null;
+	endLocation: GeocodingResult | null;
+}
+
+// --- Functions ---
 
 /** Build ordered coordinate list in ORS expected format [lon, lat]. */
-function buildORSCoordinates(stops: RoutingStop[]): [number, number][] {
-    return stops
-        .map((s) => {
-            const lat = s.latitude ?? s.lat;
-            const lon = s.longitude ?? s.lon;
-            if (lat == null || lon == null) return null;
-            return [lon, lat] as [number, number];
-        })
-        .filter((c): c is [number, number] => Array.isArray(c));
+function buildORSCoordinates(stops: RoutingInputPoint[]): [number, number][] {
+	return stops
+		.map((s) => {
+			const lat =
+				typeof s.latitude !== "undefined" ? Number(s.latitude) : s.lat;
+			const lon =
+				typeof s.longitude !== "undefined"
+					? Number(s.longitude)
+					: s.lon;
+			if (lat == null || lon == null || isNaN(lat) || isNaN(lon))
+				return null;
+			return [lon, lat] as [number, number];
+		})
+		.filter((c): c is [number, number] => Array.isArray(c));
 }
 
-export interface FetchRouteOptions {
-    profile?: string;
-    elevation?: boolean;
-    preferOSRM?: boolean;
-}
-
-/**
- * Fetch route polyline using OpenRouteService, with optional OSRM fallback.
- * @param stops Ordered stops (≥2) containing lat/lon.
- */
 export async function fetchRoutePolyline(
-    stops: RoutingStop[],
-    options: FetchRouteOptions = {}
+	stops: RoutingInputPoint[],
+	options: { profile?: string; elevation?: boolean } = {}
 ): Promise<ORSRouteResponse | null> {
-    if (!stops || stops.length < 2)
-        throw new Error("At least two stops are required to fetch a route.");
-    
-    const coordinates = buildORSCoordinates(stops);
-    if (coordinates.length < 2) return null;
-    
-    const profile = options.profile || DEFAULT_PROFILE;
-    const url = `${ORS_BASE}/${profile}/geojson`;
-    
-    try {
-        const response = await fetch(url, {
-            method: "POST",
-            headers: {
-                Accept: "application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8",
-                "Content-Type": "application/json; charset=utf-8",
-                Authorization: ORS_API_KEY,
-            },
-            body: JSON.stringify({
-                coordinates,
-                elevation: options.elevation ?? false,
-            }),
-        });
-        
-        if (!response.ok) {
-            let message = `OpenRouteService error (${response.status})`;
-            try {
-                const errJson = await response.json();
-                message = errJson.error?.message || message;
-            } catch {
-                /* ignore */
-            }
-            throw new Error(message);
-        }
-        return (await response.json()) as ORSRouteResponse;
-    } catch (error) {
-        console.error("fetchRoutePolyline ORS failed:", error);
-        
-        // OSRM Fallback (Only supports Start -> End, ignores intermediate for simplicity in fallback)
-        if (options.preferOSRM) {
-            const first = coordinates[0];
-            const last = coordinates[coordinates.length - 1];
-            try {
-                const osrmUrl = `${OSRM_URL}${first[0]},${first[1]};${last[0]},${last[1]}?overview=full&geometries=geojson`;
-                const res = await fetch(osrmUrl);
-                const data = await res.json();
-                
-                if (data.routes && data.routes[0]) {
-                    const route = data.routes[0];
-                    return {
-                        type: "FeatureCollection",
-                        features: [
-                            {
-                                type: "Feature",
-                                geometry: route.geometry,
-                                properties: {
-                                    segments: [
-                                        {
-                                            distance: route.distance,
-                                            duration: route.duration,
-                                        },
-                                    ],
-                                    summary: {
-                                        distance: route.distance,
-                                        duration: route.duration,
-                                    },
-                                    way_points: [0, coordinates.length - 1],
-                                },
-                            },
-                        ],
-                    };
-                }
-            } catch (fallbackErr) {
-                console.error("OSRM fallback failed:", fallbackErr);
-            }
-        }
-        throw error;
-    }
+	if (!stops || stops.length < 2) return null;
+
+	const coordinates = buildORSCoordinates(stops);
+	if (coordinates.length < 2) return null;
+
+	const profile = options.profile || DEFAULT_PROFILE;
+	const url = `${ORS_BASE}/${profile}/geojson`;
+
+	try {
+		const response = await fetch(url, {
+			method: "POST",
+			headers: {
+				Accept: "application/json, application/geo+json",
+				"Content-Type": "application/json; charset=utf-8",
+				Authorization: ORS_API_KEY,
+			},
+			body: JSON.stringify({
+				coordinates,
+				elevation: options.elevation ?? false,
+			}),
+		});
+
+		if (!response.ok)
+			throw new Error(`OpenRouteService error (${response.status})`);
+		return (await response.json()) as ORSRouteResponse;
+	} catch (error) {
+		console.warn("Primary routing failed, switching to fallback...", error);
+
+		// OSRM Fallback
+		const coordString = coordinates.map((c) => `${c[0]},${c[1]}`).join(";");
+		try {
+			const osrmUrl = `${OSRM_URL}${coordString}?overview=full&geometries=geojson`;
+			const res = await fetch(osrmUrl);
+			const data = await res.json();
+
+			if (data.routes && data.routes[0]) {
+				const route = data.routes[0];
+				return {
+					type: "FeatureCollection",
+					features: [
+						{
+							type: "Feature",
+							geometry: route.geometry,
+							properties: {
+								segments: [],
+								summary: {
+									distance: route.distance,
+									duration: route.duration,
+								},
+								way_points: [],
+							},
+						},
+					],
+				};
+			}
+		} catch (fallbackErr) {
+			console.error("OSRM fallback failed:", fallbackErr);
+		}
+		return null;
+	}
 }
 
-/** Extract normalized metrics from ORS response. */
 export function extractRouteMetrics(
-    route: ORSRouteResponse | null
+	route: ORSRouteResponse | null
 ): RouteMetricsNormalized | null {
-    if (!route?.features?.length) return null;
-    const summary = route.features[0].properties?.summary;
-    if (!summary) return null;
-    return {
-        distanceMeters: summary.distance,
-        durationSeconds: summary.duration,
-    };
+	if (!route?.features?.length) return null;
+	const props = route.features[0].properties;
+	if (props?.summary) {
+		return {
+			distanceMeters: props.summary.distance,
+			durationSeconds: props.summary.duration,
+		};
+	}
+	return null;
 }
 
-/**
- * Fetches a route polyline from OpenRouteService.
- * @param stops An array of Location objects representing the route stops.
- * @returns A GeoJSON object representing the route path and its metrics.
- */
-// (Legacy signature preserved for backward compatibility inside older components)
-export const fetchRoutePolylineLegacy = async (
-    stops: Partial<Location>[]
-): Promise<ORSRouteResponse | null> => {
-    return fetchRoutePolyline(stops as RoutingStop[], { preferOSRM: true });
-};
+export function extractStopMetrics(
+	route: ORSRouteResponse | null
+): StopMetric[] {
+	if (!route?.features?.length) return [];
+	const segments = route.features[0].properties.segments;
 
-/**
- * Route geometry and metadata from OSRM.
- * @interface RouteData
- */
-export interface RouteData {
-    geometry: {
-        coordinates: [number, number][]; // [lon, lat] pairs
-    };
-    distance: number; // meters
-    duration: number; // seconds
-}
+	const metrics: StopMetric[] = [];
 
-/**
- * Complete route information including start/end locations.
- * @interface RouteWithLocations
- */
-export interface RouteWithLocations {
-    route: RouteData;
-    startLocation: GeocodingResult | null;
-    endLocation: GeocodingResult | null;
-}
+	// Stop 0 is always 0,0
+	metrics.push({ durationFromStart: 0, distanceFromStart: 0 });
 
-/**
- * Fetches route between two coordinates from OSRM API.
- *
- * @param {number} startLat - Start latitude
- * @param {number} startLon - Start longitude
- * @param {number} endLat - End latitude
- * @param {number} endLon - End longitude
- * @returns {Promise<RouteWithLocations | null>} Route data with location details
- */
-export async function getRoute(
-    startLat: number,
-    startLon: number,
-    endLat: number,
-    endLon: number
-): Promise<RouteWithLocations | null> {
-    try {
-        const routeUrl = `${OSRM_URL}${startLon},${startLat};${endLon},${endLat}?overview=full&geometries=geojson&steps=true`;
+	let cumulativeDuration = 0;
+	let cumulativeDistance = 0;
 
-        const response = await fetch(routeUrl);
-        const data = await response.json();
+	if (segments) {
+		for (const segment of segments) {
+			cumulativeDuration += segment.duration;
+			cumulativeDistance += segment.distance;
 
-        if (data.routes && data.routes[0]) {
-            const route = data.routes[0];
+			metrics.push({
+				durationFromStart: Math.round(cumulativeDuration / 60), // Convert seconds to minutes
+				distanceFromStart: parseFloat(
+					(cumulativeDistance / 1000).toFixed(2)
+				), // Convert meters to km
+			});
+		}
+	}
 
-            // Fetch location names for start and end points using updated reverseGeocode
-            const [startLocation, endLocation] = await Promise.all([
-                reverseGeocode(startLat, startLon),
-                reverseGeocode(endLat, endLon),
-            ]);
-
-            return {
-                route: {
-                    geometry: route.geometry,
-                    distance: route.distance,
-                    duration: route.duration,
-                },
-                startLocation,
-                endLocation,
-            };
-        }
-
-        return null;
-    } catch (error) {
-        console.error("Route calculation error:", error);
-        return null;
-    }
-}
-
-/**
- * Calculates travel time between two coordinates.
- *
- * @param {number} startLat - Start latitude
- * @param {number} startLon - Start longitude
- * @param {number} endLat - End latitude
- * @param {number} endLon - End longitude
- * @returns {Promise<string>} Formatted travel time string
- */
-export async function getTravelTime(
-    startLat: number,
-    startLon: number,
-    endLat: number,
-    endLon: number
-): Promise<string> {
-    try {
-        const routeUrl = `${OSRM_URL}${startLon},${startLat};${endLon},${endLat}?overview=false&geometries=geojson`;
-
-        const response = await fetch(routeUrl);
-        const data = await response.json();
-
-        if (data.routes && data.routes[0]) {
-            const duration = data.routes[0].duration; // Duration in seconds
-            const hours = Math.floor(duration / 3600);
-            const minutes = Math.floor((duration % 3600) / 60);
-            return `${hours}h ${minutes}m`;
-        }
-
-        return "Unavailable";
-    } catch (error) {
-        console.error("Travel time calculation error:", error);
-        return "Unavailable";
-    }
+	return metrics;
 }
 
 /**
@@ -288,29 +188,83 @@ export async function getTravelTime(
  * @param {number} meters - Distance in meters
  * @returns {string} Formatted distance string
  */
-export function formatDistance(meters: number, fixed: number = 1): string {
-    if (meters > 1000) {
-        return `${(meters / 1000).toFixed(fixed)} km`;
-    }
-    return `${Math.round(meters)} m`;
-}
+export const formatDistance = (meters: number, fixed: number = 1): string => {
+	if (meters == null || isNaN(meters)) return "N/A";
 
+	return meters >= 1000
+		? `${(meters / 1000).toFixed(fixed)} km`
+		: `${Math.round(meters)} m`;
+};
 /**
  * Formats duration for display.
  * @param {number} seconds - Duration in seconds
  * @returns {string} Formatted duration string
  */
-export function formatDuration(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const fomatted_seconds = Math.floor((seconds % 3600) / 60 / 60);
+export const formatDuration = (seconds: number): string => {
+	if (seconds == null || isNaN(seconds)) return "0s";
+	const hours = Math.floor(seconds / 3600);
+	const minutes = Math.floor((seconds % 3600) / 60);
+	const fomatted_seconds = Math.floor((seconds % 3600) / 60 / 60);
 
-    if (hours > 0) {
-        return `${hours}h ${minutes}m`;
-    }
+	if (hours > 0) {
+		return `${hours}h ${minutes}m`;
+	}
 	if (minutes > 0) {
-
 		return `${minutes}m`;
 	}
 	return `~${fomatted_seconds}s`;
+};
+
+// Legacy Helper: fetch simple route between two points
+export async function getRoute(
+	startLat: number,
+	startLon: number,
+	endLat: number,
+	endLon: number
+): Promise<RouteWithLocations | null> {
+	try {
+		const routeUrl = `${OSRM_URL}${startLon},${startLat};${endLon},${endLat}?overview=full&geometries=geojson&steps=true`;
+		const response = await fetch(routeUrl);
+		const data = await response.json();
+
+		if (data.routes && data.routes[0]) {
+			const route = data.routes[0];
+			const [startLocation, endLocation] = await Promise.all([
+				reverseGeocode(startLat, startLon),
+				reverseGeocode(endLat, endLon),
+			]);
+
+			return {
+				route: {
+					geometry: route.geometry,
+					distance: route.distance,
+					duration: route.duration,
+				},
+				startLocation,
+				endLocation,
+			};
+		}
+		return null;
+	} catch (error) {
+		return null;
+	}
+}
+
+export async function getTravelTime(
+	startLat: number,
+	startLon: number,
+	endLat: number,
+	endLon: number
+): Promise<string> {
+	try {
+		const routeUrl = `${OSRM_URL}${startLon},${startLat};${endLon},${endLat}?overview=false&geometries=geojson`;
+		const response = await fetch(routeUrl);
+		const data = await response.json();
+		if (data.routes && data.routes[0]) {
+			return formatDuration(data.routes[0].duration);
+		}
+		return "Unavailable";
+	} catch {
+		return "Unavailable";
+	}
 }

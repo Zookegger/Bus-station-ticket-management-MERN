@@ -254,10 +254,14 @@ export class Payment
 		Payment.belongsTo(models.PaymentMethod, {
 			foreignKey: "paymentMethodId",
 			as: "paymentMethod",
+			onDelete: "RESTRICT",
+			onUpdate: "CASCADE",
 		});
 		Payment.belongsTo(models.Order, {
 			foreignKey: "orderId",
 			as: "order",
+			onDelete: "RESTRICT",
+			onUpdate: "CASCADE",
 		});
 	}
 }

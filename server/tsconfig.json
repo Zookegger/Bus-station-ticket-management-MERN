@@ -1,56 +1,57 @@
 {
-  // Visit https://aka.ms/tsconfig to read more about this file
-  "compilerOptions": {
-    /* File Layout */
-    "rootDir": "./src",           // keep all TS files in src/
-    "outDir": "./dist",           // compiled JS goes here
+	// Visit https://aka.ms/tsconfig to read more about this file
+	"compilerOptions": {
+		/* File Layout */
+		"rootDir": "./src", // keep all TS files in src/
+		"outDir": "./dist", // compiled JS goes here
 
-    /* Environment Settings */
-    "target": "es2020",           // modern JS output
-    "module": "commonjs",         // safest with Sequelize
-    "moduleResolution": "node",   // standard Node.js resolution
-    "types": ["node"],            // enable Node.js globals
+		/* Environment Settings */
+		"target": "es2020", // modern JS output
+		"module": "commonjs", // safest with Sequelize
+		"moduleResolution": "node", // standard Node.js resolution
+		"types": ["node"], // enable Node.js globals
 
-    /* Path Mapping */
-    "baseUrl": "./src",
-    "paths": {
-      "@config/*": ["config/*"],
-      "@constants/*": ["constants/*"],
-      "@constants": ["constants/index"],
-      "@controllers/*": ["controllers/*"],
-      "@middlewares/*": ["middlewares/*"],
-      "@models/*": ["models/*"],
-      "@models": ["models/index"],
-      "@queues/*": ["queues/*"],
-      "@routes/*": ["routes/*"],
-      "@services/*": ["services/*"],
-      "@my_types/*": ["types/*"],
-      "@utils/*": ["utils/*"],
-      "@validators/*": ["middlewares/validators/*"],
-      "@workers/*": ["workers/*"]
-    },
+		/* Path Mapping */
+		"baseUrl": "./src",
+		"paths": {
+			"@config/*": ["config/*"],
+			"@constants/*": ["constants/*"],
+			"@constants": ["constants/index"],
+			"@controllers/*": ["controllers/*"],
+			"@middlewares/*": ["middlewares/*"],
+			"@models/*": ["models/*"],
+			"@models": ["models/index"],
+			"@queues/*": ["queues/*"],
+			"@routes/*": ["routes/*"],
+			"@services/*": ["services/*"],
+			"@my-types": ["types"],
+			"@my_types/*": ["types/*"],
+			"@utils/*": ["utils/*"],
+			"@validators/*": ["middlewares/validators/*"],
+			"@workers/*": ["workers/*"]
+		},
 
-    /* Other Outputs */
-    "sourceMap": true,            // useful for debugging
-    "declaration": true,          // generate .d.ts files
-    "declarationMap": true,
-    "resolveJsonModule": true,    // allow importing JSON files
+		/* Other Outputs */
+		"sourceMap": true, // useful for debugging
+		"declaration": true, // generate .d.ts files
+		"declarationMap": true,
+		"resolveJsonModule": true, // allow importing JSON files
 
-    /* Stricter Typechecking Options */
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
+		/* Stricter Typechecking Options */
+		"strict": true,
+		"noUncheckedIndexedAccess": true,
+		"exactOptionalPropertyTypes": true,
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
 
-    /* Style Options */
-    "noImplicitReturns": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+		/* Style Options */
+		"noImplicitReturns": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
 
-    /* Misc */
-    "skipLibCheck": true          // skip checking .d.ts from node_modules
-  },
-  "include": ["src/**/*.ts", "src/config/sequelize-cli-config.js"],
-  "exclude": ["node_modules", "dist", "tests"]
+		/* Misc */
+		"skipLibCheck": true // skip checking .d.ts from node_modules
+	},
+	"include": ["src/**/*.ts", "src/config/sequelize-cli-config.js"],
+	"exclude": ["node_modules", "dist", "tests"]
 }

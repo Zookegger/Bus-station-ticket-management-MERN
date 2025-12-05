@@ -61,8 +61,8 @@ export interface LoginResponse {
 		id: string;
 		userName: string;
 		fullName?: string;
-        firstName?: string;
-        lastName?: string;
+		firstName?: string;
+		lastName?: string;
 		email: string;
 		role: Role;
 	};
@@ -100,12 +100,13 @@ export interface GetMeResponse {
 		id: string;
 		userName: string;
 		fullName?: string;
-        firstName?: string;
-        lastName?: string;
+		firstName?: string;
+		lastName?: string;
+		phoneNumber?: string;
 		email: string;
 		emailConfirmed: boolean;
 		avatar?: string | null;
 		role: Role;
 	};
-	csrfToken: string,
+	csrfToken: string;
 }

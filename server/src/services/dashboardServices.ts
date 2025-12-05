@@ -17,6 +17,7 @@ import {
 import { TicketStatus } from "@my_types/ticket";
 import db from "@models/index";
 import { Role } from "@models/user";
+import { emitDashboardMetrics } from "./realtimeEvents";
 
 /**
  * Helper to calculate revenue for a specific date range.
@@ -186,4 +187,17 @@ export const getDashboardStats = async (
         yearlyComparison,
         cancellationRate,
     };
+};
+
+export const broadcastDashboardUpdate = async () => {
+    // Default range: last 7 days for the chart
+    const end = new Date();
+    const start = subDays(end, 7);
+    
+    const stats = await getDashboardStats(start, end);
+    
+    emitDashboardMetrics({
+        ...stats,
+        generatedAt: new Date().toISOString()
+    });
 };

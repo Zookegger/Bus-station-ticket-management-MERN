@@ -27,12 +27,15 @@ import axios from "axios";
 import { API_ENDPOINTS, APP_CONFIG, ROUTES } from "@constants/index";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@hooks/useAuth";
-import type { Gender, User } from "@my-types/user";
+import { Gender, type User } from "@my-types/user";
 import { useEffect, useState } from "react";
 import type { AuthUser } from "@my-types/auth";
 import { Check, GppBad, VerifiedUser } from "@mui/icons-material";
 import { handleAxiosError } from "@utils/handleError";
 import buildAvatarUrl from "@utils/avatarImageHelper";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { profileSchema, type ProfileForm } from "../../schemas/userSchema";
 
 interface ChangePasswordDialogProps {
 	dialogOpen: boolean;
@@ -431,7 +434,6 @@ const Profile: React.FC = () => {
 	const { user, isAuthenticated } = useAuth();
 
 	const [profile, setProfile] = useState<any | null>(null);
-	const [editedProfile, setEditedProfile] = useState<any>({});
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -447,6 +449,23 @@ const Profile: React.FC = () => {
 	const [emailDialogOpen, setEmailDialogOpen] = useState(false);
 
 	const [isEditMode, setIsEditMode] = useState(false);
+
+	const {
+		control,
+		handleSubmit,
+		reset,
+		formState: { errors, isSubmitting },
+	} = useForm<ProfileForm>({
+		resolver: zodResolver(profileSchema),
+		defaultValues: {
+			firstName: "",
+			lastName: "",
+			phoneNumber: "",
+			address: "",
+			gender: Gender.OTHER,
+			dateOfBirth: null,
+		},
+	});
 
 	const handleChangePasswordClose = () => {
 		setPasswordDialogOpen(false);
@@ -470,16 +489,15 @@ const Profile: React.FC = () => {
 			);
 			const data = response.data;
 			setProfile(data);
-			setEditedProfile({
+			reset({
 				firstName: data.firstName ?? "",
 				lastName: data.lastName ?? "",
-				gender: data.gender ?? "other",
+				gender: (data.gender as Gender) ?? Gender.OTHER,
 				phoneNumber: data.phoneNumber ?? "",
 				address: data.address ?? "",
 				dateOfBirth: data.dateOfBirth
-					? new Date(data.dateOfBirth).toISOString().split("T")[0]
-					: "",
-				avatar: data.avatar ?? "",
+					? new Date(data.dateOfBirth)
+					: null,
 			});
 		} catch (err) {
 			setError("Failed to fetch profile data.");
@@ -498,39 +516,8 @@ const Profile: React.FC = () => {
 		};
 	}, [avatarPreview]);
 
-	const validateForm = (): boolean => {
-		const errors: Record<string, string> = {};
-		if (
-			!editedProfile.firstName ||
-			editedProfile.firstName.trim().length < 2
-		) {
-			errors.firstName = "First name is required (min 2 characters).";
-		}
-		if (
-			!editedProfile.lastName ||
-			editedProfile.lastName.trim().length < 2
-		) {
-			errors.lastName = "Last name is required (min 2 characters).";
-		}
-		if (
-			editedProfile.phoneNumber &&
-			!/^\+?[0-9]{6,15}$/.test(editedProfile.phoneNumber)
-		) {
-			errors.phoneNumber = "Please enter a valid phone number.";
-		}
-		if (editedProfile.dateOfBirth) {
-			const dob = new Date(editedProfile.dateOfBirth);
-			if (dob > new Date()) {
-				errors.dateOfBirth = "Date of birth cannot be in the future.";
-			}
-		}
-		setFormErrors(errors);
-		return Object.keys(errors).length === 0;
-	};
-
-	const handleSaveClick = async () => {
+	const onSubmit = async (data: ProfileForm) => {
 		try {
-			setIsLoading(true);
 			setError(null);
 			setSuccessMessage(null);
 
@@ -538,28 +525,18 @@ const Profile: React.FC = () => {
 				setError(
 					"Unable to determine user identifier. Please re-authenticate."
 				);
-				setIsLoading(false);
-				return;
-			}
-
-			if (!validateForm()) {
-				setIsLoading(false);
 				return;
 			}
 
 			const formData = new FormData();
-			Object.keys(editedProfile).forEach((key) => {
-				if (key === "dateOfBirth" && !editedProfile[key]) {
+			Object.keys(data).forEach((key) => {
+				const value = data[key as keyof ProfileForm];
+				if (key === "dateOfBirth" && value) {
+					formData.append(key, (value as Date).toISOString());
 					return;
 				}
-				if (key === "address" && !editedProfile[key]) {
-					return;
-				}
-				if (
-					editedProfile[key] !== null &&
-					editedProfile[key] !== undefined
-				) {
-					formData.append(key, editedProfile[key]);
+				if (value !== null && value !== undefined && value !== "") {
+					formData.append(key, value as string);
 				}
 			});
 
@@ -584,34 +561,23 @@ const Profile: React.FC = () => {
 			setIsEditMode(false);
 		} catch (err) {
 			setError("Failed to update profile.");
-		} finally {
-			setIsLoading(false);
 		}
 	};
 
 	const handleCancelClick = () => {
-		setEditedProfile({
-			firstName: profile.firstName ?? "",
-			lastName: profile.lastName ?? "",
-			gender: profile.gender ?? "other",
-			phoneNumber: profile.phoneNumber ?? "",
-			address: profile.address ?? "",
-			dateOfBirth: profile.dateOfBirth
-				? new Date(profile.dateOfBirth).toISOString().split("T")[0]
-				: "",
-			avatar: profile.avatar ?? "",
-		});
-		setFormErrors({});
+		if (profile) {
+			reset({
+				firstName: profile.firstName ?? "",
+				lastName: profile.lastName ?? "",
+				gender: (profile.gender as Gender) ?? Gender.OTHER,
+				phoneNumber: profile.phoneNumber ?? "",
+				address: profile.address ?? "",
+				dateOfBirth: profile.dateOfBirth
+					? new Date(profile.dateOfBirth)
+					: null,
+			});
+		}
 		setIsEditMode(false);
-	};
-
-	const handleChange = (
-		e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-	) => {
-		setEditedProfile((prev: any) => ({
-			...prev,
-			[e.target.name]: e.target.value || null,
-		}));
 	};
 
 	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -664,8 +630,8 @@ const Profile: React.FC = () => {
 		);
 	}
 
-	const fullName = `${editedProfile.firstName || ""} ${
-		editedProfile.lastName || ""
+	const fullName = `${profile.firstName || ""} ${
+		profile.lastName || ""
 	}`.trim();
 
 	return (
@@ -698,7 +664,7 @@ const Profile: React.FC = () => {
 									<Avatar
 										src={
 											avatarPreview ||
-											buildAvatarUrl(editedProfile.avatar)||
+											buildAvatarUrl(profile.avatar) ||
 											""
 										}
 										sx={{ width: 120, height: 120 }}
@@ -807,151 +773,225 @@ const Profile: React.FC = () => {
 								>
 									Personal Information
 								</Typography>
-								<Grid container spacing={2}>
-									<Grid size={{ xs: 12, sm: 6 }}>
-										<TextField
-											label="First name"
-											name="firstName"
-											value={
-												editedProfile.firstName ?? ""
-											}
-											onChange={handleChange}
-											fullWidth
-											error={!!formErrors.firstName}
-											helperText={formErrors.firstName}
-											disabled={!isEditMode}
-										/>
-									</Grid>
-									<Grid size={{ xs: 12, sm: 6 }}>
-										<TextField
-											label="Last name"
-											name="lastName"
-											value={editedProfile.lastName ?? ""}
-											onChange={handleChange}
-											fullWidth
-											error={!!formErrors.lastName}
-											helperText={formErrors.lastName}
-											disabled={!isEditMode}
-										/>
-									</Grid>
-									<Grid size={{ xs: 12, sm: 6 }}>
-										<TextField
-											label="Phone number"
-											name="phoneNumber"
-											value={
-												editedProfile.phoneNumber ?? ""
-											}
-											onChange={handleChange}
-											fullWidth
-											error={!!formErrors.phoneNumber}
-											helperText={formErrors.phoneNumber}
-											disabled={!isEditMode}
-										/>
-									</Grid>
-									<Grid size={{ xs: 12, sm: 6 }}>
-										<TextField
-											label="Birth"
-											name="dateOfBirth"
-											type="date"
-											value={
-												editedProfile.dateOfBirth ?? ""
-											}
-											onChange={handleChange}
-											fullWidth
-											slotProps={{
-												inputLabel: { shrink: true },
-											}}
-											error={!!formErrors.dateOfBirth}
-											helperText={formErrors.dateOfBirth}
-											disabled={!isEditMode}
-										/>
-									</Grid>
-									<Grid size={{ xs: 12, sm: 6 }}>
-										<FormControl
-											fullWidth
-											disabled={!isEditMode}
-										>
-											<InputLabel>Gender</InputLabel>
-											<Select
+								<form onSubmit={handleSubmit(onSubmit)}>
+									<Grid container spacing={2}>
+										<Grid size={{ xs: 12, sm: 6 }}>
+											<Controller
+												name="firstName"
+												control={control}
+												render={({ field }) => (
+													<TextField
+														{...field}
+														label="First name"
+														fullWidth
+														error={
+															!!errors.firstName
+														}
+														helperText={
+															errors.firstName
+																?.message
+														}
+														disabled={!isEditMode}
+													/>
+												)}
+											/>
+										</Grid>
+										<Grid size={{ xs: 12, sm: 6 }}>
+											<Controller
+												name="lastName"
+												control={control}
+												render={({ field }) => (
+													<TextField
+														{...field}
+														label="Last name"
+														fullWidth
+														error={
+															!!errors.lastName
+														}
+														helperText={
+															errors.lastName
+																?.message
+														}
+														disabled={!isEditMode}
+													/>
+												)}
+											/>
+										</Grid>
+										<Grid size={{ xs: 12, sm: 6 }}>
+											<Controller
+												name="phoneNumber"
+												control={control}
+												render={({ field }) => (
+													<TextField
+														{...field}
+														label="Phone number"
+														fullWidth
+														error={
+															!!errors.phoneNumber
+														}
+														helperText={
+															errors.phoneNumber
+																?.message
+														}
+														disabled={!isEditMode}
+													/>
+												)}
+											/>
+										</Grid>
+										<Grid size={{ xs: 12, sm: 6 }}>
+											<Controller
+												name="dateOfBirth"
+												control={control}
+												render={({ field }) => (
+													<TextField
+														{...field}
+														label="Birth"
+														type="date"
+														fullWidth
+														slotProps={{
+															inputLabel: {
+																shrink: true,
+															},
+														}}
+														error={
+															!!errors.dateOfBirth
+														}
+														helperText={
+															errors.dateOfBirth
+																?.message as string
+														}
+														disabled={!isEditMode}
+														value={
+															field.value
+																? new Date(
+																		field.value
+																  )
+																		.toISOString()
+																		.split(
+																			"T"
+																		)[0]
+																: ""
+														}
+														onChange={(e) =>
+															field.onChange(
+																e.target.value
+																	? new Date(
+																			e.target.value
+																	  )
+																	: null
+															)
+														}
+													/>
+												)}
+											/>
+										</Grid>
+										<Grid size={{ xs: 12, sm: 6 }}>
+											<Controller
 												name="gender"
-												value={
-													editedProfile.gender ??
-													"other"
-												}
-												onChange={(e) =>
-													setEditedProfile(
-														(prev: any) => ({
-															...prev,
-															gender: e.target
-																.value as Gender,
-														})
-													)
-												}
-												label="Gender"
-											>
-												<MenuItem value={"male"}>
-													Male
-												</MenuItem>
-												<MenuItem value={"female"}>
-													Female
-												</MenuItem>
-												<MenuItem value={"other"}>
-													Other
-												</MenuItem>
-											</Select>
-										</FormControl>
+												control={control}
+												render={({ field }) => (
+													<FormControl
+														fullWidth
+														disabled={!isEditMode}
+													>
+														<InputLabel>
+															Gender
+														</InputLabel>
+														<Select
+															{...field}
+															label="Gender"
+															value={
+																field.value ||
+																Gender.OTHER
+															}
+														>
+															<MenuItem
+																value={
+																	Gender.MALE
+																}
+															>
+																Male
+															</MenuItem>
+															<MenuItem
+																value={
+																	Gender.FEMALE
+																}
+															>
+																Female
+															</MenuItem>
+															<MenuItem
+																value={
+																	Gender.OTHER
+																}
+															>
+																Other
+															</MenuItem>
+														</Select>
+													</FormControl>
+												)}
+											/>
+										</Grid>
+										<Grid size={{ xs: 12, sm: 6 }}>
+											<Controller
+												name="address"
+												control={control}
+												render={({ field }) => (
+													<TextField
+														{...field}
+														label="Address"
+														fullWidth
+														disabled={!isEditMode}
+														value={
+															field.value || ""
+														}
+													/>
+												)}
+											/>
+										</Grid>
 									</Grid>
-									<Grid size={{ xs: 12, sm: 6 }}>
-										<TextField
-											label="Address"
-											name="address"
-											value={editedProfile.address ?? ""}
-											onChange={handleChange}
-											fullWidth
-											disabled={!isEditMode}
-										/>
-									</Grid>
-								</Grid>
-								<Box
-									sx={{
-										display: "flex",
-										justifyContent: "flex-end",
-										mt: 3,
-									}}
-								>
-									{isEditMode ? (
-										<>
+									<Box
+										sx={{
+											display: "flex",
+											justifyContent: "flex-end",
+											mt: 3,
+										}}
+									>
+										{isEditMode ? (
+											<>
+												<Button
+													type="submit"
+													variant="contained"
+													color="primary"
+													disabled={isSubmitting}
+													sx={{ mr: 2 }}
+												>
+													{isSubmitting ? (
+														<CircularProgress
+															size={20}
+														/>
+													) : (
+														"Save changes"
+													)}
+												</Button>
+												<Button
+													variant="outlined"
+													onClick={handleCancelClick}
+												>
+													Cancel
+												</Button>
+											</>
+										) : (
 											<Button
 												variant="contained"
-												color="primary"
-												onClick={handleSaveClick}
-												disabled={isLoading}
-												sx={{ mr: 2 }}
+												onClick={() =>
+													setIsEditMode(true)
+												}
 											>
-												{isLoading ? (
-													<CircularProgress
-														size={20}
-													/>
-												) : (
-													"Save changes"
-												)}
+												Edit Profile
 											</Button>
-											<Button
-												variant="outlined"
-												onClick={handleCancelClick}
-											>
-												Cancel
-											</Button>
-										</>
-									) : (
-										<Button
-											variant="contained"
-											onClick={() => setIsEditMode(true)}
-										>
-											Edit Profile
-										</Button>
-									)}
-								</Box>
+										)}
+									</Box>
+								</form>
 							</Box>
 						</Grid>
 					</Grid>

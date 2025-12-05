@@ -54,8 +54,9 @@ export const SearchSeat = async (
 		const filters: SeatFilterDTO = {};
 
 		if (tripId !== undefined) filters.tripId = parseInt(tripId as string);
-		if (vehicleId !== undefined) filters.vehicleId = parseInt(vehicleId as string);
-	if (status !== undefined) filters.status = status as any;
+		if (vehicleId !== undefined)
+			filters.vehicleId = parseInt(vehicleId as string);
+		if (status !== undefined) filters.status = status as any;
 
 		const options: any = {
 			orderBy: orderBy as string,
@@ -145,6 +146,45 @@ export const GetSeatById = async (
 		}
 
 		res.status(200).json(seat);
+	} catch (err) {
+		next(err);
+	}
+};
+
+/**
+ * Retrieves a specific seat by ID with full details.
+ *
+ * Fetches detailed information for a single seat record including
+ * associated trip, vehicle, and route information.
+ *
+ * @param req - Express request object containing seat ID
+ * @param res - Express response object
+ * @param next - Express next function for error handling
+ *
+ * @route GET /seats/seat-by-trip/:tripId
+ * @access Public/Admin
+ *
+ * @throws {Error} When seat not found or query fails
+ */
+export const GetSeatByTripId = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+): Promise<void> => {
+	try {
+		const { tripId } = req.params;
+
+		if (!tripId) throw { status: 400, message: "Missing tripId parameter." };
+
+		const numericTripId = Number.parseInt(tripId, 10);
+
+		if (Number.isNaN(numericTripId)) {
+			throw { status: 400, message: "Invalid tripId parameter." };
+		}
+
+		const seats = await seatServices.getSeatByTripId(numericTripId);
+
+		res.status(200).json({ rows: seats || [], count: seats ? seats.length : 0 });
 	} catch (err) {
 		next(err);
 	}

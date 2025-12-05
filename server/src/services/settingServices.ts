@@ -2,6 +2,7 @@ import { Setting } from "@models/setting";
 import logger from "@utils/logger";
 import * as path from "path";
 import * as fs from "fs";
+import db from "@models/index";
 
 const NODE_ENV = process.env.NODE_ENV || "development";
 
@@ -135,3 +136,7 @@ class ConfigService {
 
 // Export a singleton instance so the cache is shared across the application
 export const configService = new ConfigService();
+
+export const getAllSettings = async (): Promise<Setting[]> => {
+	return await db.Setting.findAll();
+}

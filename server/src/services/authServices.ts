@@ -8,11 +8,11 @@ import * as AuthDTO from "@my_types/auth";
 import ms from "ms";
 import { Gender, Role } from "@models/user";
 import { Op } from "sequelize";
-import * as verificationServices from "@services/verificationServices";
+import * as verificationServices from "@services/verificationServices"
 import { getUserByEmail, getUserById } from "./userServices";
 import { emailQueue } from "@utils/queues/emailQueue";
 import redis from "@config/redis";
-import { generateResetPasswordHTML } from "./emailService";
+import { generateResetPasswordHTML } from "./emailServices";
 import logger from "@utils/logger";
 import { CONFIG, COMPUTED, TOKEN_CONFIG } from "@constants";
 import { GetMeResponse, LoginResponse } from "@my_types/auth";
@@ -88,6 +88,7 @@ export const register = async (
 		dto.password,
 		CONFIG.BCRYPT_SALT_ROUNDS
 	);
+	
 	const user = await db.User.create({
 		userName: dto.email,
 		firstName: dto.firstName,
@@ -380,6 +381,7 @@ export const getMe = async (userId: string): Promise<GetMeResponse> => {
 		"lastName",
 		"email",
 		"emailConfirmed",
+		"phoneNumber",
 		"role",
 		"avatar"
 	);
@@ -391,6 +393,7 @@ export const getMe = async (userId: string): Promise<GetMeResponse> => {
 			fullName: user.fullName!,
 			firstName: user.firstName!,
 			lastName: user.lastName!,
+			phoneNumber: user.phoneNumber,
 			email: user.email,
 			emailConfirmed: user.emailConfirmed ?? false,
 			role: user.role,

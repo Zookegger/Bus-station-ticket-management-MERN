@@ -6,8 +6,15 @@ import {
 	BelongsToGetAssociationMixin,
 } from "sequelize";
 import { User } from "./user";
-import { NotificationPriorities, NotificationPriority, NotificationStatus, NotificationStatuses, NotificationType, NotificationTypes } from "@my_types/notifications";
-import { DbModels } from "@models";;
+import {
+	NotificationPriorities,
+	NotificationPriority,
+	NotificationStatus,
+	NotificationStatuses,
+	NotificationType,
+	NotificationTypes,
+} from "@my_types/notifications";
+import { DbModels } from "@models";
 
 export interface NotificationAttributes {
 	id: number;
@@ -16,14 +23,18 @@ export interface NotificationAttributes {
 	content: string;
 	type: NotificationType;
 	priority: NotificationPriority;
-    status: NotificationStatus;
+	status: NotificationStatus;
 	metadata?: Record<string, any>; // Additional data (e.g., { bookingId: 123, tripId: 456 })
 	readAt?: Date;
 	createdAt?: Date;
 	updatedAt?: Date;
 }
 
-export interface NotificationCreationAttributes extends Optional<Omit<NotificationAttributes, "id" | "createdAt" | "updatedAt">, "metadata" | "readAt"> {}
+export interface NotificationCreationAttributes
+	extends Optional<
+		Omit<NotificationAttributes, "id" | "createdAt" | "updatedAt">,
+		"metadata" | "readAt"
+	> {}
 
 /**
  * Sequelize model representing a Notification entity.
@@ -75,7 +86,7 @@ export class Notification
 	/**
 	 * @property {NotificationStatus} status - The status of the notification.
 	 */
-    public status!: NotificationStatus;
+	public status!: NotificationStatus;
 	/**
 	 * @property {Record<string, any>} metadata - Additional data associated with the notification.
 	 */
@@ -110,60 +121,64 @@ export class Notification
 	static initModel(sequelize: Sequelize) {
 		Notification.init(
 			{
-                id: {
-                    type: DataTypes.INTEGER,
-                    primaryKey: true,
-                    autoIncrement: true,
-                },
-                userId: {
-                    type: DataTypes.UUID,
-                    allowNull: false,
-					field: 'userId'
-                },
-                title: {
-                    type: DataTypes.STRING(255),
-                    allowNull: false,
-                },
-                content: {
-                    type: DataTypes.TEXT,
-                    allowNull: false,
-                },
-                type: {
-                    type: DataTypes.ENUM(...Object.values(NotificationTypes)),
-                    allowNull: false,
-                    defaultValue: "system",
-                },
-                priority: {
-                    type: DataTypes.ENUM(...Object.values(NotificationPriorities)),
-                    allowNull: false,
-                    defaultValue: "medium",
-                },
-                status: {
-                    type: DataTypes.ENUM(...Object.values(NotificationStatuses)),
-                    allowNull: false,
-                    defaultValue: "unread",
-                },
-                metadata: {
-                    type: DataTypes.JSON,
-                    allowNull: true,
-                },
-                readAt: {
-                    type: DataTypes.DATE,
-                    allowNull: true,
-					field: 'readAt'
-                },
-            },
+				id: {
+					type: DataTypes.INTEGER,
+					primaryKey: true,
+					autoIncrement: true,
+				},
+				userId: {
+					type: DataTypes.UUID,
+					allowNull: false,
+					field: "userId",
+				},
+				title: {
+					type: DataTypes.STRING(255),
+					allowNull: false,
+				},
+				content: {
+					type: DataTypes.TEXT,
+					allowNull: false,
+				},
+				type: {
+					type: DataTypes.ENUM(...Object.values(NotificationTypes)),
+					allowNull: false,
+					defaultValue: "system",
+				},
+				priority: {
+					type: DataTypes.ENUM(
+						...Object.values(NotificationPriorities)
+					),
+					allowNull: false,
+					defaultValue: "medium",
+				},
+				status: {
+					type: DataTypes.ENUM(
+						...Object.values(NotificationStatuses)
+					),
+					allowNull: false,
+					defaultValue: "unread",
+				},
+				metadata: {
+					type: DataTypes.JSON,
+					allowNull: true,
+				},
+				readAt: {
+					type: DataTypes.DATE,
+					allowNull: true,
+					field: "readAt",
+				},
+			},
 			{
 				sequelize,
-                tableName: 'notifications',
+				tableName: "notifications",
 				timestamps: true,
 				underscored: false,
-                indexes: [
-                    { fields: ['userId'] },
-                    { fields: ['status'] },
-                    { fields: ['type'] },
-                    { fields: ['createdAt'] },
-                ],
+				indexes: [
+					{ fields: ["userId"] },
+					{ fields: ["status"] },
+					{ fields: ["type"] },
+					{ fields: ["createdAt"] },
+				],
 			}
 		);
 	}
@@ -178,6 +193,8 @@ export class Notification
 		Notification.belongsTo(models.User, {
 			foreignKey: "userId",
 			as: "user",
+			onDelete: "CASCADE",
+			onUpdate: "CASCADE",
 		});
 	}
 }

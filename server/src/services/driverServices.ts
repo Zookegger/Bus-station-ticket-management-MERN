@@ -113,12 +113,13 @@ export const listDrivers = async (
 	// Build where conditions
 	const where: any = {};
 
-	// Keyword search on fullname, phoneNumber, and licenseNumber
-	if (keywords) {
+	// Safe keyword handling
+	const kw = String(keywords || "").trim();
+	if (kw.length > 0) {
 		where[Op.or] = [
-			{ fullname: { [Op.like]: `%${keywords}%` } },
-			{ phoneNumber: { [Op.like]: `%${keywords}%` } },
-			{ licenseNumber: { [Op.like]: `%${keywords}%` } },
+			{ fullname: { [Op.like]: `%${kw}%` } },
+			{ phoneNumber: { [Op.like]: `%${kw}%` } },
+			{ licenseNumber: { [Op.like]: `%${kw}%` } },
 		];
 	}
 
@@ -148,10 +149,12 @@ export const listDrivers = async (
 		order: [[orderBy, sortOrder]],
 	};
 
-	// Add pagination if provided
-	if (page !== undefined && limit !== undefined) {
-		queryOptions.offset = (page - 1) * limit;
-		queryOptions.limit = limit;
+	// Add pagination if provided (validate numbers)
+	if (typeof page === "number" && typeof limit === "number") {
+		const p = Math.max(1, Math.floor(page));
+		const l = Math.max(1, Math.floor(limit));
+		queryOptions.offset = (p - 1) * l;
+		queryOptions.limit = l;
 	}
 
 	return await db.Driver.findAndCountAll(queryOptions);
@@ -171,20 +174,26 @@ export const listDrivers = async (
 export const addDriver = async (
 	dto: CreateDriverDTO
 ): Promise<Driver | null> => {
-	const existing_driver = await db.Driver.findOne({
-		where: {
-			[Op.or]: [
-				{ fullname: dto.fullname },
-				{ licenseNumber: dto.licenseNumber },
-				{ phoneNumber: dto.phoneNumber },
-			],
-		},
-	});
+	// Check duplicates only on provided unique-ish fields
+	const orConditions: any[] = [];
+	if (dto.fullname) orConditions.push({ fullname: dto.fullname });
+	if (dto.licenseNumber) orConditions.push({ licenseNumber: dto.licenseNumber });
+	if (dto.phoneNumber) orConditions.push({ phoneNumber: dto.phoneNumber });
 
-	if (existing_driver) throw { status: 409, message: "Driver already exist." };
-	
-    const driver = await db.Driver.create(dto);
-    return driver;
+	if (orConditions.length > 0) {
+		const existing_driver = await db.Driver.findOne({ where: { [Op.or]: orConditions } });
+		if (existing_driver) throw { status: 409, message: "Driver already exist." };
+	}
+
+	const transaction = await db.sequelize.transaction();
+	try {
+		const driver = await db.Driver.create(dto as any, { transaction });
+		await transaction.commit();
+		return driver;
+	} catch (err) {
+		await transaction.rollback();
+		throw err;
+	}
 };
 
 /**
@@ -202,12 +211,21 @@ export const updateDriver = async (
 	id: number,
 	dto: UpdateDriverDTO
 ): Promise<Driver | null> => {
-    const driver = await getDriverById(id);
+	const transaction = await db.sequelize.transaction();
+	try {
+		const driver = await getDriverById(id);
+		if (!driver) {
+			await transaction.rollback();
+			throw { status: 404, message: `No driver found with id ${id}` };
+		}
 
-    if (!driver) throw { status: 404 , message: `No driver found with id ${id}` };
-
-    await driver.update(dto);
-    return driver;
+		await driver.update(dto as any, { transaction });
+		await transaction.commit();
+		return driver;
+	} catch (err) {
+		await transaction.rollback();
+		throw err;
+	}
 };
 
 /**
@@ -223,17 +241,27 @@ export const updateDriver = async (
  * @throws {Object} Error with status 500 if deletion verification fails
  */
 export const deleteDriver = async (id: number): Promise<void> => {
-    const driver = await getDriverById(id);
-    if (!driver) throw { status: 404 , message: `No driver found with id ${id}` };
+	const transaction = await db.sequelize.transaction();
+	try {
+		const driver = await getDriverById(id);
+		if (!driver) {
+			await transaction.rollback();
+			throw { status: 404, message: `No driver found with id ${id}` };
+		}
 
-    await driver.destroy();
+		await driver.destroy({ transaction });
+		await transaction.commit();
 
-    // Verify deletion was successful
-    const deletedDriver = await getDriverById(id);
-    if (deletedDriver) {
-        throw {
-            status: 500,
-            message: "Driver deletion failed - driver still exists."
-        };
-    }
+		// Verify deletion by fetching outside transaction
+		const deletedDriver = await getDriverById(id);
+		if (deletedDriver) {
+			throw {
+				status: 500,
+				message: "Driver deletion failed - driver still exists.",
+			};
+		}
+	} catch (err) {
+		await transaction.rollback();
+		throw err;
+	}
 };

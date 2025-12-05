@@ -27,6 +27,7 @@
 		"test:verbose": "jest --verbose"
 	},
 	"dependencies": {
+		"@socket.io/redis-adapter": "^8.3.0",
 		"axios": "^1.13.1",
 		"bcrypt": "^6.0.0",
 		"bullmq": "^5.63.0",
@@ -35,11 +36,12 @@
 		"cors": "^2.8.5",
 		"csrf-csrf": "^4.0.3",
 		"date-fns": "^4.1.0",
+		"date-fns-tz": "^3.2.0",
 		"dotenv": "^17.2.3",
 		"express": "^5.1.0",
 		"express-rate-limit": "^8.2.0",
 		"express-validator": "^7.2.1",
-		"ioredis": "^5.8.0",
+		"ioredis": "^5.8.2",
 		"jsonwebtoken": "^9.0.2",
 		"morgan": "^1.10.1",
 		"ms": "^2.1.3",

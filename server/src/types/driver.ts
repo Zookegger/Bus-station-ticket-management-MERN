@@ -1,3 +1,6 @@
+import { Gender } from "@models/user";
+import type { DriverStatus } from "@models/driver";
+
 /**
  * Data Transfer Object for creating a new Driver profile.
  *
@@ -5,7 +8,6 @@
  * to create a new driver profile record.
  *
  * @interface CreateDriverDTO
- * @property {number} id - Unique identifier for the driver record
  * @property {string | null} [fullname] - Driver's full name
  * @property {string | null} [phoneNumber] - Driver's phone number
  * @property {string | null} [avatar] - URL or path to the driver's avatar image
@@ -19,12 +21,17 @@
  * @property {boolean} [isSuspended] - Indicates if the license is suspended (defaults to false)
  */
 export interface CreateDriverDTO {
-	id: number;
 	fullname?: string | null;
+	email?: string | null;
+	gender: Gender;
 	phoneNumber?: string | null;
 	avatar?: string | null;
+	dateOfBirth?: Date | null;
+	citizenId?: string | null;
 	hiredAt?: Date | null;
 	isActive?: boolean;
+	/** Optional driver status (server enum). */
+	status?: DriverStatus;
 	licenseNumber?: string | null;
 	licenseCategory?: string | null;
 	licenseIssueDate?: Date | null;
@@ -54,16 +61,21 @@ export interface CreateDriverDTO {
  * @property {boolean} [isSuspended] - Updated suspension status
  */
 export interface UpdateDriverDTO {
-	id: number;
 	fullname?: string | null;
+	gender?: Gender | null;
+	email?: string | null;
 	phoneNumber?: string | null;
 	avatar?: string | null;
-	hiredAt?: Date | null;
+	dateOfBirth?: Date | null;
+	citizenId?: string | null;
+	hiredAt?: string | null; // ISO Date string
 	isActive?: boolean;
+	/** Optional driver status (server enum). */
+	status?: DriverStatus | null;
 	licenseNumber?: string | null;
 	licenseCategory?: string | null;
-	licenseIssueDate?: Date | null;
-	licenseExpiryDate?: Date | null;
+	licenseIssueDate?: string | null; // ISO Date string
+	licenseExpiryDate?: string | null; // ISO Date string
 	issuingAuthority?: string | null;
 	isSuspended?: boolean;
 }

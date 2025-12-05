@@ -68,13 +68,14 @@ export interface RegisterResponse {
 export interface AuthUser {
 	id: string;
 	userName: string;
-	fullName: string;
-	firstName: string;
-	lastName: string;
+	fullName?: string;
+	firstName?: string;
+	lastName?: string;
+	phoneNumber?: string;
 	email: string;
-	emailConfirmed: false;
-	role: "User";
-	avatar: null;
+	emailConfirmed: boolean;
+	avatar?: string | null;
+	role: Role;
 }
 
 /**
@@ -108,16 +109,16 @@ export interface GetMeResponse {
 		id: string;
 		userName: string;
 		fullName?: string;
-        firstName?: string;
-        lastName?: string;
+		firstName?: string;
+		lastName?: string;
+		phoneNumber?: string;
 		email: string;
 		emailConfirmed: boolean;
 		avatar?: string | null;
 		role: Role;
 	};
-	csrfToken: string,
+	csrfToken: string;
 }
-
 
 /**
  * Defines the shape of the authentication context.
@@ -127,12 +128,12 @@ interface AuthContextType {
 	login: (dto: LoginDTO) => Promise<LoginResponse>;
 	logout: () => Promise<void>;
 	register: (dto: RegisterDTO) => Promise<RegisterResponse>;
-	deleteAccount: () => Promise<boolean>
+	deleteAccount: () => Promise<boolean>;
 	isLoading: boolean;
 	isAuthenticated: boolean;
 	isAdmin: boolean;
 	loginWithGoogle: () => void;
-    loginWithFacebook: () => void;
+	loginWithFacebook: () => void;
 }
 
 export type { AuthContextType };

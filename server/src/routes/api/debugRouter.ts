@@ -36,4 +36,30 @@ debugRouter.get(
 	errorHandler
 );
 
+/**
+ * @route POST /api/debug/test-websocket
+ * @desc Test WebSocket broadcasting
+ * @access Admin
+ */
+debugRouter.post(
+	"/test-websocket",
+	authenticateJwt,
+	isAdmin,
+	debugController.TestWebsocketBroadcast,
+	errorHandler
+);
+
+/**
+ * @route GET /api/debug/websocket-stats
+ * @desc Get WebSocket connection statistics
+ * @access Admin
+ */
+debugRouter.get(
+	"/websocket-stats",
+	authenticateJwt,
+	isAdmin,
+	debugController.GetWebsocketStats,
+	errorHandler
+);
+
 export default debugRouter;

@@ -6,7 +6,8 @@
  * to validate request bodies and parameters with comprehensive error messages.
  */
 
-import { body, param } from "express-validator";
+import { body, param, query } from "express-validator";
+import { TripRepeatFrequency, TripStatus } from "@my_types/trip";
 
 /**
  * Validation rules for ID parameters in URL routes.
@@ -56,24 +57,95 @@ export const validateCreateTrip = [
 		.withMessage("Start time must be a valid ISO 8601 date")
 		.toDate(),
 
+	body("returnStartTime")
+		.optional({ nullable: true })
+		.isISO8601()
+		.withMessage("Return start time must be a valid ISO 8601 date")
+		.toDate(),
+
+	// Ensure endTime (if provided) is after startTime
 	body("endTime")
 		.optional()
 		.isISO8601()
 		.withMessage("End time must be a valid ISO 8601 date")
-		.toDate(),
+		.toDate()
+		.custom((value, { req }) => {
+			if (!value) return true;
+			const start =
+				req.body.startTime instanceof Date
+					? req.body.startTime
+					: new Date(req.body.startTime);
+			const end = value instanceof Date ? value : new Date(value);
+			if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
+			return end > start;
+		})
+		.withMessage("End time must be after start time"),
+
+	// Round trip flag and validations
+	body("isRoundTrip")
+		.optional()
+		.isBoolean()
+		.withMessage("isRoundTrip must be a boolean")
+		.toBoolean(),
+	body("returnEndTime")
+		.optional()
+		.isISO8601()
+		.withMessage("Return end time must be a valid ISO 8601 date")
+		.toDate()
+		.custom((value, { req }) => {
+			if (!value) return true;
+			const rstart =
+				req.body.returnStartTime instanceof Date
+					? req.body.returnStartTime
+					: new Date(req.body.returnStartTime);
+			const rend = value instanceof Date ? value : new Date(value);
+			if (isNaN(rstart.getTime()) || isNaN(rend.getTime())) return false;
+			return rend > rstart;
+		})
+		.withMessage("Return end time must be after return start time"),
 
 	body("price")
 		.optional()
 		.isFloat({ min: 0 })
 		.withMessage("Price must be a positive number")
 		.toFloat(),
-
 	body("status")
 		.optional()
-		.isIn(["Scheduled", "Departed", "Completed", "Cancelled"])
+		.isIn(Object.values(TripStatus))
 		.withMessage(
-			"Status must be one of: Scheduled, Departed, Completed, Cancelled"
+			`Status must be one of: ${Object.values(TripStatus).join(", ")}`
 		),
+
+	// Template / recurrence
+	body("isTemplate")
+		.optional()
+		.isBoolean()
+		.withMessage("isTemplate must be a boolean")
+		.toBoolean(),
+	body("repeatFrequency")
+		.optional()
+		.isIn(Object.values(TripRepeatFrequency))
+		.withMessage(
+			`repeatFrequency must be one of: ${Object.values(
+				TripRepeatFrequency
+			).join(", ")}`
+		),
+	body("repeatEndDate")
+		.optional({ nullable: true })
+		.isISO8601()
+		.withMessage("Repeat end date must be a valid ISO 8601 date")
+		.toDate()
+		.custom((value, { req }) => {
+			if (!value) return true;
+			const start =
+				req.body.startTime instanceof Date
+					? req.body.startTime
+					: new Date(req.body.startTime);
+			const rend = value instanceof Date ? value : new Date(value);
+			if (isNaN(start.getTime()) || isNaN(rend.getTime())) return false;
+			return rend >= start;
+		})
+		.withMessage("repeatEndDate must be on or after startTime"),
 ];
 
 /**
@@ -102,11 +174,54 @@ export const validateUpdateTrip = [
 		.withMessage("Start time must be a valid ISO 8601 date")
 		.toDate(),
 
+	// Ensure endTime (if provided) is after startTime when both present
 	body("endTime")
 		.optional()
 		.isISO8601()
 		.withMessage("End time must be a valid ISO 8601 date")
+		.toDate()
+		.custom((value, { req }) => {
+			if (!value) return true;
+			const start =
+				req.body.startTime instanceof Date
+					? req.body.startTime
+					: new Date(req.body.startTime);
+			const end = value instanceof Date ? value : new Date(value);
+			if (req.body.startTime) {
+				if (isNaN(start.getTime()) || isNaN(end.getTime()))
+					return false;
+				return end > start;
+			}
+			return true;
+		})
+		.withMessage("End time must be after start time"),
+
+	body("returnStartTime")
+		.optional({ nullable: true })
+		.isISO8601()
+		.withMessage("Return start time must be a valid ISO 8601 date")
 		.toDate(),
+
+	body("returnEndTime")
+		.optional()
+		.isISO8601()
+		.withMessage("Return end time must be a valid ISO 8601 date")
+		.toDate()
+		.custom((value, { req }) => {
+			if (!value) return true;
+			const rstart =
+				req.body.returnStartTime instanceof Date
+					? req.body.returnStartTime
+					: new Date(req.body.returnStartTime);
+			const rend = value instanceof Date ? value : new Date(value);
+			if (req.body.returnStartTime) {
+				if (isNaN(rstart.getTime()) || isNaN(rend.getTime()))
+					return false;
+				return rend > rstart;
+			}
+			return true;
+		})
+		.withMessage("Return end time must be after return start time"),
 
 	body("price")
 		.optional()
@@ -116,8 +231,73 @@ export const validateUpdateTrip = [
 
 	body("status")
 		.optional()
-		.isIn(["Scheduled", "Departed", "Completed", "Cancelled"])
+		.isIn(Object.values(TripStatus))
 		.withMessage(
-			"Status must be one of: Scheduled, Departed, Completed, Cancelled"
+			`Status must be one of: ${Object.values(TripStatus).join(", ")}`
 		),
+
+	body("isTemplate")
+		.optional()
+		.isBoolean()
+		.withMessage("isTemplate must be a boolean")
+		.toBoolean(),
+	body("repeatFrequency")
+		.optional()
+		.isIn(Object.values(TripRepeatFrequency))
+		.withMessage(
+			`repeatFrequency must be one of: ${Object.values(
+				TripRepeatFrequency
+			).join(", ")}`
+		),
+	body("repeatEndDate")
+		.optional({ nullable: true })
+		.isISO8601()
+		.withMessage("Repeat end date must be a valid ISO 8601 date")
+		.toDate()
+		.custom((value, { req }) => {
+			if (!value) return true;
+			const start =
+				req.body.startTime instanceof Date
+					? req.body.startTime
+					: new Date(req.body.startTime);
+			const rend = value instanceof Date ? value : new Date(value);
+			if (isNaN(start.getTime()) || isNaN(rend.getTime())) return false;
+			return rend >= start;
+		})
+		.withMessage("repeatEndDate must be on or after startTime"),
+];
+
+/**
+ * Validation rules for search/querying trips
+ */
+export const validateSearchTrip = [
+	query("page")
+		.optional()
+		.isInt({ min: 1 })
+		.withMessage("page must be a positive integer")
+		.toInt(),
+	query("limit")
+		.optional()
+		.isInt({ min: 1 })
+		.withMessage("limit must be a positive integer")
+		.toInt(),
+	query("date")
+		.optional()
+		.isISO8601()
+		.withMessage("date must be a valid ISO 8601 date"),
+	query("from").optional().isString().trim(),
+	query("to").optional().isString().trim(),
+	query("vehicleId").optional().isInt({ min: 1 }).toInt(),
+	query("routeId").optional().isInt({ min: 1 }).toInt(),
+	query("status")
+		.optional()
+		.isIn(Object.values(TripStatus))
+		.withMessage(
+			`status must be one of: ${Object.values(TripStatus).join(", ")}`
+		),
+	query("checkSeatAvailability")
+		.optional()
+		.isBoolean()
+		.withMessage("checkSeatAvailability must be a boolean")
+		.toBoolean(),
 ];

@@ -1,17 +1,8 @@
-import {
-	Alert,
-	Button,
-	Dialog,
-	DialogActions,
-	DialogContent,
-	DialogContentText,
-	DialogTitle,
-} from "@mui/material";
-import { useEffect, useState } from "react";
-import { handleAxiosError } from "@utils/handleError";
-import axios from "axios";
-import { API_ENDPOINTS } from "@constants";
-import { Warning } from "@mui/icons-material";
+import { useCallback, useMemo } from "react";
+import type { FC } from "react";
+import ConfirmDeleteDialog from "@components/common/ConfirmDeleteDialog";
+import { API_ENDPOINTS } from "@constants/index";
+import callApi from "@utils/apiCaller";
 
 interface DeleteRouteFormProps {
 	id?: number;
@@ -20,75 +11,49 @@ interface DeleteRouteFormProps {
 	onConfirm: () => void;
 }
 
-const DeleteRouteForm: React.FC<DeleteRouteFormProps> = ({
+const DeleteRouteForm: FC<DeleteRouteFormProps> = ({
 	id,
 	open,
 	onClose,
 	onConfirm,
 }) => {
-	const [errors, setErrors] = useState<string | null>(null);
-	const [isDeleting, setIsDeleting] = useState<boolean>(false);
-
-	useEffect(() => {
-		if (!(typeof id === "number" && Number.isInteger(id))) {
-			setErrors("Invalid ID");
-		} else {
-			setErrors(null);
+	const validationError = useMemo(() => {
+		if (!open) {
+			return null;
 		}
+
+		return typeof id === "number" && Number.isInteger(id)
+			? null
+			: "Invalid route identifier.";
+	}, [id, open]);
+
+	const handleDelete = useCallback(async () => {
+		if (typeof id !== "number" || !Number.isInteger(id)) {
+			throw new Error("No route id provided.");
+		}
+
+		// Invoke API to remove the selected route before triggering any refresh callbacks.
+		await callApi({
+			method: "DELETE",
+			url: API_ENDPOINTS.ROUTE.DELETE(id),
+		});
 	}, [id]);
 
-	const handleSubmit = async () => {
-		if (errors) return;
-
-		setIsDeleting(true);
-		setErrors(null);
-
-		if (!id) throw new Error("No ID provided");
-
-		try {
-			const response = await axios.delete(
-				API_ENDPOINTS.ROUTE.DELETE(id)
-			);
-			if (!response || response.status !== 200) {
-				throw new Error("No response from server");
-			}
-			await onConfirm();
-			onClose();
-		} catch (err: unknown) {
-			const message = handleAxiosError(err);
-			setErrors(message.message);
-		} finally {
-			setIsDeleting(false);
-		}
-	};
+	const handleSuccess = useCallback(() => {
+		// Allow parent components to refresh their data after a successful deletion.
+		onConfirm();
+	}, [onConfirm]);
 
 	return (
-		<Dialog open={open} onClose={onClose}>
-			<DialogTitle>
-				<Warning color="error" />
-				{errors && <Alert>{errors.toString()}</Alert>}
-			</DialogTitle>
-
-			<DialogContent>
-				<DialogContentText>
-					Are you sure you want to delete this route?
-				</DialogContentText>
-			</DialogContent>
-			<DialogActions sx={{ px: 2 }}>
-				<Button onClick={onClose} color="inherit">
-					Cancel
-				</Button>
-				<Button
-					type="button"
-					variant="contained"
-					color="error"
-					disabled={isDeleting || errors != null}
-					onClick={handleSubmit}
-				>
-					{isDeleting ? "Deleting..." : "Confirm Delete"}
-				</Button>
-			</DialogActions>
-		</Dialog>
+		<ConfirmDeleteDialog
+			open={open}
+			title="Delete Route"
+			description="Are you sure you want to delete this route?"
+			onClose={onClose}
+			deleteAction={handleDelete}
+			onSuccess={handleSuccess}
+			blockingError={validationError}
+		/>
 	);
 };
 

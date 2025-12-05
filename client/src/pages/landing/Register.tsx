@@ -37,7 +37,7 @@ import type { RegisterDTO } from "@my-types/auth";
 const Register: React.FC = () => {
 	const { register } = useAuth();
 	const navigate = useNavigate();
-	const genderOptions: Gender[] = ["male", "female", "other"];
+	const genderOptions: Gender[] = ["MALE", "FEMALE", "OTHER"];
 	const [formData, setFormData] = useState<RegisterDTO>({
 		firstName: "",
 		lastName: "",
@@ -186,6 +186,7 @@ const Register: React.FC = () => {
 											fullWidth
 											label="Email"
 											name="email"
+											required
 											value={formData.email}
 											placeholder="Email"
 											onChange={handleChange}
@@ -206,6 +207,7 @@ const Register: React.FC = () => {
 										<TextField
 											fullWidth
 											label="Password"
+											required
 											autoComplete="new-password"
 											name="password"
 											type={
@@ -252,6 +254,7 @@ const Register: React.FC = () => {
 											fullWidth
 											label="Confirm Password"
 											name="confirmPassword"
+											required
 											type="password"
 											value={formData.confirmPassword}
 											onChange={handleChange}
@@ -267,6 +270,7 @@ const Register: React.FC = () => {
 											fullWidth
 											label="First Name"
 											name="firstName"
+											required
 											value={formData.firstName}
 											onChange={handleChange}
 											error={!!errors.firstName}
@@ -278,6 +282,7 @@ const Register: React.FC = () => {
 											fullWidth
 											label="Last Name"
 											name="lastName"
+											required
 											value={formData.lastName}
 											onChange={handleChange}
 											error={!!errors.lastName}
@@ -289,6 +294,7 @@ const Register: React.FC = () => {
 											fullWidth
 											label="Phone Number"
 											name="phoneNumber"
+											required
 											value={formData.phoneNumber}
 											onChange={handleChange}
 											error={!!errors.phoneNumber}
@@ -299,6 +305,7 @@ const Register: React.FC = () => {
 										<TextField
 											fullWidth
 											label="Address"
+											required
 											name="address"
 											value={formData.address}
 											onChange={handleChange}
@@ -313,6 +320,7 @@ const Register: React.FC = () => {
 											label="Gender"
 											name="gender"
 											value={formData.gender}
+											required
 											onChange={handleChange}
 											error={!!errors.gender}
 											helperText={errors.gender}
@@ -325,7 +333,7 @@ const Register: React.FC = () => {
 													{gender
 														.charAt(0)
 														.toUpperCase() +
-														gender.slice(1)}
+														gender.slice(1).toLowerCase()}
 												</MenuItem>
 											))}
 										</TextField>

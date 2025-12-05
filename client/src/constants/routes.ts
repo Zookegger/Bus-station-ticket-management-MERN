@@ -8,6 +8,8 @@
  */
 export const ROUTES = {
 	HOME: "/",
+	SEARCH: "/search",
+	SEAT_BOOKING: "/book/:tripId",
 	DASHBOARD_HOME: "/dashboard/home",
 	DASHBOARD_VEHICLE: "/dashboard/vehicle",
 	DASHBOARD_VEHICLE_TYPE: "/dashboard/vehicle-type",
@@ -16,10 +18,18 @@ export const ROUTES = {
 	DASHBOARD_SYSTEM: "/dashboard/system",
 	CHECK_IN: "/check-in/:orderId",
 	PROFILE: "/user/profile",
+	USER_ORDERS: "/user/orders",
+	ORDER_LOOKUP: "/orders/lookup",
 	VERIFY_EMAIL: "/verify-email",
 	SETTINGS: "/settings",
 	LOGIN: "/login",
 	REGISTER: "/register",
 	NOT_FOUND: "/404",
 	PRIVACY_POLICY: "/privacy",
+	PAYMENT_RESULT: "/payment-result",
+	DASHBOARD_DEBUG: "/dashboard/debug",
 } as const;
+
+export const getSearchRoute = (q?: string) => {
+	q ? `${ROUTES.SEARCH}?q=${encodeURIComponent(q)}` : ROUTES.SEARCH;
+};

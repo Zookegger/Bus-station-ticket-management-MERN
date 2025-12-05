@@ -1,11 +1,428 @@
+// import axios from "axios";
+// import crypto from "crypto";
+// import { format } from "date-fns";
+// import { toZonedTime } from "date-fns-tz"; // New import for Timezone handling
+// import { Payment } from "@models/payment";
+// import { Ticket } from "@models/ticket";
+// import logger from "@utils/logger";
+// import type { IPaymentGateway } from "@services/paymentServices";
+// import {
+// 	GatewayRefundOptions,
+// 	PaymentRefundResult,
+// 	PaymentStatus,
+// 	PaymentVerificationResult,
+// } from "@my_types/payments";
+
+// /**
+//  * Configuration values supplied by the merchant for VNPay integration.
+//  */
+// interface VNPayConfig {
+// 	/** Terminal code issued by VNPay. */
+// 	VNP_TMN_CODE: string;
+// 	/** Secret string used when generating request signatures. */
+// 	VNP_HASH_SECRET: string;
+// 	/** Base URL for VNPay payment gateway redirects. */
+// 	VNP_URL: string;
+// 	/** URL VNPay will redirect customers back to after payment. */
+// 	VNP_RETURN_URL: string;
+// 	/** Optional predefined order type (defaults to travel). */
+// 	VNP_ORDER_TYPE?: string;
+// 	/** Preferred locale for the payment page (vn/en). */
+// 	VNP_LOCALE?: "vn" | "en";
+// 	/** Direct refund endpoint if provided. */
+// 	VNP_REFUND_URL?: string;
+// 	/** General-purpose API endpoint fallback for refunds. */
+// 	VNP_API_URL?: string;
+// }
+
+// /**
+//  * Optional caller-provided overrides used at payment creation time.
+//  */
+// interface VNPayAdditionalData {
+// 	/** Human readable order description shown on VNPay screens. */
+// 	orderInfo?: string;
+// 	/** Locale override for the payment page. */
+// 	locale?: "vn" | "en";
+// 	/** IP address forwarded to VNPay for audit purposes. */
+// 	ipAddress?: string;
+// 	/** Bank code to preselect a specific payment method. */
+// 	bankCode?: string;
+// 	/** Expiration timestamp in yyyyMMddHHmmss format. */
+// 	expireDate?: string;
+// }
+
+// /**
+//  * Defines the shape of the parameters object to be sent to VNPay
+//  */
+// export interface VNPayParams {
+// 	vnp_Version: "2.1.0";
+// 	vnp_Command: "pay";
+// 	vnp_TmnCode: string;
+// 	vnp_Amount: number;
+// 	vnp_CurrCode: "VND";
+// 	vnp_TxnRef: string;
+// 	vnp_OrderInfo: string;
+// 	vnp_OrderType: string;
+// 	vnp_ReturnUrl: string;
+// 	vnp_IpAddr: string;
+// 	vnp_CreateDate: string;
+// 	vnp_SecureHash: string;
+// 	vnp_Locale?: "vn" | "en";
+// 	vnp_BankCode?: string;
+// 	vnp_ExpireDate?: string;
+// }
+
+// type VNPayBaseParams = Omit<VNPayParams, "vnp_SecureHash">;
+
+// /**
+//  * HELPER: Sorts object by key (ASCII), filters empty values, and encodes values
+//  * to match C# WebUtility.UrlEncode behavior.
+//  */
+// const stringifyAndSortParams = (params: object): string => {
+//    // 1. Get entries and filter out empty values (matches C# dict population logic)
+//    const entries = Object.entries(params as Record<string, unknown>)
+//       .filter(([_, value]) => value !== undefined && value !== null && value !== "")
+//       .map(([key, value]) => [key, String(value)] as [string, string]);
+
+//    // 2. Sort by Key using ASCII comparison (Matches C# SortedDictionary default behavior)
+//    //    Do NOT use localeCompare.
+//    entries.sort(([key1], [key2]) => {
+//       if (key1 > key2) return 1;
+//       if (key1 < key2) return -1;
+//       return 0;
+//    });
+
+//    // 3. Build the query string: key=UrlEncode(value)
+//    //    C# logic: $"{p.Key}={WebUtility.UrlEncode(p.Value)}"
+//    return entries
+//       .map(([key, value]) => {
+//          // Encode value to match WebUtility.UrlEncode (spaces as +)
+//          const encodedValue = encodeURIComponent(value)
+//             .replace(/%20/g, "+")
+//             .replace(/%2C/g, ",") // Preserve commas if C# does? (WebUtility usually encodes them, but check if needed. Standard is OK)
+//             // Ensure standard special chars are encoded. encodeURIComponent does a good job,
+//             // but does NOT encode: ! ' ( ) *
+//             // WebUtility.UrlEncode DOES encode: ! ( ) * // So we must manually patch them to match C#.
+//             .replace(/!/g, "%21")
+//             .replace(/\(/g, "%28")
+//             .replace(/\)/g, "%29")
+//             .replace(/\*/g, "%2A");
+//             // Note: C# WebUtility.UrlEncode might NOT encode single quote ' in older versions,
+//             // but it is safer to leave it encoded or match exact output if you can debug.
+
+//          // DO NOT encode the key (matches C# p.Key)
+//          return `${key}=${encodedValue}`;
+//       })
+//       .join("&");
+// };
+
+// /**
+//  * Computes VNPay's HMAC signature.
+//  */
+// const signVNPayParams = (
+//    baseParams: VNPayBaseParams,
+//    secret: string
+// ): VNPayParams => {
+//    // 1. Build the query string exactly as C# does
+//    const queryString = stringifyAndSortParams(baseParams);
+
+//    // 2. Hash it
+//    const signature = crypto
+//       .createHmac("sha512", secret)
+//       .update(Buffer.from(queryString, "utf-8"))
+//       .digest("hex");
+
+//    return {
+//       ...baseParams,
+//       vnp_SecureHash: signature,
+//    };
+// };
+
+// /**
+//  * Creates a generic HMAC signature for VNPay auxiliary endpoints (e.g., refund).
+//  */
+// const signGenericParams = (
+// 	params: Record<string, unknown>,
+// 	secret: string
+// ): Record<string, string> => {
+// 	// 1. Build the canonical query string (Sorted & Encoded)
+// 	const canonical = stringifyAndSortParams(params);
+
+// 	// 2. Hash the string
+// 	const signature = crypto
+// 		.createHmac("sha512", secret)
+// 		.update(Buffer.from(canonical, "utf-8"))
+// 		.digest("hex");
+
+// 	// 3. Return object with sorted keys + hash (Required for the body)
+// 	// We reconstruct the object because axios needs an object, but we need the hash calculated on the sorted string
+// 	const result: Record<string, string> = {};
+
+// 	// Re-map the raw values (axios will handle standard form encoding, but we need the hash from our special encoding)
+// 	// NOTE: For the body sent to axios, we usually send raw values and let axios/URLSearchParams encode.
+// 	// However, VNPay expects the ORDER of fields in the body to match the hash calculation order sometimes.
+// 	Object.keys(params)
+// 		.sort()
+// 		.forEach((key) => {
+// 			const val = params[key];
+// 			if (val !== undefined && val !== null && val !== "") {
+// 				result[key] = String(val);
+// 			}
+// 		});
+
+// 	result["vnp_SecureHash"] = signature;
+// 	return result;
+// };
+
+// const sanitizeEndpoint = (endpoint: string): string =>
+// 	endpoint.replace(/\/$/, "");
+
+// /**
+//  * Helper to get current time in Vietnam (GMT+7)
+//  */
+// const getVietnamTime = (): Date => {
+// 	return toZonedTime(new Date(), "Asia/Ho_Chi_Minh");
+// };
+
+// /**
+//  * VNPay concrete gateway implementation.
+//  */
+// export class VNPayGateway implements IPaymentGateway {
+// 	getName(): string {
+// 		return "VNPay";
+// 	}
+
+// 	// async createPaymentUrl(
+//    //    payment: Payment,
+//    //    tickets: Ticket[],
+//    //    config: VNPayConfig,
+//    //    additionalData: VNPayAdditionalData = {}
+//    // ): Promise<string> {
+//    //    const createDate = format(getVietnamTime(), "yyyyMMddHHmmss");
+
+//    //    // All your params (WITHOUT SecureHash)
+//    //    const baseParams = {
+//    //       vnp_Version: "2.1.0",
+//    //       vnp_Command: "pay",
+//    //       vnp_TmnCode: config.VNP_TMN_CODE,
+//    //       vnp_Amount: Math.round(Number(payment.totalAmount) * 100),
+//    //       vnp_CurrCode: "VND",
+//    //       vnp_TxnRef: payment.merchantOrderRef,
+//    //       vnp_OrderInfo:
+//    //          additionalData.orderInfo ||
+//    //          `Bus tickets: ${tickets
+//    //             .map((t) => `#${t.seat?.number ?? t.id}`)
+//    //             .join(", ")}`,
+//    //       vnp_OrderType: config.VNP_ORDER_TYPE || "travel",
+//    //       vnp_ReturnUrl: config.VNP_RETURN_URL,
+//    //       vnp_IpAddr: additionalData.ipAddress || "127.0.0.1",
+//    //       vnp_CreateDate: createDate,
+//    //    } as VNPayBaseParams;
+
+//    //    if (additionalData.locale || config.VNP_LOCALE) {
+//    //       baseParams.vnp_Locale = (additionalData.locale ||
+//    //          config.VNP_LOCALE ||
+//    //          "vn") as "vn" | "en";
+//    //    }
+//       // if (additionalData.bankCode)
+//       //    baseParams.vnp_BankCode = additionalData.bankCode;
+//       // if (additionalData.expireDate)
+//       //    baseParams.vnp_ExpireDate = additionalData.expireDate;
+
+// 	// 	// 1. Calculate the signature
+// 	// 	const signedParams = signVNPayParams(baseParams, config.VNP_HASH_SECRET);
+
+// 	// 	logger.debug(`[VNPay] Hash secret: ${config.VNP_HASH_SECRET}`);
+
+// 	// 	// 2. Build the query string from the BASE params (sorted A-Z)
+// 	// 	const query = stringifyAndSortParams(baseParams);
+
+// 	// 	// 3. FORCE Append the SecureHash at the very end
+// 	// 	const url = `${sanitizeEndpoint(
+// 	// 		config.VNP_URL
+// 	// 	)}?${query}&vnp_SecureHash=${signedParams.vnp_SecureHash}`;
+
+// 	// 	logger.debug(
+// 	// 		`[VNPay] Generated payment URL for order ${payment.merchantOrderRef}`
+// 	// 	);
+
+// 	// 	return url;
+// 	// }
+// 	async createPaymentUrl(
+//       payment: Payment,
+//       tickets: Ticket[],
+//       config: VNPayConfig,
+//       additionalData: VNPayAdditionalData = {}
+//    ): Promise<string> {
+//       const createDate = format(getVietnamTime(), "yyyyMMddHHmmss");
+
+//       const baseParams = {
+//          vnp_Version: "2.1.0",
+//          vnp_Command: "pay",
+//          vnp_TmnCode: config.VNP_TMN_CODE,
+//          vnp_Amount: Math.round(Number(payment.totalAmount) * 100),
+//          vnp_CurrCode: "VND",
+//          vnp_TxnRef: payment.merchantOrderRef,
+//          vnp_OrderInfo:
+//             additionalData.orderInfo ||
+//             `Payment for ${payment.merchantOrderRef}`, // Simplified to match C# style stability
+//          vnp_OrderType: config.VNP_ORDER_TYPE || "travel",
+//          vnp_ReturnUrl: config.VNP_RETURN_URL,
+//          vnp_IpAddr: additionalData.ipAddress || "127.0.0.1",
+//          vnp_CreateDate: createDate,
+//       } as VNPayBaseParams;
+
+//       // ... (Add optional params: locale, bankCode, expireDate) ...
+//       if (additionalData.locale) baseParams.vnp_Locale = additionalData.locale;
+//       // etc...
+
+//       // 1. Build the query string (Sorted & Encoded)
+//       const queryString = stringifyAndSortParams(baseParams);
+
+//       // 2. Calculate Hash
+//       const signature = crypto
+//          .createHmac("sha512", config.VNP_HASH_SECRET)
+//          .update(Buffer.from(queryString, "utf-8"))
+//          .digest("hex");
+
+//       // 3. Construct Final URL
+//       // Matches C#: return $"{setting.BaseUrl}?{queryString}&vnp_SecureHash={secureHash}";
+//       const url = `${sanitizeEndpoint(config.VNP_URL)}?${queryString}&vnp_SecureHash=${signature}`;
+
+// 		logger.debug(url);
+
+//       return url;
+//    }
+
+// 	async verifyCallback(
+// 		data: Record<string, unknown>,
+// 		config: VNPayConfig
+// 	): Promise<PaymentVerificationResult> {
+// 		const receivedHash =
+// 			typeof data.vnp_SecureHash === "string"
+// 				? data.vnp_SecureHash
+// 				: undefined;
+// 		const checksumParams: Record<string, unknown> = {};
+
+// 		// Filter out the hash field
+// 		for (const [key, value] of Object.entries(data)) {
+// 			if (key !== "vnp_SecureHash") {
+// 				checksumParams[key] = value;
+// 			}
+// 		}
+
+// 		// FIX: Re-encode the incoming data to match how VNPay hashed it originally
+// 		const canonical = stringifyAndSortParams(checksumParams);
+
+// 		const expectedHash = crypto
+// 			.createHmac("sha512", config.VNP_HASH_SECRET)
+// 			.update(Buffer.from(canonical, "utf-8"))
+// 			.digest("hex");
+
+// 		const isValid = receivedHash === expectedHash;
+// 		const status =
+// 			data.vnp_ResponseCode === "00"
+// 				? PaymentStatus.COMPLETED
+// 				: PaymentStatus.FAILED;
+
+// 		const gatewayTransactionNo =
+// 			typeof data.vnp_TransactionNo === "string"
+// 				? data.vnp_TransactionNo
+// 				: undefined;
+
+// 		return {
+// 			isValid,
+// 			status,
+// 			...(gatewayTransactionNo ? { gatewayTransactionNo } : {}),
+// 			merchantOrderRef: String(data.vnp_TxnRef ?? ""),
+// 			message: isValid
+// 				? "VNPay callback verified"
+// 				: "Invalid VNPay signature",
+// 			gatewayResponseData: data,
+// 		};
+// 	}
+
+// 	async refundPayment(
+// 		payment: Payment,
+// 		config: VNPayConfig,
+// 		options: GatewayRefundOptions
+// 	): Promise<PaymentRefundResult> {
+// 		if (!payment.gatewayTransactionNo) {
+// 			throw new Error("VNPay refund requires gatewayTransactionNo");
+// 		}
+
+// 		const refundAmount = Math.round(options.amount * 100);
+// 		const now = getVietnamTime(); // FIX: Use Vietnam time
+
+// 		const baseParams: Record<string, string | number> = {
+// 			vnp_RequestId: `${Date.now()}`,
+// 			vnp_Version: "2.1.0",
+// 			vnp_Command: "refund",
+// 			vnp_TmnCode: config.VNP_TMN_CODE,
+// 			vnp_TransactionType: "02",
+// 			vnp_TxnRef: payment.merchantOrderRef,
+// 			vnp_Amount: refundAmount,
+// 			vnp_TransactionNo: payment.gatewayTransactionNo,
+// 			vnp_OrderInfo:
+// 				options.reason || `Refund for ${payment.merchantOrderRef}`,
+// 			vnp_TransactionDate: format(
+// 				toZonedTime(payment.createdAt, "Asia/Ho_Chi_Minh"),
+// 				"yyyyMMddHHmmss"
+// 			),
+// 			vnp_CreateBy: options.performedBy || "system",
+// 			vnp_CreateDate: format(now, "yyyyMMddHHmmss"),
+// 			vnp_IpAddr: options.ipAddress || "127.0.0.1",
+// 		};
+
+// 		const signedPayload = signGenericParams(
+// 			baseParams,
+// 			config.VNP_HASH_SECRET
+// 		);
+
+// 		// We can use URLSearchParams here because the hash is already inside signedPayload
+// 		// and correctly calculated using the special encoding.
+// 		const body = new URLSearchParams(
+// 			signedPayload as Record<string, string>
+// 		);
+
+// 		const refundEndpoint = sanitizeEndpoint(
+// 			config.VNP_REFUND_URL || config.VNP_API_URL || config.VNP_URL
+// 		);
+
+// 		const response = await axios.post(refundEndpoint, body.toString(), {
+// 			headers: { "Content-Type": "application/x-www-form-urlencoded" },
+// 			timeout: 10_000,
+// 		});
+
+// 		const data = response?.data ?? {};
+// 		const isSuccess = data.vnp_ResponseCode === "00";
+
+// 		if (!isSuccess) {
+// 			logger.error("[VNPay] refund failed:", data);
+// 		}
+
+// 		return {
+// 			isSuccess,
+// 			transactionId: response.data.transactionNo,
+// 			gatewayResponseData: data,
+// 		};
+// 	}
+// }
+
 import axios from "axios";
 import crypto from "crypto";
 import { format } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 import { Payment } from "@models/payment";
 import { Ticket } from "@models/ticket";
 import logger from "@utils/logger";
 import type { IPaymentGateway } from "@services/paymentServices";
-import { GatewayRefundOptions, PaymentRefundResult, PaymentStatus, PaymentVerificationResult } from "@my_types/payments";
+import {
+	GatewayRefundOptions,
+	PaymentRefundResult,
+	PaymentStatus,
+	PaymentVerificationResult,
+} from "@my_types/payments";
 
 /**
  * Configuration values supplied by the merchant for VNPay integration.
@@ -47,171 +464,111 @@ interface VNPayAdditionalData {
 
 /**
  * Defines the shape of the parameters object to be sent to VNPay
- * for a 'pay' command.
- * @see https://sandbox.vnpayment.vn/apis/docs/thanh-toan-pay/pay.html
  */
 export interface VNPayParams {
-	/** API Version. Value: "2.1.0" */
 	vnp_Version: "2.1.0";
-
-	/** Command type. Value: "pay" */
 	vnp_Command: "pay";
-
-	/** Merchant's unique Terminal Code from VNPAY */
 	vnp_TmnCode: string;
-
-	/** * Total amount. Must be in the smallest currency unit.
-	 * (e.g., for 10,000 VND, this value must be 1000000)
-	 */
 	vnp_Amount: number;
-
-	/** Currency code. Value: "VND" */
 	vnp_CurrCode: "VND";
-
-	/** * Merchant's unique order reference ID.
-	 * Must be unique for each day.
-	 */
 	vnp_TxnRef: string;
-
-	/** * Order information.
-	 * Must be in Vietnamese without accents or special characters.
-	 * e.g., "Thanh toan don hang 123"
-	 */
 	vnp_OrderInfo: string;
-
-	/** * Category code for the order (e.g., "travel", "billpayment").
-	 * Refer to VNPAY's "Goods Category" table.
-	 */
 	vnp_OrderType: string;
-
-	/** * The URL VNPAY will redirect the user back to after payment.
-	 * This is the "Return URL" on your server.
-	 */
 	vnp_ReturnUrl: string;
-
-	/** The IP address of the customer making the purchase */
 	vnp_IpAddr: string;
-
-	/** * The creation date of the transaction.
-	 * Format: yyyyMMddHHmmss (e.g., 20251025001000)
-	 */
 	vnp_CreateDate: string;
-
-	/** * Checksum to ensure data integrity, generated using HmacSHA512.
-	 * This must be the last parameter in the query string.
-	 */
 	vnp_SecureHash: string;
-
-	// --- Optional Parameters ---
-
-	/** * Language for the payment gateway.
-	 * @default "vn"
-	 */
 	vnp_Locale?: "vn" | "en";
-
-	/**
-	 * Bank code. If provided, the user is redirected to the bank's page.
-	 * If omitted, the user selects their bank/payment method on the VNPAY page.
-	 * (e.g., "VNBANK", "VNPAYQR", "INTCARD")
-	 */
 	vnp_BankCode?: string;
-
-	/**
-	 * Payment expiration date.
-	 * Format: yyyyMMddHHmmss (e.g., 20251025002000)
-	 */
 	vnp_ExpireDate?: string;
 }
 
 type VNPayBaseParams = Omit<VNPayParams, "vnp_SecureHash">;
 
 /**
- * Normalizes an object into sorted string tuples while removing empty values.
- *
- * @param params - Arbitrary parameter object to serialize.
- * @returns Sorted key/value tuples that only contain non-empty values.
+ * HELPER: Sorts object by key (ASCII), filters empty values, and encodes values
+ * to match C# WebUtility.UrlEncode behavior.
  */
-const normalizeEntries = (params: object): [string, string][] =>
-	Object.entries(params as Record<string, unknown>)
+const stringifyAndSortParams = (params: object): string => {
+	// 1. Get entries and filter out empty values
+	const entries = Object.entries(params as Record<string, unknown>)
 		.filter(
-			([, value]) => value !== undefined && value !== null && value !== ""
+			([_, value]) =>
+				value !== undefined && value !== null && value !== ""
 		)
-		.map(([key, value]) => [key, String(value)] as [string, string])
-		.sort(([a], [b]) => (a > b ? 1 : -1));
+		.map(([key, value]) => [key, String(value)] as [string, string]);
 
-/**
- * Computes VNPay's HMAC signature and returns hydrated parameters.
- *
- * @param baseParams - Unsigned payload.
- * @param secret - Merchant hash secret used for signing.
- * @returns Payload augmented with the `vnp_SecureHash` field.
- */
-const signVNPayParams = (
-	baseParams: VNPayBaseParams,
-	secret: string
-): VNPayParams => {
-	const orderedEntries = normalizeEntries(baseParams);
-	const canonical = orderedEntries.map(([k, v]) => `${k}=${v}`).join("&");
-	const signature = crypto
-		.createHmac("sha512", secret)
-		.update(Buffer.from(canonical, "utf-8"))
-		.digest("hex");
+	// 2. Sort by Key using ASCII comparison (Matches C# SortedDictionary default behavior)
+	//    CRITICAL: Do NOT use localeCompare. VNPay requires strict ASCII order.
+	entries.sort(([key1], [key2]) => {
+		if (key1 > key2) return 1;
+		if (key1 < key2) return -1;
+		return 0;
+	});
 
-	return {
-		...baseParams,
-		vnp_SecureHash: signature,
-	};
+	// 3. Build the query string: key=UrlEncode(value)
+	//    Matches C# logic: $"{p.Key}={WebUtility.UrlEncode(p.Value)}"
+	return entries
+		.map(([key, value]) => {
+			// Encode value to match .NET WebUtility.UrlEncode
+			// 1. encodeURIComponent handles most chars
+			// 2. Replace %20 with + (standard form encoding)
+			const encodedValue = encodeURIComponent(value).replace(/%20/g, "+");
+
+			// The key is NOT encoded in the C# implementation provided, so we leave it raw.
+			return `${key}=${encodedValue}`;
+		})
+		.join("&");
 };
 
 /**
- * Builds URL search params from signed VNPay parameters.
- *
- * @param params - Signed VNPay parameter map.
- * @returns URLSearchParams ready for stringification.
+ * Computes VNPay's HMAC signature and returns the full signature string.
  */
-const buildSearchParams = (params: VNPayParams): URLSearchParams => {
-	const searchParams = new URLSearchParams();
-	for (const [key, value] of normalizeEntries(params)) {
-		searchParams.append(key, value);
-	}
-
-	return searchParams;
+const calculateSecureHash = (queryString: string, secret: string): string => {
+	return crypto
+		.createHmac("sha512", secret)
+		.update(Buffer.from(queryString, "utf-8"))
+		.digest("hex");
 };
 
 /**
  * Creates a generic HMAC signature for VNPay auxiliary endpoints (e.g., refund).
- *
- * @param params - Payload to sign.
- * @param secret - Merchant hash secret used for signing.
- * @returns Signed payload including `vnp_SecureHash`.
  */
 const signGenericParams = (
 	params: Record<string, unknown>,
 	secret: string
 ): Record<string, string> => {
-	const ordered = normalizeEntries(params);
-	const canonical = ordered.map(([k, v]) => `${k}=${v}`).join("&");
-	const signature = crypto
-		.createHmac("sha512", secret)
-		.update(Buffer.from(canonical, "utf-8"))
-		.digest("hex");
+	// 1. Build the canonical query string (Sorted & Encoded)
+	const canonical = stringifyAndSortParams(params);
 
-	return {
-		...ordered.reduce<Record<string, string>>((acc, [k, v]) => {
-			acc[k] = v;
-			return acc;
-		}, {}),
-		vnp_SecureHash: signature,
-	};
+	// 2. Hash the string
+	const signature = calculateSecureHash(canonical, secret);
+
+	// 3. Return object with sorted keys + hash (Required for the body)
+	const result: Record<string, string> = {};
+
+	Object.keys(params)
+		.sort()
+		.forEach((key) => {
+			const val = params[key];
+			if (val !== undefined && val !== null && val !== "") {
+				result[key] = String(val);
+			}
+		});
+
+	result["vnp_SecureHash"] = signature;
+	return result;
 };
 
+const sanitizeEndpoint = (endpoint: string): string =>
+	endpoint.replace(/\/$/, "");
+
 /**
- * Drops a trailing slash to avoid double-slash concatenation.
- *
- * @param endpoint - Configured endpoint.
- * @returns Sanitized endpoint without trailing slash.
+ * Helper to get current time in Vietnam (GMT+7)
  */
-const sanitizeEndpoint = (endpoint: string): string => endpoint.replace(/\/$/, "");
+const getVietnamTime = (): Date => {
+	return toZonedTime(new Date(), "Asia/Ho_Chi_Minh");
+};
 
 /**
  * VNPay concrete gateway implementation.
@@ -221,22 +578,14 @@ export class VNPayGateway implements IPaymentGateway {
 		return "VNPay";
 	}
 
-	/**
-	 * Builds a signed VNPay redirect URL for the incoming payment request.
-	 *
-	 * @param payment - Persisted payment entity.
-	 * @param tickets - Tickets associated to the payment.
-	 * @param config - Merchant configuration values.
-	 * @param additionalData - Optional caller-provided overrides.
-	 * @returns The redirect URL that should be sent to the client.
-	 */
 	async createPaymentUrl(
 		payment: Payment,
 		tickets: Ticket[],
 		config: VNPayConfig,
 		additionalData: VNPayAdditionalData = {}
 	): Promise<string> {
-		// Step 1: Prepare base parameters with defaults and caller overrides.
+		const createDate = format(getVietnamTime(), "yyyyMMddHHmmss");
+
 		const baseParams = {
 			vnp_Version: "2.1.0",
 			vnp_Command: "pay",
@@ -246,77 +595,89 @@ export class VNPayGateway implements IPaymentGateway {
 			vnp_TxnRef: payment.merchantOrderRef,
 			vnp_OrderInfo:
 				additionalData.orderInfo ||
-				`Bus tickets: ${tickets
+				`Payment for ${
+					payment.merchantOrderRef
+				} - Bus tickets: ${tickets
 					.map((t) => `#${t.seat?.number ?? t.id}`)
 					.join(", ")}`,
 			vnp_OrderType: config.VNP_ORDER_TYPE || "travel",
 			vnp_ReturnUrl: config.VNP_RETURN_URL,
-			vnp_IpAddr: additionalData.ipAddress || "127.0.0.1",
-			vnp_CreateDate: format(new Date(), "yyyyMMddHHmmss"),
+			vnp_IpAddr:
+				additionalData.ipAddress && additionalData.ipAddress !== "::1"
+					? additionalData.ipAddress
+					: "127.0.0.1",
+			vnp_CreateDate: createDate,
 		} as VNPayBaseParams;
 
-		// Step 2: Fill optional properties when provided by config or request.
 		if (additionalData.locale || config.VNP_LOCALE) {
-			baseParams.vnp_Locale = (additionalData.locale || config.VNP_LOCALE || "vn") as
-				| "vn"
-				| "en";
+			baseParams.vnp_Locale = (additionalData.locale ||
+				config.VNP_LOCALE ||
+				"vn") as "vn" | "en";
 		}
-
 		if (additionalData.bankCode) {
 			baseParams.vnp_BankCode = additionalData.bankCode;
 		}
-
 		if (additionalData.expireDate) {
 			baseParams.vnp_ExpireDate = additionalData.expireDate;
 		}
 
-		// Step 3: Sign parameters and emit ready-to-use redirect URL.
-		const signedParams = signVNPayParams(baseParams, config.VNP_HASH_SECRET);
-		const query = buildSearchParams(signedParams).toString();
-		const url = `${sanitizeEndpoint(config.VNP_URL)}?${query}`;
+		// 1. Build the query string (Sorted & Encoded)
+		// This string MUST be the exact one hashed and the exact one used in the URL
+		const queryString = stringifyAndSortParams(baseParams);
 
-		logger.debug(`[VNPay] Generated payment URL for order ${payment.merchantOrderRef}`);
+		// 2. Calculate Hash
+		const signature = calculateSecureHash(
+			queryString,
+			config.VNP_HASH_SECRET
+		);
+
+		logger.debug(`[VNPay] Hash secret: ${config.VNP_HASH_SECRET}`);
+
+		// 3. Construct Final URL manually to avoid re-encoding/re-sorting by URL constructors
+		const url = `${sanitizeEndpoint(
+			config.VNP_URL
+		)}?${queryString}&vnp_SecureHash=${signature}`;
+
+		logger.debug(
+			`[VNPay] Generated payment URL for order ${payment.merchantOrderRef}`
+		);
+		logger.debug(url);
+
 		return url;
 	}
 
-	/**
-	 * Validates VNPay callback data and maps the gateway status.
-	 *
-	 * @param data - Raw callback payload from VNPay.
-	 * @param config - Merchant configuration used for signature verification.
-	 * @returns Verification outcome including integrity check and mapped status.
-	 */
 	async verifyCallback(
 		data: Record<string, unknown>,
 		config: VNPayConfig
 	): Promise<PaymentVerificationResult> {
-		// Step 1: Remove the secure hash from the payload before recomputing the signature.
 		const receivedHash =
-			typeof data.vnp_SecureHash === "string" ? data.vnp_SecureHash : undefined;
+			typeof data.vnp_SecureHash === "string"
+				? data.vnp_SecureHash
+				: undefined;
 
-		const canonicalEntries = normalizeEntries(
-			Object.entries(data).reduce<Record<string, unknown>>((acc, [key, value]) => {
-				if (key !== "vnp_SecureHash" && value !== undefined && value !== null && value !== "") {
-					acc[key] = value;
-				}
-				return acc;
-			}, {})
+		const checksumParams: Record<string, unknown> = {};
+
+		// Filter out the hash field
+		for (const [key, value] of Object.entries(data)) {
+			if (key !== "vnp_SecureHash") {
+				checksumParams[key] = value;
+			}
+		}
+
+		// Re-encode the incoming data to match how VNPay hashed it originally
+		const canonical = stringifyAndSortParams(checksumParams);
+
+		const expectedHash = calculateSecureHash(
+			canonical,
+			config.VNP_HASH_SECRET
 		);
 
-		const canonical = canonicalEntries.map(([k, v]) => `${k}=${v}`).join("&");
-		const expectedHash = crypto
-			.createHmac("sha512", config.VNP_HASH_SECRET)
-			.update(Buffer.from(canonical, "utf-8"))
-			.digest("hex");
-
-		// Step 2: Determine validity and translate VNPay response to local status.
 		const isValid = receivedHash === expectedHash;
 		const status =
 			data.vnp_ResponseCode === "00"
 				? PaymentStatus.COMPLETED
 				: PaymentStatus.FAILED;
 
-		// Step 3: Package verification results including transaction number if present.
 		const gatewayTransactionNo =
 			typeof data.vnp_TransactionNo === "string"
 				? data.vnp_TransactionNo
@@ -334,27 +695,18 @@ export class VNPayGateway implements IPaymentGateway {
 		};
 	}
 
-	/**
-	 * Requests a refund through VNPay's refund API.
-	 *
-	 * @param payment - Persisted payment entity including gateway transaction number.
-	 * @param config - Merchant configuration values.
-	 * @param options - Caller provided refund context such as reason and amount.
-	 * @returns Refund result propagated to the caller.
-	 */
 	async refundPayment(
 		payment: Payment,
 		config: VNPayConfig,
 		options: GatewayRefundOptions
 	): Promise<PaymentRefundResult> {
-		// Step 1: Validate that the original gateway transaction number is available.
 		if (!payment.gatewayTransactionNo) {
 			throw new Error("VNPay refund requires gatewayTransactionNo");
 		}
 
-		// Step 2: Map refund information into VNPay's expected payload format.
 		const refundAmount = Math.round(options.amount * 100);
-		const now = new Date();
+		const now = getVietnamTime();
+
 		const baseParams: Record<string, string | number> = {
 			vnp_RequestId: `${Date.now()}`,
 			vnp_Version: "2.1.0",
@@ -364,16 +716,27 @@ export class VNPayGateway implements IPaymentGateway {
 			vnp_TxnRef: payment.merchantOrderRef,
 			vnp_Amount: refundAmount,
 			vnp_TransactionNo: payment.gatewayTransactionNo,
-			vnp_OrderInfo: options.reason || `Refund for ${payment.merchantOrderRef}`,
-			vnp_TransactionDate: format(payment.createdAt, "yyyyMMddHHmmss"),
+			vnp_OrderInfo:
+				options.reason || `Refund for ${payment.merchantOrderRef}`,
+			vnp_TransactionDate: format(
+				toZonedTime(payment.createdAt, "Asia/Ho_Chi_Minh"),
+				"yyyyMMddHHmmss"
+			),
 			vnp_CreateBy: options.performedBy || "system",
 			vnp_CreateDate: format(now, "yyyyMMddHHmmss"),
 			vnp_IpAddr: options.ipAddress || "127.0.0.1",
 		};
 
-		// Step 3: Sign the payload and submit the refund request to VNPay.
-		const signedPayload = signGenericParams(baseParams, config.VNP_HASH_SECRET);
-		const body = new URLSearchParams(normalizeEntries(signedPayload));
+		const signedPayload = signGenericParams(
+			baseParams,
+			config.VNP_HASH_SECRET
+		);
+
+		// Use URLSearchParams here for the body content
+		const body = new URLSearchParams(
+			signedPayload as Record<string, string>
+		);
+
 		const refundEndpoint = sanitizeEndpoint(
 			config.VNP_REFUND_URL || config.VNP_API_URL || config.VNP_URL
 		);
@@ -386,7 +749,6 @@ export class VNPayGateway implements IPaymentGateway {
 		const data = response?.data ?? {};
 		const isSuccess = data.vnp_ResponseCode === "00";
 
-		// Step 4: Surface failure details in the logs for easier troubleshooting.
 		if (!isSuccess) {
 			logger.error("[VNPay] refund failed:", data);
 		}
@@ -398,3 +760,4 @@ export class VNPayGateway implements IPaymentGateway {
 		};
 	}
 }
+	

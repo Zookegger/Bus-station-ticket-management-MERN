@@ -46,6 +46,10 @@ export const CONFIG = {
 		return configService.get<number>("MAX_TICKET_CLEANUP_BATCH_SIZE", 200);
 	},
 
+	get TICKET_CLEANUP_INTERVAL_MIN(): number {
+		return configService.get<number>("TICKET_CLEANUP_INTERVAL_MIN", 1);
+	},
+
 	get MAX_LOGIN_ATTEMPTS(): number {
 		return configService.get<number>("MAX_LOGIN_ATTEMPTS", 5);
 	},

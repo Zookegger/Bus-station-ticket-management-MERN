@@ -36,6 +36,7 @@ export interface ApiEndpoints {
 		readonly DELETE_PROFILE: (id: string) => string;
 		readonly ADMIN_UPDATE: (id: string) => string;
 		readonly ADMIN_DELETE: (id: string) => string;
+		readonly WEBSOCKET_AUTH: (id: string) => string;
 	};
 	readonly VEHICLE: {
 		readonly BASE: string;
@@ -56,13 +57,13 @@ export interface ApiEndpoints {
 	readonly TRIP: {
 		readonly BASE: string;
 		readonly SEARCH: string;
-		readonly BY_ID: string;
+		readonly BY_ID: (id: number) => string;
 		readonly CREATE: string;
 		readonly UPDATE: (id: number) => string;
 		readonly DELETE: (id: number) => string;
-		readonly ASSIGN_DRIVER: string;
-		readonly AUTO_ASSIGN_DRIVER: string;
-		readonly UNASSIGN_DRIVER: string;
+		readonly ASSIGN_DRIVER: (id: number) =>  string;
+		readonly AUTO_ASSIGN_DRIVER: (id: number) =>  string;
+		readonly UNASSIGN_DRIVER: (id: number) =>  string;
 	};
 	readonly DRIVER: {
 		readonly BASE: string;
@@ -84,7 +85,7 @@ export interface ApiEndpoints {
 	};
 	readonly ROUTE: {
 		readonly BASE: string;
-		readonly BY_ID: string;
+		readonly BY_ID: (id: number) =>  string;
 		readonly CREATE: string;
 		readonly UPDATE: (id: number) => string;
 		readonly DELETE: (id: number) => string;
@@ -93,7 +94,7 @@ export interface ApiEndpoints {
 		readonly BASE: string;
 		readonly SEARCH: string;
 		readonly BY_ID: string;
-		readonly BY_CODE: string;
+		readonly BY_CODE: (code: string) => string;
 		readonly ADD: string;
 		readonly UPDATE: (id: number) => string;
 		readonly DELETE: (id: number) => string;
@@ -101,7 +102,8 @@ export interface ApiEndpoints {
 	};
 	readonly SEAT: {
 		readonly BASE: string;
-		readonly BY_ID: string;
+		readonly BY_ID: (id: number) => string;
+		readonly BY_TRIP_ID: (tripId: number) => string;
 		readonly UPDATE: string;
 	};
 	readonly PAYMENT_METHOD: {
@@ -131,7 +133,21 @@ export interface ApiEndpoints {
 	readonly DEBUG: {
 		readonly TRIGGER_PAYMENT_CLEANUP: string;
 		readonly PAYMENT_QUEUE_STATS: string;
+		readonly TEST_WEBSOCKET: string;
+		readonly WEBSOCKET_STATS: string;
 	};
+	readonly NOTIFICATION: {
+		readonly BASE: string;
+		readonly READ_ALL: string;
+		readonly READ: (id: number) => string;
+		readonly DELETE: (id: number) => string;
+	};
+	readonly ADMIN: {
+		readonly BASE: string;
+		readonly ADD: string;
+		readonly UPDATE: (id: string) => string;
+		readonly DELETE: (id: string) => string;
+	}
 }
 
 export interface StorageKeys {

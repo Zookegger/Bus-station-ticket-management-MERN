@@ -279,17 +279,26 @@ export const searchLocation = async (
     return geocodingQueue.add(async () => {
         try {
             // Photon Search API
-            const url = `${PHOTON_URL}/api/?q=${encodeURIComponent(location)}&limit=${limit * 2}`; // Request more to account for filtering
+            const fetchLimit = Math.max(limit * 5, 20);
+            const url = `${PHOTON_URL}/api/?q=${encodeURIComponent(location)}&limit=${fetchLimit}`; // Request more to account for filtering
 
             const collection = await fetchFromAPI<PhotonFeatureCollection>(url);
             
             if (!collection.features) return [];
 
-            const filtered = collection.features
-                .filter((f) => featurePassesFilter(f, options))
-                .slice(0, limit);
+            const filtered = collection.features.filter((f) => featurePassesFilter(f, options));
 
-            return filtered.map(mapPhotonFeatureToLocation);
+            const mapped = filtered.map(mapPhotonFeatureToLocation);
+
+            const uniqueResults = new Map<string, GeocodingResult>();
+            mapped.forEach(item => {
+                const key = `${item.name}-${item.lat}-${item.lon}`;
+                if (!uniqueResults.has(key)) {
+                    uniqueResults.set(key, item);
+                }
+            });
+
+            return Array.from(uniqueResults.values()).slice(0, limit);
         } catch (error) {
             console.error("Location search error:", error);
             return [];

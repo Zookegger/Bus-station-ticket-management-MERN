@@ -10,7 +10,7 @@ import crypto from "crypto";
 import redis from "@config/redis";
 import db from "@models/index";
 import { emailQueue } from "@utils/queues/emailQueue";
-import { generateVerificationEmailHTML } from "./emailService";
+import { generateVerificationEmailHTML } from "./emailServices";
 import logger from "@utils/logger";
 import { COMPUTED, TOKEN_CONFIG } from "@constants";
 

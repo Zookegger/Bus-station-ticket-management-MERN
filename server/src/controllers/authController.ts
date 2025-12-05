@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import * as authServices from "@services/authServices";
-import * as verificationServices from "@services/verificationServices";
+import * as verificationServices from "@services/verificationServices"
 import {
 	ChangePasswordDTO,
 	ResetPasswordDTO,

@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { RouterProvider } from "react-router-dom";
 import { CircularProgress, Box } from "@mui/material";
-import { router } from "@components/common/router";
+import { router } from "@components/common/Router";
 
 function App() {
 	// const userState = useState();

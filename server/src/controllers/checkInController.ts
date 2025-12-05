@@ -10,7 +10,7 @@ import { verifyCheckInToken } from "@middlewares/checkInToken";
  * @param res Express response object.
  * @param next Express next function for error handling.
  *
- * @route GET /api/check-in/:orderId
+ * @route POST /api/check-in/:orderId
  * @access Public (but secured by token)
  */
 
@@ -19,7 +19,8 @@ export const executeCheckIn = async (
 	res: Response,
 	next: NextFunction
 ): Promise<void> => {
-	const { orderId, token } = req.body;
+	const orderId: string = req.params.orderId as string;
+	const token: string = ((req.body && req.body.token) as string) || "";
 
 	try {
 		// 1. Validate inputs

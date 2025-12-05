@@ -1,4 +1,4 @@
-import { API_ENDPOINTS, APP_CONFIG } from "@constants";
+import { API_ENDPOINTS, APP_CONFIG } from "@constants/index";
 
 const joinUrl = (base: string, path: string) =>
     base.replace(/\/+$/, "") + "/" + path.replace(/^\/+/, "");

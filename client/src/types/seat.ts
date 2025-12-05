@@ -1,26 +1,45 @@
-import type { ApiTripDTO } from "@my-types/TripDTOs";
-
 /**
  * Client-side type definitions for Seats.
  * Based on server/src/types/seat.ts
  */
 
-export type SeatStatus = "available" | "reserved" | "booked" | "maintenance" | "disabled";
+import type { Trip } from "./trip";
+
+export const SeatStatus = {
+	/** Seat is available for booking */
+	AVAILABLE: "AVAILABLE",
+
+	/** Seat is temporarily reserved (e.g., payment in progress) */
+	RESERVED: "RESERVED",
+
+	/** Seat is confirmed and paid for */
+	BOOKED: "BOOKED",
+
+	/** Seat is temporarily unavailable (e.g., under maintenance, damaged) */
+	MAINTENANCE: "MAINTENANCE",
+
+	/** Seat is permanently disabled and not for sale */
+	DISABLED: "DISABLED",
+} as const;
+
+export type SeatStatus = (typeof SeatStatus)[keyof typeof SeatStatus];
 
 /**
  * Represents a single seat on the client-side.
  */
 export interface Seat {
 	id: number;
-	vehicleId: number;
 	number: string;
+	row?: number | null;
+	column?: number | null;
+	floor?: number | null;
 	status: SeatStatus;
-	reservedUntil: string | null; // ISO Date string
-	reservedBy: string | null;
+	reservedBy?: string | null;
+	reservedUntil?: Date | null;
 	tripId: number | null;
-	createdAt: string; // ISO Date string
-	updatedAt: string; // ISO Date string
-	trip?: ApiTripDTO;
+	trip: Trip;
+	createdAt?: Date | string;
+	updatedAt?: Date | string;
 }
 
 /**

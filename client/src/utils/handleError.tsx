@@ -24,7 +24,9 @@ export const handleAxiosError = (
         const status_code = err.response?.status;
         const response_data = (err.response?.data ?? {}) as {
             message?: unknown;
-            errors?: Record<string, string | string[]>;
+            // Express-validator returns an array of errors { msg, param/path, ... }
+            // Other endpoints may return an object map of field -> message or array of messages
+            errors?: Record<string, string | string[]> | Array<{ msg?: string; path?: string; param?: string; [k: string]: any }>;
         };
         const response_message =
             typeof response_data.message === "string" && response_data.message.trim().length > 0
@@ -34,22 +36,36 @@ export const handleAxiosError = (
         let field_errors: Record<string, string> | undefined;
 
         if (response_data.errors) {
-            const aggregated_errors = Object.entries(response_data.errors).reduce<Record<string, string>>(
-                (accumulator, [field_key, field_value]) => {
-                    if (typeof field_value === "string" && field_value.trim().length > 0) {
-                        accumulator[field_key] = field_value;
-                    } else if (Array.isArray(field_value)) {
-                        const serialized = field_value.filter((item) => typeof item === "string").join(" ").trim();
-                        if (serialized.length > 0) {
-                            accumulator[field_key] = serialized;
-                        }
+            // If errors is an array (express-validator), map by path/param -> msg
+            if (Array.isArray(response_data.errors)) {
+                const aggregated: Record<string, string> = {};
+                (response_data.errors as Array<any>).forEach((item) => {
+                    const key = item.path ?? item.param ?? item.field ?? "";
+                    const msg = item.msg ?? item.message ?? String(item);
+                    if (key) {
+                        // If multiple errors for same field, append
+                        aggregated[key] = aggregated[key] ? `${aggregated[key]} ${msg}` : msg;
                     }
-                    return accumulator;
-                },
-                {}
-            );
+                });
+                field_errors = Object.keys(aggregated).length > 0 ? aggregated : undefined;
+            } else {
+                const aggregated_errors = Object.entries(response_data.errors as Record<string, string | string[]>).reduce<Record<string, string>>(
+                    (accumulator, [field_key, field_value]) => {
+                        if (typeof field_value === "string" && field_value.trim().length > 0) {
+                            accumulator[field_key] = field_value;
+                        } else if (Array.isArray(field_value)) {
+                            const serialized = field_value.filter((item) => typeof item === "string").join(" ").trim();
+                            if (serialized.length > 0) {
+                                accumulator[field_key] = serialized;
+                            }
+                        }
+                        return accumulator;
+                    },
+                    {}
+                );
 
-            field_errors = Object.keys(aggregated_errors).length > 0 ? aggregated_errors : undefined;
+                field_errors = Object.keys(aggregated_errors).length > 0 ? aggregated_errors : undefined;
+            }
         }
 
         return {

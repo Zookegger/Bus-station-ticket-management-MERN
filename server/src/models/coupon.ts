@@ -209,6 +209,8 @@ export class Coupon
 		Coupon.hasMany(models.CouponUsage, {
 			foreignKey: "couponId",
 			as: "couponUsages",
+			onDelete: "RESTRICT",
+			onUpdate: "CASCADE",
 		});
 	}
 }

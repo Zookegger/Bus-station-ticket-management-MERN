@@ -1,66 +1,41 @@
+import React, { useMemo } from "react";
 import {
+	Box,
 	Button,
-	Card,
-	CardContent,
-	CardHeader,
 	Drawer,
 	IconButton,
 	Stack,
 	Typography,
+	Divider,
+	Chip,
 	Grid,
-	CardActions,
-	Alert,
+	Paper,
 	CircularProgress,
+	Avatar,
 } from "@mui/material";
-import { Box } from "@mui/system";
-import { GridCloseIcon } from "@mui/x-data-grid";
-import type { Route } from "@my-types/route";
+import {
+	Close as CloseIcon,
+	Edit as EditIcon,
+	Delete as DeleteIcon,
+	Place as PlaceIcon,
+	AttachMoney as MoneyIcon,
+	AccessTime as TimeIcon,
+	Straighten as DistanceIcon,
+	Flag as FlagIcon,
+	DirectionsBus as BusIcon,
+} from "@mui/icons-material";
+import type { Route } from "@my-types";
 import { RouteMap } from "@components/map";
-import { useAutoRoute } from "@hooks/map";
 import { formatDistance, formatDuration } from "@utils/map";
 
-/**
- * Mock Route type for current implementation (temporary).
- * TODO: Replace with proper Route type from @my-types/route once API integration is complete.
- */
-interface MockRoute {
-	id: number;
-	departure: string;
-	destination: string;
-	price: string;
-}
-
-/**
- * Props interface for RouteDetailsDrawer component.
- * @interface RouteDetailsDrawerProps
- * @property {boolean} open - Controls drawer visibility
- * @property {() => void} onClose - Callback when drawer closes
- * @property {Route | MockRoute | null} route - The route object to display
- * @property {(route: Route | MockRoute) => void} [onEdit] - Optional callback for edit action
- * @property {(route: Route | MockRoute) => void} [onDelete] - Optional callback for delete action
- */
 interface RouteDetailsDrawerProps {
 	open: boolean;
 	onClose: () => void;
-	route: Route | MockRoute | null;
-	onEdit?: (route: Route | MockRoute) => void;
-	onDelete?: (route: Route | MockRoute) => void;
+	route: Route | null;
+	onEdit?: (route: Route) => void;
+	onDelete?: (route: Route) => void;
 }
 
-/**
- * Type guard to check if route is a proper Route type (not mock).
- */
-const isProperRoute = (route: Route | MockRoute): route is Route => {
-	return "startLocation" in route || "destination" in route;
-};
-
-/**
- * Renders a drawer that shows a read-only summary of the selected route.
- * Follows the same pattern as CouponDetailsDrawer for consistency.
- *
- * @param {RouteDetailsDrawerProps} props - Component props injected from the route grid interactions.
- * @returns {JSX.Element} React node containing route information.
- */
 const RouteDetailsDrawer: React.FC<RouteDetailsDrawerProps> = ({
 	open,
 	onClose,
@@ -68,321 +43,329 @@ const RouteDetailsDrawer: React.FC<RouteDetailsDrawerProps> = ({
 	onEdit,
 	onDelete,
 }) => {
-	// Auto-calculate route if we have valid coordinates (only for proper Route types)
-	const isProper = route && isProperRoute(route);
-	const startLat = isProper ? route.startLocation?.latitude : null;
-	const startLon = isProper ? route.startLocation?.longitude : null;
-	const endLat = isProper ? route.destination?.latitude : null;
-	const endLon = isProper ? route.destination?.longitude : null;
+	// Prepare stops for the map and timeline
+	const stopsData = useMemo(() => {
+		if (!route || !route.stops) return [];
 
-	const {
-		route: calculatedRoute,
-		isLoading: routeLoading,
-		error: routeError,
-	} = useAutoRoute(
-		startLat ?? null,
-		startLon ?? null,
-		endLat ?? null,
-		endLon ?? null
-	);
-
-	/**
-	 * Invokes the upstream edit handler with the currently selected route.
-	 * @returns {void}
-	 */
-	const handleEditClick = (): void => {
-		if (!route || !onEdit) {
-			return;
-		}
-
-		onEdit(route);
-	};
-
-	/**
-	 * Invokes the upstream delete handler with the currently selected route.
-	 * @returns {void}
-	 */
-	const handleDeleteClick = (): void => {
-		if (!route || !onDelete) {
-			return;
-		}
-
-		onDelete(route);
-	};
-
-	/**
-	 * Check if route has valid coordinates.
-	 */
-	const hasValidCoordinates =
-		startLat != null && startLon != null && endLat != null && endLon != null;
-
-	/**
-	 * Get display name for departure location.
-	 */
-	const getDepartureDisplay = (): string => {
-		if (!route) return "Unknown";
-		if (isProperRoute(route)) {
-			return route.startLocation?.name || "Unknown";
-		}
-		return (route as MockRoute).departure;
-	};
-
-	/**
-	 * Get display name for destination location.
-	 */
-	const getDestinationDisplay = (): string => {
-		if (!route) return "Unknown";
-		if (isProperRoute(route)) {
-			return route.destination?.name || "Unknown";
-		}
-		return (route as MockRoute).destination;
-	};
-
-	/**
-	 * Get formatted price.
-	 */
-	const getPriceDisplay = (): string => {
-		if (!route) return "N/A";
-		if (isProperRoute(route)) {
-			return route.price ? `${route.price.toLocaleString("vi-VN")} VND` : "N/A";
-		}
-		return (route as MockRoute).price;
-	};
+		// Sort by order and map to flat structure
+		return [...route.stops]
+			.sort((a, b) => a.stopOrder - b.stopOrder)
+			.map((s) => ({
+				name: s.locations?.name || `Stop ${s.stopOrder + 1}`,
+				address: s.locations?.address || "",
+				latitude: Number(s.locations?.latitude),
+				longitude: Number(s.locations?.longitude),
+				id: s.id,
+			}));
+	}, [route]);
 
 	return (
-		<Drawer anchor="right" open={open} onClose={onClose}>
+		<Drawer
+			anchor="right"
+			open={open}
+			onClose={onClose}
+			PaperProps={{
+				sx: { width: { xs: "100%", sm: 450, md: 500 } },
+			}}
+		>
+			{/* HEADER */}
 			<Box
 				sx={{
-					p: 3,
-					height: "100%",
+					p: 2,
 					display: "flex",
-					flexDirection: "column",
-					width: 400,
-					maxWidth: "100vw",
+					alignItems: "center",
+					justifyContent: "space-between",
+					borderBottom: "1px solid",
+					borderColor: "divider",
 				}}
 			>
+				<Typography variant="h6" fontWeight="bold">
+					Route Details
+				</Typography>
+				<IconButton onClick={onClose} size="small">
+					<CloseIcon />
+				</IconButton>
+			</Box>
+
+			{route ? (
 				<Box
 					sx={{
 						display: "flex",
-						justifyContent: "space-between",
-						alignItems: "center",
-						mb: 3,
+						flexDirection: "column",
 					}}
 				>
-					<Typography
-						variant="h5"
+					{/* MAP HERO SECTION */}
+					<Box
+						sx={{ height: 250, width: "100%", bgcolor: "#f5f5f5" }}
+					>
+						{/* Passing stops triggers "Load Mode" in RouteMap */}
+						<RouteMap
+							stops={stopsData}
+							height="100%"
+							zoom={10}
+							showMarkers={true}
+							showRoute={true}
+						/>
+					</Box>
+
+					{/* SCROLLABLE CONTENT */}
+					<Box sx={{ p: 3, flex: 1, overflowY: "auto" }}>
+						{/* Header Info */}
+						<Box mb={3}>
+							<Typography
+								variant="h5"
+								fontWeight="bold"
+								gutterBottom
+							>
+								{route.name}
+							</Typography>
+							<Stack
+								direction="row"
+								spacing={1}
+								alignItems="center"
+							>
+								<Chip
+									label={`ID: ${route.id}`}
+									size="small"
+									variant="outlined"
+								/>
+								<Chip
+									label={`${stopsData.length} Stops`}
+									size="small"
+									color="primary"
+									variant="outlined"
+								/>
+							</Stack>
+						</Box>
+
+						{/* Stats Grid */}
+						<Paper
+							variant="outlined"
+							sx={{ p: 2, mb: 3, borderRadius: 2 }}
+						>
+							<Grid container spacing={2} wrap="nowrap">
+								<Grid
+									size={{ xs: 4 }}
+									sx={{ textAlign: "center" }}
+								>
+									<Box color="success.main" mb={0.5}>
+										<MoneyIcon />
+									</Box>
+									<Typography
+										variant="caption"
+										color="text.secondary"
+										display="block"
+									>
+										Price
+									</Typography>
+									<Typography
+										variant="subtitle2"
+										fontWeight="bold"
+									>
+										{route.price?.toLocaleString("vi-VN")} đ
+									</Typography>
+								</Grid>
+								<Divider
+									orientation="vertical"
+									flexItem
+									sx={{ mr: "-1px" }}
+								/>
+								<Grid
+									size={{ xs: 4 }}
+									sx={{ textAlign: "center" }}
+								>
+									<Box color="info.main" mb={0.5}>
+										<DistanceIcon />
+									</Box>
+									<Typography
+										variant="caption"
+										color="text.secondary"
+										display="block"
+									>
+										Distance
+									</Typography>
+									<Typography
+										variant="subtitle2"
+										fontWeight="bold"
+									>
+										{formatDistance(route.distance || 0)}
+									</Typography>
+								</Grid>
+								<Divider
+									orientation="vertical"
+									flexItem
+									sx={{ mr: "-1px" }}
+								/>
+								<Grid
+									size={{ xs: 4 }}
+									sx={{ textAlign: "center" }}
+								>
+									<Box color="warning.main" mb={0.5}>
+										<TimeIcon />
+									</Box>
+									<Typography
+										variant="caption"
+										color="text.secondary"
+										display="block"
+									>
+										Duration
+									</Typography>
+									<Typography
+										variant="subtitle2"
+										fontWeight="bold"
+									>
+										{formatDuration(route.duration || 0)}
+									</Typography>
+								</Grid>
+							</Grid>
+						</Paper>
+
+						{/* Custom Itinerary List (Replaces Mui Lab Timeline) */}
+						<Typography
+							variant="subtitle1"
+							fontWeight="bold"
+							sx={{ mb: 2 }}
+						>
+							Itinerary
+						</Typography>
+
+						<Box sx={{ position: "relative", pl: 1 }}>
+							{stopsData.map((stop, index) => {
+								const isStart = index === 0;
+								const isEnd = index === stopsData.length - 1;
+
+								// Determine styling based on position
+								const color = isStart
+									? "success.main"
+									: isEnd
+									? "error.main"
+									: "grey.500";
+								const Icon = isStart
+									? PlaceIcon
+									: isEnd
+									? FlagIcon
+									: BusIcon;
+
+								return (
+									<Box
+										key={stop.id || index}
+										sx={{
+											display: "flex",
+											mb:
+												index === stopsData.length - 1
+													? 0
+													: 2,
+											position: "relative",
+										}}
+									>
+										{/* Connecting Line */}
+										{!isEnd && (
+											<Box
+												sx={{
+													position: "absolute",
+													top: 32,
+													left: 15, // Center align with avatar
+													bottom: -16,
+													width: 2,
+													bgcolor: "grey.300",
+													zIndex: 0,
+												}}
+											/>
+										)}
+
+										{/* Icon Marker */}
+										<Box sx={{ mr: 2, zIndex: 1 }}>
+											<Avatar
+												sx={{
+													width: 32,
+													height: 32,
+													bgcolor: "white",
+													border: "2px solid",
+													borderColor: color,
+													color: color,
+												}}
+											>
+												<Icon sx={{ fontSize: 18 }} />
+											</Avatar>
+										</Box>
+
+										{/* Info Card */}
+										<Paper
+											elevation={0}
+											variant="outlined"
+											sx={{
+												flex: 1,
+												p: 1.5,
+												bgcolor: "background.paper",
+												border: "1px solid",
+												borderColor: "grey.200",
+												"&:hover": {
+													borderColor:
+														"primary.light",
+												},
+											}}
+										>
+											<Typography
+												variant="subtitle2"
+												fontWeight="600"
+											>
+												{stop.name}
+											</Typography>
+											<Typography
+												variant="body2"
+												color="text.secondary"
+												sx={{ fontSize: "0.85rem" }}
+											>
+												{stop.address}
+											</Typography>
+										</Paper>
+									</Box>
+								);
+							})}
+						</Box>
+					</Box>
+
+					{/* FOOTER ACTIONS */}
+					<Box
 						sx={{
-							fontWeight: "bold",
-							color: "#1976d2",
+							p: 2,
+							borderTop: "1px solid",
+							borderColor: "divider",
+							bgcolor: "background.default",
 						}}
 					>
-						Route Details
-					</Typography>
-					<IconButton onClick={onClose} size="small">
-						<GridCloseIcon />
-					</IconButton>
+						<Stack direction="row" spacing={2}>
+							<Button
+								fullWidth
+								variant="outlined"
+								color="primary"
+								startIcon={<EditIcon />}
+								onClick={() => onEdit?.(route)}
+							>
+								Edit Route
+							</Button>
+							<Button
+								fullWidth
+								variant="outlined"
+								color="error"
+								startIcon={<DeleteIcon />}
+								onClick={() => onDelete?.(route)}
+							>
+								Delete
+							</Button>
+						</Stack>
+					</Box>
 				</Box>
-
-				<Box p={0}>
-					{route ? (
-						<Grid container spacing={2}>
-							<Grid size={12}>
-								<Card>
-									<CardHeader
-										title={`${getDepartureDisplay()} → ${getDestinationDisplay()}`}
-										subheader={`Route ID: ${route.id}`}
-									/>
-									<CardContent>
-										<Stack spacing={2}>
-											<Grid container spacing={2}>
-												<Grid size={{ xs: 12, sm: 6 }}>
-													<Typography
-														variant="subtitle2"
-														color="text.secondary"
-													>
-														Route ID
-													</Typography>
-													<Typography variant="body1">
-														{route.id}
-													</Typography>
-												</Grid>
-												<Grid size={{ xs: 12, sm: 6 }}>
-													<Typography
-														variant="subtitle2"
-														color="text.secondary"
-													>
-														Price
-													</Typography>
-													<Typography
-														variant="body1"
-														sx={{
-															fontWeight: "medium",
-															color: "#2e7d32",
-														}}
-													>
-														{getPriceDisplay()}
-													</Typography>
-												</Grid>
-												<Grid size={12}>
-													<Typography
-														variant="subtitle2"
-														color="text.secondary"
-													>
-														Departure Location
-													</Typography>
-													<Typography variant="body1">
-														{getDepartureDisplay()}
-													</Typography>
-													{isProper && route.startLocation?.address && (
-														<Typography
-															variant="body2"
-															color="text.secondary"
-														>
-															{route.startLocation.address}
-														</Typography>
-													)}
-												</Grid>
-												<Grid size={12}>
-													<Typography
-														variant="subtitle2"
-														color="text.secondary"
-													>
-														Destination Location
-													</Typography>
-													<Typography variant="body1">
-														{getDestinationDisplay()}
-													</Typography>
-													{isProper && route.destination?.address && (
-														<Typography
-															variant="body2"
-															color="text.secondary"
-														>
-															{route.destination.address}
-														</Typography>
-													)}
-												</Grid>
-
-												{/* Route Information */}
-												{hasValidCoordinates && (
-													<>
-														{routeLoading && (
-															<Grid size={12}>
-																<Box
-																	sx={{
-																		display: "flex",
-																		alignItems: "center",
-																		gap: 1,
-																	}}
-																>
-																	<CircularProgress size={16} />
-																	<Typography variant="body2">
-																		Loading route...
-																	</Typography>
-																</Box>
-															</Grid>
-														)}
-														{routeError && (
-															<Grid size={12}>
-																<Alert severity="warning">
-																	Could not calculate route
-																	path
-																</Alert>
-															</Grid>
-														)}
-														{calculatedRoute && (
-															<>
-																<Grid size={{ xs: 12, sm: 6 }}>
-																	<Typography
-																		variant="subtitle2"
-																		color="text.secondary"
-																	>
-																		Distance
-																	</Typography>
-																	<Typography variant="body1">
-																		{formatDistance(
-																			calculatedRoute.route
-																				.distance
-																		)}
-																	</Typography>
-																</Grid>
-																<Grid size={{ xs: 12, sm: 6 }}>
-																	<Typography
-																		variant="subtitle2"
-																		color="text.secondary"
-																	>
-																		Duration
-																	</Typography>
-																	<Typography variant="body1">
-																		{formatDuration(
-																			calculatedRoute.route
-																				.duration
-																		)}
-																	</Typography>
-																</Grid>
-															</>
-														)}
-													</>
-												)}
-
-												{/* Map Display */}
-												{hasValidCoordinates ? (
-													<Grid size={12}>
-														<Typography
-															variant="subtitle2"
-															color="text.secondary"
-															sx={{ mb: 1 }}
-														>
-															Route Map
-														</Typography>
-														<RouteMap
-															route={calculatedRoute}
-															height={300}
-														/>
-													</Grid>
-												) : (
-													<Grid size={12}>
-														<Alert severity="info">
-															No map data available. Location
-															coordinates are missing.
-														</Alert>
-													</Grid>
-												)}
-											</Grid>
-										</Stack>
-									</CardContent>
-									<CardActions>
-										<Stack direction="row" spacing={1}>
-											{onEdit ? (
-												<Button
-													size="small"
-													variant="outlined"
-													onClick={handleEditClick}
-												>
-													Edit
-												</Button>
-											) : null}
-											{onDelete ? (
-												<Button
-													color="error"
-													size="small"
-													variant="outlined"
-													onClick={handleDeleteClick}
-												>
-													Delete
-												</Button>
-											) : null}
-										</Stack>
-									</CardActions>
-								</Card>
-							</Grid>
-						</Grid>
-					) : (
-						<Typography color="text.secondary">
-							Select a route from the table to view its details.
-						</Typography>
-					)}
+			) : (
+				<Box
+					display="flex"
+					alignItems="center"
+					justifyContent="center"
+					height="100%"
+				>
+					<CircularProgress />
 				</Box>
-			</Box>
+			)}
 		</Drawer>
 	);
 };

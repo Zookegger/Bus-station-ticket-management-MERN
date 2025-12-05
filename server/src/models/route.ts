@@ -7,6 +7,7 @@ import {
 } from "sequelize";
 import { Trip } from "./trip";
 import { DbModels } from "@models";
+import { RouteStop } from "./routeStop";
 
 /**
  * @interface RouteAttributes
@@ -99,6 +100,12 @@ export class Route
 	 */
 	public readonly trips?: Trip[];
 
+	public getStops!: HasManyGetAssociationsMixin<RouteStop>;
+	/**
+	 * @property {RouteStop[]} [stops] - Associated RouteStop instances.
+	 */
+	public readonly stops?: RouteStop[];
+
 	/**
 	 * Initializes the Sequelize model definition for Route.
 	 *
@@ -137,12 +144,14 @@ export class Route
 		Route.hasMany(models.Trip, {
 			foreignKey: "routeId",
 			as: "trips",
-			onDelete: "CASCADE",
+			onDelete: "RESTRICT",
+			onUpdate: "CASCADE",
 		});
 		Route.hasMany(models.RouteStop, {
 			foreignKey: "routeId",
 			as: "stops",
 			onDelete: "CASCADE",
+			onUpdate: "CASCADE",
 		});
 	}
 }

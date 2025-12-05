@@ -155,7 +155,8 @@ export class VehicleType
 		VehicleType.hasMany(models.Vehicle, {
 			foreignKey: "vehicleTypeId",
 			as: "vehicles",
-			onDelete: "SET NULL",
+			onDelete: "RESTRICT",
+			onUpdate: "CASCADE",
 		});
 	}
 }

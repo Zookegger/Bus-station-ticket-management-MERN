@@ -12,8 +12,8 @@ export interface Location {
 	address: string;
 	latitude: number;
 	longitude: number;
-	createdAt: string; // ISO Date string
-	updatedAt: string; // ISO Date string
+	createdAt: Date | string; // Date on server, ISO string on client
+	updatedAt: Date | string; // Date on server, ISO string on client
 }
 
 /**
@@ -35,3 +35,18 @@ export interface UpdateLocationDTO {
 	latitude?: number | null;
 	longitude?: number | null;
 }
+
+/**
+ * Model attribute interfaces (align with server model attributes)
+ */
+export interface LocationAttributes {
+	id: number;
+	name: string;
+	address?: string | null;
+	latitude?: number | null;
+	longitude?: number | null;
+	createdAt?: Date;
+	updatedAt?: Date;
+}
+
+export type LocationCreationAttributes = Omit<Partial<LocationAttributes>, 'id'> & Partial<Pick<LocationAttributes, 'id'>>;

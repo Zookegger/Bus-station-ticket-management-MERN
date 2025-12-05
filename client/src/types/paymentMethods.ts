@@ -35,3 +35,17 @@ export interface PaymentMethodResponseDTO {
 	createdAt: string; // ISO Date string
 	updatedAt: string; // ISO Date string
 }
+
+/**
+ * Model attribute interface for PaymentMethod (server-aligned).
+ * Mirrors server `PaymentMethod` model attributes used by APIs and lists.
+ */
+export interface PaymentMethod {
+	id: string;
+	name: string;
+	code: string;
+	isActive: boolean;
+	configJson?: any | null;
+	createdAt?: Date | string;
+	updatedAt?: Date | string;
+}

@@ -1,4 +1,4 @@
-import { param, query } from "express-validator";
+import { param, body } from "express-validator";
 
 /**
  * Validator for the 'orderId' URL parameter.
@@ -13,12 +13,13 @@ const paramValidator = param("orderId")
 	.toLowerCase();
 
 /**
- * Validator for the 'token' query parameter.
+ * Validator for the 'token' request body field.
  * Ensures it is a non-empty, 64-character hexadecimal string.
  */
-const queryValidator = query("token")
+const queryValidator = body("token")
 	.trim()
 	.notEmpty()
+	.bail()
 	.withMessage("Security token is missing")
 	.isHexadecimal()
 	.withMessage("Token must be a hexadecimal string")

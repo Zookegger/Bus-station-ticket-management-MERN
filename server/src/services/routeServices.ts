@@ -9,6 +9,7 @@
 import { Op, Sequelize } from "sequelize";
 import db from "@models/index";
 import { Route } from "@models/route";
+import { RouteStop } from "@models/routeStop";
 import { CreateRouteDTO, UpdateRouteDTO } from "@my_types/route";
 
 /**
@@ -54,7 +55,7 @@ export const getRouteById = async (id: number): Promise<Route | null> => {
 				include: [
 					{
 						model: db.Location,
-						as: "location",
+						as: "locations",
 					},
 				],
 			},
@@ -123,14 +124,14 @@ export const searchRoute = async (
 		where[Op.and].push(
 			Sequelize.literal(
 				`EXISTS (
-                    SELECT 1
-                    FROM route_stops rs
-                    JOIN locations l ON rs.location_id = l.id
-                    WHERE
-                        rs.route_id = "Route"."id" AND
-                        rs.stop_order = 0 AND
-                        l.name = :startName
-                )`
+					SELECT 1
+					FROM route_stops rs
+					JOIN locations l ON rs.locationId = l.id
+					WHERE
+						rs.routeId = "Route"."id" AND
+						rs.stopOrder = 0 AND
+						l.name = :startName
+				)`
 			)
 		);
 	}
@@ -140,18 +141,18 @@ export const searchRoute = async (
 		where[Op.and].push(
 			Sequelize.literal(
 				`EXISTS (
-                    SELECT 1
-                    FROM route_stops rs
-                    JOIN locations l ON rs.location_id = l.id
-                    WHERE
-                        rs.route_id = "Route"."id" AND
-                        l.name = :destinationName AND
-                        rs.stop_order = (
-                            SELECT MAX(stop_order)
-                            FROM route_stops
-                            WHERE route_id = "Route"."id"
-                        )
-                )`
+					SELECT 1
+					FROM route_stops rs
+					JOIN locations l ON rs.locationId = l.id
+					WHERE
+						rs.routeId = "Route"."id" AND
+						l.name = :destinationName AND
+						rs.stopOrder = (
+							SELECT MAX(stopOrder)
+							FROM routeStops
+							WHERE routeId = "Route"."id"
+						)
+				)`
 			)
 		);
 	}
@@ -183,7 +184,7 @@ export const searchRoute = async (
 				include: [
 					{
 						model: db.Location,
-						as: "location",
+						as: "locations",
 						// Keyword search on any location name within the route
 						where: keywords
 							? { name: { [Op.like]: `%${keywords}%` } }
@@ -426,6 +427,97 @@ export const deleteRoute = async (id: number): Promise<void> => {
 				message: "Route deletion failed - route still exists.",
 			};
 		}
+	} catch (err) {
+		await transaction.rollback();
+		throw err;
+	}
+};
+
+/**
+ * Finds or creates a reverse route for a given route ID.
+ *
+ * @param routeId - The ID of the route to reverse.
+ * @returns Promise resolving to the reverse route.
+ */
+export const getOrCreateReverseRoute = async (
+	routeId: number
+): Promise<Route> => {
+	const originalRoute = await getRouteById(routeId);
+	if (!originalRoute || !originalRoute.stops) {
+		throw { status: 404, message: "Original route not found." };
+	}
+
+	const originalStops = originalRoute.stops;
+	if (originalStops.length < 2) {
+		throw { status: 400, message: "Route must have at least 2 stops." };
+	}
+
+	// Create reversed list of location IDs
+	const reversedLocationIds = originalStops
+		.map((stop: RouteStop) => stop.locationId)
+		.reverse();
+
+	const startLocationId = reversedLocationIds[0];
+	const endLocationId = reversedLocationIds[reversedLocationIds.length - 1];
+
+	// Find potential matching routes (same start and end)
+	// This is an optimization to avoid fetching all routes
+	const potentialRoutes = await db.Route.findAll({
+		include: [
+			{
+				model: db.RouteStop,
+				as: "stops",
+			},
+		],
+		where: Sequelize.literal(`
+            EXISTS (SELECT 1 FROM route_stops WHERE routeId = Route.id AND stopOrder = 0 AND locationId = ${startLocationId})
+            AND
+            EXISTS (SELECT 1 FROM route_stops WHERE routeId = Route.id AND stopOrder = ${
+				reversedLocationIds.length - 1
+			} AND locationId = ${endLocationId})
+        `),
+	});
+
+	// Check for exact match
+	for (const route of potentialRoutes) {
+		if (!route.stops) continue;
+		const stops = route.stops.sort(
+			(a: RouteStop, b: RouteStop) => a.stopOrder - b.stopOrder
+		);
+		const locationIds = stops.map((s: RouteStop) => s.locationId);
+
+		if (
+			JSON.stringify(locationIds) === JSON.stringify(reversedLocationIds)
+		) {
+			return route;
+		}
+	}
+
+	// If not found, create new reverse route
+	const transaction = await db.sequelize.transaction();
+	try {
+		const newRoute = await db.Route.create(
+			{
+				name: `${originalRoute.name} (Return)`,
+				distance: originalRoute.distance ?? null,
+				duration: originalRoute.duration ?? null,
+				price: originalRoute.price ?? null,
+			},
+			{ transaction }
+		);
+
+		const routeStops = reversedLocationIds.map(
+			(locationId: number, index: number) => ({
+				routeId: newRoute.id,
+				locationId,
+				stopOrder: index,
+			})
+		);
+
+		await db.RouteStop.bulkCreate(routeStops, { transaction });
+
+		await transaction.commit();
+		return (await getRouteById(newRoute.id))!;
 	} catch (err) {
 		await transaction.rollback();
 		throw err;

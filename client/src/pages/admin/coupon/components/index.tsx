@@ -1,4 +1,3 @@
-export { default as AddCouponForm } from "./AddCouponForm";
+export { default as CouponForm } from "./CouponForm";
 export { default as CouponDetailsDrawer } from "./CouponDetailsDrawer";
-export { default as EditCouponForm } from "./EditCouponForm";
 export { default as DeleteCouponForm } from "./DeleteCouponForm";

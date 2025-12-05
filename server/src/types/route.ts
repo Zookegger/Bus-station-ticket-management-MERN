@@ -32,8 +32,8 @@ export interface RouteStop {
  * to create a new route record.
  *
  * @interface CreateRouteDTO
- * @property {number} id - Name of the route.
- * @property {Location[]} stops - ID of the destination location.
+ * @property {string} name - Name of the route.
+ * @property {Location[]} stops - Locations for the route stops.
  * @property {number | null} [distance] - Distance of the route in kilometers.
  * @property {number | null} [duration] - Duration of the route in hours.
  * @property {number | null} [price] - Price of the route.
@@ -53,8 +53,8 @@ export interface CreateRouteDTO {
  * All fields are optional.
  *
  * @interface UpdateRouteDTO
- * @property {number} id - Name of the route.
- * @property {number[]} [stops] - An ordered array of location IDs to replace the existing stops.
+ * @property {string} [name] - Name of the route.
+ * @property {Location[]} [stops] - An ordered array of locations to replace the existing stops.
  * @property {number | null} [distance] - Updated distance.
  * @property {number | null} [duration] - Updated duration.
  * @property {number | null} [price] - Updated price.
