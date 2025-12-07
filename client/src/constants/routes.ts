@@ -11,6 +11,7 @@ export const ROUTES = {
 	SEARCH: "/search",
 	SEAT_BOOKING: "/book/:tripId",
 	DASHBOARD_HOME: "/dashboard/home",
+	DASHBOARD_STATISTICS: "/dashboard/statistics",
 	DASHBOARD_VEHICLE: "/dashboard/vehicle",
 	DASHBOARD_VEHICLE_TYPE: "/dashboard/vehicle-type",
 	DASHBOARD_TRIP: "/dashboard/trip",

@@ -17,6 +17,7 @@ import {
 	PeriodComparisonChart,
 	TrendChart,
 } from "./index";
+import SummaryCards from "./SummaryCards";
 import { AssessmentRounded, Download } from "@mui/icons-material";
 import type {
 	DailyRevenueRecord,
@@ -24,13 +25,14 @@ import type {
 	CancellationRecord,
 	RevenueStatsSummary,
 } from "@my-types/dashboard";
-import { formatCurrency } from "@utils/formatting";
 import { useDateRangeFilter } from "@hooks/useDateRangeFilter";
 import { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEllipsisV } from "@fortawesome/free-solid-svg-icons";
 import { useDeviceType } from "@utils/deviceHooks";
 import TabPanel from "@components/common/TabPanel";
+import { OrderTable, OrderDetailDialog } from "../../order/components";
+import type { Order } from "@my-types/order";
 
 /**
  * Generic stats payload passed into Statistics component.
@@ -42,6 +44,8 @@ interface StatisticsProps {
 	monthly_comparison: MonthlyComparisonRecord[];
 	yearly_comparison: MonthlyComparisonRecord[];
 	cancellation_records: CancellationRecord[];
+	orders?: Order[];
+	loading?: boolean;
 	on_apply_date_range: (from: string, to: string) => void;
 	on_clear_date_range: () => void;
 	on_export_excel?: () => void;
@@ -59,6 +63,8 @@ const Statistics = ({
 	monthly_comparison,
 	yearly_comparison,
 	cancellation_records,
+	orders = [],
+	loading = false,
 	on_apply_date_range,
 	on_clear_date_range,
 	on_export_excel,
@@ -71,6 +77,7 @@ const Statistics = ({
 
 	const [menuOpen, setMenuOpen] = useState<boolean>(false);
 	const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+	const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
 	// Default to Monthly (index 1) to show the most common view first
 	const [activeTab, setActiveTab] = useState(1);
@@ -202,138 +209,7 @@ const Statistics = ({
 			</Stack>
 
 			{/* Summary Cards */}
-			<Grid container spacing={2} mb={3}>
-				<Grid size={{ xs: 6, sm: 4, md: 2 }}>
-					<Grow in={true} timeout={200}>
-						<Card
-							sx={{
-								bgcolor: "#1976d2",
-								color: "#fff",
-								height: "100%",
-							}}
-						>
-							<CardContent>
-								<Typography variant="subtitle2" fontWeight={"bold"}>
-									Total Revenue
-								</Typography>
-								<Typography variant="h5" fontWeight={700}>
-									{formatCurrency(stats.totalRevenue, currency)}
-								</Typography>
-								<Typography variant="caption">All Time</Typography>
-							</CardContent>
-						</Card>
-					</Grow>
-				</Grid>
-				<Grid size={{ xs: 6, sm: 4, md: 2 }}>
-					<Grow in={true} timeout={400}>
-						<Card
-							sx={{
-								bgcolor: "#0e8d52a2",
-								color: "#fff",
-								height: "100%",
-							}}
-						>
-							<CardContent>
-								<Typography variant="subtitle2" fontWeight={"bold"}>
-									Average Ticket Price
-								</Typography>
-								<Typography variant="h5" fontWeight={700}>
-									{formatCurrency(stats.avgTicketPrice, currency)}
-								</Typography>
-								<Typography variant="caption">
-									Per Ticket
-								</Typography>
-							</CardContent>
-						</Card>
-					</Grow>
-				</Grid>
-				<Grid size={{ xs: 6, sm: 4, md: 2 }}>
-					<Grow in={true} timeout={600}>
-						<Card
-							sx={{
-								bgcolor: "#f9a825",
-								color: "#fff",
-								height: "100%",
-							}}
-						>
-							<CardContent>
-								<Typography variant="subtitle2" fontWeight={"bold"}>
-									Tickets Sold
-								</Typography>
-								<Typography variant="h5" fontWeight={700}>
-									{stats.ticketsSold}
-								</Typography>
-								<Typography variant="caption">Total</Typography>
-							</CardContent>
-						</Card>
-					</Grow>
-				</Grid>
-				<Grid size={{ xs: 6, sm: 4, md: 2 }}>
-					<Grow in={true} timeout={800}>
-						<Card
-							sx={{
-								bgcolor: "#d32f2f",
-								color: "#fff",
-								height: "100%",
-							}}
-						>
-							<CardContent>
-								<Typography variant="subtitle2" fontWeight={"bold"}>
-									Cancelled Tickets
-								</Typography>
-								<Typography variant="h5" fontWeight={700}>
-									{stats.cancelledTickets}
-								</Typography>
-								<Typography variant="caption">Total</Typography>
-							</CardContent>
-						</Card>
-					</Grow>
-				</Grid>
-				<Grid size={{ xs: 6, sm: 4, md: 2 }}>
-					<Grow in={true} timeout={1000}>
-						<Card
-							sx={{
-								bgcolor: "#5e35b1",
-								color: "#fff",
-								height: "100%",
-							}}
-						>
-							<CardContent>
-								<Typography variant="subtitle2" fontWeight={"bold"}>
-									Total Users
-								</Typography>
-								<Typography variant="h5" fontWeight={700}>
-									{stats.totalUsers}
-								</Typography>
-								<Typography variant="caption">
-									Registered
-								</Typography>
-							</CardContent>
-						</Card>
-					</Grow>
-				</Grid>
-				<Grid size={{ xs: 6, sm: 4, md: 2 }}>
-					<Grow in={true} timeout={1200}>
-						<Card
-							sx={{
-								bgcolor: "#ef6c00",
-								color: "#fff",
-								height: "100%",
-							}}
-						>
-							<CardContent>
-								<Typography variant="subtitle2" fontWeight={"bold"}>
-									Total Trips
-								</Typography>
-								<Typography variant="h5" fontWeight={700}>
-									{stats.totalTrips}
-								</Typography>
-								<Typography variant="caption">Scheduled</Typography>
-							</CardContent>
-						</Card>
-					</Grow>
-				</Grid>
-			</Grid>
+			<SummaryCards stats={stats} currency={currency} />
 
 			{/* Charts Row */}
 			<Grid container spacing={3} mb={3}>
@@ -427,7 +303,35 @@ const Statistics = ({
 				</Grid>
 			</Grid>
 
-			{/* TODO: Optional OrderTable (Maybe collapsible?) */}
+			{/* Recent Orders */}
+			<Grid container spacing={3} mt={0}>
+				<Grid size={{ xs: 12 }}>
+					<Grow in={true} timeout={2000}>
+						<Card>
+							<CardContent>
+								<Typography variant="h6" gutterBottom color="primary">
+									Recent Orders
+								</Typography>
+								<OrderTable
+									orders={orders.slice(0, 10)}
+									loading={loading}
+									onViewDetail={(order) => setSelectedOrder(order)}
+								/>
+							</CardContent>
+						</Card>
+					</Grow>
+				</Grid>
+			</Grid>
+
+			{selectedOrder && (
+				<OrderDetailDialog
+					open={!!selectedOrder}
+					onClose={() => setSelectedOrder(null)}
+					order={selectedOrder}
+					onRefundOrder={() => {}}
+					onRefundTickets={() => {}}
+				/>
+			)}
 		</Box>
 	);
 };

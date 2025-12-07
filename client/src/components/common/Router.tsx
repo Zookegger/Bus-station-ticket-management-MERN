@@ -218,6 +218,16 @@ export const router = createBrowserRouter([
 				},
 			},
 			{
+				path: "statistics",
+				handle: { title: "Statistics • EasyRide" },
+				lazy: async () => {
+					const { default: Statistics } = await import(
+						"@pages/admin/home/Statistics"
+					);
+					return { Component: Statistics };
+				},
+			},
+			{
 				path: "vehicle",
 				handle: { title: "Vehicles • EasyRide" },
 				children: [

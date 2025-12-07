@@ -1,37 +1,35 @@
-import React, { useEffect, useState, useRef } from "react";
-import { Box, CircularProgress, Alert } from "@mui/material";
-import { Statistics } from "./components"; // Note: Ensure this import name matches your export (Statistic vs Statistics)
+import React, { useEffect, useState } from "react";
+import { Box, CircularProgress, Alert, Typography, Button, Grid, Paper } from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import { SummaryCards } from "./components";
 import { callApi } from "@utils/apiCaller";
 import type { DashboardStats } from "@my-types/dashboard";
 import { useSocket } from "@contexts/SocketContext";
 import { ROOMS, RT_EVENTS } from "@constants/realtime";
+import { ROUTES } from "@constants/routes";
+import {
+	DirectionsBus,
+	People,
+	Settings,
+	ConfirmationNumber,
+	Assessment,
+} from "@mui/icons-material";
 
 const Dashboard: React.FC = () => {
 	const [loading, setLoading] = useState<boolean>(true);
 	const [error, setError] = useState<string | null>(null);
 	const [data, setData] = useState<DashboardStats | null>(null);
-	const filterRef = useRef<{ from?: string; to?: string }>({});
+	const navigate = useNavigate();
 
 	const { socket, joinRoom, leaveRoom } = useSocket();
 
-	const fetchDashboardData = async (
-		fromDate?: string,
-		toDate?: string,
-		isBackground = false
-	) => {
+	const fetchDashboardData = async (isBackground = false) => {
 		if (!isBackground) setLoading(true);
 		try {
-			const params: any = {};
-			if (fromDate) params.from = fromDate;
-			if (toDate) params.to = toDate;
-
 			const response = await callApi<DashboardStats>({
 				method: "GET",
 				url: "/dashboard/stats",
-				params,
 			});
-
-			// Assuming callApi returns the data object directly based on your utils
 			setData(response as unknown as DashboardStats);
 			setError(null);
 		} catch (err: any) {
@@ -48,8 +46,7 @@ const Dashboard: React.FC = () => {
 		joinRoom(ROOMS.dashboard);
 
 		const handleMetricsUpdate = () => {
-			// Re-fetch data with current filters silently
-			fetchDashboardData(filterRef.current.from, filterRef.current.to, true);
+			fetchDashboardData(true);
 		};
 
 		socket?.on(RT_EVENTS.DASHBOARD_METRICS, handleMetricsUpdate);
@@ -59,16 +56,6 @@ const Dashboard: React.FC = () => {
 			socket?.off(RT_EVENTS.DASHBOARD_METRICS, handleMetricsUpdate);
 		};
 	}, [socket, joinRoom, leaveRoom]);
-
-	const handleApplyFilter = (from: string, to: string) => {
-		filterRef.current = { from, to };
-		fetchDashboardData(from, to);
-	};
-
-	const handleClearFilter = () => {
-		filterRef.current = {};
-		fetchDashboardData(); // Reloads with default (last 30 days)
-	};
 
 	if (loading && !data) {
 		return (
@@ -93,10 +80,55 @@ const Dashboard: React.FC = () => {
 		);
 	}
 
+	const navItems = [
+		{
+			label: "Manage Vehicles",
+			Icon: DirectionsBus,
+			route: ROUTES.DASHBOARD_VEHICLE,
+			color: "#1976d2",
+		},
+		{
+			label: "Manage Trips",
+			Icon: ConfirmationNumber,
+			route: ROUTES.DASHBOARD_TRIP,
+			color: "#ef6c00",
+		},
+		{
+			label: "Manage Users",
+			Icon: People,
+			route: ROUTES.DASHBOARD_USER,
+			color: "#5e35b1",
+		},
+		{
+			label: "System Settings",
+			Icon: Settings,
+			route: ROUTES.DASHBOARD_SYSTEM,
+			color: "#424242",
+		},
+	];
+
 	return (
-		<Box>
+		<Box p={3}>
+			<Box
+				display="flex"
+				justifyContent="space-between"
+				alignItems="center"
+				mb={3}
+			>
+				<Typography variant="h4" fontWeight="bold">
+					Dashboard Overview
+				</Typography>
+				<Button
+					variant="contained"
+					startIcon={<Assessment />}
+					onClick={() => navigate(ROUTES.DASHBOARD_STATISTICS)}
+				>
+					View Detailed Statistics
+				</Button>
+			</Box>
+
 			{data && (
-				<Statistics
+				<SummaryCards
 					stats={{
 						totalRevenue: data.totalRevenue,
 						totalTrips: data.totalTrips,
@@ -105,17 +137,37 @@ const Dashboard: React.FC = () => {
 						ticketsSold: data.ticketsSold,
 						cancelledTickets: data.cancelledTickets,
 					}}
-					daily_revenue={data.dailyRevenue}
-					daily_comparison={data.dailyComparison}
-					monthly_comparison={data.monthlyComparison}
-					yearly_comparison={data.yearlyComparison}
-					cancellation_records={data.cancellationRate}
-					on_apply_date_range={handleApplyFilter}
-					on_clear_date_range={handleClearFilter}
-					on_export_excel={() => console.log("Export Excel")}
-					on_export_pdf={() => console.log("Export PDF")}
 				/>
 			)}
+
+			<Typography variant="h5" fontWeight="bold" mt={4} mb={2}>
+				Quick Navigation
+			</Typography>
+			<Grid container spacing={3}>
+				{navItems.map((item) => (
+					<Grid size={{ xs: 12, sm: 6, md: 3 }} key={item.label}>
+						<Paper
+							elevation={3}
+							sx={{
+								p: 3,
+								display: "flex",
+								flexDirection: "column",
+								alignItems: "center",
+								cursor: "pointer",
+								transition: "transform 0.2s",
+								"&:hover": { transform: "scale(1.05)" },
+							}}
+							onClick={() => navigate(item.route)}
+						>
+							<Box sx={{ color: item.color, mb: 1 }}>
+								{/* Render the icon component directly to allow proper typing for MUI props */}
+								{item.Icon && <item.Icon fontSize="large" />}
+							</Box>
+							<Typography variant="h6">{item.label}</Typography>
+						</Paper>
+					</Grid>
+				))}
+			</Grid>
 		</Box>
 	);
 };

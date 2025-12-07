@@ -99,4 +99,14 @@ tripRouter.delete(
 	errorHandler
 );
 
+// Cancel trip (admin only)
+tripRouter.patch(
+	"/:id/cancel",
+	csrfAdminProtectionRoute,
+	tripValidator.validateIdParam,
+	handleValidationResult,
+	tripController.CancelTrip,
+	errorHandler
+);
+
 export default tripRouter;

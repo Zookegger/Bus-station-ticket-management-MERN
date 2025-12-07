@@ -26,6 +26,9 @@ import { Op, Transaction } from "sequelize";
 import { TicketStatus } from "@my_types/ticket";
 import { voidTicket } from "./ticketServices";
 import { broadcastDashboardUpdate } from "@services/dashboardServices";
+import * as notificationServices from "@services/notificationServices";
+import { NotificationPriorities, NotificationTypes } from "@my-types";
+import { emitBulkSeatUpdates } from "./realtimeEvents";
 
 /**
  * Payment gateway interface - all gateways must implement this
@@ -434,6 +437,41 @@ export const handlePaymentCallback = async (
 					},
 					{ where: { id: seatIds }, transaction }
 				);
+
+				// Emit realtime seat update
+				try {
+					const updatedSeats = await Seat.findAll({
+						where: { id: seatIds },
+						transaction,
+					});
+					if (updatedSeats.length > 0 && updatedSeats[0].tripId) {
+						emitBulkSeatUpdates(
+							updatedSeats[0].tripId,
+							updatedSeats.map((s) => s.toJSON())
+						);
+					}
+				} catch (err) {
+					logger.error("Failed to emit seat update", err);
+				}
+			}
+
+			// Send Notification
+			if (order.userId) {
+				notificationServices
+					.createNotification({
+						userId: order.userId,
+						title: "Order Successful",
+						content: `Your payment for order #${order.id} was successful.`,
+						type: NotificationTypes.BOOKING,
+						priority: NotificationPriorities.HIGH,
+						metadata: { orderId: order.id },
+					})
+					.catch((err) =>
+						logger.error(
+							"Failed to send payment success notification",
+							err
+						)
+					);
 			}
 		} else if (
 			verificationResult.status === PaymentStatus.FAILED ||
@@ -467,6 +505,22 @@ export const handlePaymentCallback = async (
 					},
 					{ where: { id: seatIds }, transaction }
 				);
+
+				// Emit realtime seat update (released)
+				try {
+					const updatedSeats = await Seat.findAll({
+						where: { id: seatIds },
+						transaction,
+					});
+					if (updatedSeats.length > 0 && updatedSeats[0].tripId) {
+						emitBulkSeatUpdates(
+							updatedSeats[0].tripId,
+							updatedSeats.map((s) => s.toJSON())
+						);
+					}
+				} catch (err) {
+					logger.error("Failed to emit seat update", err);
+				}
 			}
 
 			// Release coupon usage

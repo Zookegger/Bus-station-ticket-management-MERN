@@ -18,6 +18,7 @@ import {
 	AutoMode as AutoModeIcon,
 	PersonAdd as PersonAddIcon,
 	PersonRemove as PersonRemoveIcon,
+	Cancel as CancelIcon,
 } from "@mui/icons-material";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import { format } from "date-fns";
@@ -115,6 +116,43 @@ const TripList: React.FC = () => {
 				open: true,
 				message:
 					error.response?.data?.message || "Auto-assignment failed",
+				severity: "error",
+			});
+		}
+	};
+
+	const handleCancelTrip = async (tripId: number) => {
+		if (
+			!window.confirm(
+				"Are you sure you want to cancel this trip? This will refund all booked tickets."
+			)
+		) {
+			return;
+		}
+		try {
+			const url = API_ENDPOINTS.TRIP.CANCEL(tripId);
+			const { status, data } = await callApi(
+				{ method: "PATCH", url },
+				{ returnFullResponse: true }
+			);
+			if (status === 200) {
+				setSnackbar({
+					open: true,
+					message: "Trip cancelled successfully",
+					severity: "success",
+				});
+				fetchTrips();
+			} else {
+				setSnackbar({
+					open: true,
+					message: data.message || "Failed to cancel trip",
+					severity: "error",
+				});
+			}
+		} catch (err) {
+			setSnackbar({
+				open: true,
+				message: "Error cancelling trip",
 				severity: "error",
 			});
 		}
@@ -414,6 +452,22 @@ const TripList: React.FC = () => {
 								<EditIcon />
 							</IconButton>
 						</Tooltip>
+
+						{status !== TripStatus.CANCELLED &&
+							status !== TripStatus.COMPLETED && (
+								<Tooltip title="Cancel Trip">
+									<IconButton
+										size="small"
+										color="warning"
+										onClick={(e) => {
+											e.stopPropagation();
+											handleCancelTrip(trip.id);
+										}}
+									>
+										<CancelIcon />
+									</IconButton>
+								</Tooltip>
+							)}
 
 						<Tooltip title="Delete">
 							<IconButton

@@ -17,12 +17,18 @@ import {
 	TripStatus,
 } from "@my_types/trip";
 import { SeatStatus } from "@my_types/seat";
+import { TicketStatus } from "@my_types/ticket";
 import { VehicleType } from "@models/vehicleType";
 import { tripSchedulingQueue } from "@utils/queues/tripSchedulingQueue";
 import { enqueueVehicleStatus } from "@utils/queues/vehicleStatusQueue";
 import { VehicleStatus } from "@models/vehicle";
 import { SchedulingStrategies } from "@utils/schedulingStrategy";
 import { getOrCreateReverseRoute } from "@services/routeServices";
+import * as paymentServices from "@services/paymentServices";
+import { PaymentStatus } from "@my_types/payments";
+import { Order } from "@models/orders";
+import { Payment } from "@models/payment";
+import { Ticket } from "@models/ticket";
 
 /**
  * Generates seats for a trip based on vehicle type configuration.
@@ -217,43 +223,12 @@ export const getTripById = async (id: number): Promise<Trip | null> => {
 };
 
 /**
- * Retrieves a paginated and filtered list of trips from the database.
+ * Retrieves a paginated and filtered list of trips for ADMIN use.
  *
- * Provides comprehensive search capabilities including keyword filtering,
- * vehicle/route-based filtering, status filtering, date range filtering,
- * price range filtering, custom ordering, and pagination.
- * Uses Sequelize's findAndCountAll for efficient data retrieval with counts.
- *
- * @param options - Configuration options for filtering, sorting, and pagination:
- *   - keywords: Search term to filter trips
- *   - orderBy: Field to sort results by (default: "createdAt")
- *   - sortOrder: Sort direction "ASC" or "DESC" (default: "DESC")
- *   - page: Page number for pagination (1-based)
- *   - limit: Number of records per page
- *   - vehicleId: Filter by vehicle ID
- *   - routeId: Filter by route ID
- *   - status: Filter by trip status
- *   - startDate: Filter trips starting from this date
- *   - endDate: Filter trips ending before this date
- *   - minPrice: Filter by minimum price
- *   - maxPrice: Filter by maximum price
- * @returns Promise resolving to object containing:
- *   - rows: Array of Trip records matching the criteria
- *   - count: Total number of records matching the filter (for pagination)
- * @throws {Error} When database query fails or invalid options provided
- *
- * @example
- * // Get first page of scheduled trips for a specific vehicle
- * searchTrip({
- *   vehicleId: 5,
- *   status: 'Scheduled',
- *   page: 1,
- *   limit: 10,
- *   orderBy: "startTime",
- *   sortOrder: "ASC"
- * })
+ * Focuses on operational data, allows filtering by all fields,
+ * and does NOT perform dynamic price/time adjustments based on stops.
  */
-export const searchTrip = async (
+export const searchTripsForAdmin = async (
 	options: ListOptions = {}
 ): Promise<{ rows: Trip[]; count: number }> => {
 	const {
@@ -270,160 +245,44 @@ export const searchTrip = async (
 		endDate,
 		minPrice,
 		maxPrice,
-		fromLocation,
-		toLocation,
-		date,
-		checkSeatAvailability = false,
-		// minSeats = 1,
 	} = options;
 
 	const where: any = {};
 
-	// Map to store route segment details for price/time calculation
-	// Key: routeId, Value: { origin: { duration, distance }, dest: { duration, distance } }
-	const routeSegmentMap = new Map<
-		number,
-		{
-			origin: { duration: number; distance: number };
-			dest: { duration: number; distance: number };
-		}
-	>();
-
-	// --- 1. Route Filtering Logic (The Fix) ---
-	// If from/to locations are provided, we must first find which Routes match.
-	let validRouteIds: number[] | null = null;
-
-	if (fromLocation || toLocation) {
-		// Find all stops that match the 'From' location
-		const fromStops = fromLocation
-			? await db.RouteStop.findAll({
-					include: [
-						{
-							model: db.Location,
-							as: "locations",
-							where: { name: { [Op.like]: `%${fromLocation}%` } },
-						},
-					],
-					attributes: [
-						"routeId",
-						"stopOrder",
-						"durationFromStart",
-						"distanceFromStart",
-					],
-			  })
-			: null;
-
-		// Find all stops that match the 'To' location
-		const toStops = toLocation
-			? await db.RouteStop.findAll({
-					include: [
-						{
-							model: db.Location,
-							as: "locations",
-							where: { name: { [Op.like]: `%${toLocation}%` } },
-						},
-					],
-					attributes: [
-						"routeId",
-						"stopOrder",
-						"durationFromStart",
-						"distanceFromStart",
-					],
-			  })
-			: null;
-
-		const matchedIds = new Set<number>();
-
-		if (fromLocation && toLocation && fromStops && toStops) {
-			// If BOTH provided, Route must have both stops AND From.Order < To.Order
-			fromStops.forEach((fs) => {
-				// Is there a corresponding 'To' stop on the same route with a higher order?
-				const matchingDest = toStops.find(
-					(ts) =>
-						ts.routeId === fs.routeId && ts.stopOrder > fs.stopOrder
-				);
-
-				if (matchingDest) {
-					matchedIds.add(fs.routeId);
-					// Store segment data for calculation
-					routeSegmentMap.set(fs.routeId, {
-						origin: {
-							duration: fs.durationFromStart || 0,
-							distance: fs.distanceFromStart || 0,
-						},
-						dest: {
-							duration: matchingDest.durationFromStart || 0,
-							distance: matchingDest.distanceFromStart || 0,
-						},
-					});
-				}
-			});
-		} else if (fromLocation && fromStops) {
-			// Only From provided
-			fromStops.forEach((fs) => matchedIds.add(fs.routeId));
-		} else if (toLocation && toStops) {
-			// Only To provided
-			toStops.forEach((ts) => matchedIds.add(ts.routeId));
-		}
-
-		validRouteIds = Array.from(matchedIds);
-
-		// If we filtered by location but found NO routes, return empty immediately
-		if (validRouteIds.length === 0) {
-			return { rows: [], count: 0 };
-		}
-	}
-
-	// Apply the Route ID filter to the main query
-	if (validRouteIds !== null) {
-		where.routeId = { [Op.in]: validRouteIds };
-	}
-	// --------------------------------------------
-
-	// 2. Standard Filters
+	// 1. Standard Filters
 	if (vehicleId) where.vehicleId = vehicleId;
-	if (routeId) where.routeId = routeId; // Note: This might conflict with location filter if user sends both
+	if (routeId) where.routeId = routeId;
 	if (status) where.status = status;
 
-	// 3. Date Filters
-	if (date) {
-		const targetDate = new Date(date);
-		const nextDay = new Date(targetDate);
-		nextDay.setDate(targetDate.getDate() + 1);
-		where.startTime = {
-			[Op.gte]: targetDate,
-			[Op.lt]: nextDay,
-		};
-	} else if (startDate || endDate) {
+	// 2. Date Filters
+	if (startDate || endDate) {
 		where.startTime = {};
 		if (startDate) where.startTime[Op.gte] = new Date(startDate);
 		if (endDate) where.startTime[Op.lte] = new Date(endDate);
 	}
 
-	// 4. Price Filters
+	// 3. Price Filters
 	if (minPrice || maxPrice) {
 		where.price = {};
 		if (minPrice) where.price[Op.gte] = minPrice;
 		if (maxPrice) where.price[Op.lte] = maxPrice;
 	}
 
-	// 5. Keyword Search (Updated to remove invalid columns)
+	// 4. Keyword Search
 	if (keywords) {
 		where[Op.or] = [
 			{ description: { [Op.like]: `%${keywords}%` } },
-			// We can search Route Name via Association (see include below)
 			{ "$route.name$": { [Op.like]: `%${keywords}%` } },
 		];
 	}
 
-	// 6. Build Includes
+	// 5. Build Includes
 	const include: any[] = [
 		{
 			model: db.Route,
 			as: "route",
-			required: true, // Required for keyword search on route name
+			required: true,
 			include: [
-				// Optional: Include stops to display location names in result
 				{
 					model: db.RouteStop,
 					as: "stops",
@@ -449,51 +308,227 @@ export const searchTrip = async (
 			as: "drivers",
 			required: false,
 		},
+		{
+			model: db.Trip,
+			as: "returnTrip",
+			required: false,
+			include: [
+				{
+					model: db.Route,
+					as: "route",
+				},
+			],
+		},
 	];
 
-	// 7. Seat Availability (Pure Sequelize)
-	if (checkSeatAvailability) {
-		include.push({
+	const queryOptions: any = {
+		where,
+		include,
+		order: [[orderBy, sortOrder]],
+		distinct: true,
+		offset: (page - 1) * limit,
+		limit: limit,
+	};
+
+	return await db.Trip.findAndCountAll(queryOptions);
+};
+
+/**
+ * Retrieves a list of trips for USER booking.
+ *
+ * Focuses on availability, dynamic pricing based on stops,
+ * and strictly filters for scheduled trips with available seats.
+ */
+export const searchTripsForUser = async (
+	options: ListOptions = {}
+): Promise<{ rows: Trip[]; count: number }> => {
+	const {
+		fromLocation,
+		toLocation,
+		date,
+		minPrice,
+		maxPrice,
+		vehicleTypeId,
+		orderBy = "startTime",
+		sortOrder = "ASC",
+		page = 1,
+		limit = 10,
+	} = options;
+
+	const where: any = {
+		status: "Scheduled", // Users only see scheduled trips
+	};
+
+	// Map to store route segment details for price/time calculation
+	const routeSegmentMap = new Map<
+		number,
+		{
+			origin: { duration: number; distance: number };
+			dest: { duration: number; distance: number };
+		}
+	>();
+
+	// 1. Route Filtering Logic (Location-based)
+	let validRouteIds: number[] | null = null;
+
+	if (fromLocation || toLocation) {
+		const fromStops = fromLocation
+			? await db.RouteStop.findAll({
+					include: [
+						{
+							model: db.Location,
+							as: "locations",
+							where: { name: { [Op.like]: `%${fromLocation}%` } },
+						},
+					],
+					attributes: [
+						"routeId",
+						"stopOrder",
+						"durationFromStart",
+						"distanceFromStart",
+					],
+			  })
+			: null;
+
+		const toStops = toLocation
+			? await db.RouteStop.findAll({
+					include: [
+						{
+							model: db.Location,
+							as: "locations",
+							where: { name: { [Op.like]: `%${toLocation}%` } },
+						},
+					],
+					attributes: [
+						"routeId",
+						"stopOrder",
+						"durationFromStart",
+						"distanceFromStart",
+					],
+			  })
+			: null;
+
+		const matchedIds = new Set<number>();
+
+		if (fromLocation && toLocation && fromStops && toStops) {
+			fromStops.forEach((fs) => {
+				const matchingDest = toStops.find(
+					(ts) =>
+						ts.routeId === fs.routeId && ts.stopOrder > fs.stopOrder
+				);
+
+				if (matchingDest) {
+					matchedIds.add(fs.routeId);
+					routeSegmentMap.set(fs.routeId, {
+						origin: {
+							duration: fs.durationFromStart || 0,
+							distance: fs.distanceFromStart || 0,
+						},
+						dest: {
+							duration: matchingDest.durationFromStart || 0,
+							distance: matchingDest.distanceFromStart || 0,
+						},
+					});
+				}
+			});
+		} else if (fromLocation && fromStops) {
+			fromStops.forEach((fs) => matchedIds.add(fs.routeId));
+		} else if (toLocation && toStops) {
+			toStops.forEach((ts) => matchedIds.add(ts.routeId));
+		}
+
+		validRouteIds = Array.from(matchedIds);
+
+		if (validRouteIds.length === 0) {
+			return { rows: [], count: 0 };
+		}
+		where.routeId = { [Op.in]: validRouteIds };
+	}
+
+	// 2. Date Filters
+	if (date) {
+		const targetDate = new Date(date);
+		const datePart = date.substring(0, 10);
+		const nextDay = new Date(datePart);
+		nextDay.setDate(nextDay.getDate() + 1);
+
+		where.startTime = {
+			[Op.gte]: targetDate,
+			[Op.lt]: nextDay,
+		};
+	} else {
+		// Default: Show future trips only
+		where.startTime = { [Op.gte]: new Date() };
+	}
+
+	// 3. Price Filters (Base price filter, might be inaccurate if dynamic pricing reduces it, but good for upper bound)
+	if (minPrice || maxPrice) {
+		where.price = {};
+		if (minPrice) where.price[Op.gte] = minPrice;
+		if (maxPrice) where.price[Op.lte] = maxPrice;
+	}
+
+	// 4. Build Includes
+	const include: any[] = [
+		{
+			model: db.Route,
+			as: "route",
+			required: true,
+			include: [
+				{
+					model: db.RouteStop,
+					as: "stops",
+					include: [{ model: db.Location, as: "locations" }],
+				},
+			],
+		},
+		{
+			model: db.Vehicle,
+			as: "vehicle",
+			required: true, // Users need a vehicle assigned to book
+			include: [
+				{
+					model: db.VehicleType,
+					as: "vehicleType",
+					...(vehicleTypeId ? { where: { id: vehicleTypeId } } : {}),
+				},
+			],
+		},
+		{
 			model: db.Seat,
 			as: "seats",
 			attributes: [],
 			where: { status: SeatStatus.AVAILABLE },
-			required: true, // INNER JOIN: Filters out trips with 0 seats
+			required: true, // Must have at least one seat
 			duplicating: false,
-		});
-	}
-
-	// Return Trip Include
-	include.push({
-		model: db.Trip,
-		as: "returnTrip",
-		required: false,
-		...(status ? { where: { status } } : {}),
-		include: [
-			{
-				model: db.Route,
-				as: "route",
-				include: [
-					{
-						model: db.RouteStop,
-						as: "stops",
-						include: [{ model: db.Location, as: "locations" }],
-					},
-				],
-			},
-			...(checkSeatAvailability
-				? [
+		},
+		{
+			model: db.Trip,
+			as: "returnTrip",
+			required: false,
+			where: { status: "Scheduled" },
+			include: [
+				{
+					model: db.Route,
+					as: "route",
+					include: [
 						{
-							model: db.Seat,
-							as: "seats",
-							attributes: [],
-							where: { status: SeatStatus.AVAILABLE },
-							required: true, // If return trip exists, it must have seats
+							model: db.RouteStop,
+							as: "stops",
+							include: [{ model: db.Location, as: "locations" }],
 						},
-				  ]
-				: []),
-		],
-	});
+					],
+				},
+				{
+					model: db.Seat,
+					as: "seats",
+					attributes: [],
+					where: { status: SeatStatus.AVAILABLE },
+					required: true,
+				},
+			],
+		},
+	];
 
 	const queryOptions: any = {
 		where,
@@ -506,43 +541,30 @@ export const searchTrip = async (
 
 	const result = await db.Trip.findAndCountAll(queryOptions);
 
-	// --- Post-Processing: Dynamic Time & Price Calculation ---
+	// 5. Post-Processing: Dynamic Time & Price Calculation
 	if (routeSegmentMap.size > 0) {
 		result.rows.forEach((trip) => {
 			const segment = routeSegmentMap.get(trip.routeId);
-			// Ensure we have segment data and the route is loaded
 			if (segment && trip.route) {
-				// 1. Adjust Start Time
-				// New Start Time = Trip Start + Origin Duration
 				const originalStart = new Date(trip.startTime);
 				const newStartTime = new Date(
 					originalStart.getTime() + segment.origin.duration * 60000
 				);
 				trip.setDataValue("startTime", newStartTime);
 
-				// 2. Calculate Arrival Time
-				// Arrival Time = Trip Start + Destination Duration
 				const arrivalTime = new Date(
 					originalStart.getTime() + segment.dest.duration * 60000
 				);
-				// 'arrivalTime' is not in Trip model, so we set it as a data value (virtual)
 				trip.setDataValue("arrivalTime" as any, arrivalTime);
 
-				// 3. Adjust Price
-				// Ratio = (DestDist - OriginDist) / TotalRouteDist
 				const totalDist = trip.route.distance || 0;
 				const segmentDist =
 					segment.dest.distance - segment.origin.distance;
 
 				if (totalDist > 0 && segmentDist > 0) {
-					const ratio = segmentDist / totalDist;
-					// Cap ratio at 1.0 to prevent overcharging if data is weird
-					const finalRatio = Math.min(ratio, 1.0);
-
+					const ratio = Math.min(segmentDist / totalDist, 1.0);
 					const originalPrice = Number(trip.price);
-					const newPrice = originalPrice * finalRatio;
-
-					// Update the price on the instance
+					const newPrice = originalPrice * ratio;
 					trip.setDataValue("price", parseFloat(newPrice.toFixed(2)));
 				}
 			}
@@ -979,5 +1001,148 @@ export const deleteTrip = async (id: number): Promise<void> => {
 	} catch (err) {
 		await transaction.rollback();
 		throw err;
+	}
+};
+
+/**
+ * Cancels a trip and handles associated tickets.
+ *
+ * @param id - The ID of the trip to cancel.
+ * @returns The cancelled trip.
+ * @throws {Error} If the trip is not found or cannot be cancelled.
+ */
+export const cancelTrip = async (id: number): Promise<Trip> => {
+	const transaction = await db.sequelize.transaction();
+	try {
+		const trip = await db.Trip.findByPk(id, {
+			lock: transaction.LOCK.UPDATE,
+			transaction,
+		});
+
+		if (!trip) {
+			throw { status: 404, message: "Trip not found." };
+		}
+
+		if (
+			trip.status === TripStatus.COMPLETED ||
+			trip.status === TripStatus.CANCELLED
+		) {
+			throw { status: 400, message: `Trip is already ${trip.status}.` };
+		}
+
+		// Update trip status
+		await trip.update({ status: TripStatus.CANCELLED }, { transaction });
+
+		// Find all tickets associated with this trip
+		const tickets = await db.Ticket.findAll({
+			include: [
+				{
+					model: db.Seat,
+					as: "seat",
+					required: true,
+					where: { tripId: id },
+				},
+				{
+					model: db.Order,
+					as: "order",
+					include: [
+						{
+							model: db.Payment,
+							as: "payment",
+						},
+					],
+				},
+			],
+			lock: transaction.LOCK.UPDATE,
+			transaction,
+		});
+
+		// Group tickets by orderId
+		const ticketsByOrder = new Map<string, Ticket[]>();
+		for (const ticket of tickets) {
+			if (!ticketsByOrder.has(ticket.orderId)) {
+				ticketsByOrder.set(ticket.orderId, []);
+			}
+			ticketsByOrder.get(ticket.orderId)?.push(ticket);
+		}
+
+		for (const [orderId, orderTickets] of ticketsByOrder) {
+			const order = orderTickets[0].order; // All tickets have same order
+			if (!order) continue;
+
+			// Find completed payment
+			// order.payment is likely an array due to hasMany
+			const payments = order.payment as unknown as Payment[];
+			const completedPayment = payments?.find(
+				(p) => p.paymentStatus === PaymentStatus.COMPLETED
+			);
+
+			const bookedTickets = orderTickets.filter(
+				(t) => t.status === TicketStatus.BOOKED
+			);
+
+			if (bookedTickets.length > 0 && completedPayment) {
+				const refundAmount = bookedTickets.reduce(
+					(sum, t) => sum + Number(t.finalPrice),
+					0
+				);
+
+				if (refundAmount > 0) {
+					try {
+						await paymentServices.processRefund(
+							{
+								paymentId: completedPayment.id,
+								amount: refundAmount,
+								reason: `Trip ${id} cancelled`,
+								performedBy: "System (Trip Cancellation)",
+							},
+							transaction
+						);
+
+						// Update tickets to REFUNDED
+						await db.Ticket.update(
+							{ status: TicketStatus.REFUNDED },
+							{
+								where: { id: bookedTickets.map((t) => t.id) },
+								transaction,
+							}
+						);
+					} catch (error) {
+						logger.error(
+							`Failed to refund order ${orderId} for trip ${id}:`,
+							error
+						);
+						// If refund fails, we might still want to cancel the trip but log the error?
+						// Or fail the whole transaction?
+						// Failing the transaction ensures consistency.
+						throw error;
+					}
+				}
+			} else {
+				// Just cancel tickets if not booked or no payment
+				// (Already handled by loop below? No, I should handle it here)
+				// Wait, the original code iterated all tickets.
+			}
+
+			// Update non-booked tickets to CANCELLED
+			const otherTickets = orderTickets.filter(
+				(t) => t.status !== TicketStatus.BOOKED
+			);
+			if (otherTickets.length > 0) {
+				await db.Ticket.update(
+					{ status: TicketStatus.CANCELLED },
+					{
+						where: { id: otherTickets.map((t) => t.id) },
+						transaction,
+					}
+				);
+			}
+		}
+
+		await transaction.commit();
+		return trip;
+	} catch (error) {
+		await transaction.rollback();
+		throw error;
 	}
 };
