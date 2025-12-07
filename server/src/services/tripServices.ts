@@ -26,7 +26,6 @@ import { SchedulingStrategies } from "@utils/schedulingStrategy";
 import { getOrCreateReverseRoute } from "@services/routeServices";
 import * as paymentServices from "@services/paymentServices";
 import { PaymentStatus } from "@my_types/payments";
-import { Order } from "@models/orders";
 import { Payment } from "@models/payment";
 import { Ticket } from "@models/ticket";
 
@@ -1067,7 +1066,7 @@ export const cancelTrip = async (id: number): Promise<Trip> => {
 		}
 
 		for (const [orderId, orderTickets] of ticketsByOrder) {
-			const order = orderTickets[0].order; // All tickets have same order
+			const order = orderTickets[0]!.order; // All tickets have same order
 			if (!order) continue;
 
 			// Find completed payment
