@@ -25,7 +25,6 @@ const Trip: React.FC = () => {
 				<Tab label="Trips" />
 				<Tab label="Routes" />
 				<Tab label="Driver List" />
-				<Tab label="Assignment List " />
 			</Tabs>
 
 			<TabPanel value={activeTab} index={0}>
