@@ -211,6 +211,8 @@ export class RefreshToken
 		RefreshToken.belongsTo(models.User, {
 			foreignKey: "userId",
 			as: "user",
+			onDelete: "CASCADE",
+			onUpdate: "CASCADE",
 		});
 	}
 }

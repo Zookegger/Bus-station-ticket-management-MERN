@@ -26,7 +26,7 @@ export type SeatLayout = SeatType[][][];
 export interface CreateVehicleTypeDTO {
 	name: string;
 	price: number;
-	totalFloors: number;
+	totalFloors: number; 
 	totalSeats: number;
 	seatLayout: string;
 }

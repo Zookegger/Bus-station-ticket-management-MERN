@@ -2,8 +2,10 @@ import { useEffect, useState, type ReactNode } from "react";
 import axios from "axios";
 import type { User } from "@my-types/user";
 import { AuthContext } from "./AuthContext.context";
-import { API_ENDPOINTS, CSRF_CONFIG, ROUTES } from "@constants";
+import { API_ENDPOINTS, CSRF_CONFIG, ROUTES } from "@constants/index";
 import type {
+	AuthUser,
+	GetMeResponse,
 	LoginDTO,
 	LoginResponse,
 	RegisterDTO,
@@ -16,7 +18,7 @@ axios.defaults.baseURL = API_BASE_URL;
 axios.defaults.withCredentials = true;
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-	const [user, setUser] = useState<User | null>(null);
+	const [user, setUser] = useState<User | AuthUser | null>(null);
 	const [isLoading, setIsLoading] = useState<boolean>(true);
 	const [csrfToken, setCsrfToken] = useState<string | null>(null);
 
@@ -136,13 +138,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 				try {
 					const userResponse = await axios.get(API_ENDPOINTS.AUTH.ME);
+					const data: GetMeResponse = userResponse.data;
 
 					// Validate response exists
-					if (!userResponse || !userResponse.data?.user)
+					if (!userResponse || !data.user)
 						throw new Error("User data is missing from response");
 
 					// Update authentication state
-					setUser(userResponse.data.user);
+					setUser(data.user);
 				} catch (userErr) {
 					// User not logged in (401) - that's fine, they can be a guest
 					// CSRF token is already set above

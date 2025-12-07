@@ -6,8 +6,29 @@
  * to validate request bodies and parameters with comprehensive error messages.
  */
 
-import { body } from "express-validator";
+import { body, param } from "express-validator";
 import { SeatStatus } from "@my_types/seat";
+
+
+/**
+ * Validation rules for ID parameters in URL routes.
+ *
+ * Ensures that ID parameters are valid positive integers.
+ * Used for routes that require an ID parameter (e.g., /:id).
+ */
+export const validateIdParam = [
+	param("id")
+		.isInt({ min: 1 })
+		.withMessage("ID must be a positive integer")
+		.toInt(),
+];
+
+export const validateTripIdParam = [
+	param("tripId")
+		.toInt()
+		.isInt({ min: 1 })
+		.withMessage("ID must be a positive integer"),
+];
 
 /**
  * Validation rules for updating existing seats.

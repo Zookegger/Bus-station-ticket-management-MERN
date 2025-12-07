@@ -6,7 +6,14 @@ import type { PaymentInitResponse, PaymentMethodCode } from "@my-types/payment";
  * Based on server/src/types/ticket.ts
  */
 
-export type TicketStatus = "PENDING" | "BOOKED" | "CANCELLED" | "COMPLETED" | "REFUNDED" | "INVALID" | "EXPIRED";
+export type TicketStatus =
+	| "PENDING"
+	| "BOOKED"
+	| "CANCELLED"
+	| "COMPLETED"
+	| "REFUNDED"
+	| "INVALID"
+	| "EXPIRED";
 
 /**
  * Represents a single ticket on the client-side.
@@ -19,8 +26,8 @@ export interface Ticket {
 	basePrice: number;
 	finalPrice: number;
 	status: TicketStatus;
-	createdAt: string; // ISO Date string
-	updatedAt: string; // ISO Date string
+	createdAt: Date | string; // Date on server, ISO string on client
+	updatedAt: Date | string; // Date on server, ISO string on client
 	seat?: Seat;
 }
 
@@ -31,7 +38,7 @@ export interface BookTicketDTO {
 	userId: string;
 	seatIds?: number | number[] | null;
 	couponIds?: string | null;
-  	paymentMethodCode: PaymentMethodCode;
+	paymentMethodCode: PaymentMethodCode;
 	additionalData?: Record<string, any>;
 }
 
@@ -39,9 +46,9 @@ export interface BookTicketDTO {
  * Response returned by the booking flow to the client.
  */
 export interface BookTicketResult {
-  ticketIds: number[];
-  paymentUrl?: string;
-  payment?: PaymentInitResponse;
+	ticketIds: number[];
+	paymentUrl?: string;
+	payment?: PaymentInitResponse;
 }
 
 /**
@@ -74,7 +81,13 @@ export interface TicketQueryOptions {
 	maxFinalPrice?: number;
 	limit?: number;
 	offset?: number;
-	sortBy?: 'id' | 'basePrice' | 'finalPrice' | 'status' | 'createdAt' | 'updatedAt';
+	sortBy?:
+		| "id"
+		| "basePrice"
+		| "finalPrice"
+		| "status"
+		| "createdAt"
+		| "updatedAt";
 	sortOrder?: "ASC" | "DESC";
 	include?: ("user" | "seat" | "order" | "payments")[];
 }
@@ -83,7 +96,24 @@ export interface TicketQueryOptions {
  * DTO for admin ticket updates.
  */
 export interface AdminUpdateTicketDTO {
-    status?: TicketStatus;
-    seatId?: number | null;
-    note?: string | null;
+	status?: TicketStatus;
+	seatId?: number | null;
+	note?: string | null;
 }
+
+/** Model attribute types for Ticket (server-aligned) */
+export interface TicketAttributes {
+	id: number;
+	userId?: string | null;
+	seatId?: number | null;
+	orderId: string;
+	basePrice: number;
+	finalPrice: number;
+	status: TicketStatus;
+	cancelledAt?: Date | null;
+	createdAt?: Date;
+	updatedAt?: Date;
+}
+
+export type TicketCreationAttributes = Omit<Partial<TicketAttributes>, "id"> &
+	Partial<Pick<TicketAttributes, "id">>;

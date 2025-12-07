@@ -1,28 +1,24 @@
-import {
-	DataTypes,
-	Model,
-	Optional,
-	Sequelize,
-} from "sequelize";
+import { DataTypes, Model, Optional, Sequelize } from "sequelize";
 import bcrypt from "bcrypt";
 import { Ticket } from "./ticket";
 import { RefreshToken } from "./refreshToken";
 import { DbModels } from "@models";
+import { FederatedCredential } from "./federatedCredential";
 
 /**
  * Enum for user roles.
  * @enum {string}
  * @property {string} User - Regular user.
  * @property {string} Admin - Administrator.
-*/
+ */
 export enum Role {
-	/**  
+	/**
 	 * @property {string} User - Regular user.
-	*/
+	 */
 	USER = "User",
-	/**  
+	/**
 	 * @property {string} Admin - Administrator.
-	*/
+	 */
 	ADMIN = "Admin",
 }
 
@@ -33,7 +29,7 @@ export enum Role {
 export enum Gender {
 	MALE = "male",
 	FEMALE = "female",
-	OTHER = "other"
+	OTHER = "other",
 }
 
 /**
@@ -150,6 +146,7 @@ export class User
 	// Associations
 	public readonly tickets?: Ticket[];
 	public readonly refreshTokens?: RefreshToken[];
+	public readonly federatedCredentials?: FederatedCredential[];
 
 	/**
 	 * Initializes the User model.
@@ -187,8 +184,10 @@ export class User
 						return `${this.firstName} ${this.lastName}`;
 					},
 					set(_value: string) {
-						throw new Error("Do not try to set the `fullName` value directly. It is a virtual field.");
-					}
+						throw new Error(
+							"Do not try to set the `fullName` value directly. It is a virtual field."
+						);
+					},
 				},
 				userName: {
 					type: DataTypes.STRING,
@@ -202,7 +201,7 @@ export class User
 				gender: {
 					type: DataTypes.ENUM(...Object.values(Gender)),
 					allowNull: true,
-					defaultValue: Gender.OTHER
+					defaultValue: Gender.OTHER,
 				},
 				avatar: {
 					type: DataTypes.STRING,
@@ -234,12 +233,12 @@ export class User
 				createdAt: {
 					type: DataTypes.DATE,
 					allowNull: true,
-					field: 'createdAt'
+					field: "createdAt",
 				},
 				updatedAt: {
 					type: DataTypes.DATE,
 					allowNull: true,
-					field: 'updatedAt'
+					field: "updatedAt",
 				},
 			},
 			{
@@ -271,25 +270,42 @@ export class User
 		User.hasMany(models.Ticket, {
 			foreignKey: "userId",
 			as: "tickets",
+			onDelete: "SET NULL",
+			onUpdate: "CASCADE",
 		});
 		User.hasMany(models.RefreshToken, {
 			foreignKey: "userId",
 			as: "refreshTokens",
+			onDelete: "CASCADE",
+			onUpdate: "CASCADE",
 		});
 		// Link notifications created for this user
 		User.hasMany(models.Notification, {
 			foreignKey: "userId",
 			as: "notifications",
+			onDelete: "CASCADE",
+			onUpdate: "CASCADE",
 		});
 		// Orders placed by this user (or guest when null)
 		User.hasMany(models.Order, {
 			foreignKey: "userId",
 			as: "orders",
+			onDelete: "SET NULL",
+			onUpdate: "CASCADE",
 		});
 		// Coupon usage records by this user
 		User.hasMany(models.CouponUsage, {
 			foreignKey: "userId",
 			as: "couponUsages",
+			onDelete: "SET NULL",
+			onUpdate: "CASCADE",
+		});
+		//  User can have multiple federated credentials (google/facebook etc.)
+		User.hasMany(models.FederatedCredential, {
+			foreignKey: "userId",
+			as: "federatedCredentials",
+			onDelete: "CASCADE",
+			onUpdate: "CASCADE",
 		});
 	}
 

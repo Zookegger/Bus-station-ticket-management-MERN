@@ -14,11 +14,14 @@ import {
 	Typography,
 	Stack,
 	Alert,
+	Button,
+	Snackbar,
 } from "@mui/material";
 import {
 	Error as ErrorIcon,
 	Search as SearchIcon,
-	Visibility as VisibilityIcon,
+	Delete as DeleteIcon,
+	Edit as EditIcon,
 } from "@mui/icons-material";
 
 import {
@@ -28,9 +31,15 @@ import {
 } from "@mui/x-data-grid";
 import { DataGridPageLayout } from "@components/admin";
 import callApi from "@utils/apiCaller";
+import { API_ENDPOINTS } from "@constants/index";
 import type { Role, User } from "@my-types/user";
 import buildAvatarUrl from "@utils/avatarImageHelper";
-import { InfoDrawer } from "./components";
+import {
+	InfoDrawer,
+	DeleteUserConfirm,
+	UserForm,
+} from "./components";
+import { useAdminRealtime } from "@hooks/useAdminRealtime";
 
 const UserPage: React.FC = () => {
 	const [users, setUsers] = useState<User[]>([]);
@@ -39,9 +48,18 @@ const UserPage: React.FC = () => {
 
 	// UI States
 	const [drawerOpen, setDrawerOpen] = useState(false);
+	const [formOpen, setFormOpen] = useState(false);
+	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [roleFilter, setRoleFilter] = useState<"all" | Role>("all");
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
+	const [snackbar, setSnackbar] = useState<{
+		open: boolean;
+		message: string;
+		severity: "success" | "error" | "info" | "warning";
+	}>({ open: false, message: "", severity: "info" });
+
+	const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
 
 	// Helper to get initials
 	const getInitials = (name: string) => {
@@ -77,6 +95,31 @@ const UserPage: React.FC = () => {
 		setDrawerOpen(true);
 	};
 
+	const handleOpenEdit = (user: User) => {
+		setSelectedUser(user);
+		setFormOpen(true);
+	};
+
+	const handleOpenAdd = () => {
+		setSelectedUser(null);
+		setFormOpen(true);
+	};
+
+	const handleCloseForm = () => {
+		setFormOpen(false);
+		setSelectedUser(null);
+	};
+
+	const handleOpenDelete = (user: User) => {
+		setSelectedUser(user);
+		setDeleteOpen(true);
+	};
+
+	const handleCloseDelete = () => {
+		setDeleteOpen(false);
+		setSelectedUser(null);
+	};
+
 	const handleCloseDrawer = () => {
 		setDrawerOpen(false);
 		setSelectedUser(null);
@@ -84,6 +127,7 @@ const UserPage: React.FC = () => {
 
 	// DataGrid Columns
 	const columns: GridColDef[] = [
+		{ field: "id", headerName: "ID", width: 70 },
 		{
 			field: "fullName",
 			headerName: "Full Name",
@@ -197,66 +241,100 @@ const UserPage: React.FC = () => {
 		{
 			field: "actions",
 			headerName: "Actions",
-			width: 80,
+			width: 150,
 			sortable: false,
-			renderCell: (params: GridRenderCellParams<User>) => (
-				<IconButton
-					size="small"
-					color="primary"
-					onClick={(e) => {
-						e.stopPropagation();
-						handleViewDetails(params.row);
-					}}
-					title="View Details"
-				>
-					<VisibilityIcon fontSize="small" />
-				</IconButton>
-			),
+			renderCell: (params) => {
+				const user = params.row as User;
+				return (
+					<Box onClick={(e) => e.stopPropagation()}>
+						<IconButton
+							size="small"
+							color="primary"
+							onClick={(e) => {
+								e.stopPropagation();
+								handleOpenEdit(user);
+							}}
+							title="Edit"
+						>
+							<EditIcon />
+						</IconButton>
+						<IconButton
+							size="small"
+							color="error"
+							onClick={(e) => {
+								e.stopPropagation();
+								handleOpenDelete(user);
+							}}
+							title="Delete"
+						>
+							<DeleteIcon />
+						</IconButton>
+					</Box>
+				);
+			},
 		},
 	];
 
-	useEffect(() => {
-		const fetchUsers = async () => {
-			setLoading(true);
-			try {
-				// Matches GET /users in userRouter.ts
-				const res = await callApi<{ users: User[] }>({
-					method: "GET",
-					url: "/users",
-				});
+	const fetchUsers = React.useCallback(async () => {
+		setLoading(true);
+		try {
+			// Matches admin GET /admin/users
+			const res = await callApi<{ users: User[] }>({
+				method: "GET",
+				url: API_ENDPOINTS.ADMIN.BASE,
+			});
 
-				if (res) {
-					// Normalize different possible response envelopes and extract users array
-					const usersPayload =
-						// direct shape: { users: User[] }
-						(res as any).users ??
-						// common envelope: { data: { users: User[] } }
-						(res as any).data?.users ??
-						// alternative envelope: { payload: { users: User[] } }
-						(res as any).payload?.users ??
-						// fallback if the response itself is the array
-						(res as any);
+			if (res) {
+				// Normalize different possible response envelopes and extract users array
+				const usersPayload =
+					// direct shape: { users: User[] }
+					(res as any).users ??
+					// common envelope: { data: { users: User[] } }
+					(res as any).data?.users ??
+					// alternative envelope: { payload: { users: User[] } }
+					(res as any).payload?.users ??
+					// fallback if the response itself is the array
+					(res as any);
 
-					setUsers(Array.isArray(usersPayload) ? usersPayload : []);
-				}
-			} catch (err: any) {
-				console.error("Failed to fetch users:", err);
-				setErrorMessage(
-					err.message ?? "Failed to load users. Please try again."
-				);
-			} finally {
-				setLoading(false);
+				setUsers(Array.isArray(usersPayload) ? usersPayload : []);
 			}
-		};
-
-		fetchUsers();
+		} catch (err: any) {
+			console.error("Failed to fetch users:", err);
+			setErrorMessage(
+				err.message ?? "Failed to load users. Please try again."
+			);
+		} finally {
+			setLoading(false);
+		}
 	}, []);
+
+	useEffect(() => {
+		fetchUsers();
+	}, [fetchUsers]);
+
+	useAdminRealtime({
+		entity: "user",
+		onRefresh: fetchUsers,
+		onNotify: (message, severity) =>
+			setSnackbar({
+				open: true,
+				message,
+				severity: severity || "info",
+			}),
+	});
 
 	return (
 		<DataGridPageLayout
 			title="User Management"
 			actionBar={
 				<Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+					<Button
+						variant="contained"
+						onClick={() => handleOpenAdd()}
+						sx={{ textTransform: "none", fontWeight: "bold" }}
+					>
+						Add User
+					</Button>
 					{/* Role Filter */}
 					<FormControl size="small" sx={{ minWidth: 150 }}>
 						<InputLabel>Role</InputLabel>
@@ -322,12 +400,65 @@ const UserPage: React.FC = () => {
 			</Paper>
 
 			{selectedUser && (
-				<InfoDrawer
-					user={selectedUser}
-					open={drawerOpen}
-					handleClose={handleCloseDrawer}
-				/>
+				<>
+					<DeleteUserConfirm
+						open={deleteOpen}
+						user={selectedUser}
+						onClose={handleCloseDelete}
+						onDeleted={(id) => {
+							setUsers((u) => u.filter((x) => x.id !== id));
+							setDeleteOpen(false);
+						}}
+					/>
+					<InfoDrawer
+						user={selectedUser}
+						open={drawerOpen}
+						onClose={handleCloseDrawer}
+						onDelete={(id) => {
+							setUsers((u) => u.filter((x) => x.id !== id));
+							setDeleteOpen(false);
+						}}
+						onEdit={(updated) => {
+							setUsers((u) =>
+								u.map((x) =>
+									x.id === updated.id ? updated : x
+								)
+							);
+							setFormOpen(false);
+						}}
+					/>
+				</>
 			)}
+
+			<UserForm
+				open={formOpen}
+				initialData={selectedUser}
+				onClose={handleCloseForm}
+				onSaved={(saved) => {
+					if (selectedUser) {
+						setUsers((u) =>
+							u.map((x) => (x.id === saved.id ? saved : x))
+						);
+					} else {
+						setUsers((u) => [saved, ...u]);
+					}
+					setFormOpen(false);
+				}}
+			/>
+			<Snackbar
+				open={snackbar.open}
+				autoHideDuration={6000}
+				onClose={handleCloseSnackbar}
+				anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+			>
+				<Alert
+					onClose={handleCloseSnackbar}
+					severity={snackbar.severity}
+					sx={{ width: "100%" }}
+				>
+					{snackbar.message}
+				</Alert>
+			</Snackbar>
 		</DataGridPageLayout>
 	);
 };

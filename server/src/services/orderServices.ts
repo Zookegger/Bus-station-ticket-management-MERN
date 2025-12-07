@@ -15,11 +15,14 @@ import logger from "@utils/logger";
 import * as paymentServices from "@services/paymentServices";
 import * as userServices from "@services/userServices";
 import * as couponServices from "@services/couponServices";
+import * as notificationServices from "@services/notificationServices";
 import { Op } from "sequelize";
 import { PaymentStatus } from "@my_types/payments";
 import { TripStatus } from "@my_types/trip";
 import * as ticketServices from "@services/ticketServices";
 import { TicketStatus } from "@my_types/ticket";
+import { NotificationPriorities, NotificationTypes } from "@my-types";
+import { emitBulkSeatUpdates } from "./realtimeEvents";
 
 /**
  * Creates an order, reserves seats, applies coupons, and initiates payment.
@@ -48,12 +51,20 @@ export const createOrder = async (
 			transaction,
 		});
 
+		const now = new Date();
+		// Safely read the trip start time from the first seat (if present)
+		const tripStartTime = seats?.[0]?.trip?.startTime;
+		// Ensure we check for empty result set before accessing seats[0], and only compare startTime when present
+		if (!seats || seats.length === 0 || (tripStartTime && new Date(tripStartTime) <= now)) {
+			throw { status: 410, code: "TRIP_EXPIRED" };
+		}
+
 		if (seats.length !== dto.seatIds.length)
 			throw { status: 404, message: "One or more seats not found." };
 
 		// 2. Calculate Price & Validate Coupon
 		const seatsWithPricing = seats.map((seat) => {
-			if (seat.status !== SeatStatus.AVAILABLE)
+			if (seat.status.toUpperCase() !== SeatStatus.AVAILABLE)
 				throw {
 					status: 409,
 					message: `Seat ${seat.number} is not available.`,
@@ -169,12 +180,7 @@ export const createOrder = async (
 			transaction
 		);
 
-		const transactionState = (
-			transaction as unknown as { finished?: string }
-		).finished;
-		if (!transactionState) {
-			await transaction.commit();
-		}
+		await transaction.commit();
 
 		// Reload order with tickets to return
 		const finalOrder = await Order.findByPk(order.id, {
@@ -183,6 +189,42 @@ export const createOrder = async (
 
 		if (!finalOrder) {
 			throw new Error("Something went wrong while creating order");
+		}
+
+		if (dto.userId) {
+			notificationServices
+				.createNotification({
+					userId: dto.userId,
+					title: "Order Successful",
+					content: `Your order #${finalOrder.id} has been successfully placed.`,
+					type: NotificationTypes.BOOKING,
+					priority: NotificationPriorities.MEDIUM,
+					metadata: { orderId: finalOrder.id },
+				})
+				.catch((err) =>
+					logger.error("Failed to send order notification", err)
+				);
+		}
+
+		try {
+			// We use the 'seats' array fetched earlier in step 1
+			const seatUpdates = seats.map((seat) => ({
+				...seat.toJSON(),
+				status: SeatStatus.RESERVED,
+				reservedBy,
+			}));
+
+			if (
+				seatUpdates &&
+				seatUpdates.length > 0 &&
+				seats[0] &&
+				seats[0].tripId
+			) {
+				emitBulkSeatUpdates(seats[0]!.tripId!, seatUpdates);
+			}
+		} catch (socketError) {
+			logger.error("Failed to emit realtime seat update", socketError);
+			// Don't fail the request if socket fails, just log it
 		}
 
 		return {
@@ -195,12 +237,7 @@ export const createOrder = async (
 			paymentUrl,
 		};
 	} catch (err) {
-		const transactionState = (
-			transaction as unknown as { finished?: string }
-		).finished;
-		if (!transactionState) {
-			await transaction.rollback();
-		}
+		await transaction.rollback();
 		logger.error("Order creation failed: ", err);
 		throw err;
 	}
@@ -220,11 +257,11 @@ export const refundTickets = async (dto: RefundTicketDTO): Promise<Order> => {
 		const order = await Order.findByPk(dto.orderId, {
 			include: [
 				{ model: db.Ticket, as: "tickets" },
-				{ model: db.Ticket, as: "payment" },
+				{ model: db.Payment, as: "payment" },
 				{
-					model: db.Ticket,
+					model: db.CouponUsage,
 					as: "couponUsage",
-					include: [{ model: db.Coupon }],
+					include: [{ model: db.Coupon, as: "coupon" }],
 				},
 			],
 		});
@@ -308,6 +345,21 @@ export const refundTickets = async (dto: RefundTicketDTO): Promise<Order> => {
 		await order.update({ status: newOrderStatus }, { transaction });
 
 		await transaction.commit();
+
+		if (order.userId) {
+			notificationServices
+				.createNotification({
+					userId: order.userId,
+					title: "Ticket Refunded",
+					content: `Refund processed for order #${order.id}. Amount: ${totalRefundAmount}`,
+					type: NotificationTypes.PAYMENT,
+					priority: NotificationPriorities.HIGH,
+					metadata: { orderId: order.id },
+				})
+				.catch((err) =>
+					logger.error("Failed to send refund notification", err)
+				);
+		}
 
 		return (await Order.findByPk(order.id, {
 			include: [{ model: db.Ticket, as: "tickets" }],
@@ -545,12 +597,14 @@ export const checkInTicketsByOrder = async (
 	await ticketServices.confirmTickets(bookedTicketIds);
 
 	// Step 4: Re-fetch the order with all nested data to return the final result.
-	const updatedOrder = await getOrderById(orderId, {
-		include: ["tickets", "payment"],
-	});
+	const updatedOrder = await getOrderById(orderId, {});
 
-	if (!updatedOrder) throw { status: 500, message: "Failed to retrieve updated order after check-in.", };
-    
+	if (!updatedOrder)
+		throw {
+			status: 500,
+			message: "Failed to retrieve updated order after check-in.",
+		};
+
 	return updatedOrder;
 };
 
@@ -585,39 +639,73 @@ const buildOrderQueryOptions = (
 			whereClause.updatedAt[Op.lte] = options.updatedTo;
 	}
 
-	// Build the include clause for associations
-	const includeClause = options.include
-		?.map((assoc) => {
-			if (assoc === "tickets") return { model: db.Ticket, as: "tickets" };
-			if (assoc === "payment")
-				return { model: db.Payment, as: "payment" };
-			if (assoc === "couponUsage") {
-				return {
-					model: db.CouponUsage,
-					as: "couponUsage",
-					include: [{ model: db.Coupon, as: "coupon" }],
-				};
-			}
-			return null;
-		})
-		.filter((item): item is NonNullable<typeof item> => item !== null);
-
 	// Build the order clause for sorting
 	const orderClause: any = options.sortBy
 		? [[options.sortBy, options.sortOrder || "DESC"]]
 		: [["createdAt", "DESC"]];
 
+	const includeClause: any = [
+		{ model: db.User, as: "user" },
+		{
+			model: db.Ticket,
+			include: [
+				{
+					model: db.Seat,
+					include: [
+						{
+							model: db.Trip,
+							include: [
+								{
+									model: db.Route,
+									include: [
+										{
+											model: db.RouteStop,
+											include: [
+												{
+													model: db.Location,
+													as: "locations",
+												},
+											],
+											as: "stops",
+										},
+									],
+									as: "route",
+								},
+								{
+									model: db.Vehicle,
+									include: [
+										{
+											model: db.VehicleType,
+											as: "vehicleType",
+										},
+									],
+									as: "vehicle",
+								},
+							],
+							as: "trip",
+						},
+					],
+					as: "seat",
+				},
+			],
+			as: "tickets",
+		},
+		{
+			model: db.Payment,
+			include: [{ model: db.PaymentMethod, as: "paymentMethod" }],
+			as: "payment",
+		},
+		{ model: db.CouponUsage, as: "couponUsage" },
+	];
+
 	const queryOptions: any = {
 		where: whereClause,
+		include: includeClause,
 		order: orderClause,
 	};
 
 	if (options.limit) queryOptions.limit = options.limit;
 	if (options.offset) queryOptions.offset = options.offset;
-
-	if (includeClause && includeClause.length > 0) {
-		queryOptions.include = includeClause;
-	}
 
 	if (attributes && attributes.length > 0) {
 		queryOptions.attributes = attributes;

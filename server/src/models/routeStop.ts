@@ -15,13 +15,15 @@ export interface RouteStopAttributes {
 	routeId: number;      // Foreign key for the Route
 	locationId: number;   // Foreign key for the Location
 	stopOrder: number;    // The order of this stop in the route (e.g., 0=start, 1=stopA, 2=end)
+	durationFromStart?: number; // Time in minutes from the start of the route
+	distanceFromStart?: number; // Distance in km from the start of the route
 	createdAt?: Date;
 	updatedAt?: Date;
 }
 
 // Attributes for creation (id, timestamps are optional)
 export interface RouteStopCreationAttributes
-	extends Optional<RouteStopAttributes, "id" | "createdAt" | "updatedAt"> {}
+	extends Optional<RouteStopAttributes, "id" | "createdAt" | "updatedAt" | "durationFromStart" | "distanceFromStart"> {}
 
 // The Sequelize Model
 export class RouteStop
@@ -32,6 +34,8 @@ export class RouteStop
 	public routeId!: number;
 	public locationId!: number;
 	public stopOrder!: number;
+	public durationFromStart!: number;
+	public distanceFromStart!: number;
 
 	public readonly createdAt!: Date;
 	public readonly updatedAt!: Date;
@@ -67,10 +71,22 @@ export class RouteStop
 					allowNull: false,
 					comment: "Order of the stop in the route, starting from 0."
 				},
+				durationFromStart: {
+					type: DataTypes.INTEGER.UNSIGNED,
+					allowNull: true,
+					defaultValue: 0,
+					comment: "Time in minutes from the start of the route to this stop."
+				},
+				distanceFromStart: {
+					type: DataTypes.FLOAT,
+					allowNull: true,
+					defaultValue: 0,
+					comment: "Distance in km from the start of the route to this stop."
+				},
 			},
 			{
 				sequelize,
-				tableName: "routeStops",
+				tableName: "route_stops",
 				timestamps: true,
                 indexes: [
                     {
@@ -92,11 +108,15 @@ export class RouteStop
 		RouteStop.belongsTo(models.Route, {
 			foreignKey: "routeId",
 			as: "route",
+			onDelete: "CASCADE",
+			onUpdate: "CASCADE",
 		});
         // A RouteStop belongs to one Location
 		RouteStop.belongsTo(models.Location, {
 			foreignKey: "locationId",
-			as: "location",
+			as: "locations",
+			onDelete: "CASCADE",
+			onUpdate: "CASCADE",
 		});
 	}
 }

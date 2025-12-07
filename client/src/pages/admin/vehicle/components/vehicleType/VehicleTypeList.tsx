@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
 	Box,
 	Button,
@@ -6,6 +6,8 @@ import {
 	TextField,
 	InputAdornment,
 	IconButton,
+	Snackbar,
+	Alert,
 } from "@mui/material";
 import {
 	Add as AddIcon,
@@ -18,23 +20,28 @@ import { DataGridPageLayout } from "@components/admin";
 import type { VehicleType } from "@my-types/vehicleType";
 import VehicleTypeDetailsDrawer from "./VehicleTypeDetailsDrawer";
 import DeleteVehicleTypeDialog from "./DeleteVehicleTypeDialog";
-import CreateVehicleTypeForm from "./CreateVehicleTypeForm";
-import EditVehicleTypeForm from "./EditVehicleTypeForm";
+import VehicleTypeForm from "./VehicleTypeForm";
 import callApi from "@utils/apiCaller";
-import { API_ENDPOINTS } from "@constants";
-// import axios from "axios";
+import { API_ENDPOINTS } from "@constants/index";
+import { useAdminRealtime } from "@hooks/useAdminRealtime";
 
 const VehicleTypeList: React.FC = () => {
 	const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
 	const [selectedVehicleType, setSelectedVehicleType] =
 		useState<VehicleType | null>(null);
 	const [drawerOpen, setDrawerOpen] = useState(false);
-	const [createOpen, setCreateOpen] = useState(false);
-	const [editOpen, setEditOpen] = useState(false);
+	const [formOpen, setFormOpen] = useState(false);
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [vehicleTypeToDelete, setVehicleTypeToDelete] =
 		useState<VehicleType | null>(null);
 	const [searchTerm, setSearchTerm] = useState("");
+	const [snackbar, setSnackbar] = useState<{
+		open: boolean;
+		message: string;
+		severity: "success" | "error" | "info" | "warning";
+	}>({ open: false, message: "", severity: "info" });
+
+	const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
 
 	const formatCurrency = (amount: number) => {
 		return new Intl.NumberFormat("vi-VN", {
@@ -43,31 +50,42 @@ const VehicleTypeList: React.FC = () => {
 		}).format(amount);
 	};
 
-	useEffect(() => {
-		const fetchVehicleTypes = async () => {
-			try {
-				// const response = await axios.get(API_ENDPOINTS.VEHICLE_TYPE.BASE);
-				const response = await callApi(
-					{ method: "GET", url: API_ENDPOINTS.VEHICLE_TYPE.BASE },
-					{ returnFullResponse: true }
-				);
+	const fetchVehicleTypes = useCallback(async () => {
+		try {
+			// const response = await axios.get(API_ENDPOINTS.VEHICLE_TYPE.BASE);
+			const response = await callApi(
+				{ method: "GET", url: API_ENDPOINTS.VEHICLE_TYPE.BASE },
+				{ returnFullResponse: true }
+			);
 
-				// Broaden check or handle errors
-				if (
-					(response.status >= 200 && response.status < 300) ||
-					response.status === 304
-				) {
-					setVehicleTypes(response.data);
-				} else {
-					console.warn("API returned non-success status:", status);
-				}
-			} catch (error) {
-				console.error("3. API Crash:", error);
+			// Broaden check or handle errors
+			if (
+				(response.status >= 200 && response.status < 300) ||
+				response.status === 304
+			) {
+				setVehicleTypes(response.data);
+			} else {
+				console.warn("API returned non-success status:", status);
 			}
-		};
-
-		fetchVehicleTypes();
+		} catch (error) {
+			console.error("3. API Crash:", error);
+		}
 	}, []);
+
+	useEffect(() => {
+		fetchVehicleTypes();
+	}, [fetchVehicleTypes]);
+
+	useAdminRealtime({
+		entity: "vehicleType",
+		onRefresh: fetchVehicleTypes,
+		onNotify: (message, severity) =>
+			setSnackbar({
+				open: true,
+				message,
+				severity: severity || "info",
+			}),
+	});
 
 	// Filter vehicle types based on search term
 	const filteredVehicleTypes = vehicleTypes.filter((vt) =>
@@ -85,25 +103,26 @@ const VehicleTypeList: React.FC = () => {
 	};
 
 	const handleOpenCreate = () => {
-		setCreateOpen(true);
-	};
-
-	const handleCreate = () => {
-		setCreateOpen(false);
+		setSelectedVehicleType(null);
+		setFormOpen(true);
 	};
 
 	const handleOpenEdit = (vehicleType: VehicleType) => {
 		setSelectedVehicleType(vehicleType);
-		setEditOpen(true);
+		setFormOpen(true);
 	};
 
-	const handleUpdate = (updatedData: Partial<VehicleType>) => {
-		setVehicleTypes((prev) =>
-			prev.map((vt) =>
-				vt.id === updatedData.id ? { ...vt, ...updatedData } : vt
-			)
-		);
-		setEditOpen(false);
+	const handleSaved = (savedData: any) => {
+		if (selectedVehicleType) {
+			setVehicleTypes((prev) =>
+				prev.map((vt) =>
+					vt.id === savedData.id ? { ...vt, ...savedData } : vt
+				)
+			);
+		} else {
+			setVehicleTypes((prev) => [...prev, savedData]);
+		}
+		setFormOpen(false);
 		setSelectedVehicleType(null);
 	};
 
@@ -129,11 +148,16 @@ const VehicleTypeList: React.FC = () => {
 	// Define DataGrid columns
 	const columns: GridColDef[] = [
 		{
+			field: "id",
+			headerName: "ID",
+			flex: 1,
+			minWidth: 30,
+		},
+		{
 			field: "name",
 			headerName: "Name",
 			flex: 1,
 			minWidth: 150,
-			renderCell: (params) => params.value,
 		},
 		{
 			field: "price",
@@ -278,20 +302,29 @@ const VehicleTypeList: React.FC = () => {
 				id={vehicleTypeToDelete?.id}
 			/>
 
-			<CreateVehicleTypeForm
-				open={createOpen}
-				onClose={() => setCreateOpen(false)}
-				onCreate={handleCreate}
+			<VehicleTypeForm
+				open={formOpen}
+				onClose={() => {
+					setFormOpen(false);
+					setSelectedVehicleType(null);
+				}}
+				onSaved={handleSaved}
+				initialData={selectedVehicleType}
 			/>
-
-			{selectedVehicleType && (
-				<EditVehicleTypeForm
-					open={editOpen}
-					onClose={() => setEditOpen(false)}
-					vehicleType={selectedVehicleType}
-					onUpdate={handleUpdate}
-				/>
-			)}
+			<Snackbar
+				open={snackbar.open}
+				autoHideDuration={6000}
+				onClose={handleCloseSnackbar}
+				anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+			>
+				<Alert
+					onClose={handleCloseSnackbar}
+					severity={snackbar.severity}
+					sx={{ width: "100%" }}
+				>
+					{snackbar.message}
+				</Alert>
+			</Snackbar>
 		</DataGridPageLayout>
 	);
 };

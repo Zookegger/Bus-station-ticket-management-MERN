@@ -3,19 +3,19 @@
  */
 export enum SeatStatus {
     /** Seat is available for booking */
-    AVAILABLE = "available",
+    AVAILABLE = "AVAILABLE",
 
     /** Seat is temporarily reserved (e.g., payment in progress) */
-    RESERVED = "reserved",
+    RESERVED = "RESERVED",
 
     /** Seat is confirmed and paid for */
-    BOOKED = "booked",
+    BOOKED = "BOOKED",
 
     /** Seat is temporarily unavailable (e.g., under maintenance, damaged) */
-    MAINTENANCE = "maintenance",
+    MAINTENANCE = "MAINTENANCE",
 
     /** Seat is permanently disabled and not for sale */
-    DISABLED = "disabled",
+    DISABLED = "DISABLED",
 }
 /**
  * Data Transfer Object for updating an existing Seat.

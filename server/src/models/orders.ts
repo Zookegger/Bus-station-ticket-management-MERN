@@ -12,7 +12,7 @@ import { User } from "@models/user";
 import { Ticket } from "@models/ticket";
 import { Payment } from "@models/payment";
 import { CouponUsage } from "@models/couponUsage";
-import { DbModels } from "@models";;
+import { DbModels } from "@models";
 
 /**
  * Enum for the status of an order.
@@ -36,7 +36,7 @@ export enum OrderStatus {
 	/** The order has been fully refunded. */
 	REFUNDED = "REFUNDED",
 	/** The order has expired. */
-	EXPIRED = "EXPIRED"
+	EXPIRED = "EXPIRED",
 }
 
 export interface OrderAttributes {
@@ -180,23 +180,23 @@ export class Order
 				userId: {
 					type: DataTypes.UUID,
 					allowNull: true, // Allow null for guest users
-					field: 'userId'
+					field: "userId",
 				},
 				totalBasePrice: {
 					type: DataTypes.DECIMAL(10, 2),
 					allowNull: false,
-					field: 'totalBasePrice'
+					field: "totalBasePrice",
 				},
 				totalDiscount: {
 					type: DataTypes.DECIMAL(10, 2),
 					allowNull: false,
 					defaultValue: 0,
-					field: 'totalDiscount'
+					field: "totalDiscount",
 				},
 				totalFinalPrice: {
 					type: DataTypes.DECIMAL(10, 2),
 					allowNull: false,
-					field: 'totalFinalPrice'
+					field: "totalFinalPrice",
 				},
 				guestPurchaserEmail: {
 					type: DataTypes.STRING,
@@ -204,17 +204,17 @@ export class Order
 					validate: {
 						isEmail: true,
 					},
-					field: 'guestPurchaserEmail'
+					field: "guestPurchaserEmail",
 				},
 				guestPurchaserName: {
 					type: DataTypes.STRING,
 					allowNull: true,
-					field: 'guestPurchaserName'
+					field: "guestPurchaserName",
 				},
 				guestPurchaserPhone: {
 					type: DataTypes.STRING,
 					allowNull: true,
-					field: 'guestPurchaserPhone'
+					field: "guestPurchaserPhone",
 				},
 				status: {
 					type: DataTypes.ENUM(...Object.values(OrderStatus)),
@@ -226,7 +226,7 @@ export class Order
 				sequelize,
 				tableName: "orders",
 				timestamps: true,
-				underscored: false
+				underscored: false,
 			}
 		);
 	}
@@ -241,20 +241,26 @@ export class Order
 		Order.belongsTo(models.User, {
 			foreignKey: "userId",
 			as: "user",
+			onDelete: "SET NULL",
+			onUpdate: "CASCADE",
 		});
 		Order.hasMany(models.Ticket, {
 			foreignKey: "orderId",
 			as: "tickets",
+			onDelete: "CASCADE",
+			onUpdate: "CASCADE",
 		});
 		Order.hasMany(models.Payment, {
 			foreignKey: "orderId",
 			as: "payment",
-            onDelete: "CASCADE", // Reconsider this
-            onUpdate: "CASCADE", // Reconsider this
+			onDelete: "RESTRICT", // Best practice: Prevent deleting an Order if it has Payments.
+			onUpdate: "CASCADE",
 		});
 		Order.hasOne(models.CouponUsage, {
 			foreignKey: "orderId",
 			as: "couponUsage",
+			onDelete: "CASCADE",
+			onUpdate: "CASCADE",
 		});
 	}
 }

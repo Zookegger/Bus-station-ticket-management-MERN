@@ -62,5 +62,9 @@
 	"REFRESH_TOKEN_REMEMBER_EXPIRY_HOURS": {
 		"value": 720,
 		"description": "Hours before refresh tokens expire if remember me is selected (30 days = 720 hours)."
+	},
+	"TICKET_CLEANUP_INTERVAL_MIN": {
+		"value": 1,
+		"description": ""
 	}
 }

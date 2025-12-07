@@ -41,8 +41,8 @@ routeRouter.get(
 routeRouter.post(
 	"/",
 	csrfAdminProtectionRoute,
-	routeValidator.validateCreateRoute,
-	handleValidationResult,
+	// routeValidator.validateCreateRoute,
+	// handleValidationResult,
 	routeController.AddRoute,
 	errorHandler
 );

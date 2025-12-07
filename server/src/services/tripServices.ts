@@ -14,6 +14,7 @@ import {
 	CreateTripDTO,
 	UpdateTripDTO,
 	TripRepeatFrequency,
+	TripStatus,
 } from "@my_types/trip";
 import { SeatStatus } from "@my_types/seat";
 import { VehicleType } from "@models/vehicleType";
@@ -21,6 +22,7 @@ import { tripSchedulingQueue } from "@utils/queues/tripSchedulingQueue";
 import { enqueueVehicleStatus } from "@utils/queues/vehicleStatusQueue";
 import { VehicleStatus } from "@models/vehicle";
 import { SchedulingStrategies } from "@utils/schedulingStrategy";
+import { getOrCreateReverseRoute } from "@services/routeServices";
 
 /**
  * Generates seats for a trip based on vehicle type configuration.
@@ -48,7 +50,8 @@ import { SchedulingStrategies } from "@utils/schedulingStrategy";
  */
 async function generateSeatsForTrip(
 	tripId: number,
-	vehicleType: VehicleType
+	vehicleType: VehicleType,
+	transaction?: any
 ): Promise<void> {
 	const seats: Array<{
 		number: string;
@@ -74,17 +77,19 @@ async function generateSeatsForTrip(
 	try {
 		seatLayout = JSON.parse(vehicleType.seatLayout);
 	} catch (e) {
-		logger.error(`Failed to parse seatLayout for vehicle type ${vehicleType.name}`);
+		logger.error(
+			`Failed to parse seatLayout for vehicle type ${vehicleType.name}`
+		);
 		throw {
 			status: 500,
-			message: "Failed to parse seat layout."
+			message: "Failed to parse seat layout.",
 		};
 	}
 
 	if (!Array.isArray(seatLayout)) {
 		throw {
 			status: 400,
-			message: "Invalid seat layout format."
+			message: "Invalid seat layout format.",
 		};
 	}
 
@@ -108,14 +113,14 @@ async function generateSeatsForTrip(
 
 				let status: SeatStatus;
 				switch (seatType) {
-					case 'available':
+					case "available":
 						status = SeatStatus.AVAILABLE;
 						break;
-					case 'disabled':
+					case "disabled":
 						status = SeatStatus.DISABLED;
 						break;
-					case 'aisle':
-					case 'occupied':
+					case "aisle":
+					case "occupied":
 						continue; // Skip non-seat cells
 					default:
 						continue;
@@ -135,10 +140,9 @@ async function generateSeatsForTrip(
 		}
 	}
 
-
 	// Bulk create seats
 	if (seats.length > 0) {
-		await db.Seat.bulkCreate(seats);
+		await db.Seat.bulkCreate(seats, { transaction });
 	}
 }
 
@@ -161,19 +165,24 @@ async function generateSeatsForTrip(
  * @property {number} [minPrice] - Filter by minimum price
  * @property {number} [maxPrice] - Filter by maximum price
  */
-interface ListOptions {
-	keywords?: string;
-	orderBy?: string;
-	sortOrder?: "ASC" | "DESC";
-	page?: number;
-	limit?: number;
-	vehicleId?: number;
-	routeId?: number;
-	status?: "Scheduled" | "Departed" | "Completed" | "Cancelled";
-	startDate?: Date | string;
-	endDate?: Date | string;
-	minPrice?: number;
-	maxPrice?: number;
+export interface ListOptions {
+	keywords?: string | undefined;
+	orderBy?: string | undefined;
+	sortOrder?: "ASC" | "DESC" | undefined;
+	page?: number | undefined;
+	limit?: number | undefined;
+	vehicleId?: number | undefined;
+	vehicleTypeId?: number | undefined;
+	routeId?: number | undefined;
+	status?: "Scheduled" | "Departed" | "Completed" | "Cancelled" | undefined;
+	startDate?: Date | string | undefined;
+	endDate?: Date | string | undefined;
+	minPrice?: number | undefined;
+	maxPrice?: number | undefined;
+	fromLocation?: string; // Mapped from 'from'
+	toLocation?: string; // Mapped from 'to'
+	date?: string;
+	checkSeatAvailability?: boolean;
 }
 
 /**
@@ -183,7 +192,28 @@ interface ListOptions {
  * @returns Promise resolving to the trip or null if not found
  */
 export const getTripById = async (id: number): Promise<Trip | null> => {
-	return await db.Trip.findByPk(id);
+	return await db.Trip.findByPk(id, {
+		include: [
+			{
+				model: db.Vehicle,
+				as: "vehicle",
+				include: [{ model: db.VehicleType, as: "vehicleType" }],
+			},
+			{
+				model: db.Route,
+				as: "route",
+				include: [
+					{
+						model: db.RouteStop,
+						as: "stops",
+						include: [{ model: db.Location, as: "locations" }],
+					},
+				],
+			},
+			{ model: db.Seat, as: "seats" },
+			{ model: db.Driver, as: "drivers" },
+		],
+	});
 };
 
 /**
@@ -225,75 +255,301 @@ export const getTripById = async (id: number): Promise<Trip | null> => {
  */
 export const searchTrip = async (
 	options: ListOptions = {}
-): Promise<{
-	rows: Trip[];
-	count: number;
-}> => {
+): Promise<{ rows: Trip[]; count: number }> => {
 	const {
+		keywords,
 		orderBy = "createdAt",
 		sortOrder = "DESC",
-		page,
-		limit,
+		page = 1,
+		limit = 10,
 		vehicleId,
+		vehicleTypeId,
 		routeId,
 		status,
 		startDate,
 		endDate,
 		minPrice,
 		maxPrice,
+		fromLocation,
+		toLocation,
+		date,
+		checkSeatAvailability = false,
+		// minSeats = 1,
 	} = options;
 
 	const where: any = {};
 
-	// Filter by vehicle
-	if (vehicleId !== undefined) {
-		where.vehicleId = vehicleId;
+	// Map to store route segment details for price/time calculation
+	// Key: routeId, Value: { origin: { duration, distance }, dest: { duration, distance } }
+	const routeSegmentMap = new Map<
+		number,
+		{
+			origin: { duration: number; distance: number };
+			dest: { duration: number; distance: number };
+		}
+	>();
+
+	// --- 1. Route Filtering Logic (The Fix) ---
+	// If from/to locations are provided, we must first find which Routes match.
+	let validRouteIds: number[] | null = null;
+
+	if (fromLocation || toLocation) {
+		// Find all stops that match the 'From' location
+		const fromStops = fromLocation
+			? await db.RouteStop.findAll({
+					include: [
+						{
+							model: db.Location,
+							as: "locations",
+							where: { name: { [Op.like]: `%${fromLocation}%` } },
+						},
+					],
+					attributes: [
+						"routeId",
+						"stopOrder",
+						"durationFromStart",
+						"distanceFromStart",
+					],
+			  })
+			: null;
+
+		// Find all stops that match the 'To' location
+		const toStops = toLocation
+			? await db.RouteStop.findAll({
+					include: [
+						{
+							model: db.Location,
+							as: "locations",
+							where: { name: { [Op.like]: `%${toLocation}%` } },
+						},
+					],
+					attributes: [
+						"routeId",
+						"stopOrder",
+						"durationFromStart",
+						"distanceFromStart",
+					],
+			  })
+			: null;
+
+		const matchedIds = new Set<number>();
+
+		if (fromLocation && toLocation && fromStops && toStops) {
+			// If BOTH provided, Route must have both stops AND From.Order < To.Order
+			fromStops.forEach((fs) => {
+				// Is there a corresponding 'To' stop on the same route with a higher order?
+				const matchingDest = toStops.find(
+					(ts) =>
+						ts.routeId === fs.routeId && ts.stopOrder > fs.stopOrder
+				);
+
+				if (matchingDest) {
+					matchedIds.add(fs.routeId);
+					// Store segment data for calculation
+					routeSegmentMap.set(fs.routeId, {
+						origin: {
+							duration: fs.durationFromStart || 0,
+							distance: fs.distanceFromStart || 0,
+						},
+						dest: {
+							duration: matchingDest.durationFromStart || 0,
+							distance: matchingDest.distanceFromStart || 0,
+						},
+					});
+				}
+			});
+		} else if (fromLocation && fromStops) {
+			// Only From provided
+			fromStops.forEach((fs) => matchedIds.add(fs.routeId));
+		} else if (toLocation && toStops) {
+			// Only To provided
+			toStops.forEach((ts) => matchedIds.add(ts.routeId));
+		}
+
+		validRouteIds = Array.from(matchedIds);
+
+		// If we filtered by location but found NO routes, return empty immediately
+		if (validRouteIds.length === 0) {
+			return { rows: [], count: 0 };
+		}
 	}
 
-	// Filter by route
-	if (routeId !== undefined) {
-		where.routeId = routeId;
+	// Apply the Route ID filter to the main query
+	if (validRouteIds !== null) {
+		where.routeId = { [Op.in]: validRouteIds };
 	}
+	// --------------------------------------------
 
-	// Filter by status
-	if (status !== undefined) {
-		where.status = status;
-	}
+	// 2. Standard Filters
+	if (vehicleId) where.vehicleId = vehicleId;
+	if (routeId) where.routeId = routeId; // Note: This might conflict with location filter if user sends both
+	if (status) where.status = status;
 
-	// Filter by date range
-	if (startDate !== undefined || endDate !== undefined) {
+	// 3. Date Filters
+	if (date) {
+		const targetDate = new Date(date);
+		const nextDay = new Date(targetDate);
+		nextDay.setDate(targetDate.getDate() + 1);
+		where.startTime = {
+			[Op.gte]: targetDate,
+			[Op.lt]: nextDay,
+		};
+	} else if (startDate || endDate) {
 		where.startTime = {};
-		if (startDate !== undefined) {
-			where.startTime[Op.gte] = new Date(startDate);
-		}
-		if (endDate !== undefined) {
-			where.startTime[Op.lte] = new Date(endDate);
-		}
+		if (startDate) where.startTime[Op.gte] = new Date(startDate);
+		if (endDate) where.startTime[Op.lte] = new Date(endDate);
 	}
 
-	// Filter by price range
-	if (minPrice !== undefined || maxPrice !== undefined) {
+	// 4. Price Filters
+	if (minPrice || maxPrice) {
 		where.price = {};
-		if (minPrice !== undefined) {
-			where.price[Op.gte] = minPrice;
-		}
-		if (maxPrice !== undefined) {
-			where.price[Op.lte] = maxPrice;
-		}
+		if (minPrice) where.price[Op.gte] = minPrice;
+		if (maxPrice) where.price[Op.lte] = maxPrice;
 	}
+
+	// 5. Keyword Search (Updated to remove invalid columns)
+	if (keywords) {
+		where[Op.or] = [
+			{ description: { [Op.like]: `%${keywords}%` } },
+			// We can search Route Name via Association (see include below)
+			{ "$route.name$": { [Op.like]: `%${keywords}%` } },
+		];
+	}
+
+	// 6. Build Includes
+	const include: any[] = [
+		{
+			model: db.Route,
+			as: "route",
+			required: true, // Required for keyword search on route name
+			include: [
+				// Optional: Include stops to display location names in result
+				{
+					model: db.RouteStop,
+					as: "stops",
+					include: [{ model: db.Location, as: "locations" }],
+				},
+			],
+		},
+		{
+			model: db.Vehicle,
+			as: "vehicle",
+			required: false,
+			include: [
+				{
+					model: db.VehicleType,
+					as: "vehicleType",
+					...(vehicleTypeId ? { where: { id: vehicleTypeId } } : {}),
+				},
+			],
+			...(vehicleTypeId ? { required: true } : {}),
+		},
+		{
+			model: db.Driver,
+			as: "drivers",
+			required: false,
+		},
+	];
+
+	// 7. Seat Availability (Pure Sequelize)
+	if (checkSeatAvailability) {
+		include.push({
+			model: db.Seat,
+			as: "seats",
+			attributes: [],
+			where: { status: SeatStatus.AVAILABLE },
+			required: true, // INNER JOIN: Filters out trips with 0 seats
+			duplicating: false,
+		});
+	}
+
+	// Return Trip Include
+	include.push({
+		model: db.Trip,
+		as: "returnTrip",
+		required: false,
+		...(status ? { where: { status } } : {}),
+		include: [
+			{
+				model: db.Route,
+				as: "route",
+				include: [
+					{
+						model: db.RouteStop,
+						as: "stops",
+						include: [{ model: db.Location, as: "locations" }],
+					},
+				],
+			},
+			...(checkSeatAvailability
+				? [
+						{
+							model: db.Seat,
+							as: "seats",
+							attributes: [],
+							where: { status: SeatStatus.AVAILABLE },
+							required: true, // If return trip exists, it must have seats
+						},
+				  ]
+				: []),
+		],
+	});
 
 	const queryOptions: any = {
-		where: Object.keys(where).length > 0 ? where : undefined,
+		where,
+		include,
 		order: [[orderBy, sortOrder]],
+		distinct: true,
+		offset: (page - 1) * limit,
+		limit: limit,
 	};
 
-	// Add pagination if provided
-	if (page !== undefined && limit !== undefined) {
-		queryOptions.offset = (page - 1) * limit;
-		queryOptions.limit = limit;
+	const result = await db.Trip.findAndCountAll(queryOptions);
+
+	// --- Post-Processing: Dynamic Time & Price Calculation ---
+	if (routeSegmentMap.size > 0) {
+		result.rows.forEach((trip) => {
+			const segment = routeSegmentMap.get(trip.routeId);
+			// Ensure we have segment data and the route is loaded
+			if (segment && trip.route) {
+				// 1. Adjust Start Time
+				// New Start Time = Trip Start + Origin Duration
+				const originalStart = new Date(trip.startTime);
+				const newStartTime = new Date(
+					originalStart.getTime() + segment.origin.duration * 60000
+				);
+				trip.setDataValue("startTime", newStartTime);
+
+				// 2. Calculate Arrival Time
+				// Arrival Time = Trip Start + Destination Duration
+				const arrivalTime = new Date(
+					originalStart.getTime() + segment.dest.duration * 60000
+				);
+				// 'arrivalTime' is not in Trip model, so we set it as a data value (virtual)
+				trip.setDataValue("arrivalTime" as any, arrivalTime);
+
+				// 3. Adjust Price
+				// Ratio = (DestDist - OriginDist) / TotalRouteDist
+				const totalDist = trip.route.distance || 0;
+				const segmentDist =
+					segment.dest.distance - segment.origin.distance;
+
+				if (totalDist > 0 && segmentDist > 0) {
+					const ratio = segmentDist / totalDist;
+					// Cap ratio at 1.0 to prevent overcharging if data is weird
+					const finalRatio = Math.min(ratio, 1.0);
+
+					const originalPrice = Number(trip.price);
+					const newPrice = originalPrice * finalRatio;
+
+					// Update the price on the instance
+					trip.setDataValue("price", parseFloat(newPrice.toFixed(2)));
+				}
+			}
+		});
 	}
 
-	return await db.Trip.findAndCountAll(queryOptions);
+	return result;
 };
 
 /**
@@ -308,6 +564,22 @@ export const searchTrip = async (
  * @throws {Object} Error with status 400 if validation fails
  */
 export const addTrip = async (dto: CreateTripDTO): Promise<Trip | null> => {
+	// Validate round trip requirements
+	if (dto.isRoundTrip) {
+		if (!dto.returnStartTime) {
+			throw {
+				status: 400,
+				message: "Return start time is required for round trips.",
+			};
+		}
+		if (new Date(dto.returnStartTime) <= new Date(dto.startTime)) {
+			throw {
+				status: 400,
+				message: "Return start time must be after outbound start time.",
+			};
+		}
+	}
+
 	// Validate that route exists
 	const route = await db.Route.findByPk(dto.routeId);
 	if (!route) {
@@ -324,17 +596,6 @@ export const addTrip = async (dto: CreateTripDTO): Promise<Trip | null> => {
 			status: 400,
 			message: "Start time must be in the future.",
 		};
-	}
-
-	// Validate that endTime is after startTime if provided
-	if (dto.endTime) {
-		const endTime = new Date(dto.endTime);
-		if (endTime <= startTime) {
-			throw {
-				status: 400,
-				message: "End time must be after start time.",
-			};
-		}
 	}
 
 	// Validate that vehicle exists and has vehicle type with seat layout
@@ -368,51 +629,125 @@ export const addTrip = async (dto: CreateTripDTO): Promise<Trip | null> => {
 		};
 	}
 
-	const total_price = route.price + vehicle.vehicleType.price;
+	const total_price = (route.price || 0) + (vehicle.vehicleType.price || 0);
 
-	// Convert date strings to Date objects for Sequelize
-	const createData: CreateTripDTO = { ...dto };
-	createData.startTime = new Date(dto.startTime);
-	if (createData.endTime) {
-		createData.endTime = new Date(createData.endTime);
-	}
-	if (createData.repeatEndDate) {
-		createData.repeatEndDate = new Date(createData.repeatEndDate);
-	}
-	if (createData.isTemplate) {
-		createData.repeatFrequency =
-			createData.repeatFrequency || TripRepeatFrequency.NONE;
-	} else {
-		createData.repeatFrequency = TripRepeatFrequency.NONE;
-		delete createData.repeatEndDate;
-	}
-	createData.price = total_price;
+	const transaction = await db.sequelize.transaction();
+	let trip: Trip;
 
-	// Create trip
-	const trip = await db.Trip.create(createData);
+	try {
+		// Convert date strings to Date objects for Sequelize
+		const createData: any = { ...dto };
+		createData.startTime = new Date(dto.startTime);
 
-	// Generate seats based on vehicle type configuration
-	if (!trip.isTemplate) {
-		await generateSeatsForTrip(trip.id, vehicle.vehicleType);
-
-        // Fetch default assignment strategy from system settings
-		const strategy_setting = await db.Setting.findOne({
-			where: { key: "DEFAULT_ASSIGNMENT_STRATEGY" }
-		});
-
-		const strategy = strategy_setting?.value as (SchedulingStrategies) || SchedulingStrategies.AVAILABILITY;
-
-		// Queue auto-assignment job (runs in background)
-        await tripSchedulingQueue.add("assign-driver", {
-            tripId: trip.id,
-            strategy
-        });
-
-		// Schedule vehicle status transition to BUSY at trip start time
-		const delay = createData.startTime.getTime() - Date.now();
-		if (delay > 0) {
-			await enqueueVehicleStatus({ vehicleId: vehicle.id, status: VehicleStatus.BUSY }, delay);
+		if (createData.repeatEndDate) {
+			createData.repeatEndDate = new Date(createData.repeatEndDate);
 		}
+		if (createData.isTemplate) {
+			createData.repeatFrequency =
+				createData.repeatFrequency || TripRepeatFrequency.NONE;
+		} else {
+			createData.repeatFrequency = TripRepeatFrequency.NONE;
+			delete createData.repeatEndDate;
+		}
+		createData.price = total_price;
+
+		// Create outbound trip
+		trip = await db.Trip.create(createData, { transaction });
+
+		// Generate seats based on vehicle type configuration
+		if (!trip.isTemplate) {
+			await generateSeatsForTrip(
+				trip.id,
+				vehicle.vehicleType,
+				transaction
+			);
+
+			// Fetch default assignment strategy from system settings
+			// We just fetch it here to ensure it exists or for future use,
+			// but actual usage is post-commit.
+			await db.Setting.findOne({
+				where: { key: "DEFAULT_ASSIGNMENT_STRATEGY" },
+				transaction,
+			});
+		}
+
+		// Handle Round Trip
+		if (dto.isRoundTrip && dto.returnStartTime) {
+			const reverseRoute = await getOrCreateReverseRoute(dto.routeId);
+
+			// Calculate return trip price
+			const returnTripPrice =
+				(reverseRoute.price || 0) + (vehicle.vehicleType.price || 0);
+
+			const returnTripData = {
+				...createData,
+				routeId: reverseRoute.id,
+				startTime: new Date(dto.returnStartTime),
+				returnStartTime: null,
+				price: returnTripPrice,
+				returnTripId: trip.id, // Link return -> outbound
+			};
+
+			// Create return trip
+			const returnTrip = await db.Trip.create(returnTripData, {
+				transaction,
+			});
+
+			// Link outbound -> return
+			await trip.update({ returnTripId: returnTrip.id }, { transaction });
+
+			// Generate seats for return trip
+			if (!returnTrip.isTemplate) {
+				await generateSeatsForTrip(
+					returnTrip.id,
+					vehicle.vehicleType,
+					transaction
+				);
+			}
+		}
+
+		await transaction.commit();
+	} catch (err) {
+		await transaction.rollback();
+		throw err;
+	}
+
+	// Post-transaction actions (queues).
+	// These are separated so that a failure here doesn't roll back the created trip.
+	try {
+		const tripsToProcess = [trip];
+		if (trip.returnTripId) {
+			const returnTrip = await db.Trip.findByPk(trip.returnTripId);
+			if (returnTrip) tripsToProcess.push(returnTrip);
+		}
+
+		// Process Queues for ALL involved trips (Outbound + Return)
+		for (const t of tripsToProcess) {
+			if (!t.isTemplate) {
+				// 1. Trigger Auto Driver Assignment
+				const strategy = SchedulingStrategies.AVAILABILITY;
+				await tripSchedulingQueue.add("assign-driver", {
+					tripId: t.id,
+					strategy,
+				});
+
+				// 2. Update Vehicle Status (Busy)
+				const delay = new Date(t.startTime).getTime() - Date.now();
+				if (delay > 0) {
+					await enqueueVehicleStatus(
+						{ vehicleId: t.vehicleId, status: VehicleStatus.BUSY },
+						delay
+					);
+				}
+			}
+		}
+	} catch (queueError) {
+		// Log the error, but don't throw, as the trip is already created.
+		// A monitoring system should watch for queue failures.
+		logger.error(
+			`Failed to enqueue post-trip-creation tasks for trip ID ${trip.id}:`,
+			queueError
+		);
 	}
 
 	return trip;
@@ -467,17 +802,47 @@ export const updateTrip = async (
 	const newStartTime = dto.startTime
 		? new Date(dto.startTime)
 		: trip.startTime;
-	const newEndTime = dto.endTime
-		? new Date(dto.endTime)
-		: trip.endTime
-		? new Date(trip.endTime)
+	const newReturnStartTime = dto.returnStartTime
+		? new Date(dto.returnStartTime)
+		: trip.returnStartTime
+		? new Date(trip.returnStartTime)
 		: null;
 
-	if (newEndTime && newEndTime <= newStartTime) {
+	if (newReturnStartTime && newReturnStartTime <= newStartTime) {
 		throw {
 			status: 400,
-			message: "End time must be after start time.",
+			message: "Return start time must be after start time.",
 		};
+	}
+
+	// Validate return trip time constraints
+	if (trip.returnTripId && dto.startTime) {
+		const linkedTrip = await db.Trip.findByPk(trip.returnTripId);
+		if (linkedTrip) {
+			const newStart = new Date(dto.startTime);
+			const linkedStart = new Date(linkedTrip.startTime);
+
+			// If this trip was originally before the linked trip (outbound)
+			if (trip.startTime < linkedTrip.startTime) {
+				if (newStart >= linkedStart) {
+					throw {
+						status: 400,
+						message:
+							"Outbound trip cannot start after or at the same time as the return trip.",
+					};
+				}
+			}
+			// If this trip was originally after the linked trip (return)
+			else if (trip.startTime > linkedTrip.startTime) {
+				if (newStart <= linkedStart) {
+					throw {
+						status: 400,
+						message:
+							"Return trip cannot start before or at the same time as the outbound trip.",
+					};
+				}
+			}
+		}
 	}
 
 	// Convert date strings to Date objects for Sequelize
@@ -485,9 +850,10 @@ export const updateTrip = async (
 	if (updateData.startTime) {
 		updateData.startTime = new Date(updateData.startTime);
 	}
-	if (updateData.endTime) {
-		updateData.endTime = new Date(updateData.endTime);
+	if (updateData.returnStartTime) {
+		updateData.returnStartTime = new Date(updateData.returnStartTime);
 	}
+
 	if (updateData.repeatEndDate) {
 		updateData.repeatEndDate = new Date(updateData.repeatEndDate);
 	}
@@ -504,54 +870,114 @@ export const updateTrip = async (
 		}
 	}
 
-	await trip.update(updateData);
-	return trip;
+	const transaction = await db.sequelize.transaction();
+	try {
+		// 1. Update the Outbound Trip inside transaction
+		await trip.update(updateData, { transaction });
+
+		// 2. Propagate to Return Trip if exists
+		if (trip.returnTripId) {
+			const returnTripUpdateData: any = {};
+
+			// If user changed the explicit return time, update the linked trip's startTime
+			if (dto.returnStartTime) {
+				returnTripUpdateData.startTime = new Date(dto.returnStartTime);
+			}
+
+			// If user changed vehicle, propagate to return trip (common case)
+			if (dto.vehicleId !== undefined) {
+				returnTripUpdateData.vehicleId = dto.vehicleId;
+			}
+
+			// If user cancelled the outbound, propagate cancellation to return trip
+			if (dto.status === TripStatus.CANCELLED) {
+				returnTripUpdateData.status = TripStatus.CANCELLED;
+			}
+
+			if (Object.keys(returnTripUpdateData).length > 0) {
+				await db.Trip.update(returnTripUpdateData, {
+					where: { id: trip.returnTripId },
+					transaction,
+				});
+			}
+		}
+
+		await transaction.commit();
+
+		// Return fresh trip data after commit
+		return await trip.reload();
+	} catch (err) {
+		await transaction.rollback();
+		throw err;
+	}
 };
 
 /**
  * Removes a trip record from the database.
  *
  * Permanently deletes the trip after verifying it exists.
- * Before deletion, releases all seats associated with the trip by setting
- * their tripId to null and making them available for reassignment.
- * Verifies deletion was successful by checking if trip still exists.
+ * If the trip has a linked return trip, that return trip is also deleted.
+ * Releases all seats associated with both trips.
  *
  * @param id - Unique identifier of the trip to remove
  * @returns Promise resolving when deletion is complete
  * @throws {Object} Error with status 404 if trip not found
- * @throws {Object} Error with status 500 if deletion verification fails
  */
 export const deleteTrip = async (id: number): Promise<void> => {
+	// 1. Fetch the trip to check for links
 	const trip = await getTripById(id);
 
 	if (!trip) {
 		throw { status: 404, message: `No trip found with id ${id}` };
 	}
 
-	// Release all seats associated with this trip
-	// Set tripId to null and mark seats available
-	await db.Seat.update(
-		{
-			tripId: null,
-			status: SeatStatus.AVAILABLE,
-			reservedBy: null,
-			reservedUntil: null,
-		},
-		{
-			where: {
-				tripId: id,
-			},
-		}
+	// Prevent deletion if there are any booked seats for this trip
+	const hasBookedSeat = trip.seats?.some(
+		(s) => s.status === SeatStatus.BOOKED
 	);
-
-	await trip.destroy();
-
-	// Verify deletion was successful
-	const deletedTrip = await getTripById(id);
-	if (deletedTrip) {
+	if (hasBookedSeat) {
 		throw {
-			status: 500,
-			message: "Trip deletion failed - trip still exists.",
+			status: 409,
+			message:
+				"Trip has active bookings and cannot be deleted. Refund bookings or wait until the trip is completed before deleting.",
 		};
+	}
+
+	const transaction = await db.sequelize.transaction();
+
+	try {
+		// 2. Define a list of Trip IDs to delete (Current Trip + Linked Return Trip)
+		const tripIdsToDelete = [id];
+
+		if (trip.returnTripId) {
+			tripIdsToDelete.push(trip.returnTripId);
+		}
+
+		// 3. Release/Destroy Seats for ALL involved trips
+		await db.Seat.destroy({
+			where: {
+				tripId: { [Op.in]: tripIdsToDelete },
+			},
+			transaction,
+		});
+
+		// 4. Delete the Trips
+		await db.Trip.destroy({
+			where: {
+				id: { [Op.in]: tripIdsToDelete },
+			},
+			transaction,
+		});
+
+		await transaction.commit();
+
+		// 5. Verify deletion (Optional, but good for safety)
+		const check = await db.Trip.count({ where: { id } });
+		if (check > 0) {
+			throw { status: 500, message: "Trip deletion failed." };
+		}
+	} catch (err) {
+		await transaction.rollback();
+		throw err;
 	}
 };

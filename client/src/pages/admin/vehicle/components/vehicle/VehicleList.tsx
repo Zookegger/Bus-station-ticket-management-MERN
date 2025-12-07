@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
 	Box,
 	Button,
@@ -10,6 +10,8 @@ import {
 	TextField,
 	InputAdornment,
 	IconButton,
+	Snackbar,
+	Alert,
 } from "@mui/material";
 import {
 	Add as AddIcon,
@@ -21,12 +23,11 @@ import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import { DataGridPageLayout } from "@components/admin";
 import type { VehicleWithType, VehicleDetail } from "@my-types/vehicleList";
 import VehicleDetailsDrawer from "./VehicleDetailsDrawer";
-import EditVehicleForm from "./EditVehicleForm";
-import CreateVehicleForm from "./CreateVehicleForm";
+import VehicleForm from "./VehicleForm";
 import RemoveVehicleForm from "./RemoveVehicleForm";
-import type { UpdateVehicleDTO } from "@my-types/vehicle";
 import callApi from "@utils/apiCaller";
-import { API_ENDPOINTS } from "@constants";
+import { API_ENDPOINTS } from "@constants/index";
+import { useAdminRealtime } from "@hooks/useAdminRealtime";
 
 interface VehicleTypeFilter {
 	id: number;
@@ -38,8 +39,8 @@ const VehicleList: React.FC = () => {
 	const [selectedVehicle, setSelectedVehicle] =
 		useState<VehicleDetail | null>(null);
 	const [drawerOpen, setDrawerOpen] = useState(false);
-	const [editOpen, setEditOpen] = useState(false);
-	const [createOpen, setCreateOpen] = useState(false);
+	const [formOpen, setFormOpen] = useState(false);
+	const [formMode, setFormMode] = useState<"create" | "edit">("create");
 	const [vehicleToDelete, setVehicleToDelete] =
 		useState<VehicleDetail | null>(null);
 	const [deleteOpen, setDeleteOpen] = useState(false);
@@ -48,11 +49,19 @@ const VehicleList: React.FC = () => {
 	const [vehicleTypeFilter, SetVehicleTypeFilter] = useState<
 		VehicleTypeFilter[] | null
 	>(null);
+	const [snackbar, setSnackbar] = useState<{
+		open: boolean;
+		message: string;
+		severity: "success" | "error" | "info" | "warning";
+	}>({ open: false, message: "", severity: "info" });
+
+	const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
 
 	// Memoized filter to avoid recalculating on every render
 	const filteredVehicles = useMemo(() => {
 		return vehicles.filter((v) => {
-			const matchesType = !typeFilter || v.vehicleType.name === typeFilter;
+			const matchesType =
+				!typeFilter || v.vehicleType.name === typeFilter;
 			const displayName =
 				v.manufacturer && v.model
 					? `${v.manufacturer} ${v.model}`
@@ -90,23 +99,16 @@ const VehicleList: React.FC = () => {
 		setSelectedVehicle(null);
 	};
 
-	const handleOpenEdit = (vehicle: VehicleDetail) => {
-		setSelectedVehicle(vehicle);
-		setEditOpen(true);
+	const handleOpenCreate = () => {
+		setFormMode("create");
+		setFormOpen(true);
 	};
 
-	const handleSaveEdit = (updated: UpdateVehicleDTO) => {
-		setVehicles((prev) =>
-			prev.map((v) =>
-				v.id === updated.id
-					? {
-							...v,
-							numberPlate: updated.numberPlate || v.numberPlate,
-							// vehicleType would need to be looked up from vehicleTypeId
-					  }
-					: v
-			)
-		);
+	const handleOpenEdit = (vehicle: VehicleDetail) => {
+		setDrawerOpen(false);
+		setSelectedVehicle(vehicle);
+		setFormMode("edit");
+		setFormOpen(true);
 	};
 
 	const handleOpenDelete = (vehicle: VehicleDetail) => {
@@ -125,6 +127,12 @@ const VehicleList: React.FC = () => {
 
 	// Define DataGrid columns
 	const columns: GridColDef[] = [
+		{
+			field: "id",
+			headerName: "ID",
+			flex: 1,
+			minWidth: 30,
+		},
 		{
 			field: "displayName",
 			headerName: "Name",
@@ -207,22 +215,22 @@ const VehicleList: React.FC = () => {
 		},
 	];
 
-	useEffect(() => {
-		const fetchVehicles = async () => {
-			try {
-				const { status, data } = await callApi(
-					{ method: "GET", url: API_ENDPOINTS.VEHICLE.BASE },
-					{ returnFullResponse: true }
-				);
+	const fetchVehicles = useCallback(async () => {
+		try {
+			const { status, data } = await callApi(
+				{ method: "GET", url: API_ENDPOINTS.VEHICLE.BASE },
+				{ returnFullResponse: true }
+			);
 
-				if (status === 304 || status === 200) {
-					setVehicles(data.rows);
-				}
-			} catch (err) {
-				console.error(err);
+			if (status === 304 || status === 200) {
+				setVehicles(data.rows);
 			}
-		};
+		} catch (err) {
+			console.error(err);
+		}
+	}, []);
 
+	useEffect(() => {
 		const fetchVehicleTypes = async () => {
 			try {
 				const { status, data } = await callApi(
@@ -243,7 +251,18 @@ const VehicleList: React.FC = () => {
 
 		fetchVehicleTypes();
 		fetchVehicles();
-	}, []);
+	}, [fetchVehicles]);
+
+	useAdminRealtime({
+		entity: "vehicle",
+		onRefresh: fetchVehicles,
+		onNotify: (message, severity) =>
+			setSnackbar({
+				open: true,
+				message,
+				severity: severity || "info",
+			}),
+	});
 
 	return (
 		<DataGridPageLayout
@@ -253,7 +272,7 @@ const VehicleList: React.FC = () => {
 					<Button
 						variant="contained"
 						startIcon={<AddIcon />}
-						onClick={() => setCreateOpen(true)}
+						onClick={handleOpenCreate}
 					>
 						Add Vehicle
 					</Button>
@@ -309,22 +328,20 @@ const VehicleList: React.FC = () => {
 					sx={{ border: "none" }}
 				/>
 			</Paper>
-			{/* TODO: Update VehicleDetailsDrawer to use VehicleDetail from vehicleList.ts */}
 			<VehicleDetailsDrawer
 				open={drawerOpen}
 				onClose={handleCloseDrawer}
 				vehicle={selectedVehicle}
 				onEdit={handleOpenEdit}
+				onDelete={handleOpenDelete}
 			/>
-			{/* TODO: Update EditVehicleForm to handle VehicleDetail type */}
-			{editOpen && (
-				<EditVehicleForm
-					open={editOpen}
-					vehicle={selectedVehicle}
-					onClose={() => setEditOpen(false)}
-					onSave={handleSaveEdit}
-				/>
-			)}
+			{/* Vehicle Form (Create/Edit) */}
+			<VehicleForm
+				open={formOpen}
+				initialData={formMode === "edit" ? selectedVehicle : null}
+				onClose={() => setFormOpen(false)}
+				onSuccess={fetchVehicles}
+			/>
 			{/* Delete Vehicle Form */}
 			<RemoveVehicleForm
 				open={deleteOpen}
@@ -332,11 +349,21 @@ const VehicleList: React.FC = () => {
 				onConfirm={handleConfirmDelete}
 				onClose={() => setDeleteOpen(false)}
 			/>
-			{/* Create Vehicle Dialog */}
-			<CreateVehicleForm
-				open={createOpen}
-				onClose={() => setCreateOpen(false)}
-			/>
+
+			<Snackbar
+				open={snackbar.open}
+				autoHideDuration={6000}
+				onClose={handleCloseSnackbar}
+				anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+			>
+				<Alert
+					onClose={handleCloseSnackbar}
+					severity={snackbar.severity}
+					sx={{ width: "100%" }}
+				>
+					{snackbar.message}
+				</Alert>
+			</Snackbar>
 		</DataGridPageLayout>
 	);
 };

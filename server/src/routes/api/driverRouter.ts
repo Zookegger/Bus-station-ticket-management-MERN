@@ -7,12 +7,12 @@
  */
 
 import { Router } from "express";
-import { isAdmin } from "@middlewares/auth";
 import { csrfAdminProtectionRoute } from "@middlewares/csrf";
 import * as driverController from "@controllers/driverController";
 import { errorHandler } from "@middlewares/errorHandler";
 import { handleValidationResult } from "@middlewares/validateRequest";
 import { createDriverValidation, updateDriverValidation, validateDriverIdParam } from "@middlewares/validators/driverValidator";
+import { createUploadMiddleware } from "@middlewares/upload";
 
 /**
  * Driver management router instance.
@@ -26,26 +26,27 @@ import { createDriverValidation, updateDriverValidation, validateDriverIdParam }
  * - DELETE /:id: Remove driver
  */
 const driverRouter = Router();
+const upload = createUploadMiddleware("avatars");
 
 // GET /drivers - Advanced search with filtering and pagination
-driverRouter.get("/", isAdmin, driverController.SearchDriver, errorHandler);
+driverRouter.get("/", csrfAdminProtectionRoute, driverController.SearchDriver, errorHandler);
 
 // GET /drivers/search - Alternative search endpoint
-driverRouter.get("/search", isAdmin, driverController.SearchDriver, errorHandler);
+driverRouter.get("/search", csrfAdminProtectionRoute, driverController.SearchDriver, errorHandler);
 
 // GET /drivers/:id - Get driver by ID
-driverRouter.get("/:id", validateDriverIdParam, handleValidationResult, driverController.GetDriverById, errorHandler);
+driverRouter.get("/:id", csrfAdminProtectionRoute, validateDriverIdParam, handleValidationResult, driverController.GetDriverById, errorHandler);
 
 // POST /drivers - Create new driver
-driverRouter.post("/", csrfAdminProtectionRoute, createDriverValidation, handleValidationResult, driverController.AddDriver, errorHandler);
+driverRouter.post("/", csrfAdminProtectionRoute, upload.single("avatar"), createDriverValidation, handleValidationResult, driverController.AddDriver, errorHandler);
 
 // PUT /drivers/:id - Update driver by ID
-driverRouter.put("/:id", csrfAdminProtectionRoute, validateDriverIdParam, updateDriverValidation, handleValidationResult, driverController.UpdateDriver, errorHandler);
+driverRouter.put("/:id", csrfAdminProtectionRoute, upload.single("avatar"), validateDriverIdParam, updateDriverValidation, handleValidationResult, driverController.UpdateDriver, errorHandler);
 
 // DELETE /drivers/:id - Delete driver by ID
 driverRouter.delete("/:id", csrfAdminProtectionRoute, validateDriverIdParam, handleValidationResult, driverController.DeleteDriver, errorHandler);
 
 // GET /drivers/:id/schedule - Get driver's schedule
-driverRouter.get("/:id/schedule", isAdmin, validateDriverIdParam, handleValidationResult, driverController.GetDriverSchedule, errorHandler);
+driverRouter.get("/:id/schedule", csrfAdminProtectionRoute, validateDriverIdParam, handleValidationResult, driverController.GetDriverSchedule, errorHandler);
 
 export default driverRouter;

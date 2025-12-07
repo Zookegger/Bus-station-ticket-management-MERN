@@ -131,8 +131,6 @@ export const useDebouncedSearch = (delay: number = 500) => {
 	const [results, setResults] = useState<GeocodingResult[]>([]);
 	const { search, isLoading, error } = useGeocoding();
 
-	console.log(searchOptions);
-
 	// Debounce query
 	useEffect(() => {
 		const timer = setTimeout(() => {
@@ -150,7 +148,7 @@ export const useDebouncedSearch = (delay: number = 500) => {
 		}
 
 		search(debouncedQuery, searchOptions).then(setResults);
-	}, [debouncedQuery, search]);
+	}, [debouncedQuery, search, searchOptions]);
 
 	return {
 		query,

@@ -10,14 +10,16 @@ import {
 	IconButton,
 	Tooltip,
 	Button,
-	type BoxProps,
 	Menu,
+	type StackProps,
 	MenuItem,
 	Skeleton,
 	Avatar,
+	Stack,
+	Badge,
 } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
-import { useNavigate, useLocation, redirect } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
 	Home as HomeIcon,
 	DirectionsCar as CarIcon,
@@ -32,12 +34,20 @@ import {
 	CardGiftcard,
 	AccountBox,
 	Logout,
+	Notifications as NotificationsIcon,
 } from "@mui/icons-material";
 import { APP_CONFIG, ROUTES } from "@constants/index";
 import { useAuth } from "@hooks/useAuth";
+import { useNotifications } from "@contexts/NotificationContext";
 import buildAvatarUrl from "@utils/avatarImageHelper";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTicket } from "@fortawesome/free-solid-svg-icons";
+import { NotificationPopper } from "@components/common";
+import type { Notification } from "@my-types";
 
-const menuItemsData: MenuItem[] = [
+const TicketIcon: React.FC = () => <FontAwesomeIcon icon={faTicket} />;
+
+const menuItemsData: SidebarMenuItem[] = [
 	{
 		id: 1,
 		label: "Dashboard",
@@ -55,7 +65,7 @@ const menuItemsData: MenuItem[] = [
 	{
 		id: 3,
 		label: "Trip",
-		icon: "map-pin",
+		icon: "map",
 		tips: "Plan, schedule, and monitor bus trips, including driver assignments",
 		path: "/dashboard/trip",
 	},
@@ -69,7 +79,7 @@ const menuItemsData: MenuItem[] = [
 	{
 		id: 5,
 		label: "Order",
-		icon: "coupon",
+		icon: "ticket",
 		tips: "View and manage customer orders, bookings, and payment statuses",
 		path: "/dashboard/order",
 	},
@@ -89,7 +99,7 @@ const menuItemsData: MenuItem[] = [
 	},
 ];
 
-interface MenuItem {
+interface SidebarMenuItem {
 	id: number;
 	label: string;
 	icon: string;
@@ -101,23 +111,45 @@ const iconMap: { [key: string]: React.ComponentType } = {
 	dashboard: WindowIcon,
 	car: CarIcon,
 	bus: BusIcon,
-	"map-pin": MapPinIcon,
+	map: MapPinIcon,
+	ticket: TicketIcon,
 	person: PersonIcon,
 	coupon: CardGiftcard,
 	gear: SettingsIcon,
 };
 
 interface SidebarProps {
-  onToggle?: (collapsed: boolean) => void;
+	onToggle?: (collapsed: boolean) => void;
 }
 
 interface PositionedMenuProps {
 	isCollapsed: boolean;
-	sx?: BoxProps["sx"];
+	sx?: StackProps["sx"];
 }
 
 const PositionedMenu: React.FC<PositionedMenuProps> = ({ isCollapsed, sx }) => {
-	const { user, logout, isAuthenticated, isLoading } = useAuth();
+	const { user, logout, isAuthenticated, isLoading: authLoading } = useAuth();
+	const navigate = useNavigate();
+	let notifications: Notification[] = [];
+	let unreadCount = 0;
+	let notifLoading = false;
+	let markAsRead = async (_id: number) => {};
+	let markAllAsRead = async () => {};
+	let deleteNotification = async (_id: number) => {};
+
+	// useNotifications throws when provider is not mounted. Guard it so the sidebar
+	// doesn't crash if NotificationProvider isn't mounted (useful in some dev routes).
+	try {
+		const ctx = useNotifications();
+		notifications = ctx.notifications;
+		unreadCount = ctx.unreadCount;
+		notifLoading = ctx.isLoading;
+		markAsRead = ctx.markAsRead;
+		markAllAsRead = ctx.markAllAsRead;
+		deleteNotification = ctx.deleteNotification;
+	} catch (err) {
+		// Provider not mounted — keep safe defaults and no-op methods
+	}
 	const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 	const open = Boolean(anchorEl);
 
@@ -136,38 +168,172 @@ const PositionedMenu: React.FC<PositionedMenuProps> = ({ isCollapsed, sx }) => {
 			console.error("Unable to logout of session");
 			return;
 		}
-		redirect("/login");
+		navigate("/login");
 	};
 
-	if (isLoading) {
+	if (authLoading) {
 		return <Skeleton />;
 	}
 
 	return (
-		<Box sx={{ ...sx }}>
-			<Button
-				sx={{
-					py: 1,
-					px: "8px",
-					"&:hover": {
-						backgroundColor: "rgba(255, 255, 255, 0.05)",
-					},
-					justifyContent: isCollapsed ? "center" : "flex-start",
-				}}
-				aria-controls={open ? "demo-positioned-menu" : undefined}
-				aria-haspopup="true"
-				aria-expanded={open ? "true" : undefined}
-				onClick={handleClick}
-				fullWidth
-			>
-				<ListItemIcon
-					sx={{
-						color: "white",
-						minWidth: isCollapsed ? "auto" : 40,
-						justifyContent: "center",
-					}}
-				>
-					{user?.avatar ? (
+		<Stack direction={"row"} sx={{ ...sx }}>
+			{!isCollapsed ? (
+				<>
+					<Button
+						fullWidth
+						sx={{
+							color: "rgba(255, 255, 255, 0.51)",
+							"&:hover": {
+								backgroundColor: "rgba(255, 255, 255, 0.05)",
+							},
+							"&:active": {
+								backgroundColor: "rgba(255, 255, 255, 0.05)",
+							},
+							justifyContent: isCollapsed ? "center" : "flex-end",
+							gap: 1,
+						}}
+						size="small"
+						aria-controls={
+							open ? "demo-positioned-menu" : undefined
+						}
+						aria-haspopup="true"
+						aria-expanded={open ? "true" : undefined}
+						onClick={handleClick}
+					>
+						{user?.avatar ? (
+							<Avatar
+								src={buildAvatarUrl(user.avatar) ?? ""}
+								alt={user.firstName}
+								sx={{
+									width: "32px",
+									height: "32px",
+								}}
+							/>
+						) : (
+							<AccountIcon />
+						)}
+
+						<Typography
+							sx={{
+								color: "white",
+								textTransform: "capitalize",
+							}}
+						>
+							{user?.fullName ?? user?.firstName ?? "undefined"}
+						</Typography>
+						{!isCollapsed && (
+							<>
+								<ArrowDownIcon
+									sx={{
+										color: "white",
+										transform: open
+											? "rotate(180deg)"
+											: "rotate(0deg)", // Rotate 180 degrees when open
+										transition: "transform 0.25s ease", // Smooth rotation animation
+									}}
+								/>
+							</>
+						)}
+					</Button>
+					<Menu
+						anchorEl={anchorEl}
+						open={open}
+						onClose={handleMenuClose}
+						anchorOrigin={{
+							vertical: "top",
+							horizontal: "center",
+						}}
+						transformOrigin={{
+							vertical: "top",
+							horizontal: "center",
+						}}
+						slotProps={{
+							paper: {
+								sx: {
+									width: "250px",
+									maxWidth: "200px",
+									marginTop: -4,
+								},
+							},
+						}}
+					>
+						<MenuItem
+							onClick={handleMenuClose}
+							sx={{
+								color: "black",
+								"&:hover": {
+									backgroundColor: "rgba(255, 255, 255, 0.1)",
+								},
+							}}
+							component={RouterLink}
+							to={ROUTES.PROFILE}
+						>
+							<AccountBox sx={{ marginRight: 1 }} />
+							Profile
+						</MenuItem>
+						<MenuItem
+							onClick={handleMenuClose}
+							component={RouterLink}
+							to={ROUTES.HOME}
+						>
+							<HomeIcon sx={{ marginRight: 1 }} />
+							Home
+						</MenuItem>
+						<MenuItem
+							onClick={async () => {
+								handleMenuClose();
+								await handleLogout();
+							}}
+							sx={{
+								color: "black",
+								"&:hover": {
+									backgroundColor: "rgba(255, 255, 255, 0.1)",
+								},
+							}}
+						>
+							<Logout sx={{ marginRight: 1 }} />
+							Logout
+						</MenuItem>
+					</Menu>
+
+					<NotificationPopper
+						notifications={notifications}
+						onMarkAsRead={markAsRead}
+						onMarkAllAsRead={markAllAsRead}
+						onDelete={deleteNotification}
+						loading={notifLoading}
+						placement="top"
+					>
+						<IconButton>
+							<Badge badgeContent={unreadCount} color="error">
+								<NotificationsIcon sx={{ color: "#fff" }} />
+							</Badge>
+						</IconButton>
+					</NotificationPopper>
+				</>
+			) : user?.avatar ? (
+				<>
+					<Button
+						fullWidth
+						sx={{
+							color: "rgba(255, 255, 255, 0.51)",
+							"&:hover": {
+								backgroundColor: "rgba(255, 255, 255, 0.05)",
+							},
+							"&:active": {
+								backgroundColor: "rgba(255, 255, 255, 0.05)",
+							},
+							justifyContent: isCollapsed ? "center" : "flex-end",
+							gap: 1,
+						}}
+						size="small"
+						aria-controls={
+							open ? "demo-positioned-menu" : undefined
+						}
+						aria-haspopup="true"
+						aria-expanded={open ? "true" : undefined}
+						onClick={handleClick}
+					>
 						<Avatar
 							src={buildAvatarUrl(user.avatar) ?? ""}
 							alt={user.firstName}
@@ -176,118 +342,95 @@ const PositionedMenu: React.FC<PositionedMenuProps> = ({ isCollapsed, sx }) => {
 								height: "32px",
 							}}
 						/>
-					) : (
-						<AccountIcon />
-					)}
-				</ListItemIcon>
-				{!isCollapsed && (
-					<>
-						<ListItemText
-							primary={`${
-								user?.fullName ?? user?.firstName ?? "undefined"
-							}`}
+					</Button>
+
+					<Menu
+						anchorEl={anchorEl}
+						open={open}
+						onClose={handleMenuClose}
+						anchorOrigin={{
+							vertical: "top",
+							horizontal: "center",
+						}}
+						transformOrigin={{
+							vertical: "top",
+							horizontal: "center",
+						}}
+						slotProps={{
+							paper: {
+								sx: {
+									width: "250px",
+									maxWidth: "200px",
+									marginTop: -4,
+								},
+							},
+						}}
+					>
+						<MenuItem
+							onClick={handleMenuClose}
 							sx={{
-								"& .MuiListItemText-primary": {
-									color: "white",
-									textTransform: "capitalize",
+								color: "black",
+								"&:hover": {
+									backgroundColor: "rgba(255, 255, 255, 0.1)",
 								},
 							}}
-						/>
-						<ArrowDownIcon
-							sx={{
-								color: "white",
-								transform: open
-									? "rotate(180deg)"
-									: "rotate(0deg)", // Rotate 180 degrees when open
-								transition: "transform 0.25s ease", // Smooth rotation animation
+							component={RouterLink}
+							to={ROUTES.PROFILE}
+						>
+							<AccountBox sx={{ marginRight: 1 }} />
+							Profile
+						</MenuItem>
+						<MenuItem
+							onClick={handleMenuClose}
+							component={RouterLink}
+							to={ROUTES.HOME}
+						>
+							<HomeIcon sx={{ marginRight: 1 }} />
+							Home
+						</MenuItem>
+						<MenuItem
+							onClick={async () => {
+								handleMenuClose();
+								await handleLogout();
 							}}
-						/>
-					</>
-				)}
-			</Button>
-			<Menu
-				anchorEl={anchorEl}
-				open={open}
-				onClose={handleMenuClose}
-				anchorOrigin={{
-					vertical: "top",
-					horizontal: "center",
-				}}
-				transformOrigin={{
-					vertical: "top",
-					horizontal: "center",
-				}}
-				slotProps={{
-					paper: {
-						sx: {
-							width: "150px",
-							maxWidth: "200px",
-							marginTop: -4,
-						},
-					},
-				}}
-			>
-				<MenuItem
-					onClick={handleMenuClose}
-					sx={{
-						color: "black",
-						"&:hover": {
-							backgroundColor: "rgba(255, 255, 255, 0.1)",
-						},
-					}}
-					component={RouterLink}
-					to={ROUTES.PROFILE}
-				>
-					<AccountBox sx={{ marginRight: 1 }} />
-					Profile
-				</MenuItem>
-				<MenuItem
-					onClick={handleMenuClose}
-					component={RouterLink}
-					to={ROUTES.HOME}
-				>
-					<HomeIcon sx={{ marginRight: 1 }} />
-					Home
-				</MenuItem>
-				<MenuItem
-					onClick={async () => {
-						handleMenuClose();
-						await handleLogout();
-					}}
-					sx={{
-						color: "black",
-						"&:hover": {
-							backgroundColor: "rgba(255, 255, 255, 0.1)",
-						},
-					}}
-				>
-					<Logout sx={{ marginRight: 1 }} />
-					Logout
-				</MenuItem>
-			</Menu>
-		</Box>
+							sx={{
+								color: "black",
+								"&:hover": {
+									backgroundColor: "rgba(255, 255, 255, 0.1)",
+								},
+							}}
+						>
+							<Logout sx={{ marginRight: 1 }} />
+							Logout
+						</MenuItem>
+					</Menu>
+				</>
+			) : (
+				<AccountIcon />
+			)}
+		</Stack>
 	);
 };
 
 const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+	const navigate = useNavigate();
+	const location = useLocation();
+	const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const handleMenuClick = (path: string | null) => {
-    if (path) navigate(path);
-  };
+	const handleMenuClick = (path: string | null) => {
+		if (path) navigate(path);
+	};
 
-  const toggleSidebar = () => {
-    const newCollapsedState = !isCollapsed;
-    setIsCollapsed(newCollapsedState);
-    onToggle?.(newCollapsedState);
-  };
+	const toggleSidebar = () => {
+		const newCollapsedState = !isCollapsed;
+		setIsCollapsed(newCollapsedState);
+		onToggle?.(newCollapsedState);
+	};
 
 	return (
 		<Box
 			sx={{
-				width: isCollapsed ? "70px" : "200px",
+				width: isCollapsed ? "70px" : "220px",
 				height: "100vh",
 				backgroundColor: "#2E7D32",
 				color: "white",
@@ -331,11 +474,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
 				</IconButton>
 			</Box>
 
-      {/* Navigation Menu */}
-      <List sx={{ flexGrow: 1, pt: 2 }}>
-        {menuItemsData.map((item: MenuItem) => {
-          const IconComponent = iconMap[item.icon];
-          const isActive = location.pathname === item.path;
+			{/* Navigation Menu */}
+			<List sx={{ flexGrow: 1, pt: 2 }}>
+				{menuItemsData.map((item: SidebarMenuItem) => {
+					const IconComponent = iconMap[item.icon];
+					const isActive = location.pathname === item.path;
 
 					return (
 						<React.Fragment key={item.id}>
@@ -396,13 +539,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
 															},
 													}}
 												/>
-												{/* submenu removed */}
 											</>
 										)}
 									</ListItemButton>
 								</Tooltip>
 							</ListItem>
-							{/* submenu removed */}
 						</React.Fragment>
 					);
 				})}
@@ -412,6 +553,12 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
 			<PositionedMenu
 				isCollapsed={isCollapsed}
 				sx={{
+					color: "white",
+					display: "inline-flex",
+					alignItems: "center",
+					minWidth: isCollapsed ? "auto" : 40,
+					py: 1,
+					justifyContent: "center",
 					borderTop: "3px solid rgba(255, 255, 255, 0.1)",
 				}}
 			/>

@@ -9,6 +9,7 @@ import {
 	Menu,
 	Tabs,
 	Tab,
+	Grow,
 } from "@mui/material";
 import DateRangeFilter from "./DateRangeFilter";
 import {
@@ -203,122 +204,134 @@ const Statistics = ({
 			{/* Summary Cards */}
 			<Grid container spacing={2} mb={3}>
 				<Grid size={{ xs: 6, sm: 4, md: 2 }}>
-					<Card
-						sx={{
-							bgcolor: "#1976d2",
-							color: "#fff",
-							height: "100%",
-						}}
-					>
-						<CardContent>
-							<Typography variant="subtitle2" fontWeight={"bold"}>
-								Total Revenue
-							</Typography>
-							<Typography variant="h5" fontWeight={700}>
-								{formatCurrency(stats.totalRevenue, currency)}
-							</Typography>
-							<Typography variant="caption">All Time</Typography>
-						</CardContent>
-					</Card>
+					<Grow in={true} timeout={200}>
+						<Card
+							sx={{
+								bgcolor: "#1976d2",
+								color: "#fff",
+								height: "100%",
+							}}
+						>
+							<CardContent>
+								<Typography variant="subtitle2" fontWeight={"bold"}>
+									Total Revenue
+								</Typography>
+								<Typography variant="h5" fontWeight={700}>
+									{formatCurrency(stats.totalRevenue, currency)}
+								</Typography>
+								<Typography variant="caption">All Time</Typography>
+							</CardContent>
+						</Card>
+					</Grow>
 				</Grid>
 				<Grid size={{ xs: 6, sm: 4, md: 2 }}>
-					<Card
-						sx={{
-							bgcolor: "#0e8d52a2",
-							color: "#fff",
-							height: "100%",
-						}}
-					>
-						<CardContent>
-							<Typography variant="subtitle2" fontWeight={"bold"}>
-								Average Ticket Price
-							</Typography>
-							<Typography variant="h5" fontWeight={700}>
-								{formatCurrency(stats.avgTicketPrice, currency)}
-							</Typography>
-							<Typography variant="caption">
-								Per Ticket
-							</Typography>
-						</CardContent>
-					</Card>
+					<Grow in={true} timeout={400}>
+						<Card
+							sx={{
+								bgcolor: "#0e8d52a2",
+								color: "#fff",
+								height: "100%",
+							}}
+						>
+							<CardContent>
+								<Typography variant="subtitle2" fontWeight={"bold"}>
+									Average Ticket Price
+								</Typography>
+								<Typography variant="h5" fontWeight={700}>
+									{formatCurrency(stats.avgTicketPrice, currency)}
+								</Typography>
+								<Typography variant="caption">
+									Per Ticket
+								</Typography>
+							</CardContent>
+						</Card>
+					</Grow>
 				</Grid>
 				<Grid size={{ xs: 6, sm: 4, md: 2 }}>
-					<Card
-						sx={{
-							bgcolor: "#f9a825",
-							color: "#fff",
-							height: "100%",
-						}}
-					>
-						<CardContent>
-							<Typography variant="subtitle2" fontWeight={"bold"}>
-								Tickets Sold
-							</Typography>
-							<Typography variant="h5" fontWeight={700}>
-								{stats.ticketsSold}
-							</Typography>
-							<Typography variant="caption">Total</Typography>
-						</CardContent>
-					</Card>
+					<Grow in={true} timeout={600}>
+						<Card
+							sx={{
+								bgcolor: "#f9a825",
+								color: "#fff",
+								height: "100%",
+							}}
+						>
+							<CardContent>
+								<Typography variant="subtitle2" fontWeight={"bold"}>
+									Tickets Sold
+								</Typography>
+								<Typography variant="h5" fontWeight={700}>
+									{stats.ticketsSold}
+								</Typography>
+								<Typography variant="caption">Total</Typography>
+							</CardContent>
+						</Card>
+					</Grow>
 				</Grid>
 				<Grid size={{ xs: 6, sm: 4, md: 2 }}>
-					<Card
-						sx={{
-							bgcolor: "#d32f2f",
-							color: "#fff",
-							height: "100%",
-						}}
-					>
-						<CardContent>
-							<Typography variant="subtitle2" fontWeight={"bold"}>
-								Cancelled Tickets
-							</Typography>
-							<Typography variant="h5" fontWeight={700}>
-								{stats.cancelledTickets}
-							</Typography>
-							<Typography variant="caption">Total</Typography>
-						</CardContent>
-					</Card>
+					<Grow in={true} timeout={800}>
+						<Card
+							sx={{
+								bgcolor: "#d32f2f",
+								color: "#fff",
+								height: "100%",
+							}}
+						>
+							<CardContent>
+								<Typography variant="subtitle2" fontWeight={"bold"}>
+									Cancelled Tickets
+								</Typography>
+								<Typography variant="h5" fontWeight={700}>
+									{stats.cancelledTickets}
+								</Typography>
+								<Typography variant="caption">Total</Typography>
+							</CardContent>
+						</Card>
+					</Grow>
 				</Grid>
 				<Grid size={{ xs: 6, sm: 4, md: 2 }}>
-					<Card
-						sx={{
-							bgcolor: "#5e35b1",
-							color: "#fff",
-							height: "100%",
-						}}
-					>
-						<CardContent>
-							<Typography variant="subtitle2" fontWeight={"bold"}>
-								Total Users
-							</Typography>
-							<Typography variant="h5" fontWeight={700}>
-								{stats.totalUsers}
-							</Typography>
-							<Typography variant="caption">
-								Registered
-							</Typography>
-						</CardContent>
-					</Card>
+					<Grow in={true} timeout={1000}>
+						<Card
+							sx={{
+								bgcolor: "#5e35b1",
+								color: "#fff",
+								height: "100%",
+							}}
+						>
+							<CardContent>
+								<Typography variant="subtitle2" fontWeight={"bold"}>
+									Total Users
+								</Typography>
+								<Typography variant="h5" fontWeight={700}>
+									{stats.totalUsers}
+								</Typography>
+								<Typography variant="caption">
+									Registered
+								</Typography>
+							</CardContent>
+						</Card>
+					</Grow>
 				</Grid>
 				<Grid size={{ xs: 6, sm: 4, md: 2 }}>
-					<Card
-						sx={{
-							bgcolor: "#ef6c00",
-							color: "#fff",
-							height: "100%",
-						}}
-					>
-						<CardContent>
-							<Typography variant="subtitle2" fontWeight={"bold"}>
-								Total Trips
-							</Typography>
-							<Typography variant="h5" fontWeight={700}>
-								{stats.totalTrips}
-							</Typography>
-							<Typography variant="caption">Scheduled</Typography>
-						</CardContent>
-					</Card>
+					<Grow in={true} timeout={1200}>
+						<Card
+							sx={{
+								bgcolor: "#ef6c00",
+								color: "#fff",
+								height: "100%",
+							}}
+						>
+							<CardContent>
+								<Typography variant="subtitle2" fontWeight={"bold"}>
+									Total Trips
+								</Typography>
+								<Typography variant="h5" fontWeight={700}>
+									{stats.totalTrips}
+								</Typography>
+								<Typography variant="caption">Scheduled</Typography>
+							</CardContent>
+						</Card>
+					</Grow>
 				</Grid>
 			</Grid>
 
@@ -326,83 +339,95 @@ const Statistics = ({
 			<Grid container spacing={3} mb={3}>
 				{/* Trend Chart (Left Side) */}
 				<Grid size={{ xs: 12, lg: 6 }}>
-					<TrendChart
-						data={daily_revenue}
-						currency={currency}
-						title="Revenue Trend"
-						extra={
-							<DateRangeFilter
-								from_date={from_date}
-								to_date={to_date}
-								on_change={update_date}
-								on_apply={handle_apply}
-								on_clear={handle_clear}
+					<Grow in={true} timeout={1400}>
+						<Box display={"flex"} flex={1} sx={{height: "100%"}}>
+							<TrendChart
+								data={daily_revenue}
+								currency={currency}
+								title="Revenue Trend"
+								extra={
+									<DateRangeFilter
+										from_date={from_date}
+										to_date={to_date}
+										on_change={update_date}
+										on_apply={handle_apply}
+										on_clear={handle_clear}
+									/>
+								}
 							/>
-						}
-					/>
+						</Box>
+					</Grow>
 				</Grid>
 
 				{/* Comparison Charts (Right Side with Tabs) */}
 				<Grid size={{ xs: 12, lg: 6 }}>
-					<RateDistributionChart
-						data={cancellation_records}
-						height={250}
-					/>
+					<Grow in={true} timeout={1600}>
+						<Box display={"flex"} flex={1} sx={{height: "100%"}}>
+							<RateDistributionChart
+								data={cancellation_records}
+								height={250}
+							/>
+						</Box>
+					</Grow>
 				</Grid>
 			</Grid>
 
 			{/* Date Filter & Cancellation */}
 			<Grid container spacing={3}>
 				<Grid size={{ xs: 12 }}>
-					<Card
-						sx={{
-							height: "100%",
-							display: "flex",
-							flexDirection: "column",
-						}}
-					>
-						<Box sx={{ borderBottom: 1, borderColor: "divider" }}>
-							<Tabs
-								value={activeTab}
-								onChange={handleTabChange}
-								variant="fullWidth"
-								indicatorColor="primary"
-							>
-								<Tab label="Daily" />
-								<Tab label="Monthly" />
-								<Tab label="Yearly" />
-							</Tabs>
-						</Box>
+					<Grow in={true} timeout={1800}>
+						<Card
+							sx={{
+								height: "100%",
+								display: "flex",
+								flexDirection: "column",
+							}}
+						>
+							<Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+								<Tabs
+									value={activeTab}
+									onChange={handleTabChange}
+									variant="fullWidth"
+									indicatorColor="primary"
+								>
+									<Tab label="Daily" />
+									<Tab label="Monthly" />
+									<Tab label="Yearly" />
+								</Tabs>
+							</Box>
 
-						<Box sx={{ flexGrow: 1, position: "relative" }}>
-							<TabPanel value={activeTab} index={0}>
-								<PeriodComparisonChart
-									data={daily_comparison}
-									currency={currency}
-									period_type="daily"
-									height={280}
-								/>
-							</TabPanel>
-							<TabPanel value={activeTab} index={1}>
-								<PeriodComparisonChart
-									data={monthly_comparison}
-									currency={currency}
-									period_type="monthly"
-									height={280}
-								/>
-							</TabPanel>
-							<TabPanel value={activeTab} index={2}>
-								<PeriodComparisonChart
-									data={yearly_comparison}
-									currency={currency}
-									period_type="yearly"
-									height={280}
-								/>
-							</TabPanel>
-						</Box>
-					</Card>
+							<Box sx={{ flexGrow: 1, position: "relative" }}>
+								<TabPanel value={activeTab} index={0}>
+									<PeriodComparisonChart
+										data={daily_comparison}
+										currency={currency}
+										period_type="daily"
+										height={280}
+									/>
+								</TabPanel>
+								<TabPanel value={activeTab} index={1}>
+									<PeriodComparisonChart
+										data={monthly_comparison}
+										currency={currency}
+										period_type="monthly"
+										height={280}
+									/>
+								</TabPanel>
+								<TabPanel value={activeTab} index={2}>
+									<PeriodComparisonChart
+										data={yearly_comparison}
+										currency={currency}
+										period_type="yearly"
+										height={280}
+									/>
+								</TabPanel>
+							</Box>
+						</Card>
+					</Grow>
 				</Grid>
 			</Grid>
+
+			{/* TODO: Optional OrderTable (Maybe collapsible?) */}
 		</Box>
 	);
 };

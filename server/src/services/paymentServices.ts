@@ -25,6 +25,7 @@ import db from "@models/index";
 import { Op, Transaction } from "sequelize";
 import { TicketStatus } from "@my_types/ticket";
 import { voidTicket } from "./ticketServices";
+import { broadcastDashboardUpdate } from "@services/dashboardServices";
 
 /**
  * Payment gateway interface - all gateways must implement this
@@ -191,16 +192,35 @@ export const initiatePayment = async (
 
 		if (!payment_url) throw new Error("Failed to generate payment url");
 
-		const completePayment = await getPaymentById(payment.id);
-		if (!completePayment)
-			throw new Error("Failed to retrieve created payment");
+		// Build payment response directly to avoid reading uncommitted rows
+		const paymentResponse: PaymentResponseDTO = {
+			id: payment.id,
+			totalAmount: Number(payment.totalAmount),
+			paymentMethodId: payment.paymentMethodId,
+			paymentStatus: payment.paymentStatus as PaymentStatus,
+			merchantOrderRef: payment.merchantOrderRef,
+			gatewayTransactionNo: payment.gatewayTransactionNo,
+			gatewayResponseData: payment.gatewayResponseData,
+			createdAt: payment.createdAt.toISOString(),
+			expiredAt: payment.expiredAt.toISOString(),
+			updatedAt: payment.updatedAt.toISOString(),
+		};
+
+		// Include payment method details if available from earlier lookup
+		if (payment_method) {
+			paymentResponse.paymentMethod = {
+				id: payment_method.id,
+				name: payment_method.name,
+				code: payment_method.code,
+			};
+		}
 
 		// Commit only if we created the transaction
 		if (owns_tx) await transaction.commit();
 
 		return {
 			paymentUrl: payment_url,
-			payment: completePayment,
+			payment: paymentResponse,
 		};
 	} catch (error) {
 		// Roll back only if we created the transaction; otherwise let caller handle it
@@ -454,6 +474,12 @@ export const handlePaymentCallback = async (
 		}
 
 		await transaction.commit();
+
+		// Broadcast dashboard update
+		broadcastDashboardUpdate().catch((err) =>
+			logger.error("Failed to broadcast dashboard update:", err)
+		);
+
 		return payment;
 	} catch (error) {
 		await transaction.rollback();
@@ -487,7 +513,7 @@ export const getPaymentByMerchantOrderRef = async (
 							{
 								model: Seat,
 								as: "seat",
-								include: [{ model: Trip, as: "trip" }],
+									include: [{ model: Trip, as: "trip" }],
 							},
 						],
 					},
@@ -650,15 +676,7 @@ export const cleanupExpiredPayments = async (
 			],
 			limit: batchSize,
 		});
-
-		logger.info(
-			`[Payment Cleanup] Found ${expired_payments.length} expired payments`
-		);
-
 		if (dryRun) {
-			logger.info(
-				`[Payment Cleanup] DRY RUN: Would expire ${expired_payments.length} payments`
-			);
 			result.expiredPayments = expired_payments.length;
 			return result;
 		}
@@ -730,6 +748,11 @@ export const cleanupExpiredPayments = async (
 
 		logger.info(
 			`[Payment Cleanup] Completed: ${result.expiredPayments} expired, ${result.cancelledOrders} orders cancelled, ${result.releasedCoupons} coupons released, ${result.errors} errors`
+		);
+
+		// Broadcast dashboard update
+		broadcastDashboardUpdate().catch((err) =>
+			logger.error("Failed to broadcast dashboard update:", err)
 		);
 
 		return result;

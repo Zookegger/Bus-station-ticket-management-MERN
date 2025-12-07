@@ -24,7 +24,7 @@ orderRouter.post(
 orderRouter.post(
 	"/:id/refund",
 	csrfGuestOrUserProtectionRoute,
-	orderController.CreateOrder,
+	orderController.RefundTickets,
 	errorHandler
 );
 orderRouter.get(
@@ -39,7 +39,7 @@ orderRouter.get(
 	errorHandler
 );
 orderRouter.get(
-	"/guest/:id",
+	"/guest",
 	csrfGuestOrUserProtectionRoute,
 	orderController.GetGuestOrders,
 	errorHandler

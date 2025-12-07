@@ -52,7 +52,20 @@ export const listUsers = async (
 	...attributes: (keyof UserAttributes)[]
 ): Promise<{ rows: User[]; count: number }> => {
 	return await db.User.findAndCountAll(
-		attributes.length > 0 ? { attributes } : {}
+		attributes.length > 0
+			? {
+					attributes,
+					include: {
+						model: db.FederatedCredential,
+						as: "federatedCredentials",
+					},
+			  }
+			: {
+					include: {
+						model: db.FederatedCredential,
+						as: "federatedCredentials",
+					},
+			  }
 	);
 };
 
@@ -152,6 +165,62 @@ export const generateDefaultAdminAccount = async (): Promise<User | null> => {
  * @example
  * await updateUser('123', { email: 'new@example.com', fullName: 'New Name' });
  */
+export const addUser = async (
+	data: Partial<UserAttributes> & { password?: string }
+): Promise<User> => {
+	if (!data) throw { status: 400, message: "Missing user data" };
+
+	// Require at minimum an email or userName
+	if (!data.email && !data.userName)
+		throw { status: 400, message: "email or userName is required" };
+
+	// Check for existing user by email, userName, or phoneNumber
+	const or_conditions: any[] = [];
+	if (data.email) or_conditions.push({ email: data.email });
+	if (data.userName) or_conditions.push({ userName: data.userName });
+	if (data.phoneNumber) or_conditions.push({ phoneNumber: data.phoneNumber });
+
+	const existing = await db.User.findOne({
+		where: {
+			[Op.or]: or_conditions,
+		},
+	});
+
+	if (existing) throw { status: 409, message: "User already exists" };
+
+	// Password handling: hash if provided, otherwise leave null (caller may set a reset flow)
+	let passwordHash: string | undefined = undefined;
+	if (data.password) {
+		passwordHash = await bcrypt.hash(
+			data.password,
+			CONFIG.BCRYPT_SALT_ROUNDS
+		);
+	}
+
+	const created = await db.User.create({
+		userName: data.userName ?? data.email,
+		firstName: data.firstName ?? null,
+		lastName: data.lastName ?? null,
+		address: data.address ?? null,
+		gender: (data as any).gender ?? null,
+		email: data.email ?? null,
+		phoneNumber: data.phoneNumber ?? null,
+		emailConfirmed: data.emailConfirmed ?? false,
+		role: data.role ?? Role.USER,
+		passwordHash: passwordHash ?? null,
+	} as UserAttributes);
+
+	return created;
+};
+
+/**
+ * Updates a user by ID (Admin function).
+ * @param {string} userId - The ID of the user to update.
+ * @param {Partial<UserAttributes>} updateData - The fields to update.
+ * @throws {Object} Throws an error if the user is not found or email is already in use.
+ * @example
+ * await updateUser('123', { email: 'new@example.com', fullName: 'New Name' });
+ */
 export const updateUser = async (
 	userId: string,
 	updateData: Partial<UserAttributes>
@@ -191,7 +260,9 @@ export const deleteUser = async (userId: string): Promise<void> => {
  * const users = await getAllUsers();
  */
 export const getAllUsers = async (): Promise<User[]> => {
-	return await db.User.findAll();
+	return await db.User.findAll({
+		include: { model: db.FederatedCredential, as: "oauths" },
+	});
 };
 
 export const verifyEmail = async (dto: {

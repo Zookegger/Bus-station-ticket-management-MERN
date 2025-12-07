@@ -1,4 +1,4 @@
-import { OrderAttributes, OrderStatus } from "@models/orders";
+import { Order, OrderAttributes, OrderStatus } from "@models/orders";
 import { Ticket } from "@models/ticket";
 import { PaymentAdditionalData, PaymentMethod } from "@my_types/payments";
 
@@ -87,7 +87,6 @@ export interface CreateOrderResult {
 	paymentUrl?: string;
 }
 
-
 /**
  * Options for querying orders with filtering, sorting, and pagination.
  * Used by functions like getUserOrders and getGuestOrders.
@@ -122,6 +121,13 @@ export interface OrderQueryOptions {
 	sortBy?: keyof OrderAttributes;
 	/** Sort order. */
 	sortOrder?: "ASC" | "DESC";
-	/** Optional associations to include. */
-	include?: ("tickets" | "payment" | "couponUsage")[];
+}
+
+export interface OrderCheckInRequest {
+	orderId: string;
+	token: string;
+}
+export interface OrderCheckInResponse {
+	message: string,
+	order?: Order | null,
 }

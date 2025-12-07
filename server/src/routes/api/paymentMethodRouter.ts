@@ -4,7 +4,7 @@ import * as validators from "@middlewares/validators/paymentMethodValidator";
 import { Router } from "express";
 import * as controllers from "@controllers/paymentMethodController";
 import { csrfAdminProtectionRoute } from "@middlewares/csrf";
-import { isAdmin } from "@middlewares/auth";
+import { authenticateJwt, isAdmin } from "@middlewares/auth";
 
 const paymentMethodRouter = Router();
 
@@ -18,6 +18,7 @@ paymentMethodRouter.get(
 
 paymentMethodRouter.get(
 	"/all",
+	authenticateJwt, 
 	isAdmin,
 	controllers.ListAllPaymentMethods,
 	errorHandler

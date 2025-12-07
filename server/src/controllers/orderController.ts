@@ -3,6 +3,25 @@ import { NextFunction, Request, Response } from "express";
 import * as orderServices from "@services/orderServices";
 import { OrderAttributes, OrderStatus } from "@models/orders";
 import { getParamStringId } from "@utils/request";
+import crypto from "crypto";
+
+// Generate HMAC-based check-in token using CHECK_IN_SECRET and orderId
+const buildCheckInToken = (orderId: string): string => {
+    const secret = process.env.CHECK_IN_SECRET || "";
+    const hmac = crypto.createHmac("sha256", secret);
+    hmac.update(orderId);
+    return hmac.digest("hex");
+};
+
+// Attach checkInToken to order object(s)
+const toPlain = (obj: any) => (obj && typeof obj.toJSON === "function" ? obj.toJSON() : obj);
+const withCheckInToken = <T extends { id: string }>(order: T): T & { checkInToken: string } => {
+    const plain = toPlain(order) as T;
+    return { ...plain, checkInToken: buildCheckInToken(plain.id) };
+};
+const withCheckInTokenArray = <T extends { id: string }>(orders: T[]): Array<T & { checkInToken: string }> => {
+    return orders.map((o) => withCheckInToken(o));
+};
 
 // Valid sort fields for OrderAttributes
 const VALID_ORDER_SORT_FIELDS: (keyof OrderAttributes)[] = [
@@ -19,7 +38,6 @@ const getOptions = (req: Request): OrderQueryOptions => {
     if (req.query.updatedFrom) options.updatedFrom = new Date(req.query.updatedFrom as string);
     if (req.query.updatedTo) options.updatedTo = new Date(req.query.updatedTo as string);
     if (req.query.status) options.status = req.query.status as OrderStatus;
-    if (req.query.include) options.include = req.query.include as ("tickets" | "payment" | "couponUsage")[];
     if (req.query.limit) options.limit = Number.parseInt(req.query.limit.toString());
     if (req.query.offset) options.offset = Number.parseInt(req.query.offset.toString());
     if (req.query.sortBy && VALID_ORDER_SORT_FIELDS.includes(req.query.sortBy as keyof OrderAttributes)) options.sortBy = req.query.sortBy as keyof OrderAttributes;
@@ -43,7 +61,12 @@ export const CreateOrder = async (
         if (!order) {
             throw { status: 500, message: "Failed to create the order due to a server error." };
         }
-        res.status(201).json(order); // Use 200 for resource creation
+        // Include checkInToken on the nested order payload
+        const token = buildCheckInToken(order.order.id);
+        res.status(201).json({
+            ...order,
+            order: { ...order.order, checkInToken: token }
+        });
     } catch (err) {
         next(err);
     }
@@ -80,7 +103,7 @@ export const ListAllOrders = async (
     try {
         const options = getOptions(req);
         const orders = await orderServices.listAllOrders(options);
-        res.status(200).json(orders);
+        res.status(200).json(withCheckInTokenArray(orders || []));
     } catch (err) {
         next(err);
     }
@@ -99,8 +122,8 @@ export const GetOrderById = async (
         if (!order) {
             throw { status: 404, message: "Order not found with the provided ID." };
         }
-        
-        res.status(200).json(order);
+        // Attach checkInToken
+        res.status(200).json(withCheckInToken(order));
     } catch (err) {
         next(err);
     }
@@ -117,7 +140,7 @@ export const GetUserOrders = async (
         // TODO: Ensure the authenticated user is either the user in question or an admin.
 
         const orders = await orderServices.getUserOrders(userId, options);
-        res.status(200).json(orders);
+        res.status(200).json(withCheckInTokenArray(orders || []));
     } catch (err) {
         next(err);
     }
@@ -141,7 +164,7 @@ export const GetGuestOrders = async (
         // No authentication is required, but access is limited.
 
         const orders = await orderServices.getGuestOrders(guestEmail, guestPhone, options);
-        res.status(200).json(orders);
+        res.status(200).json(withCheckInTokenArray(orders || []));
     } catch (err) {
         next(err);
     }

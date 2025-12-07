@@ -147,7 +147,8 @@ export const ListAllPaymentMethods = async (
 ): Promise<void> => {
 	try {
 		const payment_methods = await paymentMethodServices.listAllPaymentMethods();
-		res.status(200).json(payment_methods);
+
+		res.status(200).json(payment_methods.rows);
 	} catch (err) {
 		next(err);
 	}

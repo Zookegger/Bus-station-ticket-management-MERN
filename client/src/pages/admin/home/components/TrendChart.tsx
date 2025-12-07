@@ -1,4 +1,14 @@
-import { Box, Typography } from "@mui/material";
+import React, { useMemo, useRef } from "react";
+import {
+	Box,
+	Typography,
+	Card,
+	CardContent,
+	CardHeader,
+	useTheme,
+	Divider,
+	Stack,
+} from "@mui/material";
 import {
 	AreaChart,
 	Area,
@@ -8,51 +18,51 @@ import {
 	Tooltip,
 	ResponsiveContainer,
 } from "recharts";
+import { ShowChart, SearchOff } from "@mui/icons-material"; // Icon for trend
 import type { DailyRevenueRecord } from "@my-types/dashboard";
 import { formatCurrency } from "@utils/formatting";
+import { format, parseISO } from "date-fns";
 
 interface TrendChartProps {
-	/** Array of trend records (fetched). */
 	data: DailyRevenueRecord[];
-	/** * The type of period being displayed.
-	 * This determines the default title.
-	 * @default 'daily'
-	 */
 	period_type?: "daily" | "monthly" | "yearly";
-	/** Optional title override. */
 	title?: string;
-	/** Chart height (default 220). */
 	height?: number;
-	/** Currency code (default 'USD'). */
 	currency?: string;
-	/** Locale for currency formatting (default 'en-US'). */
 	locale?: string;
-	/** Color for the area gradient and line (default '#1976d2'). */
 	color?: string;
+	/** Optional component to render in the header (e.g., DateRangeFilter) */
+	extra?: React.ReactNode;
 }
 
-/**
- * A map of default titles based on the period type.
- */
-const PERIOD_TITLES = {
-	daily: "Daily Trend",
-	monthly: "Monthly Trend",
-	yearly: "Yearly Trend",
-};
-
-/** Custom tooltip content for the trend chart. */
-const CustomTooltip = ({ active, payload, currency, locale }: any) => {
+const CustomTooltip = ({ active, payload, label, currency, locale }: any) => {
 	if (active && payload?.[0]) {
 		return (
 			<Box
 				sx={{
-					bgcolor: "rgba(0,0,0,0.85)",
-					color: "#fff",
-					p: 1,
-					borderRadius: 1,
+					bgcolor: "background.paper",
+					boxShadow: 3,
+					color: "text.primary",
+					p: 1.5,
+					borderRadius: 2,
+					minWidth: 150,
+					border: 1,
+					borderColor: "divider",
 				}}
 			>
-				<Typography variant="body2">
+				<Typography
+					variant="caption"
+					color="text.secondary"
+					mb={0.5}
+					display="block"
+				>
+					{label}
+				</Typography>
+				<Typography
+					variant="subtitle2"
+					fontWeight={700}
+					color="primary.main"
+				>
 					{formatCurrency(payload[0].value, currency, locale)}
 				</Typography>
 			</Box>
@@ -61,39 +71,102 @@ const CustomTooltip = ({ active, payload, currency, locale }: any) => {
 	return null;
 };
 
-/**
- * TrendChart component.
- * Renders a versatile area chart for daily, monthly, or yearly trends.
- */
 const TrendChart: React.FC<TrendChartProps> = ({
 	data,
 	period_type = "daily",
-	title,
-	height = 220,
-	currency = "USD",
+	title = "Revenue Trend", // Default generic title
+	height = 300, // Increased default for better visibility
+	currency = "VNĐ",
 	locale = "en-US",
-	color = "#1976d2",
+	color = "#2e7d32", // Matched your green theme
+	extra,
 }) => {
+	const theme = useTheme();
 	const hasData = Array.isArray(data) && data.length > 0;
+	const gradientIdRef = useRef(
+		`trendGradient-${Math.random().toString(36).slice(2, 9)}`
+	);
 
-	// Use the custom title if provided, otherwise use the dynamic default
-	const chartTitle = title || PERIOD_TITLES[period_type];
-
-	// Unique ID for the gradient definition
-	const gradientId = `trendGradient-${period_type}`;
+	const formattedData = useMemo(() => {
+		return (data || []).map((d) => {
+			let label = String(d.period ?? "");
+			try {
+				const date =
+					typeof d.period === "string"
+						? parseISO(d.period)
+						: new Date(d.period);
+				if (!isNaN(date.getTime())) {
+					label = format(date, "dd MMM");
+				}
+			} catch (e) {}
+			return { ...d, period: label };
+		});
+	}, [data, period_type]);
 
 	return (
-		<Box>
-			<Typography variant="subtitle2" fontWeight={600} gutterBottom>
-				{chartTitle}
-			</Typography>
-			<Box sx={{ width: "100%", height }}>
-				<ResponsiveContainer width="100%" height="100%">
-					{hasData ? (
-						<AreaChart data={data}>
+		<Card
+			sx={{
+				width: "100%",
+				height: "100%",
+				boxShadow: 2,
+				borderRadius: 2,
+				display: "flex",
+				flexDirection: "column",
+				flex: 1,
+			}}
+		>
+			<CardHeader
+				title={
+					<Typography variant="h6" fontWeight={700}>
+						{title}
+					</Typography>
+				}
+				subheader="Income over selected period"
+				avatar={
+					<Box
+						sx={{
+							color: "primary.main",
+							borderRadius: 1,
+							display: "flex",
+							opacity: 0.2,
+						}}
+					>
+						<ShowChart fontSize="large" />
+					</Box>
+				}
+				action={extra}
+				slotProps={{
+					action: {
+						sx: {
+							alignSelf: "stretch",
+						},
+					},
+				}}
+			/>
+			<Divider />
+
+			<CardContent sx={{ flexGrow: 1, p: 2, minHeight: height }}>
+				{!hasData ? (
+					<Stack
+						alignItems="center"
+						justifyContent="center"
+						sx={{ height: "100%", color: "text.secondary" }}
+						spacing={2}
+					>
+						<SearchOff sx={{ fontSize: 48, opacity: 0.5 }} />
+						<Typography variant="body1">
+							No revenue data for this period
+						</Typography>
+					</Stack>
+				) : (
+					<ResponsiveContainer width="100%" height="100%">
+						<AreaChart
+							data={formattedData}
+							margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+						>
 							<defs>
 								<linearGradient
-									id={gradientId}
+									id={gradientIdRef.current}
 									x1="0"
 									y1="0"
 									x2="0"
@@ -102,7 +175,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
 									<stop
 										offset="5%"
 										stopColor={color}
-										stopOpacity={0.8}
+										stopOpacity={0.2}
 									/>
 									<stop
 										offset="95%"
@@ -111,29 +184,35 @@ const TrendChart: React.FC<TrendChartProps> = ({
 									/>
 								</linearGradient>
 							</defs>
-
 							<CartesianGrid
 								strokeDasharray="3 3"
-								stroke="#e0e0e0"
+								stroke={theme.palette.divider}
+								vertical={false}
 							/>
-
 							<XAxis
 								dataKey="period"
-								tick={{ fontSize: 12, fill: "#666" }}
+								tick={{
+									fontSize: 12,
+									fill: theme.palette.text.secondary,
+								}}
 								axisLine={false}
 								tickLine={false}
+								interval="preserveStartEnd"
+								minTickGap={30}
+								dy={10}
 							/>
-
 							<YAxis
-								tickFormatter={(v: number) =>
+								tickFormatter={(v) =>
 									formatCurrency(v, currency, locale)
 								}
-								tick={{ fontSize: 12, fill: "#666" }}
+								tick={{
+									fontSize: 12,
+									fill: theme.palette.text.secondary,
+								}}
 								axisLine={false}
 								tickLine={false}
 								width={80}
 							/>
-
 							<Tooltip
 								content={
 									<CustomTooltip
@@ -142,32 +221,19 @@ const TrendChart: React.FC<TrendChartProps> = ({
 									/>
 								}
 							/>
-
 							<Area
 								type="monotone"
 								dataKey="value"
 								stroke={color}
-								fill={`url(#${gradientId})`}
-								strokeWidth={2.5}
-								dot={{ fill: color, r: 4 }}
-								activeDot={{ r: 6 }}
+								strokeWidth={3}
+								fill={`url(#${gradientIdRef.current})`}
+								activeDot={{ r: 6, strokeWidth: 0 }}
 							/>
 						</AreaChart>
-					) : (
-						<Box
-							display="flex"
-							alignItems="center"
-							justifyContent="center"
-							height="100%"
-						>
-							<Typography variant="body2" color="text.secondary">
-								No data available
-							</Typography>
-						</Box>
-					)}
-				</ResponsiveContainer>
-			</Box>
-		</Box>
+					</ResponsiveContainer>
+				)}
+			</CardContent>
+		</Card>
 	);
 };
 
