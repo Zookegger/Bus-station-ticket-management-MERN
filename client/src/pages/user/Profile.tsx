@@ -32,7 +32,7 @@ import { useEffect, useState } from "react";
 import type { AuthUser } from "@my-types/auth";
 import { Check, GppBad, VerifiedUser } from "@mui/icons-material";
 import { handleAxiosError } from "@utils/handleError";
-import buildAvatarUrl from "@utils/avatarImageHelper";
+import buildImgUrl from "@utils/imageHelper";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { profileSchema, type ProfileForm } from "../../schemas/userSchema";
@@ -664,7 +664,7 @@ const Profile: React.FC = () => {
 									<Avatar
 										src={
 											avatarPreview ||
-											buildAvatarUrl(profile.avatar) ||
+											buildImgUrl(profile.avatar) ||
 											""
 										}
 										sx={{ width: 120, height: 120 }}

@@ -157,7 +157,11 @@ const DriverForm: React.FC<DriverFormProps> = ({
 					value !== undefined &&
 					value !== ""
 				) {
-					formData.append(key, String(value));
+					if (value instanceof Date) {
+						formData.append(key, value.toISOString());
+					} else {
+						formData.append(key, String(value));
+					}
 				}
 			});
 

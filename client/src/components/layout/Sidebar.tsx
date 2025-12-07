@@ -39,7 +39,7 @@ import {
 import { APP_CONFIG, ROUTES } from "@constants/index";
 import { useAuth } from "@hooks/useAuth";
 import { useNotifications } from "@contexts/NotificationContext";
-import buildAvatarUrl from "@utils/avatarImageHelper";
+import buildImgUrl from "@utils/imageHelper";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTicket } from "@fortawesome/free-solid-svg-icons";
 import { NotificationPopper } from "@components/common";
@@ -202,7 +202,7 @@ const PositionedMenu: React.FC<PositionedMenuProps> = ({ isCollapsed, sx }) => {
 					>
 						{user?.avatar ? (
 							<Avatar
-								src={buildAvatarUrl(user.avatar) ?? ""}
+								src={buildImgUrl(user.avatar) ?? ""}
 								alt={user.firstName}
 								sx={{
 									width: "32px",
@@ -335,7 +335,7 @@ const PositionedMenu: React.FC<PositionedMenuProps> = ({ isCollapsed, sx }) => {
 						onClick={handleClick}
 					>
 						<Avatar
-							src={buildAvatarUrl(user.avatar) ?? ""}
+							src={buildImgUrl(user.avatar) ?? ""}
 							alt={user.firstName}
 							sx={{
 								width: "32px",

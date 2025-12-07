@@ -33,7 +33,7 @@ import { DataGridPageLayout } from "@components/admin";
 import callApi from "@utils/apiCaller";
 import { API_ENDPOINTS } from "@constants/index";
 import type { Role, User } from "@my-types/user";
-import buildAvatarUrl from "@utils/avatarImageHelper";
+import buildImgUrl from "@utils/imageHelper";
 import {
 	InfoDrawer,
 	DeleteUserConfirm,
@@ -136,7 +136,7 @@ const UserPage: React.FC = () => {
 			renderCell: (params: GridRenderCellParams<User>) => (
 				<Stack direction={"row"} alignItems={"center"} paddingX={0.5}>
 					<Avatar
-						src={buildAvatarUrl(params.row.avatar) || undefined}
+						src={buildImgUrl(params.row.avatar) || undefined}
 						sx={{
 							width: 48,
 							height: 48,

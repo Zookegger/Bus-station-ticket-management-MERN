@@ -16,6 +16,7 @@ import callApi from "@utils/apiCaller";
 import { API_ENDPOINTS } from "@constants/index";
 import { LocalOffer } from "@mui/icons-material";
 import TripSearch from "@components/common/TripSearch";
+import buildImgUrl from "@utils/imageHelper";
 
 /**
  * Home landing component containing the primary hero and search form.
@@ -157,7 +158,10 @@ const Home: React.FC = () => {
 												<CardMedia
 													component="img"
 													height="140"
-													image={coupon.imgUrl}
+													image={buildImgUrl(
+														coupon.imgUrl,
+														"coupons"
+													)}
 													alt={
 														coupon.title ||
 														coupon.code

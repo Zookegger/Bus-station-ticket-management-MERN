@@ -25,7 +25,7 @@ import {
 	Window as WindowIcon,
 	ShoppingBasket,
 } from "@mui/icons-material";
-import buildAvatarUrl from "@utils/avatarImageHelper";
+import buildImgUrl from "@utils/imageHelper";
 import { useNotifications } from "@contexts/NotificationContext";
 import { NotificationPopper } from "@components/common";
 import { Stack } from "@mui/system";
@@ -107,7 +107,7 @@ const Header: React.FC = () => {
 									>
 										<Avatar
 											src={
-												buildAvatarUrl(user.avatar) ??
+												buildImgUrl(user.avatar) ??
 												""
 											}
 											alt={user.firstName}
