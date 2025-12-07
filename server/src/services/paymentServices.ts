@@ -444,7 +444,7 @@ export const handlePaymentCallback = async (
 						where: { id: seatIds },
 						transaction,
 					});
-					if (updatedSeats.length > 0 && updatedSeats[0].tripId) {
+					if (updatedSeats && updatedSeats.length > 0 && updatedSeats[0] && updatedSeats[0].tripId) {
 						emitBulkSeatUpdates(
 							updatedSeats[0].tripId,
 							updatedSeats.map((s) => s.toJSON())
@@ -512,7 +512,7 @@ export const handlePaymentCallback = async (
 						where: { id: seatIds },
 						transaction,
 					});
-					if (updatedSeats.length > 0 && updatedSeats[0].tripId) {
+					if (updatedSeats && updatedSeats.length > 0 && updatedSeats[0] && updatedSeats[0].tripId) {
 						emitBulkSeatUpdates(
 							updatedSeats[0].tripId,
 							updatedSeats.map((s) => s.toJSON())
