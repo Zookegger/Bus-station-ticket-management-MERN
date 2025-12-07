@@ -66,6 +66,7 @@ export const API_ENDPOINTS: ApiEndpoints = {
 		ASSIGN_DRIVER: (id: number) => `/trips/${id}/assign-driver`,
 		AUTO_ASSIGN_DRIVER: (id: number) => `/trips/${id}/auto-assign`,
 		UNASSIGN_DRIVER: (id: number) => `/trips/${id}/assign-driver`,
+		CANCEL: (id: number) => `/trips/${id}/cancel`,
 	},
 	DRIVER: {
 		BASE: "/drivers",

@@ -118,8 +118,8 @@ export const SearchTrip = async (
 			...(maxPrice && { maxPrice: parseFloat(maxPrice as string) }),
 
 			// Location mappings
-			...(from && { from_location: from as string }),
-			...(to && { to_location: to as string }),
+			...(from && { fromLocation: from as string }),
+			...(to && { toLocation: to as string }),
 			...(date && { date: date as string }),
 
 			// New Options
@@ -127,7 +127,9 @@ export const SearchTrip = async (
 			// minSeats: minSeats ? parseInt(minSeats as string) : 1,
 		};
 
-		const { rows, count } = await tripServices.searchTrip(options);
+		const { rows, count } = isBookingSearch
+			? await tripServices.searchTripsForUser(options)
+			: await tripServices.searchTripsForAdmin(options);
 
 		res.status(200).json({
 			success: true,
@@ -430,6 +432,48 @@ export const UnassignDriver = async (
 		await tripSchedulingServices.unassignDriver(tripId);
 
 		res.status(200).json({ message: "Driver unassigned successfully" });
+	} catch (err) {
+		next(err);
+	}
+};
+
+/**
+ * Cancels a trip.
+ *
+ * @param req - Express request object containing trip ID in URL
+ * @param res - Express response object
+ * @param next - Express next function for error handling
+ *
+ * @route PATCH /trips/:id/cancel
+ * @access Admin
+ */
+export const CancelTrip = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+): Promise<void> => {
+	try {
+		const tripId = getParamNumericId(req);
+
+		const trip = await tripServices.cancelTrip(tripId);
+
+		res.status(200).json({
+			message: "Trip cancelled successfully.",
+			trip,
+		});
+
+		// Emit CRUD change to admins
+		try {
+			const actor: User | undefined = req.user as User;
+			emitCrudChange(
+				"trip",
+				"update",
+				{ id: trip.id, status: trip.status },
+				actor ? { id: String(actor.id), name: `${actor.firstName} ${actor.lastName}` } : undefined
+			);
+		} catch (e) {
+			// ignore emit errors
+		}
 	} catch (err) {
 		next(err);
 	}

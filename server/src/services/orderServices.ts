@@ -195,8 +195,8 @@ export const createOrder = async (
 			notificationServices
 				.createNotification({
 					userId: dto.userId,
-					title: "Order Successful",
-					content: `Your order #${finalOrder.id} has been successfully placed.`,
+					title: "Order Placed",
+					content: `Your order #${finalOrder.id} has been placed and is pending payment.`,
 					type: NotificationTypes.BOOKING,
 					priority: NotificationPriorities.MEDIUM,
 					metadata: { orderId: finalOrder.id },

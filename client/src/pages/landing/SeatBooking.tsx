@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import useWebsocket from "@hooks/useWebsocket";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -270,7 +270,9 @@ const SeatBooking: React.FC = () => {
 	};
 
 	// Websocket handler for seat updates
-	const handleSeatUpdate = React.useCallback((updatedSeats: Seat[]) => {
+	const handleSeatUpdate = useCallback((payload: Seat[] | Seat) => {
+		const updatedSeats = Array.isArray(payload) ? payload : [payload];
+
 		setSeats((prevSeats) => {
 			const newSeats = [...prevSeats];
 			updatedSeats.forEach((update) => {
