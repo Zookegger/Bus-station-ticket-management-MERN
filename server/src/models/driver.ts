@@ -225,7 +225,7 @@ export class Driver
 					allowNull: true,
 				},
 				gender: {
-					type: DataTypes.ENUM(...Object.values(typeof Gender)),
+					type: DataTypes.ENUM(...Object.values(Gender)),
 					defaultValue: Gender.OTHER,
 					allowNull: false,
 				},
