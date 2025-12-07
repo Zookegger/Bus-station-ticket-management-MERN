@@ -31,7 +31,7 @@ import { API_ENDPOINTS } from "@constants/index";
 interface VehicleTypeFormProps {
 	open: boolean;
 	onClose: () => void;
-	onSaved: (vehicleType: any) => void;
+	onSaved: (vehicleType: any, message?: string) => void;
 	initialData?: any;
 }
 
@@ -105,8 +105,8 @@ const VehicleTypeForm: React.FC<VehicleTypeFormProps> = ({
 				});
 			}
 
-			const savedData = (res as any).data ?? res;
-			onSaved(savedData);
+			const savedData = (res as any).vehicle_type ?? (res as any).data ?? res;
+			onSaved(savedData, isEditMode ? "Vehicle type updated successfully" : "Vehicle type added successfully");
 			onClose();
 		} catch (err: any) {
 			console.error(err);

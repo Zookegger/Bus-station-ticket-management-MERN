@@ -19,7 +19,7 @@ interface OrderConfirmCancelDialogProps {
 	tickets: Ticket[];
 	open: boolean;
 	onClose: () => void;
-	onSuccess?: () => void;
+	onSuccess?: (message?: string) => void;
 	initialSelectedTicketIds?: number[];
 }
 
@@ -56,12 +56,13 @@ const OrderConfirmCancelDialog: React.FC<OrderConfirmCancelDialogProps> = ({
 				method: "POST",
 				url: API_ENDPOINTS.ORDER.REFUND.replace(":id", orderId),
 				data: {
+					orderId,
 					ticketIds: initialSelectedTicketIds,
 				},
 			});
 
 			if (onSuccess) {
-				onSuccess();
+				onSuccess("Tickets have been successfully refunded.");
 			}
 			onClose();
 		} catch (err: any) {

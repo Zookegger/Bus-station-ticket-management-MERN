@@ -82,8 +82,6 @@ export const register = async (
 	const existing = await db.User.findOne({ where: { email: dto.email } });
 	if (existing) throw { status: 400, message: "Email already in use" };
 
-	const fullname = dto.firstName + " " + dto.lastName;
-
 	const passwordHash = await bcrypt.hash(
 		dto.password,
 		CONFIG.BCRYPT_SALT_ROUNDS
@@ -93,7 +91,6 @@ export const register = async (
 		userName: dto.email,
 		firstName: dto.firstName,
 		lastName: dto.lastName,
-		fullName: fullname,
 		address: dto.address!,
 		gender: dto.gender as Gender,
 		email: dto.email,

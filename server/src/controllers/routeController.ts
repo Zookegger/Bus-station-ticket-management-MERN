@@ -106,10 +106,7 @@ export const AddRoute = async (
 			};
 		}
 
-		res.status(201).json({
-			route: new_route,
-			message: "Route added successfully.",
-		});
+		res.status(201).json(new_route);
 	} catch (err) {
 		next(err);
 	}
@@ -142,10 +139,7 @@ export const UpdateRoute = async (
 
 		const route = await routeServices.updateRoute(id, updated_route);
 
-		res.status(200).json({
-			route,
-			message: "Route updated successfully.",
-		});
+		res.status(200).json(route);
 	} catch (err) {
 		next(err);
 	}

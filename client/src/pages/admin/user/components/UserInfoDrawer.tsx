@@ -34,7 +34,7 @@ interface UserInfoDrawerProps {
 	open: boolean;
 	onClose: () => void;
 	onEdit: (user: User) => void;
-	onDelete: (id: string) => void;
+	onDelete: (id: string, message?: string) => void;
 }
 
 const UserInfoDrawer: React.FC<UserInfoDrawerProps> = ({
@@ -477,7 +477,7 @@ const UserInfoDrawer: React.FC<UserInfoDrawerProps> = ({
 						<Button
 							variant="contained"
 							startIcon={<DeleteIcon />}
-							onClick={() => onDelete(user.id)}
+							onClick={() => onDelete(user.id, "User deleted successfully")}
 							sx={{
 								bgcolor: "#d32f2f",
 								flex: 1,

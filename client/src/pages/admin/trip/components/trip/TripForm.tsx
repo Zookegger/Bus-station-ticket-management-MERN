@@ -47,7 +47,7 @@ import callApi from "@utils/apiCaller";
 interface TripFormProps {
 	open: boolean;
 	onClose: () => void;
-	onSaved?: () => void;
+	onSaved?: (message?: string) => void;
 	initialData?: Trip | null; // If provided, we are in "Edit" mode
 }
 
@@ -261,6 +261,7 @@ const TripForm: React.FC<TripFormProps> = ({
 					url: API_ENDPOINTS.TRIP.UPDATE(initialData.id),
 					data: payload,
 				});
+				onSaved?.("Trip updated successfully.");
 			} else {
 				// CREATE Logic
 				const payload: CreateTripDTO = {
@@ -303,9 +304,9 @@ const TripForm: React.FC<TripFormProps> = ({
 				if (status !== 201 || !data) {
 					throw new Error("Failed to create trip.");
 				}
+				onSaved?.("Trip created successfully.");
 			}
 
-			onSaved?.();
 			onClose();
 		} catch (err: any) {
 			const validationArray =

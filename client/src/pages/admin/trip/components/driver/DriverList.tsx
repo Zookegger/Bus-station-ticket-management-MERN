@@ -38,6 +38,7 @@ import DriverDetails from "./DriverDetails";
 import DriverForm from "./DriverForm";
 import { DriverStatus, type Driver } from "@my-types/driver";
 import { useAdminRealtime } from "@hooks/useAdminRealtime";
+import { formatDateDisplay } from "@utils/formatting";
 
 /**
  * Generates uppercase initials for a driver's name so we always have an avatar fallback.
@@ -195,13 +196,13 @@ const createDriverColumns = (
 		field: "hiredAt",
 		headerName: "Hired",
 		width: 140,
-		valueFormatter: (value: Date) =>
-			value ? format(new Date(value), "dd/MM/yyyy HH:mm") : "-",
+		valueFormatter: (value: Date | string) => formatDateDisplay(value),
 	},
 	{
 		field: "dateOfBirth",
 		headerName: "DOB",
 		width: 140,
+		valueFormatter: (value: Date | string) => formatDateDisplay(value),
 	},
 	{
 		field: "updatedAt",
@@ -501,7 +502,16 @@ const DriverList: React.FC = () => {
 					setEditingDriver(null);
 				}}
 				initialData={editingDriver ?? undefined}
-				onSaved={() => setDataVersion((previous) => previous + 1)}
+				onSaved={(message) => {
+					setDataVersion((previous) => previous + 1);
+					if (message) {
+						setSnackbar({
+							open: true,
+							message,
+							severity: "success",
+						});
+					}
+				}}
 			/>
 			<Snackbar
 				open={snackbar.open}

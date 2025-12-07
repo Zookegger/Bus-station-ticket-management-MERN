@@ -29,6 +29,7 @@ import {
 import { DriverStatus, type Driver } from "@my-types/driver";
 import callApi from "@utils/apiCaller";
 import { API_ENDPOINTS } from "@constants/index";
+import { formatDateDisplay } from "@utils/formatting";
 
 const currency = (v: number) =>
 	new Intl.NumberFormat("vi-VN", {
@@ -212,11 +213,7 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({
 									<EventRounded fontSize="small" />
 									<Typography variant="body2">
 										Date of Birth:{" "}
-										{driver.dateOfBirth
-											? new Date(
-													driver.dateOfBirth
-											  ).toLocaleDateString("vi-VN")
-											: "—"}
+										{formatDateDisplay(driver.dateOfBirth)}
 									</Typography>
 								</Stack>
 								<Stack
@@ -304,17 +301,13 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({
 									<CalendarTodayRounded fontSize="small" />
 									<Typography variant="body2">
 										Issue Date:{" "}
-										{driver.licenseIssueDate
-											? new Date(
-													driver.licenseIssueDate
-											  ).toLocaleDateString("vi-VN")
-											: "—"}{" "}
+										{formatDateDisplay(
+											driver.licenseIssueDate
+										)}{" "}
 										- Expiry Date:{" "}
-										{driver.licenseExpiryDate
-											? new Date(
-													driver.licenseExpiryDate
-											  ).toLocaleDateString("vi-VN")
-											: "—"}
+										{formatDateDisplay(
+											driver.licenseExpiryDate
+										)}
 									</Typography>
 								</Stack>
 							</Stack>

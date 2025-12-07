@@ -65,10 +65,7 @@ export const UpdateProfile = async (
 			newProfile
 		);
 
-		res.status(200).json({
-			updated_profile,
-			message: "Profile updated successfully",
-		});
+		res.status(200).json(updated_profile);
 	} catch (err) {
 		next(err);
 	}
@@ -178,7 +175,7 @@ export const UpdateUser = async (
 				status: 500,
 				message: "An error has occured while updating user info",
 			};
-		res.status(200).json({ message: "User updated successfully" });
+		res.status(200).json(user);
 	} catch (err) {
 		next(err);
 	}
@@ -212,7 +209,7 @@ export const DeleteUser = async (
 		}
 
 		await userServices.deleteUser(targetUserId);
-		res.status(200).json({ message: "User deleted successfully" });
+		res.status(200).json({ success: true, message: "User deleted successfully" });
 	} catch (err) {
 		next(err);
 	}
@@ -236,7 +233,7 @@ export const DeleteUserAdmin = async (
 	try {
 		const targetUserId = getParamStringId(req);
 		await userServices.deleteUser(targetUserId);
-		res.status(200).json({ message: "User deleted successfully" });
+		res.status(200).json({ success: true, message: "User deleted successfully" });
 	} catch (err) {
 		next(err);
 	}

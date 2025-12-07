@@ -8,7 +8,7 @@ interface DeleteRouteFormProps {
 	id?: number;
 	open: boolean;
 	onClose: () => void;
-	onConfirm: () => void;
+	onConfirm: (message?: string) => void;
 }
 
 const DeleteRouteForm: FC<DeleteRouteFormProps> = ({
@@ -41,7 +41,7 @@ const DeleteRouteForm: FC<DeleteRouteFormProps> = ({
 
 	const handleSuccess = useCallback(() => {
 		// Allow parent components to refresh their data after a successful deletion.
-		onConfirm();
+		onConfirm("Route deleted successfully");
 	}, [onConfirm]);
 
 	return (

@@ -89,7 +89,7 @@ const VehicleTypeList: React.FC = () => {
 
 	// Filter vehicle types based on search term
 	const filteredVehicleTypes = vehicleTypes.filter((vt) =>
-		vt.name.toLowerCase().includes(searchTerm.toLowerCase())
+		(vt.name || "").toLowerCase().includes(searchTerm.toLowerCase())
 	);
 
 	const handleViewDetails = (vehicleType: VehicleType) => {
@@ -112,7 +112,7 @@ const VehicleTypeList: React.FC = () => {
 		setFormOpen(true);
 	};
 
-	const handleSaved = (savedData: any) => {
+	const handleSaved = (savedData: any, message?: string) => {
 		if (selectedVehicleType) {
 			setVehicleTypes((prev) =>
 				prev.map((vt) =>
@@ -124,6 +124,13 @@ const VehicleTypeList: React.FC = () => {
 		}
 		setFormOpen(false);
 		setSelectedVehicleType(null);
+		if (message) {
+			setSnackbar({
+				open: true,
+				message,
+				severity: "success",
+			});
+		}
 	};
 
 	const handleOpenDelete = (vehicleType: VehicleType) => {

@@ -61,8 +61,18 @@ const avatarValidator = body("avatar")
  */
 const hiredAtValidator = body("hiredAt")
 	.optional()
-	.isDate()
-	.withMessage("Hired date must be in valid date format");
+	.isISO8601()
+	.withMessage("Hired date must be in valid date format (YYYY-MM-DD)");
+
+/**
+ * Validation rule for date of birth field.
+ *
+ * Validates optional date of birth in valid date format.
+ */
+const dateOfBirthValidator = body("dateOfBirth")
+	.optional()
+	.isISO8601()
+	.withMessage("Date of birth must be in valid date format (YYYY-MM-DD)");
 
 /**
  * Validation rule for active status field.
@@ -105,8 +115,8 @@ const licenseCategoryValidator = body("licenseCategory")
  */
 const licenseIssueDateValidator = body("licenseIssueDate")
 	.optional()
-	.isDate()
-	.withMessage("License issue date must be in valid date format");
+	.isISO8601()
+	.withMessage("License issue date must be in valid date format (YYYY-MM-DD)");
 
 /**
  * Validation rule for license expiry date field.
@@ -115,8 +125,8 @@ const licenseIssueDateValidator = body("licenseIssueDate")
  */
 const licenseExpiryDateValidator = body("licenseExpiryDate")
 	.optional()
-	.isDate()
-	.withMessage("License expiry date must be in valid date format");
+	.isISO8601()
+	.withMessage("License expiry date must be in valid date format (YYYY-MM-DD)");
 
 /**
  * Validation rule for issuing authority field.
@@ -150,6 +160,7 @@ export const createDriverValidation = [
 	fullnameValidator,
 	phoneValidator,
 	avatarValidator,
+	dateOfBirthValidator,
 	hiredAtValidator,
 	isActiveValidator,
 	licenseNumberValidator,
@@ -171,6 +182,7 @@ export const updateDriverValidation = [
 	fullnameValidator,
 	phoneValidator,
 	avatarValidator,
+	dateOfBirthValidator,
 	hiredAtValidator,
 	isActiveValidator,
 	licenseNumberValidator,

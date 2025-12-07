@@ -9,7 +9,7 @@ interface Props {
 	open: boolean;
 	user: User | null;
 	onClose: () => void;
-	onDeleted: (id: string) => void;
+	onDeleted: (id: string, message?: string) => void;
 }
 
 const DeleteUserConfirm: FC<Props> = ({ open, user, onClose, onDeleted }) => {
@@ -40,7 +40,7 @@ const DeleteUserConfirm: FC<Props> = ({ open, user, onClose, onDeleted }) => {
 
 	const handleSuccess = useCallback(() => {
 		if (user) {
-			onDeleted(user.id);
+			onDeleted(user.id, "User deleted successfully");
 		}
 	}, [onDeleted, user]);
 

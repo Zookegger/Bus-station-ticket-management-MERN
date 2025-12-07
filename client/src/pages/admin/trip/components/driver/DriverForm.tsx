@@ -33,7 +33,7 @@ interface DriverFormProps {
 	open: boolean;
 	onClose: () => void;
 	initialData?: Driver;
-	onSaved?: () => void;
+	onSaved?: (message?: string) => void;
 }
 
 const DriverForm: React.FC<DriverFormProps> = ({
@@ -168,6 +168,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
 					data: formData,
 					headers: { "Content-Type": "multipart/form-data" },
 				});
+				onSaved?.("Driver updated successfully.");
 			} else {
 				await callApi({
 					method: "POST",
@@ -175,8 +176,8 @@ const DriverForm: React.FC<DriverFormProps> = ({
 					data: formData,
 					headers: { "Content-Type": "multipart/form-data" },
 				});
+				onSaved?.("Driver created successfully.");
 			}
-			onSaved?.();
 			onClose();
 		} catch (err: any) {
 			setServerError(err.message || "An error occurred");

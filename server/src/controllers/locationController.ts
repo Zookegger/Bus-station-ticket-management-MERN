@@ -117,7 +117,7 @@ export const searchLocation = async (
 
 		const locations = await locationServices.searchLocation(options);
 
-        res.status(200).json({ locations: locations!.rows });
+        res.status(200).json(locations!.rows);
 	} catch (err) {
 		next(err);
 	}

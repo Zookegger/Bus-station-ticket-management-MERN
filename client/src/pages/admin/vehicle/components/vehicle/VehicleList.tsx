@@ -116,13 +116,20 @@ const VehicleList: React.FC = () => {
 		setDeleteOpen(true);
 	};
 
-	const handleConfirmDelete = () => {
+	const handleConfirmDelete = (message?: string) => {
 		if (!vehicleToDelete) return;
 		setVehicles((prev) => prev.filter((v) => v.id !== vehicleToDelete.id));
 		setVehicleToDelete(null);
 		setDeleteOpen(false);
 		setSelectedVehicle(null);
 		setDrawerOpen(false);
+		if (message) {
+			setSnackbar({
+				open: true,
+				message,
+				severity: "success",
+			});
+		}
 	};
 
 	// Define DataGrid columns
@@ -340,7 +347,16 @@ const VehicleList: React.FC = () => {
 				open={formOpen}
 				initialData={formMode === "edit" ? selectedVehicle : null}
 				onClose={() => setFormOpen(false)}
-				onSuccess={fetchVehicles}
+				onSuccess={(message) => {
+					fetchVehicles();
+					if (message) {
+						setSnackbar({
+							open: true,
+							message,
+							severity: "success",
+						});
+					}
+				}}
 			/>
 			{/* Delete Vehicle Form */}
 			<RemoveVehicleForm

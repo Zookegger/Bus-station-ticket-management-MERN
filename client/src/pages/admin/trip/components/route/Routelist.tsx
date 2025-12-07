@@ -199,11 +199,18 @@ const RouteList: React.FC = () => {
 					setFormOpen(false);
 					setSelectedRoute(null);
 				}}
-				onSaved={() => {
+				onSaved={(route, message) => {
 					setFormOpen(false);
 					setSelectedRoute(null);
 					setIsLoading(true);
 					fetchData();
+					if (message) {
+						setSnackbar({
+							open: true,
+							message,
+							severity: "success",
+						});
+					}
 				}}
 			/>
 			{selectedRoute && (
@@ -219,10 +226,17 @@ const RouteList: React.FC = () => {
 						id={selectedRoute.id}
 						open={deleteOpen}
 						onClose={() => setDeleteOpen(false)}
-						onConfirm={() => {
+						onConfirm={(message) => {
 							setDeleteOpen(false);
 							setIsLoading(true);
 							fetchData();
+							if (message) {
+								setSnackbar({
+									open: true,
+									message,
+									severity: "success",
+								});
+							}
 						}}
 					/>
 				</>

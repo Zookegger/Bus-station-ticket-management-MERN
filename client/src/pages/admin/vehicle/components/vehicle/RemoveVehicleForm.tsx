@@ -8,7 +8,7 @@ interface RemoveVehicleFormProps {
 	id?: number;
 	open: boolean;
 	onClose: () => void;
-	onConfirm: () => void;
+	onConfirm: (message?: string) => void;
 }
 
 const RemoveVehicleForm: FC<RemoveVehicleFormProps> = ({
@@ -39,7 +39,7 @@ const RemoveVehicleForm: FC<RemoveVehicleFormProps> = ({
 
 	const handleSuccess = useCallback(() => {
 		// Propagate success so list views can refresh their data.
-		onConfirm();
+		onConfirm("Vehicle deleted successfully");
 	}, [onConfirm]);
 
 	return (

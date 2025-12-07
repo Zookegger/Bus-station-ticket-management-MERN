@@ -189,10 +189,7 @@ export const AddPaymentMethod = async (
 			throw { status: 500, message: "Failed to create payment method" };
 		}
 
-		res.status(201).json({
-			payment_method: new_method,
-			message: "Payment method created successfully"
-		});
+		res.status(201).json(new_method);
 	} catch (err: any) {
         logger.debug("AddPaymentMethod error:", err);
         logger.debug("Error details:", {
@@ -245,10 +242,7 @@ export const UpdatePaymentMethod = async (
 			throw { status: 404, message: `Payment method with ID '${id}' not found` };
 		}
 
-		res.status(200).json({
-			payment_method: updated_method,
-			message: "Payment method updated successfully"
-		});
+		res.status(200).json(updated_method);
 	} catch (err) {
 		next(err);
 	}

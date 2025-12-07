@@ -10,6 +10,8 @@ import {
 	Paper,
 	IconButton,
 	Tooltip,
+	Snackbar,
+	Alert,
 } from "@mui/material";
 import {
 	Add as AddIcon,
@@ -65,6 +67,13 @@ const SystemSettingsManager: React.FC = () => {
 		open: false,
 		editing: null,
 	});
+	const [snackbar, setSnackbar] = useState<{
+		open: boolean;
+		message: string;
+		severity: "success" | "error" | "info" | "warning";
+	}>({ open: false, message: "", severity: "info" });
+
+	const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
 
 	const {
 		control,
@@ -100,6 +109,12 @@ const SystemSettingsManager: React.FC = () => {
 	useAdminRealtime({
 		entity: "setting",
 		onRefresh: fetchSettings,
+		onNotify: (message, severity) =>
+			setSnackbar({
+				open: true,
+				message,
+				severity: severity || "info",
+			}),
 	});
 
 	useEffect(() => {
@@ -184,11 +199,21 @@ const SystemSettingsManager: React.FC = () => {
 
 			if (response.status === 200) {
 				// Update local state
-				setSettings(response.data);
+				fetchSettings();
+				setSnackbar({
+					open: true,
+					message: "Setting updated successfully",
+					severity: "success",
+				});
 				handleCloseDialog();
 			}
 		} catch (err) {
 			console.error("Failed to save setting", err);
+			setSnackbar({
+				open: true,
+				message: "Failed to save setting",
+				severity: "error",
+			});
 		}
 	};
 
@@ -400,6 +425,21 @@ const SystemSettingsManager: React.FC = () => {
 					</DialogActions>
 				</form>
 			</Dialog>
+
+			<Snackbar
+				open={snackbar.open}
+				autoHideDuration={6000}
+				onClose={handleCloseSnackbar}
+				anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+			>
+				<Alert
+					onClose={handleCloseSnackbar}
+					severity={snackbar.severity}
+					sx={{ width: "100%" }}
+				>
+					{snackbar.message}
+				</Alert>
+			</Snackbar>
 		</Box>
 	);
 };

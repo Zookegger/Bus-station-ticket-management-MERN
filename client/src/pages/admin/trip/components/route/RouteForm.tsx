@@ -77,7 +77,7 @@ type UILocation = Partial<Location> & {
 interface RouteFormProps {
 	open: boolean;
 	onClose: () => void;
-	onSaved: (route: any) => void;
+	onSaved: (route: any, message?: string) => void;
 	initialData?: any;
 	routeId?: number;
 }
@@ -280,8 +280,8 @@ const RouteForm: React.FC<RouteFormProps> = ({
 				});
 			}
 
-			const savedRoute = (res as any).data ?? res;
-			onSaved(savedRoute);
+			const savedRoute = (res as any).route ?? (res as any).data ?? res;
+			onSaved(savedRoute, isEditMode ? "Route updated successfully" : "Route created successfully");
 			onClose();
 		} catch (err: any) {
 			setServerError(err.message || "Failed to save route");

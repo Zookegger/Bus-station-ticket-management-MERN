@@ -32,7 +32,7 @@ export const CreateUser = async (
 		const payload: Partial<UserAttributes> & { password?: string } =
 			req.body;
 		const created = await userServices.addUser(payload);
-		res.status(201).json({ user: created, message: "User created" });
+		res.status(201).json(created);
 	} catch (err) {
 		next(err);
 	}
@@ -51,7 +51,7 @@ export const UpdateUser = async (
 		const updateData: Partial<UserAttributes> = req.body;
 		const user = await userServices.updateUser(targetUserId, updateData);
 		if (!user) throw { status: 500, message: "Failed to update user" };
-		res.status(200).json({ user, message: "User updated" });
+		res.status(200).json(user);
 	} catch (err) {
 		next(err);
 	}
@@ -68,7 +68,7 @@ export const DeleteUser = async (
 	try {
 		const targetUserId = getParamStringId(req);
 		await userServices.deleteUser(targetUserId);
-		res.status(200).json({ message: "User deleted" });
+		res.status(200).json({ success: true, message: "User deleted" });
 	} catch (err) {
 		next(err);
 	}

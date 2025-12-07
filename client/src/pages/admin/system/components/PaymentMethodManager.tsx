@@ -12,6 +12,8 @@ import {
 	Switch,
 	FormControlLabel,
 	Chip,
+	Snackbar,
+	Alert,
 } from "@mui/material";
 import {
 	Add as AddIcon,
@@ -47,6 +49,13 @@ const PaymentMethodManager: React.FC = () => {
 		editing: null,
 	});
 	const [loading, setLoading] = useState(false);
+	const [snackbar, setSnackbar] = useState<{
+		open: boolean;
+		message: string;
+		severity: "success" | "error" | "info" | "warning";
+	}>({ open: false, message: "", severity: "info" });
+
+	const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
 
 	const {
 		control,
@@ -84,6 +93,12 @@ const PaymentMethodManager: React.FC = () => {
 	useAdminRealtime({
 		entity: "payment_method",
 		onRefresh: fetchMethods,
+		onNotify: (message, severity) =>
+			setSnackbar({
+				open: true,
+				message,
+				severity: severity || "info",
+			}),
 	});
 
 	useEffect(() => {
@@ -146,6 +161,11 @@ const PaymentMethodManager: React.FC = () => {
 					),
 					data: payload,
 				});
+				setSnackbar({
+					open: true,
+					message: "Payment method updated successfully",
+					severity: "success",
+				});
 			} else {
 				// Create
 				await callApi({
@@ -153,11 +173,21 @@ const PaymentMethodManager: React.FC = () => {
 					url: API_ENDPOINTS.PAYMENT_METHOD.CREATE,
 					data: payload,
 				});
+				setSnackbar({
+					open: true,
+					message: "Payment method created successfully",
+					severity: "success",
+				});
 			}
 			await fetchMethods();
 			handleCloseDialog();
 		} catch (err) {
 			console.error("Failed to save payment method", err);
+			setSnackbar({
+				open: true,
+				message: "Failed to save payment method",
+				severity: "error",
+			});
 		}
 	};
 
@@ -169,9 +199,19 @@ const PaymentMethodManager: React.FC = () => {
 				method: "DELETE",
 				url: API_ENDPOINTS.PAYMENT_METHOD.DELETE(id as any),
 			});
+			setSnackbar({
+				open: true,
+				message: "Payment method deleted successfully",
+				severity: "success",
+			});
 			fetchMethods();
 		} catch (err) {
 			console.error("Failed to delete", err);
+			setSnackbar({
+				open: true,
+				message: "Failed to delete payment method",
+				severity: "error",
+			});
 		}
 	};
 
@@ -391,6 +431,21 @@ const PaymentMethodManager: React.FC = () => {
 					</DialogActions>
 				</form>
 			</Dialog>
+
+			<Snackbar
+				open={snackbar.open}
+				autoHideDuration={6000}
+				onClose={handleCloseSnackbar}
+				anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+			>
+				<Alert
+					onClose={handleCloseSnackbar}
+					severity={snackbar.severity}
+					sx={{ width: "100%" }}
+				>
+					{snackbar.message}
+				</Alert>
+			</Snackbar>
 		</Box>
 	);
 };

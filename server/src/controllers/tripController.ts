@@ -177,10 +177,7 @@ export const AddTrip = async (
 			};
 		}
 
-		res.status(201).json({
-			trip,
-			message: "Trip added successfully.",
-		});
+		res.status(201).json(trip);
 
 		// Emit CRUD change to admins
 		try {
@@ -233,10 +230,7 @@ export const UpdateTrip = async (
 			};
 		}
 
-		res.status(200).json({
-			trip,
-			message: "Trip updated successfully.",
-		});
+		res.status(200).json(trip);
 
 		// Emit CRUD change to admins
 		try {

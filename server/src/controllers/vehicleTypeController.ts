@@ -134,10 +134,7 @@ export const AddVehicleType = async (
 			};
 		}
 
-		res.status(201).json({
-			vehicle_type,
-			message: "Vehicle type added successfully",
-		});
+		res.status(201).json(vehicle_type);
 	} catch (err) {
 		next(err);
 	}
@@ -179,10 +176,7 @@ export const UpdateVehicleType = async (
 			};
 		}
 
-		res.status(200).json({
-			vehicle_type,
-			message: "Vehicle type updated successfully",
-		});
+		res.status(200).json(vehicle_type);
 	} catch (err) {
 		next(err);
 	}

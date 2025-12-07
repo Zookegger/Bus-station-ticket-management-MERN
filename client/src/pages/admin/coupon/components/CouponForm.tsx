@@ -39,7 +39,7 @@ axios.defaults.withCredentials = true;
 interface CouponFormProps {
 	open: boolean;
 	onClose: () => void;
-	onSuccess: () => void;
+	onSuccess: (message?: string) => void;
 	initialData?: Coupon | null;
 }
 
@@ -198,7 +198,7 @@ const CouponForm: React.FC<CouponFormProps> = ({
 				});
 			}
 
-			onSuccess();
+			onSuccess(isEditMode ? "Coupon updated successfully" : "Coupon created successfully");
 			onClose();
 		} catch (err: any) {
 			setServerError(err?.message || "An error occurred");

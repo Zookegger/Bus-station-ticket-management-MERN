@@ -88,7 +88,7 @@ export const RefundTickets = async (
         if (!result) {
             throw { status: 404, message: "Order or tickets not found, or they are not in a refundable state." };
         }
-        res.status(200).json({ message: "Tickets have been successfully refunded.", order: result });
+        res.status(200).json(result);
 
     } catch (err) {
         next(err);

@@ -48,7 +48,7 @@ interface VehicleFormProps {
 	open: boolean;
 	initialData?: VehicleDetail | null;
 	onClose: () => void;
-	onSuccess?: () => void;
+	onSuccess?: (message?: string) => void;
 }
 
 // Helper: Consistent status colors
@@ -178,7 +178,12 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 				);
 			}
 
-			if (onSuccess) onSuccess();
+			if (onSuccess)
+				onSuccess(
+					isEditMode
+						? "Vehicle updated successfully."
+						: "Vehicle created successfully."
+				);
 			onClose();
 		} catch (err: any) {
 			setErrorMessage(err.message || "An error occurred");

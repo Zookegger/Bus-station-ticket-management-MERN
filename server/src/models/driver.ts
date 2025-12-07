@@ -243,7 +243,7 @@ export class Driver
 					field: "address",
 				},
 				dateOfBirth: {
-					type: DataTypes.DATE,
+					type: DataTypes.DATEONLY,
 					allowNull: true,
 					field: "dateOfBirth",
 				},
@@ -254,7 +254,7 @@ export class Driver
 					field: "citizenId",
 				},
 				hiredAt: {
-					type: DataTypes.DATE,
+					type: DataTypes.DATEONLY,
 					allowNull: true,
 				},
 				isActive: {
@@ -273,12 +273,12 @@ export class Driver
 					field: "licenseCategory",
 				},
 				licenseIssueDate: {
-					type: DataTypes.DATE,
+					type: DataTypes.DATEONLY,
 					allowNull: true,
 					field: "licenseIssueDate",
 				},
 				licenseExpiryDate: {
-					type: DataTypes.DATE,
+					type: DataTypes.DATEONLY,
 					allowNull: true,
 					field: "licenseExpiryDate",
 				},

@@ -11,6 +11,7 @@ import {
 	MenuItem,
 	IconButton,
 	Alert,
+	Snackbar,
 } from "@mui/material";
 import {
 	Search as SearchIcon,
@@ -41,10 +42,23 @@ export default function OrderManagement() {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [refreshTrigger, setRefreshTrigger] = useState(0);
+	const [snackbar, setSnackbar] = useState<{
+		open: boolean;
+		message: string;
+		severity: "success" | "error" | "info" | "warning";
+	}>({ open: false, message: "", severity: "info" });
+
+	const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
 
 	useAdminRealtime({
 		entity: "order",
 		onRefresh: () => setRefreshTrigger((prev) => prev + 1),
+		onNotify: (message, severity) =>
+			setSnackbar({
+				open: true,
+				message,
+				severity: severity || "info",
+			}),
 	});
 
 	useEffect(() => {
@@ -119,9 +133,16 @@ export default function OrderManagement() {
 		setShowRefundDialog(true);
 	};
 
-	const handleRefundSuccess = () => {
+	const handleRefundSuccess = (message?: string) => {
 		setRefreshTrigger((prev) => prev + 1);
 		setSelectedOrder(null); // Close detail dialog as data is stale
+		if (message) {
+			setSnackbar({
+				open: true,
+				message,
+				severity: "success",
+			});
+		}
 	};
 
 	return (
@@ -223,6 +244,20 @@ export default function OrderManagement() {
 					onSuccess={handleRefundSuccess}
 				/>
 			)}
+			<Snackbar
+				open={snackbar.open}
+				autoHideDuration={6000}
+				onClose={handleCloseSnackbar}
+				anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+			>
+				<Alert
+					onClose={handleCloseSnackbar}
+					severity={snackbar.severity}
+					sx={{ width: "100%" }}
+				>
+					{snackbar.message}
+				</Alert>
+			</Snackbar>
 		</DataGridPageLayout>
 	);
 }

@@ -44,7 +44,7 @@ import { userSchema, type UserForm as UserFormType } from "@schemas/userSchema";
 interface Props {
 	open: boolean;
 	onClose: () => void;
-	onSaved: (user: User) => void;
+	onSaved: (user: User, message?: string) => void;
 	initialData?: User | null;
 }
 
@@ -132,8 +132,8 @@ const UserForm: React.FC<Props> = ({ open, onClose, onSaved, initialData }) => {
 				data: payload,
 			});
 
-			const savedUser = (res as any).user ?? (res as any).data ?? res;
-			onSaved(savedUser as User);
+			const savedUser = (res as any).data ?? res;
+			onSaved(savedUser as User, isEditMode ? "User updated successfully" : "User created successfully");
 			onClose();
 		} catch (err: any) {
 			console.error(

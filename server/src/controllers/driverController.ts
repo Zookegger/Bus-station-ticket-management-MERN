@@ -46,10 +46,7 @@ export const AddDriver = async (
 				message: "No driver added, Something went wrong.",
 			};
 
-		res.status(201).json({
-			driver,
-			message: "Driver added successfully.",
-		});
+		res.status(201).json(driver);
 	} catch (err) {
 		next(err);
 	}
@@ -92,10 +89,7 @@ export const UpdateDriver = async (
 				message: "No driver information updated, Something went wrong.",
 			};
 
-		res.status(200).json({
-			driver,
-			message: "Driver updated successfully.",
-		});
+		res.status(200).json(driver);
 	} catch (err) {
 		next(err);
 	}

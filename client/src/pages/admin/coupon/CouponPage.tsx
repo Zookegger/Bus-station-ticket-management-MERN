@@ -241,7 +241,16 @@ const CouponPage: React.FC = () => {
 					setFormOpen(false);
 					setSelectedCoupon(null);
 				}}
-				onSuccess={fetchData}
+				onSuccess={(message) => {
+					fetchData();
+					if (message) {
+						setSnackbar({
+							open: true,
+							message,
+							severity: "success",
+						});
+					}
+				}}
 			/>
 			{selectedCoupon && (
 				<>

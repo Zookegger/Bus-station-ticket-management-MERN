@@ -405,18 +405,32 @@ const UserPage: React.FC = () => {
 						open={deleteOpen}
 						user={selectedUser}
 						onClose={handleCloseDelete}
-						onDeleted={(id) => {
+						onDeleted={(id, message) => {
 							setUsers((u) => u.filter((x) => x.id !== id));
 							setDeleteOpen(false);
+							if (message) {
+								setSnackbar({
+									open: true,
+									message,
+									severity: "success",
+								});
+							}
 						}}
 					/>
 					<InfoDrawer
 						user={selectedUser}
 						open={drawerOpen}
 						onClose={handleCloseDrawer}
-						onDelete={(id) => {
+						onDelete={(id, message) => {
 							setUsers((u) => u.filter((x) => x.id !== id));
 							setDeleteOpen(false);
+							if (message) {
+								setSnackbar({
+									open: true,
+									message,
+									severity: "success",
+								});
+							}
 						}}
 						onEdit={(updated) => {
 							setUsers((u) =>
@@ -434,7 +448,7 @@ const UserPage: React.FC = () => {
 				open={formOpen}
 				initialData={selectedUser}
 				onClose={handleCloseForm}
-				onSaved={(saved) => {
+				onSaved={(saved, message) => {
 					if (selectedUser) {
 						setUsers((u) =>
 							u.map((x) => (x.id === saved.id ? saved : x))
@@ -443,6 +457,13 @@ const UserPage: React.FC = () => {
 						setUsers((u) => [saved, ...u]);
 					}
 					setFormOpen(false);
+					if (message) {
+						setSnackbar({
+							open: true,
+							message,
+							severity: "success",
+						});
+					}
 				}}
 			/>
 			<Snackbar

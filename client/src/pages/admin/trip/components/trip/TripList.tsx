@@ -191,6 +191,17 @@ const TripList: React.FC = () => {
 		}
 	};
 
+	const handleSaved = (message?: string) => {
+		fetchTrips();
+		if (message) {
+			setSnackbar({
+				open: true,
+				message,
+				severity: "success",
+			});
+		}
+	};
+
 	const handleViewDetails = (trip: Trip) => {
 		setSelectedTrip(trip);
 		setDrawerOpen(true);
@@ -550,7 +561,7 @@ const TripList: React.FC = () => {
 					setFormOpen(false);
 					setEditingTrip(null);
 				}}
-				onSaved={fetchTrips}
+				onSaved={handleSaved}
 				initialData={editingTrip}
 			/>
 
