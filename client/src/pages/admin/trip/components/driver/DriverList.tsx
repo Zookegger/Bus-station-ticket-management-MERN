@@ -34,6 +34,7 @@ import { format } from "date-fns";
 import { DataGridPageLayout } from "@components/admin";
 import callApi from "@utils/apiCaller";
 import { API_ENDPOINTS } from "@constants/index";
+import ConfirmDeleteDialog from "@components/common/ConfirmDeleteDialog";
 import DriverDetails from "./DriverDetails";
 import DriverForm from "./DriverForm";
 import { DriverStatus, type Driver } from "@my-types/driver";
@@ -263,9 +264,11 @@ const DriverList: React.FC = () => {
 	// Control booleans for the primary dialogs and detail drawer.
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [drawerOpen, setDrawerOpen] = useState(false);
+	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	// Track the driver currently selected for viewing or editing.
 	const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
 	const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
+	const [deletingDriver, setDeletingDriver] = useState<Driver | null>(null);
 	// Support filters and text search across the dataset.
 	const [statusFilter, setStatusFilter] = useState<DriverStatus | "all">(
 		"all"
@@ -289,27 +292,24 @@ const DriverList: React.FC = () => {
 		setDialogOpen(true);
 	}, []);
 
-	const handleDelete = useCallback(async (driver: Driver) => {
-		if (
-			window.confirm(
-				`Are you sure you want to delete ${driver.fullname}?`
-			)
-		) {
-			try {
-				await callApi({
-					method: "DELETE",
-					url: API_ENDPOINTS.DRIVER.DELETE(driver.id),
-				});
-				setDataVersion((v) => v + 1);
-			} catch (error) {
-				const message =
-					error instanceof Error
-						? error.message
-						: "Failed to delete driver";
-				setFetchError(message);
-			}
-		}
+	const handleDelete = useCallback((driver: Driver) => {
+		setDeletingDriver(driver);
+		setDeleteDialogOpen(true);
 	}, []);
+
+	const confirmDelete = useCallback(async () => {
+		if (!deletingDriver) return;
+		await callApi({
+			method: "DELETE",
+			url: API_ENDPOINTS.DRIVER.DELETE(deletingDriver.id),
+		});
+		setDataVersion((v) => v + 1);
+		setSnackbar({
+			open: true,
+			message: "Driver deleted successfully",
+			severity: "success",
+		});
+	}, [deletingDriver]);
 
 	// Column definitions stay memoised to avoid re-renders of the grid component.
 	const columns = useMemo(
@@ -513,6 +513,25 @@ const DriverList: React.FC = () => {
 					}
 				}}
 			/>
+
+			<ConfirmDeleteDialog
+				open={deleteDialogOpen}
+				title="Delete Driver"
+				description={
+					<>
+						Are you sure you want to delete{" "}
+						<strong>{deletingDriver?.fullname}</strong>? This action
+						cannot be undone.
+					</>
+				}
+				onClose={() => {
+					setDeleteDialogOpen(false);
+					setDeletingDriver(null);
+				}}
+				deleteAction={confirmDelete}
+				confirmLabel="Delete Driver"
+			/>
+
 			<Snackbar
 				open={snackbar.open}
 				autoHideDuration={6000}

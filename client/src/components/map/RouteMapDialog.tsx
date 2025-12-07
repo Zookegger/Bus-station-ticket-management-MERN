@@ -477,6 +477,8 @@ const RouteMapDialog: React.FC<RouteMapDialogProps> = ({
 		setStartInputValue("");
 		setEndInputValue("");
 		setSelectionMode("start");
+		setHighlightedStart(null);
+		setHighlightedEnd(null);
 	};
 
 	const routeCoords: [number, number][] =
@@ -611,10 +613,11 @@ const RouteMapDialog: React.FC<RouteMapDialogProps> = ({
 							inputValue={startInputValue}
 							onInputChange={(_, val, reason) => {
 								setStartInputValue(val);
-								startSearch.setQuery(val);
+								if (reason === "input") {
+									startSearch.setQuery(val);
+								}
 								if (
 									reason === "clear" ||
-									reason === "reset" ||
 									val === ""
 								) {
 									setStops((prev) => {
@@ -657,7 +660,7 @@ const RouteMapDialog: React.FC<RouteMapDialogProps> = ({
 									return;
 								}
 								if (value && typeof value !== "string") {
-									endSearch.setQuery(value.name);
+									// endSearch.setQuery(value.name); // Removed incorrect query update
 									handleSelectLocation(value, "start");
 								}
 							}}
@@ -751,9 +754,11 @@ const RouteMapDialog: React.FC<RouteMapDialogProps> = ({
 							}
 							loading={interSearch.isLoading}
 							inputValue={interInputValue}
-							onInputChange={(_, val) => {
+							onInputChange={(_, val, reason) => {
 								setInterInputValue(val);
-								interSearch.setQuery(val);
+								if (reason === "input") {
+									interSearch.setQuery(val);
+								}
 							}}
 							onChange={(_, val) =>
 								typeof val !== "string" &&
@@ -804,8 +809,10 @@ const RouteMapDialog: React.FC<RouteMapDialogProps> = ({
 							inputValue={endInputValue}
 							onInputChange={(_, val, reason) => {
 								setEndInputValue(val);
-								endSearch.setQuery(val);
-								if (reason === "clear" || reason === "reset") {
+								if (reason === "input") {
+									endSearch.setQuery(val);
+								}
+								if (reason === "clear" || val === "") {
 									setStops((prev) => {
 										const next = [...prev];
 										const lastIdx = next.length - 1;
@@ -848,7 +855,7 @@ const RouteMapDialog: React.FC<RouteMapDialogProps> = ({
 									return;
 								}
 								if (value && typeof value !== "string") {
-									endSearch.setQuery(value.name);
+									// endSearch.setQuery(value.name); // Removed redundant query update
 									handleSelectLocation(value, "end");
 								}
 							}}

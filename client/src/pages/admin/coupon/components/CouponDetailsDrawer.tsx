@@ -1,3 +1,4 @@
+import React, { useMemo, useState } from "react";
 import {
 	Button,
 	Card,
@@ -11,12 +12,48 @@ import {
 	Grid,
 	CardActions,
 	useTheme,
+	Box,
+	Divider,
+	Tooltip,
+	Avatar,
+	alpha,
 } from "@mui/material";
-import { Box } from "@mui/system";
 import { GridCloseIcon } from "@mui/x-data-grid";
+import {
+	Edit as EditIcon,
+	Delete as DeleteIcon,
+	ContentCopy as CopyIcon,
+	Event as CalendarIcon,
+	ConfirmationNumber as TicketIcon,
+	AttachMoney,
+	Percent,
+	Image as ImageIcon,
+	CheckCircle as CheckIcon,
+	Cancel as CancelIcon,
+} from "@mui/icons-material";
 import { format } from "date-fns";
-import { CouponType, type Coupon } from "@my-types";
-import { Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
+
+// Mock types
+enum CouponType {
+	PERCENTAGE = "PERCENTAGE",
+	FIXED = "FIXED",
+}
+interface Coupon {
+	id: number;
+	code: string;
+	title: string;
+	type: CouponType;
+	value: number;
+	maxUsage: number;
+	currentUsageCount: number;
+	isActive: boolean;
+	startPeriod: string;
+	endPeriod: string;
+	createdAt: string;
+	updatedAt: string;
+	description?: string;
+	imgUrl?: string;
+}
 
 interface CouponDetailsDrawerProps {
 	open: boolean;
@@ -26,11 +63,6 @@ interface CouponDetailsDrawerProps {
 	onDelete?: (id: number) => void;
 }
 
-/**
- * Renders a drawer that shows a read-only summary of the selected coupon.
- * @param {CouponDetailsDrawerProps} props - Component props injected from the coupon grid interactions.
- * @returns {JSX.Element} React node containing coupon information.
- */
 const CouponDetailsDrawer: React.FC<CouponDetailsDrawerProps> = ({
 	open,
 	onClose,
@@ -39,351 +71,432 @@ const CouponDetailsDrawer: React.FC<CouponDetailsDrawerProps> = ({
 	onDelete,
 }) => {
 	const theme = useTheme();
+	const [copied, setCopied] = useState(false);
 
-	/**
-	 * Converts an ISO-8601 string into a friendly date-time label for display.
-	 * @param {string} iso_value - Raw ISO string saved on the coupon.
-	 * @returns {string} Human readable value for UI rendering.
-	 */
+	const handleCopyCode = (code: string) => {
+		navigator.clipboard.writeText(code);
+		setCopied(true);
+		setTimeout(() => setCopied(false), 2000);
+	};
+
 	const formatDateTime = (iso_value: string): string => {
-		return format(new Date(iso_value), "dd/MM/yyyy - HH:mm:ss");
-	};
-
-	/**
-	 * Invokes the upstream edit handler with the currently selected coupon.
-	 * @returns {void}
-	 */
-	const handleEditClick = (coupon: Coupon): void => {
-		if (!coupon || !onEdit) {
-			return;
+		if (!iso_value) return "N/A";
+		try {
+			return format(new Date(iso_value), "dd MMM yyyy, HH:mm");
+		} catch (e) {
+			return "Invalid Date";
 		}
-
-		onEdit(coupon);
 	};
 
-	/**
-	 * Invokes the upstream delete handler with the currently selected coupon.
-	 * @returns {void}
-	 */
-	const handleDeleteClick = (id: number): void => {
-		if (!id || !onDelete) {
-			return;
-		}
+	const details = useMemo(() => {
+		if (!coupon) return null;
+		return {
+			start: formatDateTime(coupon.startPeriod),
+			end: formatDateTime(coupon.endPeriod),
+			created: formatDateTime(coupon.createdAt),
+			updated: formatDateTime(coupon.updatedAt),
+			valueLabel:
+				coupon.type === CouponType.PERCENTAGE
+					? `${coupon.value}% OFF`
+					: coupon.value.toLocaleString("en-US", {
+							style: "currency",
+							currency: "USD",
+					  }),
+			usageColor:
+				coupon.currentUsageCount >= coupon.maxUsage
+					? "error.main"
+					: "success.main",
+			statusColor: coupon.isActive
+				? theme.palette.success.main
+				: theme.palette.text.disabled,
+			headerBg: coupon.isActive
+				? alpha(theme.palette.success.main, 0.08)
+				: alpha(theme.palette.action.disabled, 0.08),
+		};
+	}, [coupon, theme]);
 
-		onDelete(id);
-	};
-
-	const formatted_details = coupon
-		? {
-				start_period: coupon.startPeriod
-					? formatDateTime(coupon.startPeriod.toString())
-					: "N/A",
-				end_period: coupon.endPeriod
-					? formatDateTime(coupon.endPeriod.toString())
-					: "N/A",
-				created_at: coupon.createdAt
-					? formatDateTime(coupon.createdAt.toString())
-					: "N/A",
-				updated_at: coupon.updatedAt
-					? formatDateTime(coupon.updatedAt.toString())
-					: "N/A",
-				value_label:
-					coupon.type === CouponType.PERCENTAGE
-						? `${coupon.value}%`
-						: coupon.value.toLocaleString("en-US", {
-								style: "currency",
-								currency: "USD",
-						  }),
-		  }
-		: null;
+	if (!coupon || !details) return null;
 
 	return (
-		<Drawer anchor="right" open={open} onClose={onClose}>
-			<Box
+		<Drawer
+			anchor="right"
+			open={open}
+			onClose={onClose}
+			PaperProps={{
+				sx: {
+					width: 450,
+					maxWidth: "100vw",
+					bgcolor: theme.palette.background.default,
+				},
+			}}
+		>
+			{/* Main Card Container - Fills the drawer height */}
+			<Card
 				sx={{
-					p: 3,
 					height: "100%",
 					display: "flex",
 					flexDirection: "column",
-					width: 400,
-					maxWidth: "100vw",
+					borderRadius: 3,
+					boxShadow: theme.shadows[2],
+					overflow: "hidden", // Prevent double scrollbars
 				}}
 			>
-				<Box
+				{/* HEADER: Integrated Title, Status, and Close Button */}
+				<CardHeader
 					sx={{
-						display: "flex",
-						justifyContent: "space-between",
-						alignItems: "center",
-						mb: 3,
+						bgcolor: details.headerBg,
+						pb: 2,
+						borderBottom: `1px solid ${theme.palette.divider}`,
 					}}
-				>
-					<Typography
-						variant="h5"
-						sx={{
-							fontWeight: "bold",
-							color: "#1976d2",
-						}}
-					>
-						Coupon Details
-					</Typography>
-					<IconButton onClick={onClose} size="small">
-						<GridCloseIcon />
-					</IconButton>
-				</Box>
+					avatar={
+						<Avatar
+							sx={{
+								bgcolor: "background.paper",
+								color: details.statusColor,
+							}}
+						>
+							{coupon.isActive ? <CheckIcon /> : <CancelIcon />}
+						</Avatar>
+					}
+					action={
+						<Stack direction="row" alignItems="center" spacing={1}>
+							<Chip
+								label={coupon.isActive ? "Active" : "Inactive"}
+								color={coupon.isActive ? "success" : "default"}
+								size="small"
+								variant="filled"
+							/>
+							<IconButton onClick={onClose} size="small">
+								<GridCloseIcon />
+							</IconButton>
+						</Stack>
+					}
+					title={
+						<Typography
+							variant="h6"
+							fontWeight="bold"
+							sx={{ mr: 1 }}
+						>
+							{coupon.title || coupon.code}
+						</Typography>
+					}
+					subheader={
+						<Typography variant="caption" color="text.secondary">
+							Coupon ID: #{coupon.id}
+						</Typography>
+					}
+				/>
 
-				<Box p={0}>
-					{coupon && formatted_details ? (
-						<Grid container spacing={2}>
-							<Grid size={12}>
-								<Card>
-									<CardHeader
-										title={coupon.title ?? coupon.code}
-										subheader={
-											<Box
-												display={"flex"}
-												justifyContent={"space-between"}
-											>
-												<Chip
-													color={
-														coupon.isActive
-															? "success"
-															: "default"
-													}
-													label={
-														coupon.isActive
-															? "Active"
-															: "Inactive"
-													}
-													size="small"
-												/>
-												<Typography>
-													Last updated{" "}
-													{
-														formatted_details.updated_at
-													}
-												</Typography>
-											</Box>
+				{/* CONTENT: Scrollable Area */}
+				<CardContent sx={{ flex: 1, overflowY: "auto", pt: 3 }}>
+					<Stack spacing={3}>
+						{/* Hero: Code */}
+						<Box
+							sx={{
+								position: "relative",
+								p: 2,
+								border: `2px dashed ${theme.palette.primary.main}`,
+								bgcolor: alpha(
+									theme.palette.primary.main,
+									0.04
+								),
+								borderRadius: 2,
+								textAlign: "center",
+							}}
+						>
+							<Typography
+								variant="caption"
+								color="text.secondary"
+								textTransform="uppercase"
+								fontWeight="bold"
+							>
+								Coupon Code
+							</Typography>
+							<Box
+								display="flex"
+								alignItems="center"
+								justifyContent="center"
+								gap={1}
+								mt={0.5}
+							>
+								<Typography
+									variant="h4"
+									fontWeight="900"
+									color="primary"
+									sx={{
+										letterSpacing: 1,
+										wordBreak: "break-all",
+									}}
+								>
+									{coupon.code}
+								</Typography>
+								<Tooltip
+									title={copied ? "Copied!" : "Copy Code"}
+								>
+									<IconButton
+										size="small"
+										onClick={() =>
+											handleCopyCode(coupon.code)
 										}
-									/>
-									<CardContent>
-										<Stack spacing={2}>
-											<Grid container spacing={2}>
-												<Grid size={{ xs: 12, sm: 6 }}>
-													<Typography
-														variant="subtitle2"
-														color="text.secondary"
-													>
-														Coupon ID
-													</Typography>
-													<Typography variant="body1">
-														{coupon.id}
-													</Typography>
-												</Grid>
-												<Grid size={{ xs: 12, sm: 6 }}>
-													<Typography
-														variant="subtitle2"
-														color="text.secondary"
-													>
-														Code
-													</Typography>
-													<Typography variant="body1">
-														{coupon.code}
-													</Typography>
-												</Grid>
-												<Grid size={{ xs: 12, sm: 6 }}>
-													<Typography
-														variant="subtitle2"
-														color="text.secondary"
-													>
-														Type
-													</Typography>
-													<Typography variant="body1">
-														{coupon.type
-															.charAt(0)
-															.toUpperCase() +
-															coupon.type
-																.slice(1)
-																.toLowerCase()}
-													</Typography>
-												</Grid>
-												<Grid size={{ xs: 12, sm: 6 }}>
-													<Typography
-														variant="subtitle2"
-														color="text.secondary"
-													>
-														Value
-													</Typography>
-													<Typography variant="body1">
-														{
-															formatted_details.value_label
-														}
-													</Typography>
-												</Grid>
-												<Grid size={{ xs: 12, sm: 6 }}>
-													<Typography
-														variant="subtitle2"
-														color="text.secondary"
-													>
-														Max Usage
-													</Typography>
-													<Typography variant="body1">
-														{coupon.maxUsage}
-													</Typography>
-												</Grid>
-												<Grid size={{ xs: 12, sm: 6 }}>
-													<Typography
-														variant="subtitle2"
-														color="text.secondary"
-													>
-														Current Usage
-													</Typography>
-													<Typography variant="body1">
-														{
-															coupon.currentUsageCount
-														}
-													</Typography>
-												</Grid>
-												<Grid size={{ xs: 12, sm: 6 }}>
-													<Typography
-														variant="subtitle2"
-														color="text.secondary"
-													>
-														Valid From
-													</Typography>
-													<Typography variant="body1">
-														{
-															formatted_details.start_period
-														}
-													</Typography>
-												</Grid>
-												<Grid size={{ xs: 12, sm: 6 }}>
-													<Typography
-														variant="subtitle2"
-														color="text.secondary"
-													>
-														Valid Until
-													</Typography>
-													<Typography variant="body1">
-														{
-															formatted_details.end_period
-														}
-													</Typography>
-												</Grid>
-												<Grid size={{ xs: 12, sm: 6 }}>
-													<Typography
-														variant="subtitle2"
-														color="text.secondary"
-													>
-														Created At
-													</Typography>
-													<Typography variant="body1">
-														{
-															formatted_details.created_at
-														}
-													</Typography>
-												</Grid>
-												<Grid size={{ xs: 12, sm: 6 }}>
-													<Typography
-														variant="subtitle2"
-														color="text.secondary"
-													>
-														Updated At
-													</Typography>
-													<Typography variant="body1">
-														{
-															formatted_details.updated_at
-														}
-													</Typography>
-												</Grid>
-												<Grid size={12}>
-													<Typography
-														variant="subtitle2"
-														color="text.secondary"
-													>
-														Description
-													</Typography>
-													<Typography variant="body1">
-														{coupon.description ??
-															"No description provided."}
-													</Typography>
-												</Grid>
-												{coupon.imgUrl ? (
-													<Grid size={12}>
-														<Typography
-															variant="subtitle2"
-															color="text.secondary"
-														>
-															Image URL
-														</Typography>
-														<Typography
-															component="a"
-															href={coupon.imgUrl}
-															target="_blank"
-															rel="noreferrer"
-															sx={{
-																wordBreak:
-																	"break-all",
-															}}
-														>
-															{coupon.imgUrl}
-														</Typography>
-													</Grid>
-												) : null}
-											</Grid>
-										</Stack>
-									</CardContent>
-									<CardActions sx={{ gap: 1 }}>
-										<Button
-											variant="contained"
-											startIcon={<EditIcon />}
-											onClick={() =>
-												handleEditClick(coupon)
-											}
-											sx={{
-												bgcolor: "#1976d2",
-												flex: 1,
-												"&:hover": {
-													borderColor: "primary.main",
-													bgcolor: "#165799ff",
-													boxShadow:
-														theme.shadows?.[2] ||
-														"none",
-												},
-											}}
+									>
+										{copied ? (
+											<CheckIcon
+												fontSize="small"
+												color="success"
+											/>
+										) : (
+											<CopyIcon fontSize="small" />
+										)}
+									</IconButton>
+								</Tooltip>
+							</Box>
+						</Box>
+
+						{/* Stats Grid */}
+						<Grid container spacing={2}>
+							<Grid item xs={6}>
+								<Box
+									display="flex"
+									gap={1.5}
+									alignItems="center"
+								>
+									<Avatar
+										variant="rounded"
+										sx={{
+											width: 40,
+											height: 40,
+											bgcolor: alpha(
+												theme.palette.warning.main,
+												0.1
+											),
+											color: theme.palette.warning.main,
+										}}
+									>
+										{coupon.type ===
+										CouponType.PERCENTAGE ? (
+											<Percent fontSize="small" />
+										) : (
+											<AttachMoney fontSize="small" />
+										)}
+									</Avatar>
+									<Box>
+										<Typography
+											variant="caption"
+											color="text.secondary"
 										>
-											Edit
-										</Button>
-										<Button
-											variant="contained"
-											startIcon={<DeleteIcon />}
-											onClick={() =>
-												handleDeleteClick(coupon.id)
-											}
-											sx={{
-												bgcolor: "#d32f2f",
-												flex: 1,
-												"&:hover": {
-													borderColor: "primary.main",
-													bgcolor: "#811e1eff",
-													boxShadow:
-														theme.shadows?.[2] ||
-														"none",
-												},
-											}}
+											Value
+										</Typography>
+										<Typography
+											variant="subtitle2"
+											fontWeight="bold"
 										>
-											Delete
-										</Button>
-									</CardActions>
-								</Card>
+											{details.valueLabel}
+										</Typography>
+									</Box>
+								</Box>
+							</Grid>
+							<Grid item xs={6}>
+								<Box
+									display="flex"
+									gap={1.5}
+									alignItems="center"
+								>
+									<Avatar
+										variant="rounded"
+										sx={{
+											width: 40,
+											height: 40,
+											bgcolor: alpha(
+												theme.palette.info.main,
+												0.1
+											),
+											color: theme.palette.info.main,
+										}}
+									>
+										<TicketIcon fontSize="small" />
+									</Avatar>
+									<Box>
+										<Typography
+											variant="caption"
+											color="text.secondary"
+										>
+											Usage
+										</Typography>
+										<Typography
+											variant="subtitle2"
+											fontWeight="bold"
+											sx={{ color: details.usageColor }}
+										>
+											{coupon.currentUsageCount} /{" "}
+											{coupon.maxUsage}
+										</Typography>
+									</Box>
+								</Box>
 							</Grid>
 						</Grid>
-					) : (
-						<Typography color="text.secondary">
-							Select a coupon from the table to view its details.
+
+						<Divider />
+
+						{/* Validity */}
+						<Box>
+							<Typography
+								variant="overline"
+								color="text.secondary"
+								fontWeight="bold"
+							>
+								Validity Period
+							</Typography>
+							<Stack spacing={1.5} mt={1}>
+								<Box
+									display="flex"
+									justifyContent="space-between"
+									alignItems="center"
+								>
+									<Box
+										display="flex"
+										gap={1}
+										alignItems="center"
+									>
+										<CalendarIcon
+											fontSize="small"
+											color="action"
+										/>
+										<Typography variant="body2">
+											Starts
+										</Typography>
+									</Box>
+									<Typography
+										variant="body2"
+										fontWeight="medium"
+									>
+										{details.start}
+									</Typography>
+								</Box>
+								<Box
+									display="flex"
+									justifyContent="space-between"
+									alignItems="center"
+								>
+									<Box
+										display="flex"
+										gap={1}
+										alignItems="center"
+									>
+										<CalendarIcon
+											fontSize="small"
+											color="action"
+										/>
+										<Typography variant="body2">
+											Ends
+										</Typography>
+									</Box>
+									<Typography
+										variant="body2"
+										fontWeight="medium"
+									>
+										{details.end}
+									</Typography>
+								</Box>
+							</Stack>
+						</Box>
+
+						<Divider />
+
+						{/* Description & Image */}
+						<Box flexDirection={"column"} sx={{ flex: 1 }}>
+							<Typography
+								variant="overline"
+								color="text.secondary"
+								fontWeight="bold"
+							>
+								Description
+							</Typography>
+							<Typography
+								variant="body2"
+								color="text.primary"
+								paragraph
+							>
+								{coupon.description ||
+									"No description provided."}
+							</Typography>
+
+							{coupon.imgUrl && (
+								<Box
+									sx={{
+										borderRadius: 2,
+										overflow: "hidden",
+										border: `1px solid ${theme.palette.divider}`,
+										mt: 1,
+									}}
+								>
+									<Box
+										component="img"
+										src={coupon.imgUrl}
+										alt="Coupon Preview"
+										sx={{
+											width: "100%",
+											height: 160,
+											objectFit: "cover",
+											display: "block",
+										}}
+										onError={(e: any) => {
+											e.target.onerror = null;
+											e.target.src =
+												"https://via.placeholder.com/400x150?text=Image+Error";
+										}}
+									/>
+									<Box
+										p={1}
+										bgcolor="background.default"
+										display="flex"
+										alignItems="center"
+										gap={1}
+									>
+										<ImageIcon
+											fontSize="small"
+											color="disabled"
+										/>
+										<Typography
+											variant="caption"
+											color="text.secondary"
+											noWrap
+										>
+											{coupon.imgUrl}
+										</Typography>
+									</Box>
+								</Box>
+							)}
+						</Box>
+
+						<Typography variant="caption" color="text.secondary">
+							Last updated: {details.updated}
 						</Typography>
-					)}
-				</Box>
-			</Box>
+					</Stack>
+				</CardContent>
+
+				<Divider />
+
+				<CardActions disableSpacing sx={{ gap: 1 }}>
+					<Button
+						fullWidth
+						variant="outlined"
+						startIcon={<EditIcon />}
+						onClick={() => onEdit && onEdit(coupon)}
+					>
+						Edit
+					</Button>
+					<Button
+						fullWidth
+						variant="contained"
+						color="error"
+						startIcon={<DeleteIcon />}
+						onClick={() => onDelete && onDelete(coupon.id)}
+						sx={{ boxShadow: 0 }}
+					>
+						Delete
+					</Button>
+				</CardActions>
+			</Card>
 		</Drawer>
 	);
 };
