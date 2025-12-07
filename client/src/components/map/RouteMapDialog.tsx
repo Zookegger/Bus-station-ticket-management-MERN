@@ -243,7 +243,15 @@ const RouteMapDialog: React.FC<RouteMapDialogProps> = ({
 	// -- ROUTE CALCULATION --
 	useEffect(() => {
 		const calcRoute = async () => {
-			if (stops.length < 2) {
+			const validStops = stops.filter(
+				(s) =>
+					s.latitude !== undefined &&
+					s.longitude !== undefined &&
+					!isNaN(s.latitude) &&
+					!isNaN(s.longitude)
+			);
+
+			if (validStops.length < 2) {
 				setRouteData(null);
 				return;
 			}
@@ -251,7 +259,7 @@ const RouteMapDialog: React.FC<RouteMapDialogProps> = ({
 			setRouteLoading(true);
 			setRouteError(null);
 			try {
-				const data = await fetchRoutePolyline(stops);
+				const data = await fetchRoutePolyline(validStops);
 				setRouteData(data);
 
 				// Auto-fit bounds if not currently dragging
@@ -601,19 +609,40 @@ const RouteMapDialog: React.FC<RouteMapDialogProps> = ({
 							}
 							loading={startSearch.isLoading}
 							inputValue={startInputValue}
-							onInputChange={(_, val) => {
+							onInputChange={(_, val, reason) => {
 								setStartInputValue(val);
 								startSearch.setQuery(val);
+								if (
+									reason === "clear" ||
+									reason === "reset" ||
+									val === ""
+								) {
+									setStops((prev) => {
+										const next = [...prev];
+										if (next.length > 0) {
+											next[0] = {
+												...next[0],
+												name: "",
+												address: "",
+												// FORCE CAST: Tell TS to allow undefined to clear the pin
+												latitude:
+													undefined as unknown as number,
+												longitude:
+													undefined as unknown as number,
+											};
+										}
+										return next;
+									});
+								}
 							}}
 							onChange={(_, value) => {
 								if (value === null) {
 									startSearch.setQuery("");
 									setStops((prev) => {
 										const next = [...prev];
-										const lastIdx = next.length - 1;
-										if (lastIdx >= 0) {
-											next[lastIdx] = {
-												...next[lastIdx],
+										if (next.length > 0) {
+											next[0] = {
+												...next[0],
 												name: "",
 												address: "",
 												// FORCE CAST: Tell TS to allow undefined to clear the pin
@@ -773,9 +802,28 @@ const RouteMapDialog: React.FC<RouteMapDialogProps> = ({
 							}
 							loading={endSearch.isLoading}
 							inputValue={endInputValue}
-							onInputChange={(_, val) => {
+							onInputChange={(_, val, reason) => {
 								setEndInputValue(val);
 								endSearch.setQuery(val);
+								if (reason === "clear" || reason === "reset") {
+									setStops((prev) => {
+										const next = [...prev];
+										const lastIdx = next.length - 1;
+										if (lastIdx >= 0) {
+											next[lastIdx] = {
+												...next[lastIdx],
+												name: "",
+												address: "",
+												// FORCE CAST: Tell TS to allow undefined to clear the pin
+												latitude:
+													undefined as unknown as number,
+												longitude:
+													undefined as unknown as number,
+											};
+										}
+										return next;
+									});
+								}
 							}}
 							onChange={(_, value) => {
 								if (value === null) {
@@ -888,20 +936,34 @@ const RouteMapDialog: React.FC<RouteMapDialogProps> = ({
 									/>
 								)}
 
-								{stops.map((stop, index) => (
-									<DraggableMarker
-										key={stop.tempId}
-										position={[
-											stop.latitude,
-											stop.longitude,
-										]}
-										icon={stopIcon(index, stops.length)}
-										label={stop.name}
-										onDragEnd={(lat, lon) =>
-											handleMarkerDragEnd(lat, lon, index)
-										}
-									/>
-								))}
+								{stops.map((stop, index) => {
+									if (
+										stop.latitude === undefined ||
+										stop.longitude === undefined ||
+										isNaN(stop.latitude) ||
+										isNaN(stop.longitude)
+									) {
+										return null;
+									}
+									return (
+										<DraggableMarker
+											key={stop.tempId}
+											position={[
+												stop.latitude,
+												stop.longitude,
+											]}
+											icon={stopIcon(index, stops.length)}
+											label={stop.name}
+											onDragEnd={(lat, lon) =>
+												handleMarkerDragEnd(
+													lat,
+													lon,
+													index
+												)
+											}
+										/>
+									);
+								})}
 							</MapContainer>
 
 							{/** Overlay to block clicks and show spinner while reverse geocoding */}

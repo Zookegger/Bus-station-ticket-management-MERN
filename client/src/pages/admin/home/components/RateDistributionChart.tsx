@@ -178,6 +178,7 @@ const RateDistributionChart: React.FC<RateDistributionChartProps> = ({
 				borderRadius: 2,
 				display: "flex",
 				flexDirection: "column",
+				flex: 1,
 			}}
 		>
 			<CardHeader

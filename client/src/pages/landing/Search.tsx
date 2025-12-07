@@ -13,6 +13,7 @@ import {
 	Stack,
 	Paper,
 	Chip,
+	Collapse,
 } from "@mui/material";
 import type { SelectChangeEvent } from "@mui/material";
 import { useEffect, useState } from "react";
@@ -22,6 +23,8 @@ import { API_ENDPOINTS, ROUTES } from "@constants/index";
 import type { Trip, TripResponse } from "@my-types/trip";
 import { format, differenceInMinutes } from "date-fns";
 import { DirectionsBus } from "@mui/icons-material";
+import TripSearch from "@components/common/TripSearch";
+import { Container } from "@mui/system";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -29,6 +32,7 @@ const SearchPage: React.FC = () => {
 	const [searchParams] = useSearchParams();
 	const navigate = useNavigate();
 
+	const [isSearch, setIsSearch] = useState<boolean>(false);
 	const [fromLocation, setFromLocation] = useState<string>("");
 	const [toLocation, setToLocation] = useState<string>("");
 	const [travelDate, setTravelDate] = useState<string>("");
@@ -148,7 +152,65 @@ const SearchPage: React.FC = () => {
 	};
 
 	return (
-		<Box p={3} maxWidth={1000} mx="auto">
+		<Container maxWidth={"lg"}>
+			<Collapse in={isSearch}>
+				<TripSearch
+					initialFrom={fromLocation}
+					initialTo={toLocation}
+					initialDate={travelDate ? new Date(travelDate) : null}
+					slotProps={{
+						paper: {
+							elevation: 2,
+							sx: {
+								my: 3,
+								px: 2,
+								pt: 2,
+								pb: 1,
+							},
+						},
+						submitButton: {
+							fullWidth: true,
+							sx: {
+								height: 56,
+								borderRadius: 3,
+								fontSize: "1.1rem",
+								boxShadow: "0 4px 14px rgba(0,118,255,0.39)",
+								transition: "all 0.2s ease-in-out",
+								"&:hover": {
+									transform: "translateY(-2px)",
+									boxShadow:
+										"0 6px 20px rgba(0,118,255,0.23)",
+								},
+							},
+						},
+						box: {
+							display: "flex",
+							flexDirection: "column",
+						},
+						swapButton: {
+							sx: {
+								bgcolor: "white",
+								boxShadow: 2,
+								"&:hover": { bgcolor: "grey.50" },
+							},
+						},
+						swapIcon: {
+							sx: { color: "primary.main" },
+							className: "hvr-icon",
+						},
+						datePicker: {
+							sx: { bgcolor: "white", borderRadius: 2 },
+						},
+						departureAutocomplete: {
+							sx: { bgcolor: "white", borderRadius: 2 },
+						},
+						destinationAutocomplete: {
+							sx: { bgcolor: "white", borderRadius: 2 },
+						},
+					}}
+				/>
+			</Collapse>
+
 			<Paper
 				elevation={0}
 				sx={{ p: 3, mb: 3, bgcolor: "background.default" }}
@@ -221,7 +283,7 @@ const SearchPage: React.FC = () => {
 					<Button
 						variant="outlined"
 						sx={{ mt: 2 }}
-						onClick={() => navigate(ROUTES.HOME)}
+						onClick={() => setIsSearch(true)}
 					>
 						Search Another Date
 					</Button>
@@ -361,7 +423,8 @@ const SearchPage: React.FC = () => {
 															transform:
 																"translateX(-50%)",
 															color: "text.secondary",
-															whiteSpace: "nowrap",
+															whiteSpace:
+																"nowrap",
 														}}
 													>
 														{durationText}
@@ -468,7 +531,7 @@ const SearchPage: React.FC = () => {
 					</Box>
 				</Stack>
 			)}
-		</Box>
+		</Container>
 	);
 };
 

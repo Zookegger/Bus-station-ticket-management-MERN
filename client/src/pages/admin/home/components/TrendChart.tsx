@@ -76,7 +76,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
 	period_type = "daily",
 	title = "Revenue Trend", // Default generic title
 	height = 300, // Increased default for better visibility
-	currency = "USD",
+	currency = "VNĐ",
 	locale = "en-US",
 	color = "#2e7d32", // Matched your green theme
 	extra,
@@ -96,8 +96,6 @@ const TrendChart: React.FC<TrendChartProps> = ({
 						? parseISO(d.period)
 						: new Date(d.period);
 				if (!isNaN(date.getTime())) {
-					// Smart formatting based on granularily could go here
-					// For now, keeping it versatile
 					label = format(date, "dd MMM");
 				}
 			} catch (e) {}
@@ -114,6 +112,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
 				borderRadius: 2,
 				display: "flex",
 				flexDirection: "column",
+				flex: 1,
 			}}
 		>
 			<CardHeader
@@ -136,11 +135,13 @@ const TrendChart: React.FC<TrendChartProps> = ({
 					</Box>
 				}
 				action={extra}
-				slotProps={{ action: {
-					sx: {
-						alignSelf: "stretch",
-					}
-				}}}
+				slotProps={{
+					action: {
+						sx: {
+							alignSelf: "stretch",
+						},
+					},
+				}}
 			/>
 			<Divider />
 
