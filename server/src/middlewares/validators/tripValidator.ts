@@ -300,4 +300,9 @@ export const validateSearchTrip = [
 		.isBoolean()
 		.withMessage("checkSeatAvailability must be a boolean")
 		.toBoolean(),
+	query("minSeats")
+		.optional()
+		.isInt({ min: 1 })
+		.withMessage("minSeats must be a positive integer")
+		.toInt(),
 ];

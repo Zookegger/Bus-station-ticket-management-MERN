@@ -12,8 +12,6 @@ import { CreateTripDTO, UpdateTripDTO } from "@my_types/trip";
 import * as tripServices from "@services/tripServices";
 import * as tripSchedulingServices from "@services/tripSchedulingServices";
 import { emitCrudChange } from "@services/realtimeEvents";
-import logger from "@utils/logger";
-
 /**
  * Retrieves all trips with comprehensive filtering, sorting, and pagination.
  *
@@ -67,15 +65,8 @@ export const SearchTrip = async (
 			minPrice,
 			maxPrice,
 			checkSeatAvailability, // Expecting "true" or "false" string
-			// minSeats,
+			minSeats,
 		} = req.query;
-
-		logger.debug(`From: ${from}`);
-		logger.debug(`To: ${to}`);
-		
-		if (date) {
-			logger.debug(`Date: ${new Date(date!.toString())}`);
-		}
 
 		// Validate Status
 		const allowed_statuses = [
@@ -124,8 +115,19 @@ export const SearchTrip = async (
 
 			// New Options
 			checkSeatAvailability: shouldCheckAvailability,
-			// minSeats: minSeats ? parseInt(minSeats as string) : 1,
 		};
+
+		// Parse minSeats (validator may have converted it to number already)
+		let parsedMinSeats: number | undefined;
+		if (typeof minSeats === "string") {
+			const n = parseInt(minSeats as string, 10);
+			if (!isNaN(n) && n > 0) parsedMinSeats = n;
+		} else if (typeof minSeats === "number") {
+			parsedMinSeats = minSeats;
+		}
+		if (typeof parsedMinSeats === "number" && parsedMinSeats > 0) {
+			(options as any).minSeats = parsedMinSeats;
+		}
 
 		const { rows, count } = isBookingSearch
 			? await tripServices.searchTripsForUser(options)

@@ -9,14 +9,22 @@ import {
 	Chip,
 	Grid,
 	Stack,
+	Button,
 } from "@mui/material";
 import cover from "@assets/background.jpg";
-import { type Coupon, CouponType } from "@my-types";
+import { type Coupon, CouponType, type Trip } from "@my-types";
 import callApi from "@utils/apiCaller";
-import { API_ENDPOINTS } from "@constants/index";
-import { LocalOffer } from "@mui/icons-material";
+import { API_ENDPOINTS, ROUTES } from "@constants/index";
+import {
+	LocalOffer,
+	AccessTime,
+	DirectionsBus,
+	AttachMoney,
+} from "@mui/icons-material";
 import TripSearch from "@components/common/TripSearch";
 import buildImgUrl from "@utils/imageHelper";
+import { format } from "date-fns";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 /**
  * Home landing component containing the primary hero and search form.
@@ -27,6 +35,21 @@ const Home: React.FC = () => {
 	// Coupons carousel state
 	const [coupons, setCoupons] = useState<Coupon[]>([]);
 	const [isLoadingCoupons, setIsLoadingCoupons] = useState(false);
+
+	// Upcoming trips state
+	const [upcomingTrips, setUpcomingTrips] = useState<Trip[]>([]);
+	const [isLoadingTrips, setIsLoadingTrips] = useState(false);
+
+	const navigate = useNavigate();
+	const [searchParams] = useSearchParams();
+
+	// Read optional minSeats query param to prefill hero search
+	const initialMinFromQuery = (() => {
+		const m = searchParams.get("minSeats");
+		if (!m) return null;
+		const n = parseInt(m, 10);
+		return Number.isFinite(n) && n > 0 ? n : null;
+	})();
 
 	// Fetch active coupons for carousel
 	useEffect(() => {
@@ -57,6 +80,42 @@ const Home: React.FC = () => {
 			}
 		};
 		fetchCoupons();
+	}, []);
+
+	// Fetch upcoming trips
+	useEffect(() => {
+		const fetchUpcomingTrips = async () => {
+			setIsLoadingTrips(true);
+			try {
+				const response = await callApi({
+					method: "GET",
+					url: API_ENDPOINTS.TRIP.SEARCH,
+					params: {
+						status: "Scheduled",
+						startDate: new Date().toISOString(),
+						orderBy: "startTime",
+						sortOrder: "ASC",
+						limit: 6,
+						checkSeatAvailability: "true",
+					},
+				});
+
+				const data = response as any;
+				if (data?.data && Array.isArray(data.data)) {
+					setUpcomingTrips(data.data);
+				} else if (Array.isArray(data)) {
+					setUpcomingTrips(data);
+				} else {
+					setUpcomingTrips([]);
+				}
+			} catch (err) {
+				console.error("Failed to fetch upcoming trips:", err);
+				setUpcomingTrips([]);
+			} finally {
+				setIsLoadingTrips(false);
+			}
+		};
+		fetchUpcomingTrips();
 	}, []);
 
 	return (
@@ -128,8 +187,136 @@ const Home: React.FC = () => {
 									className: "hvr-icon-spin",
 								},
 							}}
+							initialMin={initialMinFromQuery}
 						/>
 					</Box>
+				</Container>
+			</Box>
+
+			{/* Upcoming Trips Section */}
+			<Box sx={{ py: 4, bgcolor: "background.default" }}>
+				<Container maxWidth="lg">
+					<Typography variant="h5" fontWeight={600} sx={{ mb: 3 }}>
+						Upcoming Trips
+					</Typography>
+					{isLoadingTrips ? (
+						<Typography>Loading trips...</Typography>
+					) : upcomingTrips.length > 0 ? (
+						<Grid container spacing={3}>
+							{upcomingTrips.map((trip) => (
+								<Grid
+									key={trip.id}
+									size={{ xs: 12, sm: 6, md: 4 }}
+								>
+									<Card
+										sx={{
+											height: "100%",
+											display: "flex",
+											flexDirection: "column",
+											transition: "transform 0.2s",
+											"&:hover": {
+												transform: "translateY(-4px)",
+												boxShadow: 4,
+											},
+										}}
+									>
+										<CardContent sx={{ flexGrow: 1 }}>
+											<Typography
+												variant="h6"
+												component="div"
+												gutterBottom
+												noWrap
+											>
+												{trip.route?.name ||
+													`Trip #${trip.id}`}
+											</Typography>
+
+											<Stack spacing={1.5}>
+												<Stack
+													direction="row"
+													alignItems="center"
+													spacing={1}
+												>
+													<AccessTime
+														fontSize="small"
+														color="action"
+													/>
+													<Typography
+														variant="body2"
+														color="text.secondary"
+													>
+														{format(
+															new Date(
+																trip.startTime
+															),
+															"MMM dd, yyyy • HH:mm"
+														)}
+													</Typography>
+												</Stack>
+
+												<Stack
+													direction="row"
+													alignItems="center"
+													spacing={1}
+												>
+													<DirectionsBus
+														fontSize="small"
+														color="action"
+													/>
+													<Typography
+														variant="body2"
+														color="text.secondary"
+													>
+														{trip.vehicle
+															?.numberPlate ||
+															"Standard Bus"}
+													</Typography>
+												</Stack>
+
+												<Stack
+													direction="row"
+													alignItems="center"
+													spacing={1}
+												>
+													<AttachMoney
+														fontSize="small"
+														color="primary"
+													/>
+													<Typography
+														variant="h6"
+														color="primary"
+														fontWeight="bold"
+													>
+														{trip.price}
+													</Typography>
+												</Stack>
+											</Stack>
+										</CardContent>
+										<Box sx={{ p: 2, pt: 0 }}>
+											<Button
+												variant="contained"
+												fullWidth
+												onClick={() =>
+													navigate(
+														ROUTES.SEAT_BOOKING.replace(
+															":tripId",
+															String(trip.id)
+														)
+													)
+												}
+											>
+												Book Now
+											</Button>
+										</Box>
+									</Card>
+								</Grid>
+							))}
+						</Grid>
+					) : (
+						<Typography variant="body2" color="text.secondary">
+							No upcoming trips found.
+						</Typography>
+					)}
 				</Container>
 			</Box>
 

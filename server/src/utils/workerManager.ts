@@ -33,6 +33,9 @@ export const initializeWorkersAndSchedules = async (): Promise<void> => {
 		"@utils/workers/refreshTokenWorker"
 	);
 	const tripStatusWorker = await import("@utils/workers/tripStatusWorker");
+	const tripGenerationWorker = await import(
+		"@utils/workers/tripGenerationWorker"
+	);
 
 	// Wait until all workers are connected and ready to process jobs
 	await emailWorker.default.waitUntilReady();
@@ -52,6 +55,9 @@ export const initializeWorkersAndSchedules = async (): Promise<void> => {
 
 	await tripStatusWorker.default.waitUntilReady();
 	logger.info("✓ Trip status worker ready");
+
+	await tripGenerationWorker.default.waitUntilReady();
+	logger.info("✓ Trip generation worker ready");
 
 	// Schedule recurring payment cleanup (provided by payment queue utilities)
 	try {
@@ -82,6 +88,19 @@ export const initializeWorkersAndSchedules = async (): Promise<void> => {
 	} catch (err) {
 		logger.error(
 			`✗ Failed to schedule trip status update: ${(err as Error).message}`
+		);
+	}
+
+	// Schedule recurring trip generation
+	try {
+		const { scheduleRecurringTripGeneration } = await import(
+			"@utils/queues/tripGenerationQueue"
+		);
+		await scheduleRecurringTripGeneration();
+		logger.info("✓ Scheduled recurring trip generation job");
+	} catch (err) {
+		logger.error(
+			`✗ Failed to schedule trip generation: ${(err as Error).message}`
 		);
 	}
 

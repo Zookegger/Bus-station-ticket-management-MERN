@@ -188,6 +188,7 @@ export interface ListOptions {
 	toLocation?: string; // Mapped from 'to'
 	date?: string;
 	checkSeatAvailability?: boolean;
+	minSeats?: number | undefined;
 }
 
 /**
@@ -352,6 +353,7 @@ export const searchTripsForUser = async (
 		sortOrder = "ASC",
 		page = 1,
 		limit = 10,
+		minSeats,
 	} = options;
 
 	const where: any = {
@@ -537,6 +539,15 @@ export const searchTripsForUser = async (
 		offset: (page - 1) * limit,
 		limit: limit,
 	};
+
+	// Apply minimum seats filter via a subquery literal if requested
+	if (typeof minSeats === "number" && minSeats > 0) {
+		// Add a raw condition to require at least `minSeats` available seats for the trip
+		const literalCondition = db.sequelize.literal(
+			`(SELECT COUNT(*) FROM seats WHERE seats.tripId = Trip.id AND seats.status = '${SeatStatus.AVAILABLE}') >= ${minSeats}`
+		);
+		queryOptions.where = { ...queryOptions.where, [Op.and]: [literalCondition] };
+	}
 
 	const result = await db.Trip.findAndCountAll(queryOptions);
 

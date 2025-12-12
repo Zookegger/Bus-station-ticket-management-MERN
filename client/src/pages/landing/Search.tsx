@@ -36,6 +36,7 @@ const SearchPage: React.FC = () => {
 	const [fromLocation, setFromLocation] = useState<string>("");
 	const [toLocation, setToLocation] = useState<string>("");
 	const [travelDate, setTravelDate] = useState<string>("");
+	const [minSeats, setMinSeats] = useState<number | null>(null);
 	const [pageNumber, setPageNumber] = useState<number>(1);
 
 	// Sorting state
@@ -52,6 +53,9 @@ const SearchPage: React.FC = () => {
 		const to = searchParams.get("to") ?? "";
 		const date = searchParams.get("date") ?? "";
 		const page = parseInt(searchParams.get("page") ?? "1", 10) || 1;
+		const min = searchParams.get("minSeats");
+		const parsedMin = min ? parseInt(min, 10) : NaN;
+		setMinSeats(!isNaN(parsedMin) && parsedMin > 0 ? parsedMin : null);
 
 		setFromLocation(from);
 		setToLocation(to);
@@ -78,6 +82,7 @@ const SearchPage: React.FC = () => {
 					from: fromLocation,
 					to: toLocation,
 					date: travelDate,
+					...(minSeats ? { minSeats } : {}),
 					page: pageNumber,
 					limit: DEFAULT_PAGE_SIZE,
 					orderBy,
@@ -158,6 +163,7 @@ const SearchPage: React.FC = () => {
 					initialFrom={fromLocation}
 					initialTo={toLocation}
 					initialDate={travelDate ? new Date(travelDate) : null}
+					initialMin={minSeats}
 					slotProps={{
 						paper: {
 							elevation: 2,
