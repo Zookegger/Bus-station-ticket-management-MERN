@@ -1,5 +1,6 @@
 import { API_ENDPOINTS } from "@constants/index";
 import { Button, Paper, Box, CircularProgress, Snackbar, Alert } from "@mui/material";
+import { Add as AddIcon } from "@mui/icons-material";
 import type { Route } from "@my-types";
 import { handleAxiosError } from "@utils/handleError";
 import axios from "axios";
@@ -159,10 +160,15 @@ const RouteList: React.FC = () => {
 	});
 
 	const actionBar = (
-		<Button variant="contained" onClick={() => {
-			setSelectedRoute(null);
-			setFormOpen(true);
-		}}>
+		<Button
+			variant="contained"
+			className="hvr-icon-pop"
+			startIcon={<AddIcon className="hvr-icon" />}
+			onClick={() => {
+				setSelectedRoute(null);
+				setFormOpen(true);
+			}}
+		>
 			Add new route
 		</Button>
 	);

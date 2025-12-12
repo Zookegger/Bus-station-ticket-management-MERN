@@ -28,7 +28,7 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { DateTimePicker } from "@mui/x-date-pickers";
 import { Stack } from "@mui/system";
 import { Clear } from "@mui/icons-material";
-import { isSafeImageSrc } from "@utils/imageHelper";
+import buildImgUrl, { isSafeImageSrc } from "@utils/imageHelper";
 import callApi from "@utils/apiCaller";
 import { useForm, Controller, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -198,7 +198,11 @@ const CouponForm: React.FC<CouponFormProps> = ({
 				});
 			}
 
-			onSuccess(isEditMode ? "Coupon updated successfully" : "Coupon created successfully");
+			onSuccess(
+				isEditMode
+					? "Coupon updated successfully"
+					: "Coupon created successfully"
+			);
 			onClose();
 		} catch (err: any) {
 			setServerError(err?.message || "An error occurred");
@@ -464,7 +468,7 @@ const CouponForm: React.FC<CouponFormProps> = ({
 									>
 										<Box
 											component="img"
-											src={previewUrl}
+											src={buildImgUrl(previewUrl)}
 											alt="Preview"
 											sx={{
 												width: 100,

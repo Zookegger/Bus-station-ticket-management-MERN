@@ -45,7 +45,7 @@ const VehicleList: React.FC = () => {
 		useState<VehicleDetail | null>(null);
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [searchTerm, setSearchTerm] = useState("");
-	const [typeFilter, setTypeFilter] = useState("");
+	const [typeFilter, setTypeFilter] = useState<string>("");
 	const [vehicleTypeFilter, SetVehicleTypeFilter] = useState<
 		VehicleTypeFilter[] | null
 	>(null);
@@ -59,6 +59,8 @@ const VehicleList: React.FC = () => {
 
 	// Memoized filter to avoid recalculating on every render
 	const filteredVehicles = useMemo(() => {
+		if (typeFilter === "All") return vehicles;
+
 		return vehicles.filter((v) => {
 			const matchesType =
 				!typeFilter || v.vehicleType.name === typeFilter;
@@ -278,7 +280,8 @@ const VehicleList: React.FC = () => {
 				<Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
 					<Button
 						variant="contained"
-						startIcon={<AddIcon />}
+						className="hvr-icon-pop"
+						startIcon={<AddIcon className="hvr-icon" />}
 						onClick={handleOpenCreate}
 					>
 						Add Vehicle
@@ -289,7 +292,7 @@ const VehicleList: React.FC = () => {
 							value={typeFilter}
 							onChange={(e) => setTypeFilter(e.target.value)}
 						>
-							<MenuItem value="">All</MenuItem>
+							<MenuItem value="All">All</MenuItem>
 							{vehicleTypeFilter &&
 								vehicleTypeFilter.map((element) => (
 									<MenuItem

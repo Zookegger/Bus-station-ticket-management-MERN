@@ -17,6 +17,7 @@ import {
 	Tooltip,
 	Avatar,
 	alpha,
+	InputAdornment,
 } from "@mui/material";
 import { GridCloseIcon } from "@mui/x-data-grid";
 import {
@@ -30,30 +31,13 @@ import {
 	Image as ImageIcon,
 	CheckCircle as CheckIcon,
 	Cancel as CancelIcon,
+	AccessTime as CreatedClockIcon,
+	AccessTimeFilled as UpdatedClockIcon,
 } from "@mui/icons-material";
 import { format } from "date-fns";
-
-// Mock types
-enum CouponType {
-	PERCENTAGE = "PERCENTAGE",
-	FIXED = "FIXED",
-}
-interface Coupon {
-	id: number;
-	code: string;
-	title: string;
-	type: CouponType;
-	value: number;
-	maxUsage: number;
-	currentUsageCount: number;
-	isActive: boolean;
-	startPeriod: string;
-	endPeriod: string;
-	createdAt: string;
-	updatedAt: string;
-	description?: string;
-	imgUrl?: string;
-}
+import { CouponType } from "@my-types";
+import type { Coupon } from "@my-types";
+import buildImgUrl from "@utils/imageHelper";
 
 interface CouponDetailsDrawerProps {
 	open: boolean;
@@ -91,10 +75,14 @@ const CouponDetailsDrawer: React.FC<CouponDetailsDrawerProps> = ({
 	const details = useMemo(() => {
 		if (!coupon) return null;
 		return {
-			start: formatDateTime(coupon.startPeriod),
-			end: formatDateTime(coupon.endPeriod),
-			created: formatDateTime(coupon.createdAt),
-			updated: formatDateTime(coupon.updatedAt),
+			start: formatDateTime(coupon.startPeriod.toString()),
+			end: formatDateTime(coupon.endPeriod.toString()),
+			created: coupon.createdAt
+				? formatDateTime(coupon.createdAt.toString())
+				: "N/A",
+			updated: coupon.updatedAt
+				? formatDateTime(coupon.updatedAt.toString())
+				: "N/A",
 			valueLabel:
 				coupon.type === CouponType.PERCENTAGE
 					? `${coupon.value}% OFF`
@@ -254,7 +242,7 @@ const CouponDetailsDrawer: React.FC<CouponDetailsDrawerProps> = ({
 
 						{/* Stats Grid */}
 						<Grid container spacing={2}>
-							<Grid item xs={6}>
+							<Grid size={{ xs: 6 }}>
 								<Box
 									display="flex"
 									gap={1.5}
@@ -295,7 +283,7 @@ const CouponDetailsDrawer: React.FC<CouponDetailsDrawerProps> = ({
 									</Box>
 								</Box>
 							</Grid>
-							<Grid item xs={6}>
+							<Grid size={{ xs: 6 }}>
 								<Box
 									display="flex"
 									gap={1.5}
@@ -431,7 +419,7 @@ const CouponDetailsDrawer: React.FC<CouponDetailsDrawerProps> = ({
 								>
 									<Box
 										component="img"
-										src={coupon.imgUrl}
+										src={buildImgUrl(coupon.imgUrl)}
 										alt="Coupon Preview"
 										sx={{
 											width: "100%",
@@ -468,9 +456,32 @@ const CouponDetailsDrawer: React.FC<CouponDetailsDrawerProps> = ({
 							)}
 						</Box>
 
-						<Typography variant="caption" color="text.secondary">
-							Last updated: {details.updated}
-						</Typography>
+						<Stack>
+							<InputAdornment position="start">
+								<CreatedClockIcon
+									fontSize="small"
+									sx={{ mr: 0.5 }}
+								/>
+								<Typography
+									variant="caption"
+									color="text.secondary"
+								>
+									Created at: {details.created}
+								</Typography>
+							</InputAdornment>
+							<InputAdornment position="start">
+								<UpdatedClockIcon
+									fontSize="small"
+									sx={{ mr: 0.5 }}
+								/>
+								<Typography
+									variant="caption"
+									color="text.secondary"
+								>
+									Last updated: {details.updated}
+								</Typography>
+							</InputAdornment>
+						</Stack>
 					</Stack>
 				</CardContent>
 

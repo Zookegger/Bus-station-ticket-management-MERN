@@ -2,7 +2,6 @@ import { API_ENDPOINTS } from "@constants/index";
 import { Button, InputAdornment, Paper, TextField, Snackbar, Alert } from "@mui/material";
 import type { Coupon, CouponType } from "@my-types";
 import { handleAxiosError } from "@utils/handleError";
-import axios from "axios";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import {
@@ -12,11 +11,9 @@ import {
 } from "./components";
 import { DataGridPageLayout } from "@components/admin";
 import callApi from "@utils/apiCaller";
-import { Search as SearchIcon } from "@mui/icons-material";
+import { Search as SearchIcon, Add as AddIcon } from "@mui/icons-material";
 import { Box } from "@mui/system";
 import { useAdminRealtime } from "@hooks/useAdminRealtime";
-
-axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 
 const CouponPage: React.FC = () => {
 	const [isLoading, setIsLoading] = useState(true);
@@ -191,11 +188,13 @@ const CouponPage: React.FC = () => {
 	const actionBar = (
 		<Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
 			<Button
+				variant="contained"
+				className="hvr-icon-pop"
+				startIcon={<AddIcon className="hvr-icon" />}
 				onClick={() => {
 					setSelectedCoupon(null);
 					setFormOpen(true);
 				}}
-				variant="contained"
 			>
 				Add new coupon
 			</Button>

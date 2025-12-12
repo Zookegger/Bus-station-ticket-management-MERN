@@ -22,6 +22,7 @@ import {
 	Search as SearchIcon,
 	Delete as DeleteIcon,
 	Edit as EditIcon,
+	Add as AddIcon,
 } from "@mui/icons-material";
 
 import {
@@ -330,6 +331,8 @@ const UserPage: React.FC = () => {
 				<Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
 					<Button
 						variant="contained"
+						className="hvr-icon-pop"
+						startIcon={<AddIcon className="hvr-icon" />}
 						onClick={() => handleOpenAdd()}
 						sx={{ textTransform: "none", fontWeight: "bold" }}
 					>

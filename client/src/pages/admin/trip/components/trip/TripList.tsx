@@ -512,7 +512,8 @@ const TripList: React.FC = () => {
 				>
 					<Button
 						variant="contained"
-						startIcon={<AddIcon />}
+						className="hvr-icon-pop"
+						startIcon={<AddIcon className="hvr-icon" />}
 						onClick={() => {
 							setEditingTrip(null);
 							setFormOpen(true);

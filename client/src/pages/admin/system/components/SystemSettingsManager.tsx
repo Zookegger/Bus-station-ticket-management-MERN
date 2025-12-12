@@ -299,7 +299,8 @@ const SystemSettingsManager: React.FC = () => {
 			<Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 2 }}>
 				<Button
 					variant="contained"
-					startIcon={<AddIcon />}
+					className="hvr-icon-pop"
+					startIcon={<AddIcon className="hvr-icon" />}
 					onClick={handleOpenCreate}
 				>
 					New Setting

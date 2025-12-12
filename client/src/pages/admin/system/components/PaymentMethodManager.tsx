@@ -277,7 +277,8 @@ const PaymentMethodManager: React.FC = () => {
 			<Box sx={{ display: "flex", gap: 2, mb: 2, alignItems: "center" }}>
 				<Button
 					variant="contained"
-					startIcon={<AddIcon />}
+					className="hvr-icon-pop"
+					startIcon={<AddIcon className="hvr-icon" />}
 					onClick={handleOpenCreate}
 				>
 					Add Method

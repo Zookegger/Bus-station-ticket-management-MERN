@@ -219,9 +219,7 @@ const TripSearch: React.FC<TripSearchProps> = ({
 					{...slotProps?.box}
 				>
 					<Grid container spacing={3} alignItems="center">
-						{/* --- Row 1: Departure -> Swap -> Destination --- */}
-
-						<Grid size={{ xs: 12, md: 5 }}>
+						<Grid size={{ xs: 12, md: 4.5 }}>
 							<FormControl
 								fullWidth
 								required
@@ -231,7 +229,6 @@ const TripSearch: React.FC<TripSearchProps> = ({
 									{...slotProps?.departureAutocomplete}
 									loading={isLoadingLocations}
 									options={departureOptions}
-									// Applying Original Classes
 									className="hvr-icon-grow"
 									getOptionLabel={(o) => o.name}
 									popupIcon={
@@ -248,7 +245,6 @@ const TripSearch: React.FC<TripSearchProps> = ({
 									isOptionEqualToValue={(opt, val) =>
 										opt.id === val.id
 									}
-									// Original popup style
 									sx={{
 										"& .MuiAutocomplete-popupIndicator": {
 											transform: "none",
@@ -284,14 +280,13 @@ const TripSearch: React.FC<TripSearchProps> = ({
 
 						{/* Swap Button */}
 						<Grid
-							size={{ xs: 12, md: 2 }}
+							size={{ xs: 12, md: 1 }}
 							display="flex"
 							justifyContent="center"
 						>
 							<IconButton
 								onClick={handleSwap}
 								{...slotProps?.swapButton}
-								// Original Classes
 								className="hvr-icon-spin"
 								sx={{
 									bgcolor: "action.hover",
@@ -311,7 +306,7 @@ const TripSearch: React.FC<TripSearchProps> = ({
 							</IconButton>
 						</Grid>
 
-						<Grid size={{ xs: 12, md: 5 }}>
+						<Grid size={{ xs: 12, md: 4.5 }}>
 							<FormControl
 								fullWidth
 								required
@@ -322,7 +317,6 @@ const TripSearch: React.FC<TripSearchProps> = ({
 									loading={isLoadingLocations}
 									options={destinationOptions}
 									getOptionLabel={(o) => o.name}
-									// Original Classes
 									className="hvr-icon-grow"
 									popupIcon={
 										<LocationOn className="hvr-icon" />
@@ -340,7 +334,6 @@ const TripSearch: React.FC<TripSearchProps> = ({
 									isOptionEqualToValue={(opt, val) =>
 										opt.name === val.name
 									}
-									// Original popup style
 									sx={{
 										"& .MuiAutocomplete-popupIndicator": {
 											transform: "none",
@@ -368,16 +361,53 @@ const TripSearch: React.FC<TripSearchProps> = ({
 											label="Destination"
 											placeholder="Select destination location"
 											variant="filled"
-											sx={commonInputSx} 
+											sx={commonInputSx}
 										/>
 									)}
 								/>
 							</FormControl>
 						</Grid>
 
-						{/* --- Row 2: Date | Seats | Search Button --- */}
+						{/* Min Tickets (Seats) */}
+						<Grid size={{ xs: 12, md: 2 }}>
+							<FormControl fullWidth error={!!errors.minTickets}>
+								<TextField
+									label="Seats"
+									type="number"
+									variant="filled"
+									value={minTickets ?? ""}
+									placeholder="1"
+									onChange={(e) => {
+										const v = e.target.value;
+										if (v === "")
+											return setMinTickets(null);
+										const n = Math.floor(Number(v));
+										if (Number.isNaN(n) || n < 1)
+											setMinTickets(1);
+										else setMinTickets(n);
+									}}
+									sx={commonInputSx}
+									slotProps={{
+										input: {
+											startAdornment: (
+												<InputAdornment
+													position="start"
+													sx={{
+														mt: "16px !important",
+													}}
+												>
+													<AirlineSeatReclineNormal />
+												</InputAdornment>
+											),
+										},
+										htmlInput: { min: 1, step: 1 },
+									}}
+									{...slotProps?.minTicketsField}
+								/>
+							</FormControl>
+						</Grid>
 
-						<Grid size={{ xs: 12, md: 5 }}>
+						<Grid size={{ xs: 12 }}>
 							<FormControl
 								fullWidth
 								required
@@ -413,43 +443,7 @@ const TripSearch: React.FC<TripSearchProps> = ({
 							</FormControl>
 						</Grid>
 
-						{/* Min Tickets (Seats) */}
-						<Grid size={{ xs: 12, md: 3 }}>
-							<FormControl fullWidth error={!!errors.minTickets}>
-								<TextField
-									label="Seats"
-									type="number"
-									variant="filled" // Original Variant
-									value={minTickets ?? ""}
-									placeholder="1"
-									onChange={(e) => {
-										const v = e.target.value;
-										if (v === "")
-											return setMinTickets(null);
-										const n = Math.floor(Number(v));
-										if (Number.isNaN(n) || n < 1)
-											setMinTickets(1);
-										else setMinTickets(n);
-									}}
-									sx={commonInputSx} // Original Style
-									InputProps={{
-										startAdornment: (
-											<InputAdornment
-												position="start"
-												sx={{ mt: "16px !important" }}
-											>
-												{/* Added mt because filled input adornments sometimes drift up */}
-												<AirlineSeatReclineNormal />
-											</InputAdornment>
-										),
-										inputProps: { min: 1, step: 1 },
-									}}
-									{...slotProps?.minTicketsField}
-								/>
-							</FormControl>
-						</Grid>
-
-						<Grid size={{ xs: 12, md: 4 }}>
+						<Grid size={{ xs: 12 }}>
 							<Button
 								variant="contained"
 								type="submit"

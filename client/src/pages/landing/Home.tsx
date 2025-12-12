@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { Suspense, use, useRef } from "react";
 import {
 	Container,
 	Box,
@@ -10,6 +10,12 @@ import {
 	Grid,
 	Stack,
 	Button,
+	Skeleton,
+	IconButton,
+	useTheme,
+	useMediaQuery,
+	Paper,
+	CardActions,
 } from "@mui/material";
 import cover from "@assets/background.jpg";
 import { type Coupon, CouponType, type Trip } from "@my-types";
@@ -20,30 +26,397 @@ import {
 	AccessTime,
 	DirectionsBus,
 	AttachMoney,
+	ChevronLeft,
+	ChevronRight,
 } from "@mui/icons-material";
 import TripSearch from "@components/common/TripSearch";
 import buildImgUrl from "@utils/imageHelper";
-import { format } from "date-fns";
+import { format } from "date-fns"; // Restored
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-/**
- * Home landing component containing the primary hero and search form.
- * Provides Autocomplete fields for departure and destination while preserving
- * prior layout and styling. Background hero uses pseudo-element overlays.
- */
-const Home: React.FC = () => {
-	// Coupons carousel state
-	const [coupons, setCoupons] = useState<Coupon[]>([]);
-	const [isLoadingCoupons, setIsLoadingCoupons] = useState(false);
+// --- 1. Cache & Fetchers ---
+const promiseCache = new Map();
+function getPromise(key: string, fetcher: () => Promise<any>) {
+	if (!promiseCache.has(key)) promiseCache.set(key, fetcher());
+	return promiseCache.get(key);
+}
 
-	// Upcoming trips state
-	const [upcomingTrips, setUpcomingTrips] = useState<Trip[]>([]);
-	const [isLoadingTrips, setIsLoadingTrips] = useState(false);
+const fetchUpcomingTrips = async () => {
+	const response = await callApi({
+		method: "GET",
+		url: API_ENDPOINTS.TRIP.SEARCH,
+		params: {
+			status: "Scheduled",
+			startDate: new Date().toISOString(),
+			orderBy: "startTime",
+			sortOrder: "ASC",
+			limit: 6,
+			checkSeatAvailability: "true",
+		},
+	});
+	const data = response as any;
+	if (data?.data && Array.isArray(data.data)) return data.data;
+	if (Array.isArray(data)) return data;
+	return [];
+};
 
+const fetchCoupons = async () => {
+	const response = await callApi({
+		method: "GET",
+		url: API_ENDPOINTS.COUPON.SEARCH,
+		params: { isActive: true, limit: 10 },
+	});
+	const data = response as any;
+	if (Array.isArray(data)) return data;
+	if (data?.data && Array.isArray(data.data)) return data.data;
+	return [];
+};
+
+// --- 2. Skeletons ---
+const TripCardSkeleton = () => (
+	<Card sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+		<CardContent sx={{ flexGrow: 1 }}>
+			<Skeleton variant="text" width="70%" height={32} sx={{ mb: 1 }} />
+			<Stack spacing={2}>
+				{[1, 2, 3].map((i) => (
+					<Stack
+						key={i}
+						direction="row"
+						alignItems="center"
+						spacing={1}
+					>
+						<Skeleton variant="circular" width={20} height={20} />
+						<Skeleton variant="text" width="50%" />
+					</Stack>
+				))}
+			</Stack>
+		</CardContent>
+		<Box sx={{ p: 2, pt: 0 }}>
+			<Skeleton
+				variant="rectangular"
+				height={36}
+				sx={{ borderRadius: 1 }}
+			/>
+		</Box>
+	</Card>
+);
+
+const CarouselSkeleton = () => (
+	<Stack direction="row" spacing={2} sx={{ overflow: "hidden" }}>
+		{[1, 2, 3, 4].map((i) => (
+			<Skeleton
+				key={i}
+				variant="rectangular"
+				width={280}
+				height={300}
+				sx={{ borderRadius: 2, flexShrink: 0 }}
+			/>
+		))}
+	</Stack>
+);
+
+// --- 3. Content Components ---
+
+const UpcomingTripsList = () => {
 	const navigate = useNavigate();
+	const trips = use(getPromise("trips", fetchUpcomingTrips)) as Trip[];
+
+	if (trips.length === 0) {
+		return (
+			<Typography variant="body2" color="text.secondary">
+				No upcoming trips found.
+			</Typography>
+		);
+	}
+
+	return (
+		<Grid container spacing={3}>
+			{trips.map((trip) => (
+				<Grid key={trip.id} size={{ xs: 12, sm: 6, md: 4 }}>
+					<Card
+						sx={{
+							height: "100%",
+							display: "flex",
+							flexDirection: "column",
+							transition: "transform 0.2s",
+							"&:hover": {
+								transform: "translateY(-4px)",
+								boxShadow: 4,
+							},
+						}}
+					>
+						<CardContent sx={{ flexGrow: 1 }}>
+							<Typography
+								variant="h6"
+								component="div"
+								gutterBottom
+								noWrap
+							>
+								{trip.route?.name || `Trip #${trip.id}`}
+							</Typography>
+
+							<Stack spacing={1.5}>
+								{/* Time Row */}
+								<Stack
+									direction="row"
+									alignItems="center"
+									spacing={1}
+								>
+									<AccessTime
+										fontSize="small"
+										color="action"
+									/>
+									<Typography
+										variant="body2"
+										color="text.secondary"
+									>
+										{format(
+											new Date(trip.startTime),
+											"MMM dd, yyyy • HH:mm"
+										)}
+									</Typography>
+								</Stack>
+
+								{/* Vehicle Row */}
+								<Stack
+									direction="row"
+									alignItems="center"
+									spacing={1}
+								>
+									<DirectionsBus
+										fontSize="small"
+										color="action"
+									/>
+									<Typography
+										variant="body2"
+										color="text.secondary"
+									>
+										{trip.vehicle?.vehicleType?.name}
+									</Typography>
+								</Stack>
+
+								{/* Price Row */}
+								<Stack
+									direction="row"
+									alignItems="center"
+									spacing={1}
+								>
+									<AttachMoney
+										fontSize="small"
+										color="primary"
+									/>
+									<Typography
+										variant="h6"
+										color="primary"
+										fontWeight="bold"
+									>
+										{trip.price}
+									</Typography>
+								</Stack>
+							</Stack>
+						</CardContent>
+
+						<Box sx={{ p: 2, pt: 0 }}>
+							<Button
+								variant="contained"
+								fullWidth
+								onClick={() =>
+									navigate(
+										ROUTES.SEAT_BOOKING.replace(
+											":tripId",
+											String(trip.id)
+										)
+									)
+								}
+							>
+								Book Now
+							</Button>
+						</Box>
+					</Card>
+				</Grid>
+			))}
+		</Grid>
+	);
+};
+
+const CouponsCarousel = () => {
+	const coupons = use(getPromise("coupons", fetchCoupons)) as Coupon[];
+	const scrollRef = useRef<HTMLDivElement>(null);
+	const theme = useTheme();
+	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+	if (coupons.length === 0) {
+		return (
+			<Typography variant="body2" color="text.secondary">
+				No special offers available.
+			</Typography>
+		);
+	}
+
+	const scroll = (direction: "left" | "right") => {
+		if (scrollRef.current) {
+			const scrollAmount = 320;
+			scrollRef.current.scrollBy({
+				left: direction === "left" ? -scrollAmount : scrollAmount,
+				behavior: "smooth",
+			});
+		}
+	};
+
+	return (
+		<Box sx={{ position: "relative", mx: -2, px: 2 }}>
+			<IconButton
+				onClick={() => scroll("left")}
+				sx={{
+					position: "absolute",
+					left: 0,
+					top: "50%",
+					transform: "translateY(-50%)",
+					zIndex: 2,
+					bgcolor: "background.paper",
+					boxShadow: 3,
+					"&:hover": { bgcolor: "background.paper" },
+				}}
+			>
+				<ChevronLeft />
+			</IconButton>
+
+			<Stack
+				ref={scrollRef}
+				direction="row"
+				spacing={2}
+				sx={{
+					overflowX: "auto",
+					py: 2,
+					px: 1,
+					scrollBehavior: "smooth",
+					"&::-webkit-scrollbar": { display: "none" },
+					msOverflowStyle: "none",
+					scrollbarWidth: "none",
+					scrollSnapType: "x mandatory",
+					"& > *": { scrollSnapAlign: "start" },
+				}}
+			>
+				{coupons.map((coupon) => (
+					<Paper
+						key={coupon.id}
+						sx={{ flexBasis: isMobile ? undefined : 250 }}
+					>
+						<Card
+							sx={{
+								height: "100%",
+								display: "flex",
+								flexDirection: "column",
+								transition: "transform 0.2s",
+								"&:hover": {
+									transform: "translateY(-4px)",
+									boxShadow: 4,
+								},
+							}}
+						>
+							{coupon.imgUrl ? (
+								<CardMedia
+									component="img"
+									height="140"
+									image={buildImgUrl(
+										coupon.imgUrl,
+										"coupons"
+									)}
+									sx={{ objectFit: "fill" }}
+									alt={coupon.title || coupon.code}
+								/>
+							) : (
+								<Box
+									sx={{
+										height: 140,
+										bgcolor: "grey.100",
+										display: "flex",
+										alignItems: "center",
+										justifyContent: "center",
+									}}
+								>
+									<LocalOffer
+										sx={{
+											fontSize: 48,
+											color: "primary.main",
+										}}
+									/>
+								</Box>
+							)}
+
+							<CardContent sx={{ flexGrow: 1 }}>
+								<Typography
+									gutterBottom
+									variant="h6"
+									component="div"
+									noWrap
+								>
+									{coupon.title || coupon.code}
+								</Typography>
+								<Typography
+									variant="body2"
+									color="text.secondary"
+									sx={{
+										display: "-webkit-box",
+										WebkitLineClamp: 2,
+										WebkitBoxOrient: "vertical",
+										overflow: "hidden",
+
+										overflowY: "auto",
+										height: 40,
+									}}
+								>
+									{coupon.description ?? "N/A"}
+								</Typography>
+							</CardContent>
+							<CardActions>
+								<Stack direction="row" spacing={1}>
+									<Chip
+										label={
+											coupon.type.toUpperCase() ===
+											CouponType.PERCENTAGE
+												? `${coupon.value}% Off`
+												: `$${coupon.value} Off`
+										}
+										color="primary"
+										size="small"
+										sx={{ fontWeight: "bold" }}
+									/>
+									<Chip
+										label={coupon.code}
+										variant="outlined"
+										size="small"
+									/>
+								</Stack>
+							</CardActions>
+						</Card>
+					</Paper>
+				))}
+			</Stack>
+
+			<IconButton
+				onClick={() => scroll("right")}
+				sx={{
+					position: "absolute",
+					right: 0,
+					top: "50%",
+					transform: "translateY(-50%)",
+					zIndex: 2,
+					bgcolor: "background.paper",
+					boxShadow: 3,
+					"&:hover": { bgcolor: "background.paper" },
+				}}
+			>
+				<ChevronRight />
+			</IconButton>
+		</Box>
+	);
+};
+
+// --- 4. Main Home ---
+const Home: React.FC = () => {
 	const [searchParams] = useSearchParams();
 
-	// Read optional minSeats query param to prefill hero search
 	const initialMinFromQuery = (() => {
 		const m = searchParams.get("minSeats");
 		if (!m) return null;
@@ -51,82 +424,16 @@ const Home: React.FC = () => {
 		return Number.isFinite(n) && n > 0 ? n : null;
 	})();
 
-	// Fetch active coupons for carousel
-	useEffect(() => {
-		const fetchCoupons = async () => {
-			setIsLoadingCoupons(true);
-			try {
-				const response = await callApi({
-					method: "GET",
-					url: API_ENDPOINTS.COUPON.SEARCH,
-					params: { isActive: true, limit: 10 }, // Fetch active coupons, limit to 10
-				});
-
-				const data = response as any;
-				if (Array.isArray(data)) {
-					setCoupons(data);
-				} else if (data?.rows && Array.isArray(data.rows)) {
-					setCoupons(data.rows);
-				} else if (data?.data && Array.isArray(data.data)) {
-					setCoupons(data.data);
-				} else {
-					setCoupons([]);
-				}
-			} catch (err) {
-				console.error("Failed to fetch coupons:", err);
-				setCoupons([]);
-			} finally {
-				setIsLoadingCoupons(false);
-			}
-		};
-		fetchCoupons();
-	}, []);
-
-	// Fetch upcoming trips
-	useEffect(() => {
-		const fetchUpcomingTrips = async () => {
-			setIsLoadingTrips(true);
-			try {
-				const response = await callApi({
-					method: "GET",
-					url: API_ENDPOINTS.TRIP.SEARCH,
-					params: {
-						status: "Scheduled",
-						startDate: new Date().toISOString(),
-						orderBy: "startTime",
-						sortOrder: "ASC",
-						limit: 6,
-						checkSeatAvailability: "true",
-					},
-				});
-
-				const data = response as any;
-				if (data?.data && Array.isArray(data.data)) {
-					setUpcomingTrips(data.data);
-				} else if (Array.isArray(data)) {
-					setUpcomingTrips(data);
-				} else {
-					setUpcomingTrips([]);
-				}
-			} catch (err) {
-				console.error("Failed to fetch upcoming trips:", err);
-				setUpcomingTrips([]);
-			} finally {
-				setIsLoadingTrips(false);
-			}
-		};
-		fetchUpcomingTrips();
-	}, []);
-
 	return (
 		<Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+			{/* Hero Section */}
 			<Box
 				sx={{
 					position: "relative",
 					overflow: "hidden",
 					flex: { xs: "0 0 auto", md: "0 0 50%" },
 					display: "flex",
-					py: { xs: 4, md: 8 },
+					py: { xs: 4, md: 6 },
 					"::before": {
 						position: "absolute",
 						content: '""',
@@ -152,7 +459,7 @@ const Home: React.FC = () => {
 					},
 				}}
 			>
-				<Container maxWidth="md" sx={{ zIndex: 1 }}>
+				<Container maxWidth="lg" sx={{ zIndex: 1 }}>
 					<Box textAlign="center" maxWidth={{ lg: 800 }} mx="auto">
 						<Typography
 							variant="h3"
@@ -171,21 +478,13 @@ const Home: React.FC = () => {
 
 						<TripSearch
 							slotProps={{
-								box: {
-									sx: { mb: 3 },
-								},
+								box: { sx: { mb: 3 } },
 								paper: {
 									elevation: 0,
 									sx: { background: "unset" },
 								},
-								submitButton: {
-									sx: {
-										borderRadius: 6,
-									},
-								},
-								swapButton: {
-									className: "hvr-icon-spin",
-								},
+								submitButton: { sx: { borderRadius: 6 } },
+								swapButton: { sx: { color: "ButtonFace" } },
 							}}
 							initialMin={initialMinFromQuery}
 						/>
@@ -193,270 +492,40 @@ const Home: React.FC = () => {
 				</Container>
 			</Box>
 
-			{/* Upcoming Trips Section */}
+			{/* Upcoming Trips */}
 			<Box sx={{ py: 4, bgcolor: "background.default" }}>
 				<Container maxWidth="lg">
 					<Typography variant="h5" fontWeight={600} sx={{ mb: 3 }}>
 						Upcoming Trips
 					</Typography>
-					{isLoadingTrips ? (
-						<Typography>Loading trips...</Typography>
-					) : upcomingTrips.length > 0 ? (
-						<Grid container spacing={3}>
-							{upcomingTrips.map((trip) => (
-								<Grid
-									key={trip.id}
-									size={{ xs: 12, sm: 6, md: 4 }}
-								>
-									<Card
-										sx={{
-											height: "100%",
-											display: "flex",
-											flexDirection: "column",
-											transition: "transform 0.2s",
-											"&:hover": {
-												transform: "translateY(-4px)",
-												boxShadow: 4,
-											},
-										}}
+					<Suspense
+						fallback={
+							<Grid container spacing={3}>
+								{[1, 2, 3, 4, 5, 6].map((i) => (
+									<Grid
+										key={i}
+										size={{ xs: 12, sm: 6, md: 4 }}
 									>
-										<CardContent sx={{ flexGrow: 1 }}>
-											<Typography
-												variant="h6"
-												component="div"
-												gutterBottom
-												noWrap
-											>
-												{trip.route?.name ||
-													`Trip #${trip.id}`}
-											</Typography>
-
-											<Stack spacing={1.5}>
-												<Stack
-													direction="row"
-													alignItems="center"
-													spacing={1}
-												>
-													<AccessTime
-														fontSize="small"
-														color="action"
-													/>
-													<Typography
-														variant="body2"
-														color="text.secondary"
-													>
-														{format(
-															new Date(
-																trip.startTime
-															),
-															"MMM dd, yyyy • HH:mm"
-														)}
-													</Typography>
-												</Stack>
-
-												<Stack
-													direction="row"
-													alignItems="center"
-													spacing={1}
-												>
-													<DirectionsBus
-														fontSize="small"
-														color="action"
-													/>
-													<Typography
-														variant="body2"
-														color="text.secondary"
-													>
-														{trip.vehicle
-															?.numberPlate ||
-															"Standard Bus"}
-													</Typography>
-												</Stack>
-
-												<Stack
-													direction="row"
-													alignItems="center"
-													spacing={1}
-												>
-													<AttachMoney
-														fontSize="small"
-														color="primary"
-													/>
-													<Typography
-														variant="h6"
-														color="primary"
-														fontWeight="bold"
-													>
-														{trip.price}
-													</Typography>
-												</Stack>
-											</Stack>
-										</CardContent>
-										<Box sx={{ p: 2, pt: 0 }}>
-											<Button
-												variant="contained"
-												fullWidth
-												onClick={() =>
-													navigate(
-														ROUTES.SEAT_BOOKING.replace(
-															":tripId",
-															String(trip.id)
-														)
-													)
-												}
-											>
-												Book Now
-											</Button>
-										</Box>
-									</Card>
-								</Grid>
-							))}
-						</Grid>
-					) : (
-						<Typography variant="body2" color="text.secondary">
-							No upcoming trips found.
-						</Typography>
-					)}
+										<TripCardSkeleton />
+									</Grid>
+								))}
+							</Grid>
+						}
+					>
+						<UpcomingTripsList />
+					</Suspense>
 				</Container>
 			</Box>
 
-			{/* Coupons Carousel Section */}
+			{/* Coupons Carousel */}
 			<Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
 				<Container maxWidth="lg" sx={{ py: 4 }}>
 					<Typography variant="h5" fontWeight={600} sx={{ mb: 2 }}>
 						Special Offers & Coupons
 					</Typography>
-					{isLoadingCoupons ? (
-						<Typography>Loading offers...</Typography>
-					) : coupons.length > 0 ? (
-						<Box sx={{ overflowX: "auto", pb: 2 }}>
-							<Grid
-								container
-								spacing={2}
-								sx={{ minWidth: "max-content" }}
-							>
-								{coupons.map((coupon) => (
-									<Grid
-										key={coupon.id}
-										size={{ xs: 12, sm: 6, md: 4, lg: 3 }}
-									>
-										{coupon.imgUrl ? (
-											<Card sx={{ maxWidth: 345 }}>
-												<CardMedia
-													component="img"
-													height="140"
-													image={buildImgUrl(
-														coupon.imgUrl,
-														"coupons"
-													)}
-													alt={
-														coupon.title ||
-														coupon.code
-													}
-												/>
-												<CardContent>
-													<Typography
-														gutterBottom
-														variant="h6"
-														component="div"
-													>
-														{coupon.title ||
-															coupon.code}
-													</Typography>
-													<Typography
-														variant="body2"
-														color="text.secondary"
-														sx={{ mb: 1 }}
-													>
-														{coupon.description}
-													</Typography>
-													<Stack
-														direction="row"
-														spacing={1}
-													>
-														<Chip
-															label={`${
-																coupon.type.toUpperCase() ===
-																CouponType.PERCENTAGE
-																	? `${coupon.value}%`
-																	: `$${coupon.value}`
-															}`}
-															color="primary"
-															size="small"
-														/>
-														<Chip
-															label={`Code: ${coupon.code}`}
-															variant="outlined"
-															size="small"
-														/>
-													</Stack>
-												</CardContent>
-											</Card>
-										) : (
-											<Card sx={{ maxWidth: 345 }}>
-												<CardContent
-													sx={{ textAlign: "center" }}
-												>
-													<LocalOffer
-														sx={{
-															fontSize: 48,
-															color: "primary.main",
-															mb: 2,
-														}}
-													/>
-													<Typography
-														gutterBottom
-														variant="h6"
-														component="div"
-													>
-														{coupon.title ||
-															coupon.code}
-													</Typography>
-													<Typography
-														variant="body2"
-														color="text.secondary"
-														sx={{ mb: 1 }}
-													>
-														{coupon.description}
-													</Typography>
-													<Stack
-														direction="row"
-														spacing={1}
-														sx={{
-															justifyContent:
-																"center",
-														}}
-													>
-														<Chip
-															label={`${
-																coupon.type.toUpperCase() ===
-																CouponType.PERCENTAGE
-																	? `${Math.floor(
-																			coupon.value
-																	  )}%`
-																	: `$${coupon.value}`
-															} Off`}
-															color="primary"
-															size="small"
-														/>
-														<Chip
-															label={`Code: ${coupon.code}`}
-															variant="outlined"
-															size="small"
-														/>
-													</Stack>
-												</CardContent>
-											</Card>
-										)}
-									</Grid>
-								))}
-							</Grid>
-						</Box>
-					) : (
-						<Typography variant="body2" color="text.secondary">
-							No special offers available at the moment.
-						</Typography>
-					)}
+					<Suspense fallback={<CarouselSkeleton />}>
+						<CouponsCarousel />
+					</Suspense>
 				</Container>
 			</Box>
 		</Box>

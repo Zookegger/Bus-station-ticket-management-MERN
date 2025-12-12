@@ -250,7 +250,8 @@ const VehicleTypeList: React.FC = () => {
 				<Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
 					<Button
 						variant="contained"
-						startIcon={<AddIcon />}
+						className="hvr-icon-pop"
+						startIcon={<AddIcon className="hvr-icon" />}
 						onClick={handleOpenCreate}
 					>
 						Add New Type

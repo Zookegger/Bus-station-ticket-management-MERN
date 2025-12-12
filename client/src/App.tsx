@@ -4,8 +4,6 @@ import { CircularProgress, Box } from "@mui/material";
 import { router } from "@components/common/Router";
 
 function App() {
-	// const userState = useState();
-
 	return (
 		<Suspense
 			fallback={
