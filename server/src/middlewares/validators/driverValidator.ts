@@ -10,15 +10,6 @@
 import { body, param } from "express-validator";
 
 /**
- * Validation rule for id field.
- *
- * Validates required driver's id as a positive integer that identifies the driver record.
- */
-const driverIdValidator = body("id")
-	.isInt({ min: 1 })
-	.withMessage("Driver ID must be a positive integer");
-
-/**
  * Validation rule for fullname field.
  *
  * Validates optional fullname as a string with maximum length.
@@ -178,7 +169,6 @@ export const createDriverValidation = [
  * Requires driverId to identify the driver, all other fields are optional.
  */
 export const updateDriverValidation = [
-	driverIdValidator,
 	fullnameValidator,
 	phoneValidator,
 	avatarValidator,

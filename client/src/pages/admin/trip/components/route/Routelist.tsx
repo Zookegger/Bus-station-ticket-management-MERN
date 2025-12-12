@@ -205,7 +205,7 @@ const RouteList: React.FC = () => {
 					setFormOpen(false);
 					setSelectedRoute(null);
 				}}
-				onSaved={(route, message) => {
+				onSaved={(_route, message) => {
 					setFormOpen(false);
 					setSelectedRoute(null);
 					setIsLoading(true);

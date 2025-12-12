@@ -69,7 +69,7 @@ export const router = createBrowserRouter([
 				path: ROUTES.SEAT_BOOKING,
 				lazy: async () => {
 					const { default: SeatBooking } = await import(
-						"@pages/landing/SeatBooking"
+						"@pages/common/SeatBooking"
 					);
 					return { Component: SeatBooking };
 				},

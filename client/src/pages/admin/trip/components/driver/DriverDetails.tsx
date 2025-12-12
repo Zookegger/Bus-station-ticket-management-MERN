@@ -98,7 +98,7 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({
 			onClose={() => onClose}
 			slotProps={{
 				paper: {
-					sx: { width: { xs: "100%", sm: 400, md: 500 } },
+					sx: { width: 450 },
 				},
 			}}
 			sx={{
@@ -144,7 +144,9 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({
 					}}
 				/>
 
-				<CardContent sx={{ flex: 1 }}>
+				<CardContent
+					sx={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}
+				>
 					<Stack
 						direction="row"
 						spacing={2}
@@ -174,12 +176,6 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({
 								spacing={1}
 								alignItems="center"
 							>
-								<Typography
-									variant="body2"
-									color="text.secondary"
-								>
-									{driver.email}
-								</Typography>
 								<Chip
 									size="small"
 									label={statusLabel}
@@ -356,7 +352,6 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({
 
 				<CardActions
 					sx={{
-						p: 2,
 						borderTop: "1px solid",
 						borderColor: "divider",
 					}}
@@ -388,7 +383,7 @@ const DriverDetails: React.FC<DriverDetailsProps> = ({
 						className="hvr-icon-back"
 						startIcon={<ArrowBack className="hvr-icon" />}
 					>
-						Back to List
+						Close
 					</Button>
 				</CardActions>
 			</Card>

@@ -58,7 +58,7 @@ import { CouponType, type Coupon, type PaymentMethod } from "@my-types";
 import { Stack } from "@mui/material";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import SeatBookingSelector from "@components/seatmap/SeatLayoutSelector";
-import { ROOMS, RT_EVENTS } from "@constants/realtime";
+import { REALTIME_NAMESPACE, ROOMS, RT_EVENTS } from "@constants/realtime";
 import { formatCurrency } from "@utils/formatting";
 import { Container } from "@mui/system";
 
@@ -318,6 +318,7 @@ const SeatBooking: React.FC = () => {
 
 	// Initialize websocket and subscribe to seat events
 	const { socket, emitEvent, isConnected } = useWebsocket({
+		namespace: REALTIME_NAMESPACE,
 		events: {
 			[RT_EVENTS.SEAT_BULK]: handleSeatUpdate,
 			[RT_EVENTS.SEAT_UPDATE]: handleSeatUpdate,

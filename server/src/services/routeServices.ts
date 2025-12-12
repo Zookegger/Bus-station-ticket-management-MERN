@@ -235,7 +235,7 @@ export const addRoute = async (dto: CreateRouteDTO): Promise<Route | null> => {
 	// 2. Start a database transaction to ensure atomicity.
 	const transaction = await db.sequelize.transaction();
 	try {
-		const location_ids: number[] = [];
+		const stopsToCreate: any[] = [];
 
 		// 3. Process each stop: find the location or create it if it doesn't exist.
 		for (const stop_data of dto.stops) {
@@ -246,7 +246,8 @@ export const addRoute = async (dto: CreateRouteDTO): Promise<Route | null> => {
 				defaults: stop_data,
 				transaction,
 			});
-			location_ids.push(location.id);
+
+			stopsToCreate.push(location.routeStops);
 		}
 
 		// 4. Create the main route record.
@@ -261,15 +262,12 @@ export const addRoute = async (dto: CreateRouteDTO): Promise<Route | null> => {
 		);
 
 		// 5. Prepare and bulk-create the RouteStop entries.
-		const route_stops_to_create = location_ids.map(
-			(location_id, index) => ({
-				routeId: route.id,
-				locationId: location_id,
-				stopOrder: index,
-			})
-		);
+		const finalStopsPayload = stopsToCreate.map((s) => ({
+			...s,
+			routeId: route.id,
+		}));
 
-		await db.RouteStop.bulkCreate(route_stops_to_create, { transaction });
+		await db.RouteStop.bulkCreate(finalStopsPayload, { transaction });
 
 		// 6. Commit the transaction if all operations succeed.
 		await transaction.commit();
@@ -335,13 +333,25 @@ export const updateRoute = async (
 			// Step 1: Process the incoming DTO stops to get their corresponding location IDs.
 			// For each stop, we find an existing location by name or create a new one.
 			const new_location_ids: number[] = [];
-			for (const stop_data of dto.stops) {
+			const stopsToCreate: any[] = [];
+
+			for (const [index, stop_data] of dto.stops.entries()) {
 				const [location] = await db.Location.findOrCreate({
 					where: { name: stop_data.name },
 					defaults: stop_data, // Use the provided data if creating a new location.
 					transaction,
 				});
+
 				new_location_ids.push(location.id);
+
+				// Prepare the payload here while we have access to 'stop_data'
+				stopsToCreate.push({
+					routeId: id,
+					locationId: location.id,
+					stopOrder: index,
+					durationFromStart: stop_data.durationFromStart ?? 0,
+					distanceFromStart: stop_data.distanceFromStart ?? 0,
+				});
 			}
 
 			// Step 2: Fetch the current stops for the route in their correct order.
@@ -369,15 +379,7 @@ export const updateRoute = async (
 					transaction,
 				});
 
-				// Then, create the new RouteStop entries.
-				const route_stops_to_create = new_location_ids.map(
-					(location_id, index) => ({
-						routeId: id,
-						locationId: location_id,
-						stopOrder: index,
-					})
-				);
-				await db.RouteStop.bulkCreate(route_stops_to_create, {
+				await db.RouteStop.bulkCreate(stopsToCreate, {
 					transaction,
 				});
 			}
