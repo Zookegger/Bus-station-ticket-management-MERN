@@ -149,6 +149,14 @@ export class Coupon
 				value: {
 					type: DataTypes.DECIMAL(10, 2),
 					allowNull: false,
+					get() {
+						const rawValue = this.getDataValue("value");
+						if (rawValue === null || rawValue === undefined)
+							return null;
+						return typeof rawValue === "string"
+							? parseFloat(rawValue)
+							: rawValue;
+					},
 				},
 				maxUsage: {
 					type: DataTypes.INTEGER.UNSIGNED,

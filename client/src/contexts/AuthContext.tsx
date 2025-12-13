@@ -84,7 +84,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 					if (should_not_retry || originalRequest._retry) {
 						// If refresh itself failed, clear auth state and redirect
 						setUser(null);
-						setCsrfToken(null);
+
+						// FIX: Only clear CSRF token if the error is NOT from checking session (/me)
+						// This allows guests (who get 401 on /me) to keep their token for bookings
+						if (!requestUrl.includes(API_ENDPOINTS.AUTH.ME)) {
+							setCsrfToken(null);
+						}
+
 						if (requestUrl.includes(API_ENDPOINTS.AUTH.REFRESH)) {
 							window.location.href = ROUTES.LOGIN;
 						}
@@ -211,7 +217,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				if (response.status === 200) {
 					setCsrfToken(null);
 					setUser(null);
-					// ✅ After deleting accouunt, get a fresh CSRF token for guest session
+					// After deleting accouunt, get a fresh CSRF token for guest session
 					try {
 						const csrfResponse = await axios.get(
 							API_ENDPOINTS.AUTH.CSRF_TOKEN
@@ -244,7 +250,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			if (response.status === 200) {
 				setUser(null);
 
-				// ✅ After logout, get a fresh CSRF token for guest session
+				// After logout, get a fresh CSRF token for guest session
 				try {
 					const csrfResponse = await axios.get(
 						API_ENDPOINTS.AUTH.CSRF_TOKEN

@@ -28,6 +28,7 @@ import { DataGridPageLayout } from "@components/admin";
 import callApi from "@utils/apiCaller";
 import { API_ENDPOINTS } from "@constants/index";
 import { TripStatus, type Trip } from "@my-types/trip";
+import { formatCurrency } from "@utils/formatting";
 import TripForm from "./TripForm";
 import DeleteTrip from "./DeleteTrip";
 import TripDetailsDrawer from "./TripDetailsDrawer";
@@ -381,12 +382,7 @@ const TripList: React.FC = () => {
 			headerName: "Price",
 			width: 120,
 			valueFormatter: (value: number) =>
-				value
-					? new Intl.NumberFormat("vi-VN", {
-							style: "currency",
-							currency: "VND",
-					  }).format(value)
-					: "N/A",
+				value ? formatCurrency(value, "VND", "vi-VN") : "N/A",
 		},
 		{
 			field: "actions",

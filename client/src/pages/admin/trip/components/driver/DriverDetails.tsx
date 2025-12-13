@@ -29,14 +29,9 @@ import {
 import { DriverStatus, type Driver } from "@my-types/driver";
 import callApi from "@utils/apiCaller";
 import { API_ENDPOINTS } from "@constants/index";
-import { formatDateDisplay } from "@utils/formatting";
+import { formatDateDisplay, formatCurrency } from "@utils/formatting";
 
-const currency = (v: number) =>
-	new Intl.NumberFormat("vi-VN", {
-		style: "currency",
-		currency: "VND",
-		maximumFractionDigits: 0,
-	}).format(v);
+const currency = (v: number) => formatCurrency(v, "VND", "vi-VN");
 
 const getInitials = (name: string) =>
 	name

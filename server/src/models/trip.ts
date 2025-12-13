@@ -173,6 +173,14 @@ export class Trip
 				price: {
 					type: DataTypes.DECIMAL(10, 2),
 					allowNull: false,
+					get() {
+						const rawValue = this.getDataValue("price");
+						if (rawValue === null || rawValue === undefined)
+							return null;
+						return typeof rawValue === "string"
+							? parseFloat(rawValue)
+							: rawValue;
+					},
 				},
 				status: {
 					type: DataTypes.ENUM(...Object.values(TripStatus)),

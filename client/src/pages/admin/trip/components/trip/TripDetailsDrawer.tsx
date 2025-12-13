@@ -46,6 +46,8 @@ import callApi from "@utils/apiCaller";
 import { API_ENDPOINTS } from "@constants/api";
 import ManualAssignDialog from "./ManualAssignDialog";
 
+import { formatCurrency } from "@utils/formatting";
+
 interface TripDetailsDrawerProps {
 	open: boolean;
 	trip: Trip | null;
@@ -372,10 +374,7 @@ const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
 					>
 						<MoneyIcon color="success" fontSize="small" />
 						<Typography fontWeight="bold" variant="subtitle1">
-							{new Intl.NumberFormat("vi-VN", {
-								style: "currency",
-								currency: "VND",
-							}).format(trip.price)}
+							{formatCurrency(trip.price, "VND", "vi-VN")}
 						</Typography>
 					</Paper>
 

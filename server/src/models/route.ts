@@ -123,7 +123,18 @@ export class Route
 				name: { type: DataTypes.STRING, allowNull: false },
 				distance: { type: DataTypes.FLOAT, allowNull: true },
 				duration: { type: DataTypes.FLOAT, allowNull: true },
-				price: { type: DataTypes.DECIMAL(10, 2), allowNull: true },
+				price: {
+					type: DataTypes.DECIMAL(10, 2),
+					allowNull: true,
+					get() {
+						const rawValue = this.getDataValue("price");
+						if (rawValue === null || rawValue === undefined)
+							return null;
+						return typeof rawValue === "string"
+							? parseFloat(rawValue)
+							: rawValue;
+					},
+				},
 			},
 			{
 				sequelize,

@@ -853,7 +853,8 @@ export const addTrip = async (dto: CreateTripDTO): Promise<Trip | null> => {
 		};
 	}
 
-	const total_price = (route.price || 0) + (vehicle.vehicleType.price || 0);
+	const total_price =
+		(Number(route.price) || 0) + (Number(vehicle.vehicleType.price) || 0);
 
 	const transaction = await db.sequelize.transaction();
 	let trip: Trip;

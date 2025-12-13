@@ -5,6 +5,8 @@ import type { Order } from "@my-types/order";
 import type { Ticket } from "@my-types/ticket";
 import type { Trip } from "@my-types";
 
+import { formatCurrency } from "@utils/formatting";
+
 interface OrderTableProps {
 	orders: Order[];
 	loading?: boolean;
@@ -109,7 +111,7 @@ const OrderTable = ({ orders, loading, onViewDetail }: OrderTableProps) => {
 			headerName: "Total Amount",
 			width: 150,
 			valueFormatter: (value: number) =>
-				`${value.toLocaleString("vi-VN")} ₫`,
+				formatCurrency(value, "VND", "vi-VN"),
 		},
 		{
 			field: "status",

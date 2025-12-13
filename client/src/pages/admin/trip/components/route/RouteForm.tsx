@@ -45,6 +45,7 @@ import {
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import callApi from "@utils/apiCaller";
+import { formatCurrency } from "@utils/formatting";
 
 const DEFAULT_PRICE_PER_KM = 5000;
 const DEFAULT_PRICE_PER_MINUTE = 0;
@@ -291,7 +292,7 @@ const RouteForm: React.FC<RouteFormProps> = ({
 	};
 
 	const displayValue =
-		price !== null ? Number(price).toLocaleString("vi-VN") : "";
+		price !== null ? formatCurrency(price, "VND", "vi-VN") : "";
 	const hasValidCoordinates = stops.some((s) => s.latitude && s.longitude);
 
 	return (
@@ -377,11 +378,6 @@ const RouteForm: React.FC<RouteFormProps> = ({
 											placeholder="Enter price (e.g., 100000)"
 											slotProps={{
 												input: {
-													endAdornment: (
-														<InputAdornment position="end">
-															đ
-														</InputAdornment>
-													),
 													inputMode: "numeric",
 												},
 											}}

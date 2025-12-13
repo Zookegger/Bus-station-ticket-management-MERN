@@ -11,6 +11,7 @@ import { DataGridPageLayout } from "@components/admin";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import { formatDistance } from "@utils/map";
 import { useAdminRealtime } from "@hooks/useAdminRealtime";
+import { formatCurrency } from "@utils/formatting";
 
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 
@@ -123,12 +124,7 @@ const RouteList: React.FC = () => {
 			headerName: "Price",
 			width: 120,
 			valueFormatter: (value: number) =>
-				value
-					? new Intl.NumberFormat("vi-VN", {
-							style: "currency",
-							currency: "VND",
-					  }).format(Number.parseFloat(value.toString()))
-					: "N/A",
+				value ? formatCurrency(value, "VND", "vi-VN") : "N/A",
 		},
 		{ field: "distance", headerName: "Distance", width: 100 },
 		{ field: "updatedAt", headerName: "Updated At", width: 160 },
@@ -148,7 +144,7 @@ const RouteList: React.FC = () => {
 			id: r.id,
 			startLocation: start || "Unknown",
 			destination: end || "Unknown",
-			price: r.price ? `${r.price.toLocaleString("vi-VN")} VND` : "N/A",
+			price: r.price || 0,
 			distance: r.distance ? formatDistance(r.distance) : "N/A",
 			updatedAt: r.updatedAt
 				? format(new Date(r.updatedAt), "dd/MM/yyyy - HH:mm:ss")

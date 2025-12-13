@@ -160,6 +160,14 @@ export class Payment
 					type: DataTypes.DECIMAL(10, 2),
 					allowNull: false,
 					field: "totalAmount",
+					get() {
+						const rawValue = this.getDataValue("totalAmount");
+						if (rawValue === null || rawValue === undefined)
+							return null;
+						return typeof rawValue === "string"
+							? parseFloat(rawValue)
+							: rawValue;
+					},
 				},
 				paymentStatus: {
 					type: DataTypes.ENUM(...Object.values(PaymentStatus)),

@@ -191,11 +191,27 @@ implements TicketAttributes
 					type: DataTypes.DECIMAL(10, 2),
 					allowNull: false,
 					field: "basePrice",
+					get() {
+						const rawValue = this.getDataValue("basePrice");
+						if (rawValue === null || rawValue === undefined)
+							return null;
+						return typeof rawValue === "string"
+							? parseFloat(rawValue)
+							: rawValue;
+					},
 				},
 				finalPrice: {
 					type: DataTypes.DECIMAL(10, 2),
 					allowNull: false,
 					field: "finalPrice",
+					get() {
+						const rawValue = this.getDataValue("finalPrice");
+						if (rawValue === null || rawValue === undefined)
+							return null;
+						return typeof rawValue === "string"
+							? parseFloat(rawValue)
+							: rawValue;
+					},
 				},
 				cancelledAt: {
 					type: DataTypes.DATE,

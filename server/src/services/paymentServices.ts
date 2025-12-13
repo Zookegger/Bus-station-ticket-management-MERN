@@ -443,7 +443,9 @@ export const handlePaymentCallback = async (
 					const updatedSeats = await Seat.findAll({
 						where: { id: seatIds },
 						transaction,
+						attributes: ['id', 'status', 'tripId', 'row', 'column', 'floor', 'number']
 					});
+					
 					if (updatedSeats && updatedSeats.length > 0 && updatedSeats[0] && updatedSeats[0].tripId) {
 						emitBulkSeatUpdates(
 							updatedSeats[0].tripId,

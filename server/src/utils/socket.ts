@@ -37,6 +37,10 @@ export const initSocket = (httpServer: HttpServer): SocketServer => {
 
 	// Auth middleware for namespace
 	namespace.use(async (socket, next) => {
+		logger.debug(
+			`[Socket] Middleware check for ${socket.id}. Auth token present: ${!!socket
+				.handshake.auth?.token}`
+		);
 		try {
 			const token = socket.handshake.auth?.token;
 			if (token) {
@@ -65,6 +69,9 @@ export const initSocket = (httpServer: HttpServer): SocketServer => {
 		}
 
 		socket.on(IN_EVENTS.ROOM_JOIN, (payload: { room: string }) => {
+			logger.debug(
+				`[Socket] ${socket.id} joining room: ${payload?.room}`
+			);
 			if (!payload?.room) return;
 			socket.join(payload.room);
 		});

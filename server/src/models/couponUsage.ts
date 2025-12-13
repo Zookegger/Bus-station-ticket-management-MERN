@@ -132,7 +132,15 @@ export class CouponUsage
 				discountAmount: {
 					type: DataTypes.DECIMAL(10, 2),
 					allowNull: false,
-					field: 'discountAmount'
+					field: "discountAmount",
+					get() {
+						const rawValue = this.getDataValue("discountAmount");
+						if (rawValue === null || rawValue === undefined)
+							return null;
+						return typeof rawValue === "string"
+							? parseFloat(rawValue)
+							: rawValue;
+					},
 				},
 			},
 			{

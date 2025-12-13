@@ -13,6 +13,7 @@ import {
 import type { Ticket } from "@my-types";
 import { callApi } from "@utils/apiCaller";
 import { API_ENDPOINTS } from "@constants/index";
+import { formatCurrency } from "@utils/formatting";
 
 interface OrderConfirmCancelDialogProps {
 	orderId: string;
@@ -119,7 +120,7 @@ const OrderConfirmCancelDialog: React.FC<OrderConfirmCancelDialogProps> = ({
 								{t.seat?.number || t.seatId})
 							</Typography>
 							<Typography variant="body2" fontWeight="bold">
-								{Number(t.finalPrice).toLocaleString("vi-VN")} ₫
+								{formatCurrency(Number(t.finalPrice), "VND", "vi-VN")}
 							</Typography>
 						</Box>
 					))}
@@ -142,7 +143,7 @@ const OrderConfirmCancelDialog: React.FC<OrderConfirmCancelDialogProps> = ({
 						fontWeight="bold"
 						color="error"
 					>
-						{totalRefundAmount.toLocaleString("vi-VN")} ₫
+						{formatCurrency(totalRefundAmount, "VND", "vi-VN")}
 					</Typography>
 				</Box>
 			</DialogContent>

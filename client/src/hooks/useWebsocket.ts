@@ -85,16 +85,16 @@ const useWebsocket = (options: WebsocketOptions = {}) => {
 	// Debug logging helper
 	const debugLog = useCallback(
 		(message: string, ...args: unknown[]) => {
-			if (import.meta.env.NODE_ENV === "development") {
-				if (debug_ref.current) {
-					console.log(
-						`🔌 [WebSocket-${component_id.current.slice(
-							-6
-						)}] ${message}`,
-						...args
-					);
-				}
-			}
+			// if (import.meta.env.NODE_ENV === "development") {
+			// 	if (debug_ref.current) {
+			// 		console.log(
+			// 			`🔌 [WebSocket-${component_id.current.slice(
+			// 				-6
+			// 			)}] ${message}`,
+			// 			...args
+			// 		);
+			// 	}
+			// }
 		},
 		[debug_ref]
 	);
@@ -302,16 +302,22 @@ const useWebsocket = (options: WebsocketOptions = {}) => {
 
 		Object.entries(events_ref.current).forEach(([event_name, handler]) => {
 			if (typeof handler === "function") {
-				// Only add handler if not already registered
+				// Ensure Set exists for this event
 				if (!global_event_handlers.has(event_name)) {
-					socket.on(event_name, handler);
 					global_event_handlers.set(event_name, new Set());
 				}
 
-				// Track this component's handler
-				if (!global_event_handlers.get(event_name).has(handler)) {
-					global_event_handlers.get(event_name).add(handler);
+				const handlersSet = global_event_handlers.get(event_name);
+
+				// Only add handler if not already registered
+				if (!handlersSet.has(handler)) {
+					// Register with socket.io
+					socket.on(event_name, handler);
+					// Add to global tracking
+					handlersSet.add(handler);
+					// Add to local component tracking
 					component_handlers.set(event_name, handler);
+					debugLog(`Registered handler for '${event_name}'`);
 				}
 			}
 		});
@@ -327,11 +333,13 @@ const useWebsocket = (options: WebsocketOptions = {}) => {
 				// Remove from global tracking
 				const handlers = global_event_handlers.get(event_name);
 				if (handlers) {
+					// Remove from socket.io
+					socket.off(event_name, handler);
 					handlers.delete(handler);
+					debugLog(`Unregistered handler for '${event_name}'`);
 
-					// Remove from socket if no more handlers
+					// Clean up empty sets
 					if (handlers.size == 0) {
-						socket.off(event_name);
 						global_event_handlers.delete(event_name);
 					}
 				}
@@ -345,26 +353,45 @@ const useWebsocket = (options: WebsocketOptions = {}) => {
 		is_mounted.current = true;
 		let component_handlers = new Map();
 
+		// Define status handlers that update THIS component's state
+		const onConnect = () => {
+			debugLog("Socket connected (listener)");
+			updateConnectionStatus(WEBSOCKET_CONNECTION_STATES.CONNECTED);
+			authenticateSocket();
+		};
+
+		const onDisconnect = (reason: any) => {
+			debugLog("Socket disconnected (listener)", reason);
+			updateConnectionStatus(WEBSOCKET_CONNECTION_STATES.DISCONNECTED);
+			if (reason === "io server disconnect") {
+				attemptReconnection();
+			}
+		};
+
+		const onConnectError = (error: any) => {
+			debugLog("Connection error (listener):", error);
+			setError("Connection failed");
+			updateConnectionStatus(WEBSOCKET_CONNECTION_STATES.ERROR);
+			attemptReconnection();
+		};
+
 		const initializeWebsocket = async () => {
 			if (!auto_connect) return;
 
-			// Use existing connection if available
-			if (global_socket && (global_socket as Socket).connected) {
-				debugLog("Using existing WebSocket connection");
-				socket_ref.current = global_socket;
-				component_handlers = registerHandlers(global_socket);
-				return;
-			}
+			let socket = global_socket;
 
-			debugLog("Initializing new WebSocket connection...");
+			if (!socket) {
+				debugLog("Initializing new WebSocket connection...");
 
-			try {
-				const websocket_token = await getAuthToken();
-				const socket_url =
-					import.meta.env.REACT_APP_WS_URL || "http://localhost:5000";
+				try {
+					const websocket_token = await getAuthToken();
+					const socket_url =
+						import.meta.env.VITE_SERVER_BASE_URL ||
+						"http://localhost:5000";
 
-				const socket_options: Partial<SocketOptions | ManagerOptions> =
-					{
+					const socket_options: Partial<
+						SocketOptions | ManagerOptions
+					> = {
 						auth: { token: websocket_token || null },
 						ackTimeout: 20000,
 						retries: 5,
@@ -375,43 +402,34 @@ const useWebsocket = (options: WebsocketOptions = {}) => {
 						rememberUpgrade: true,
 					};
 
-				const new_socket = io(socket_url + namespace, socket_options);
-
-				// Set up event listeners
-				new_socket.on("connect", () => {
-					debugLog("Socket connected");
-					updateConnectionStatus(
-						WEBSOCKET_CONNECTION_STATES.CONNECTED
-					);
-					authenticateSocket(); // Attempt authentication on connect
-				});
-
-				new_socket.on("disconnect", (reason) => {
-					debugLog("Socket disconnected:", reason);
-					updateConnectionStatus(
-						WEBSOCKET_CONNECTION_STATES.DISCONNECTED
-					);
-					if (reason === "io server disconnect") {
-						// Server disconnected, try reconnect
-						attemptReconnection();
-					}
-				});
-
-				new_socket.on("connect_error", (error) => {
-					debugLog("Connection error:", error);
-					setError("Connection failed");
-					updateConnectionStatus(WEBSOCKET_CONNECTION_STATES.ERROR);
-					attemptReconnection();
-				});
-
-				// Assign to global and local refs
-				global_socket = new_socket;
-				socket_ref.current = new_socket;
-				component_handlers = registerHandlers(new_socket);
-			} catch (err) {
-				debugLog("Initialization error:", err);
-				setError("Failed to initialize WebSocket connection");
+					socket = io(socket_url + namespace, socket_options);
+					global_socket = socket;
+				} catch (err) {
+					debugLog("Initialization error:", err);
+					setError("Failed to initialize WebSocket connection");
+					return;
+				}
+			} else {
+				debugLog("Using existing WebSocket connection");
 			}
+
+			socket_ref.current = socket;
+
+			// Attach status listeners for THIS component
+			socket.on("connect", onConnect);
+			socket.on("disconnect", onDisconnect);
+			socket.on("connect_error", onConnectError);
+
+			// If already connected, update state immediately
+			if (socket.connected) {
+				updateConnectionStatus(WEBSOCKET_CONNECTION_STATES.CONNECTED);
+				// We might want to authenticate if not already authenticated
+				// But authenticateSocket checks global state, so it's safe to call
+				authenticateSocket();
+			}
+
+			// Register custom event handlers
+			component_handlers = registerHandlers(socket);
 		};
 
 		initializeWebsocket();
@@ -422,12 +440,26 @@ const useWebsocket = (options: WebsocketOptions = {}) => {
 			debugLog("Cleaning up WebSocket handlers");
 
 			if (socket_ref.current) {
+				// Remove status listeners
+				socket_ref.current.off("connect", onConnect);
+				socket_ref.current.off("disconnect", onDisconnect);
+				socket_ref.current.off("connect_error", onConnectError);
+
 				unregisterHandlers(socket_ref.current, component_handlers);
 
 				if (global_event_handlers.size === 0 && global_socket) {
-					debugLog("No more active handlers - disconnecting socket");
-					global_socket.disconnect();
-					global_socket = null;
+					// Only disconnect if NO other components are using it?
+					// But we don't track component count.
+					// We track event handlers.
+					// If we have 0 event handlers, maybe we can disconnect?
+					// But what if another component is just listening to 'connect'?
+					// The current logic is imperfect for shared sockets.
+					// Ideally we should have a ref count.
+					// For now, let's NOT disconnect global socket automatically
+					// to avoid disrupting other components.
+					// debugLog("No more active handlers - disconnecting socket");
+					// global_socket.disconnect();
+					// global_socket = null;
 				}
 			}
 		};

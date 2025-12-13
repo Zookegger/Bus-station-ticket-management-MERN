@@ -26,6 +26,8 @@ import {
 import type { Order } from "@my-types/order";
 import TicketCard from "./TicketCard";
 
+import { formatCurrency } from "@utils/formatting";
+
 interface OrderDetailDialogProps {
 	order: Order | null;
 	open: boolean;
@@ -395,25 +397,11 @@ export default function OrderDetailDialog({
 								<Stack spacing={0.5}>
 									<DetailRow
 										label="Base Price"
-										value={new Intl.NumberFormat("vi-VN", {
-											style: "currency",
-											currency: "VND",
-										}).format(
-											Number.parseFloat(
-												order.totalBasePrice.toString()
-											)
-										)}
+										value={formatCurrency(order.totalBasePrice, "VND", "vi-VN")}
 									/>
 									<DetailRow
 										label="Discount"
-										value={new Intl.NumberFormat("vi-VN", {
-											style: "currency",
-											currency: "VND",
-										}).format(
-											Number.parseFloat(
-												order.totalDiscount.toString()
-											)
-										)}
+										value={formatCurrency(order.totalDiscount, "VND", "vi-VN")}
 										valueColor="success.main"
 									/>
 
@@ -423,14 +411,7 @@ export default function OrderDetailDialog({
 
 									<DetailRow
 										label="Net Total"
-										value={new Intl.NumberFormat("vi-VN", {
-											style: "currency",
-											currency: "VND",
-										}).format(
-											Number.parseFloat(
-												order.totalFinalPrice.toString()
-											)
-										)}
+										value={formatCurrency(order.totalFinalPrice, "VND", "vi-VN")}
 										boldValue
 										valueColor="primary.main"
 									/>
@@ -494,17 +475,7 @@ export default function OrderDetailDialog({
 											{/* Only show paid amount if it differs from Net Total, otherwise it's redundant */}
 											<DetailRow
 												label="Paid Amount"
-												value={new Intl.NumberFormat(
-													"vi-VN",
-													{
-														style: "currency",
-														currency: "VND",
-													}
-												).format(
-													Number.parseFloat(
-														order.payment[0].totalAmount.toString()
-													)
-												)}
+												value={formatCurrency(order.payment[0].totalAmount, "VND", "vi-VN")}
 											/>
 
 											<DetailRow

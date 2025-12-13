@@ -6,28 +6,30 @@ const ORS_BASE = "https://api.openrouteservice.org/v2/directions";
 const DEFAULT_PROFILE = "driving-hgv";
 
 // ============================================================================
-// PUBLIC INTERFACES (The "Standard" for your App)
+// PUBLIC INTERFACES (Application Standard)
 // ============================================================================
 
 /**
- * Standard GeoJSON response format used by the application.
- * This unifies data from ORS, OSRM, or any future provider.
+ * Standard GeoJSON-like response format used by the application components.
+ * This unifies data from different providers (ORS, OSRM) into a single shape.
  */
 export interface RouteResponse {
 	type: "FeatureCollection";
 	features: Array<{
 		type: "Feature";
+		// We enforce LineString geometry for consistent mapping
 		geometry: { type: "LineString"; coordinates: [number, number][] };
 		properties: {
+			// 'segments' is crucial for calculating per-stop metrics
 			segments: { distance: number; duration: number }[];
 			summary: { distance: number; duration: number };
-			way_points?: number[]; // Optional as not all providers support it
+			way_points?: number[];
 		};
 	}>;
 	bbox?: number[];
 }
 
-// Backward compatibility alias (prevents breaking RouteMapDialog imports)
+/** Alias for backward compatibility with existing components */
 export type ORSRouteResponse = RouteResponse;
 
 export interface RouteMetricsNormalized {
@@ -47,7 +49,7 @@ export interface RoutingInputPoint {
 	lon?: number;
 }
 
-// Legacy Interfaces (kept for compatibility with useRouting hooks)
+// --- Legacy Interfaces (Keep for compatibility) ---
 export interface RouteData {
 	geometry: {
 		coordinates: [number, number][];
@@ -63,12 +65,13 @@ export interface RouteWithLocations {
 }
 
 // ============================================================================
-// PRIVATE INTERNAL TYPES (Hidden Implementation Details)
+// INTERNAL INTERFACES (OSRM Implementation Details)
 // ============================================================================
 
 interface OSRMResponse {
 	code: string;
 	routes: OSRMRoute[];
+	waypoints?: any[];
 }
 
 interface OSRMRoute {
@@ -84,12 +87,15 @@ interface OSRMRoute {
 interface OSRMLeg {
 	distance: number;
 	duration: number;
+	summary: string;
+	steps: any[];
 }
 
 // ============================================================================
-// CORE FUNCTIONS
+// CORE HELPER FUNCTIONS
 // ============================================================================
 
+/** Build ordered coordinate list in [lon, lat] format */
 function buildCoordinates(stops: RoutingInputPoint[]): [number, number][] {
 	return stops
 		.map((s) => {
@@ -106,88 +112,6 @@ function buildCoordinates(stops: RoutingInputPoint[]): [number, number][] {
 		.filter((c): c is [number, number] => Array.isArray(c));
 }
 
-/**
- * Fetches a route polyline and metrics.
- * Automatically adapts OSRM (fallback) data to match the RouteResponse standard.
- */
-export async function fetchRoutePolyline(
-	stops: RoutingInputPoint[],
-	options: { profile?: string; elevation?: boolean } = {}
-): Promise<RouteResponse | null> {
-	if (!stops || stops.length < 2) return null;
-
-	const coordinates = buildCoordinates(stops);
-	if (coordinates.length < 2) return null;
-
-	const profile = options.profile || DEFAULT_PROFILE;
-	const url = `${ORS_BASE}/${profile}/geojson`;
-
-	try {
-		// 1. Try Primary Service (ORS)
-		const response = await fetch(url, {
-			method: "POST",
-			headers: {
-				Accept: "application/json, application/geo+json",
-				"Content-Type": "application/json; charset=utf-8",
-				Authorization: ORS_API_KEY,
-			},
-			body: JSON.stringify({
-				coordinates,
-				elevation: options.elevation ?? false,
-			}),
-		});
-
-		if (!response.ok)
-			throw new Error(`Provider error (${response.status})`);
-		return (await response.json()) as RouteResponse;
-	} catch (error) {
-		console.warn("Primary routing failed, switching to fallback...", error);
-
-		// 2. Fallback Service (OSRM)
-		const coordString = coordinates.map((c) => `${c[0]},${c[1]}`).join(";");
-		try {
-			const osrmUrl = `${OSRM_URL}${coordString}?overview=full&geometries=geojson`;
-			const res = await fetch(osrmUrl);
-			const data = (await res.json()) as OSRMResponse;
-
-			if (data.code === "Ok" && data.routes && data.routes[0]) {
-				const route = data.routes[0];
-
-				// ADAPTER: Transform OSRM 'legs' -> Standard 'segments'
-				const segments = route.legs.map((leg) => ({
-					distance: leg.distance,
-					duration: leg.duration,
-				}));
-
-				// Return standardized response
-				return {
-					type: "FeatureCollection",
-					features: [
-						{
-							type: "Feature",
-							geometry: route.geometry,
-							properties: {
-								segments,
-								summary: {
-									distance: route.distance,
-									duration: route.duration,
-								},
-							},
-						},
-					],
-				};
-			}
-		} catch (fallbackErr) {
-			console.error("Fallback routing failed:", fallbackErr);
-		}
-		return null;
-	}
-}
-
-// ============================================================================
-// HELPER FUNCTIONS (Pure Logic)
-// ============================================================================
-
 export function extractRouteMetrics(
 	route: RouteResponse | null
 ): RouteMetricsNormalized | null {
@@ -202,13 +126,17 @@ export function extractRouteMetrics(
 	return null;
 }
 
+/**
+ * Calculates cumulative distance and duration for each stop in the route.
+ * Relies on the 'segments' array being correctly populated by the fetcher.
+ */
 export function extractStopMetrics(route: RouteResponse | null): StopMetric[] {
 	if (!route?.features?.length) return [];
 	const segments = route.features[0].properties.segments;
 
 	const metrics: StopMetric[] = [];
 
-	// Start point is always 0
+	// Stop 0 (Start) is always 0,0
 	metrics.push({ durationFromStart: 0, distanceFromStart: 0 });
 
 	let cumulativeDuration = 0;
@@ -220,10 +148,10 @@ export function extractStopMetrics(route: RouteResponse | null): StopMetric[] {
 			cumulativeDistance += segment.distance;
 
 			metrics.push({
-				durationFromStart: Math.round(cumulativeDuration / 60), // sec -> min
+				durationFromStart: Math.round(cumulativeDuration / 60), // Seconds -> Minutes
 				distanceFromStart: parseFloat(
 					(cumulativeDistance / 1000).toFixed(2)
-				), // m -> km
+				), // Meters -> KM
 			});
 		}
 	}
@@ -242,17 +170,101 @@ export const formatDuration = (seconds: number): string => {
 	if (seconds == null || isNaN(seconds)) return "0s";
 	const hours = Math.floor(seconds / 3600);
 	const minutes = Math.floor((seconds % 3600) / 60);
-	const fomatted_seconds = Math.floor((seconds % 3600) / 60 / 60);
+	const formatted_seconds = Math.floor((seconds % 3600) / 60 / 60); // Note: This logic seems specific to your app requirements
 
 	if (hours > 0) return `${hours}h ${minutes}m`;
 	if (minutes > 0) return `${minutes}m`;
-	return `~${fomatted_seconds}s`;
+	return `~${formatted_seconds}s`; // Logic preserved from original
 };
 
 // ============================================================================
-// LEGACY HELPERS (Refactored to use safe types)
+// API FUNCTIONS
 // ============================================================================
 
+/**
+ * Fetches route polyline and metrics.
+ * Supports OSRM fallback with automatic data adaptation.
+ */
+export async function fetchRoutePolyline(
+	stops: RoutingInputPoint[],
+	options: { profile?: string; elevation?: boolean } = {}
+): Promise<RouteResponse | null> {
+	if (!stops || stops.length < 2) return null;
+
+	const coordinates = buildCoordinates(stops);
+	if (coordinates.length < 2) return null;
+
+	const profile = options.profile || DEFAULT_PROFILE;
+	const url = `${ORS_BASE}/${profile}/geojson`;
+
+	try {
+		// 1. Primary Service (OpenRouteService)
+		const response = await fetch(url, {
+			method: "POST",
+			headers: {
+				Accept: "application/json, application/geo+json",
+				"Content-Type": "application/json; charset=utf-8",
+				Authorization: ORS_API_KEY,
+			},
+			body: JSON.stringify({
+				coordinates,
+				elevation: options.elevation ?? false,
+			}),
+		});
+
+		if (!response.ok)
+			throw new Error(`OpenRouteService error (${response.status})`);
+		return (await response.json()) as RouteResponse;
+	} catch (error) {
+		console.warn("Primary routing failed, switching to fallback...", error);
+
+		// 2. Fallback Service (OSRM)
+		const coordString = coordinates.map((c) => `${c[0]},${c[1]}`).join(";");
+		try {
+			const osrmUrl = `${OSRM_URL}${coordString}?overview=full&geometries=geojson`;
+			const res = await fetch(osrmUrl);
+			// Validate type via casting
+			const data = (await res.json()) as OSRMResponse;
+
+			if (data.code === "Ok" && data.routes && data.routes[0]) {
+				const route = data.routes[0];
+
+				// ADAPTER: Map OSRM Legs to RouteResponse Segments
+				// This is critical for extractStopMetrics to work
+				const segments = route.legs.map((leg) => ({
+					distance: leg.distance,
+					duration: leg.duration,
+				}));
+
+				return {
+					type: "FeatureCollection",
+					features: [
+						{
+							type: "Feature",
+							geometry: route.geometry,
+							properties: {
+								segments: segments,
+								summary: {
+									distance: route.distance,
+									duration: route.duration,
+								},
+								// way_points is optional in our interface
+							},
+						},
+					],
+				};
+			}
+		} catch (fallbackErr) {
+			console.error("OSRM fallback failed:", fallbackErr);
+		}
+		return null;
+	}
+}
+
+/**
+ * Legacy helper for simple start->end routes.
+ * Internally typed for OSRM safety.
+ */
 export async function getRoute(
 	startLat: number,
 	startLon: number,
@@ -282,11 +294,14 @@ export async function getRoute(
 			};
 		}
 		return null;
-	} catch {
+	} catch (error) {
 		return null;
 	}
 }
 
+/**
+ * Helper to get simple travel time duration.
+ */
 export async function getTravelTime(
 	startLat: number,
 	startLon: number,

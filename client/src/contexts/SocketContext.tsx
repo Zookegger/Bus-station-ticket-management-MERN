@@ -18,6 +18,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
 		namespace: "/realtime",
 		auto_connect: true,
 		debug: true,
+		requireAuth: false,
 		events: {
 			// Global handlers can go here, but we'll specific ones in dedicated contexts
 			connect: () => console.debug("Socket connected globally"),

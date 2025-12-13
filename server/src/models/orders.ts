@@ -186,17 +186,41 @@ export class Order
 					type: DataTypes.DECIMAL(10, 2),
 					allowNull: false,
 					field: "totalBasePrice",
+					get() {
+						const rawValue = this.getDataValue("totalBasePrice");
+						if (rawValue === null || rawValue === undefined)
+							return null;
+						return typeof rawValue === "string"
+							? parseFloat(rawValue)
+							: rawValue;
+					},
 				},
 				totalDiscount: {
 					type: DataTypes.DECIMAL(10, 2),
 					allowNull: false,
 					defaultValue: 0,
 					field: "totalDiscount",
+					get() {
+						const rawValue = this.getDataValue("totalDiscount");
+						if (rawValue === null || rawValue === undefined)
+							return null;
+						return typeof rawValue === "string"
+							? parseFloat(rawValue)
+							: rawValue;
+					},
 				},
 				totalFinalPrice: {
 					type: DataTypes.DECIMAL(10, 2),
 					allowNull: false,
 					field: "totalFinalPrice",
+					get() {
+						const rawValue = this.getDataValue("totalFinalPrice");
+						if (rawValue === null || rawValue === undefined)
+							return null;
+						return typeof rawValue === "string"
+							? parseFloat(rawValue)
+							: rawValue;
+					},
 				},
 				guestPurchaserEmail: {
 					type: DataTypes.STRING,

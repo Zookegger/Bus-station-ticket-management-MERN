@@ -43,13 +43,6 @@ const VehicleTypeList: React.FC = () => {
 
 	const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
 
-	const formatCurrency = (amount: number) => {
-		return new Intl.NumberFormat("vi-VN", {
-			style: "currency",
-			currency: "VND",
-		}).format(amount);
-	};
-
 	const fetchVehicleTypes = useCallback(async () => {
 		try {
 			// const response = await axios.get(API_ENDPOINTS.VEHICLE_TYPE.BASE);
@@ -170,7 +163,7 @@ const VehicleTypeList: React.FC = () => {
 			field: "price",
 			headerName: "Base Fare",
 			width: 150,
-			renderCell: (params) => formatCurrency(params.value as number),
+			renderCell: (params) => formatCurrency(params.value as number, "VND", "vi-VN"),
 		},
 		{
 			field: "totalSeats",

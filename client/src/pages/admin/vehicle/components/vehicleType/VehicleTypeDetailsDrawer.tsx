@@ -91,13 +91,6 @@ const VehicleTypeDetailsDrawer: React.FC<VehicleTypeDetailsDrawerProps> = ({
 }) => {
 	if (!vehicleType) return null;
 
-	const formatCurrency = (amount: number) => {
-		return new Intl.NumberFormat("vi-VN", {
-			style: "currency",
-			currency: "VND",
-		}).format(amount);
-	};
-
 	return (
 		<Drawer
 			anchor="right"
@@ -155,7 +148,7 @@ const VehicleTypeDetailsDrawer: React.FC<VehicleTypeDetailsDrawerProps> = ({
 							/>
 							<ItemPanel
 								content={
-									formatCurrency(vehicleType.price) ?? "N/A"
+									formatCurrency(vehicleType.price, "VND", "vi-VN") ?? "N/A"
 								}
 								chipColor="success"
 								labelName={"Price"}

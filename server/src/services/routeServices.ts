@@ -11,6 +11,7 @@ import db from "@models/index";
 import { Route } from "@models/route";
 import { RouteStop } from "@models/routeStop";
 import { CreateRouteDTO, UpdateRouteDTO } from "@my_types/route";
+import logger from "@utils/logger";
 
 /**
  * Configuration options for route listing and filtering.
@@ -238,16 +239,27 @@ export const addRoute = async (dto: CreateRouteDTO): Promise<Route | null> => {
 		const stopsToCreate: any[] = [];
 
 		// 3. Process each stop: find the location or create it if it doesn't exist.
+		let stopOrder = 0;
 		for (const stop_data of dto.stops) {
 			// Use findOrCreate to prevent duplicate locations. It finds a location by name
 			// or creates a new one if it's not found.
 			const [location] = await db.Location.findOrCreate({
 				where: { name: stop_data.name },
-				defaults: stop_data,
+				defaults: {
+					name: stop_data.name,
+					address: stop_data.address,
+					latitude: stop_data.latitude,
+					longitude: stop_data.longitude,
+				},
 				transaction,
 			});
 
-			stopsToCreate.push(location.routeStops);
+			stopsToCreate.push({
+				locationId: location.id,
+				durationFromStart: stop_data.durationFromStart || 0,
+				distanceFromStart: stop_data.distanceFromStart || 0,
+				stopOrder: stopOrder++,
+			});
 		}
 
 		// 4. Create the main route record.
@@ -338,7 +350,12 @@ export const updateRoute = async (
 			for (const [index, stop_data] of dto.stops.entries()) {
 				const [location] = await db.Location.findOrCreate({
 					where: { name: stop_data.name },
-					defaults: stop_data, // Use the provided data if creating a new location.
+					defaults: {
+						name: stop_data.name,
+						address: stop_data.address,
+						latitude: stop_data.latitude,
+						longitude: stop_data.longitude,
+					}, // Use the provided data if creating a new location.
 					transaction,
 				});
 
@@ -352,6 +369,9 @@ export const updateRoute = async (
 					durationFromStart: stop_data.durationFromStart ?? 0,
 					distanceFromStart: stop_data.distanceFromStart ?? 0,
 				});
+
+				logger.debug("Duration From Start", stop_data.durationFromStart);
+				logger.debug("Distance From Start", stop_data.distanceFromStart);
 			}
 
 			// Step 2: Fetch the current stops for the route in their correct order.
