@@ -55,7 +55,11 @@ export const createOrder = async (
 		// Safely read the trip start time from the first seat (if present)
 		const tripStartTime = seats?.[0]?.trip?.startTime;
 		// Ensure we check for empty result set before accessing seats[0], and only compare startTime when present
-		if (!seats || seats.length === 0 || (tripStartTime && new Date(tripStartTime) <= now)) {
+		if (
+			!seats ||
+			seats.length === 0 ||
+			(tripStartTime && new Date(tripStartTime) <= now)
+		) {
 			throw { status: 410, code: "TRIP_EXPIRED" };
 		}
 
@@ -579,11 +583,14 @@ export const checkInTicketsByOrder = async (
 
 	if (!order) throw { status: 404, message: "Order not found." };
 
+	if (order.status === OrderStatus.CHECKED_IN)
+		throw { status: 409, message: "Order already checked in." };
+
 	// Step 2: Filter for tickets that are in 'BOOKED' status.
 	// This creates an array of IDs, which can have one or many items.
 	const bookedTicketIds =
 		order.tickets
-			?.filter((ticket) => (ticket.status === TicketStatus.BOOKED))
+			?.filter((ticket) => ticket.status === TicketStatus.BOOKED)
 			.map((ticket) => ticket.id) ?? [];
 
 	logger.debug(order);
@@ -607,6 +614,8 @@ export const checkInTicketsByOrder = async (
 			status: 500,
 			message: "Failed to retrieve updated order after check-in.",
 		};
+
+	await updatedOrder.update({ status: OrderStatus.CHECKED_IN });
 
 	return updatedOrder;
 };

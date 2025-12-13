@@ -301,9 +301,10 @@ export const cleanUpExpiredTickets = async (): Promise<void> => {
 				}
 
 				const ticketIds = order.tickets?.map((t) => t.id) || [];
-				const seatIds = order.tickets
-					?.map((t) => t.seatId)
-					.filter((id) => id != null) || [];
+				const seatIds =
+					order.tickets
+						?.map((t) => t.seatId)
+						.filter((id) => id != null) || [];
 
 				// 1. Update Order status to EXPIRED
 				// Use static update to avoid potential instance-based issues
@@ -367,10 +368,7 @@ export const cleanUpExpiredTickets = async (): Promise<void> => {
 				}
 
 				// 4. Release coupon usage
-				await couponServices.releaseCouponUsage(
-					order.id,
-					transaction
-				);
+				await couponServices.releaseCouponUsage(order.id, transaction);
 
 				await transaction.commit();
 			} catch (err) {
@@ -410,7 +408,15 @@ export const cleanUpMissedTripTickets = async (): Promise<void> => {
 							model: db.Trip,
 							as: "trip",
 							required: true,
-							where: { status: TripStatus.COMPLETED },
+							where: {
+								[Op.or]: [
+									{ status: TripStatus.COMPLETED },
+									{
+										status: TripStatus.SCHEDULED,
+										startTime: { [Op.lt]: new Date() },
+									},
+								],
+							},
 						},
 					],
 				},
@@ -428,6 +434,13 @@ export const cleanUpMissedTripTickets = async (): Promise<void> => {
 		// Mark each missed ticket as COMPLETED (assumed travelled), but do NOT release the seat
 		// Seat remains BOOKED since payment was completed
 		for (const ticket of missedTickets) {
+			if (ticket.seat?.trip?.status !== TripStatus.COMPLETED) {
+				logger.warn(
+					`Skipping ticket ${ticket.id} - Trip is not COMPLETED`
+				);
+				continue;
+			}
+
 			await ticket.update(
 				{ status: TicketStatus.COMPLETED },
 				{ transaction }

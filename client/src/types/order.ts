@@ -149,6 +149,8 @@ export const OrderStatus = {
 	PENDING: "PENDING",
 	/** The order has been confirmed. */
 	CONFIRMED: "CONFIRMED",
+	/** The order has been checked in */
+	CHECKED_IN: "CHECKED_IN",
 	/** The order has been cancelled. */
 	CANCELLED: "CANCELLED",
 	/** The order has been partially refunded. */
