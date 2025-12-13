@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useSocket } from "@contexts/SocketContext";
 import { ROOMS, RT_EVENTS } from "@constants/realtime";
 
@@ -13,10 +13,19 @@ export const useAdminRealtime = ({
 	onRefresh,
 	onNotify,
 }: UseAdminRealtimeProps) => {
-	const { socket, joinRoom, leaveRoom } = useSocket();
+	const { socket, isConnected, joinRoom, leaveRoom } = useSocket();
+	
+	// Use refs to keep callbacks stable in the effect
+	const onRefreshRef = useRef(onRefresh);
+	const onNotifyRef = useRef(onNotify);
 
 	useEffect(() => {
-		if (!socket) return;
+		onRefreshRef.current = onRefresh;
+		onNotifyRef.current = onNotify;
+	}, [onRefresh, onNotify]);
+
+	useEffect(() => {
+		if (!socket || !isConnected) return;
 
 		joinRoom(ROOMS.dashboard);
 
@@ -27,15 +36,15 @@ export const useAdminRealtime = ({
 			if (entity && !entities.includes(payload.entity)) return;
 
 			// Trigger refresh
-			if (onRefresh) onRefresh();
+			if (onRefreshRef.current) onRefreshRef.current();
 
 			// Notify
-			if (onNotify) {
+			if (onNotifyRef.current) {
 				const actionText = payload.action === 'create' ? 'created' : payload.action === 'update' ? 'updated' : 'deleted';
 				const msg = `${payload.entity} ${actionText} by ${
 					payload.actor?.name || "System"
 				}`;
-				onNotify(msg, "info");
+				onNotifyRef.current(msg, "info");
 			}
 		};
 
@@ -45,5 +54,5 @@ export const useAdminRealtime = ({
 			socket.off(RT_EVENTS.CRUD_CHANGE, handleCrudChange);
 			leaveRoom(ROOMS.dashboard);
 		};
-	}, [socket, joinRoom, leaveRoom, JSON.stringify(entity), onRefresh, onNotify]);
+	}, [socket, isConnected, joinRoom, leaveRoom, JSON.stringify(entity)]);
 };

@@ -99,6 +99,10 @@ const WebsocketTest: React.FC = () => {
 
 	const handleJoinRoom = () => {
 		if (wsTestRoom) {
+			if (!socket || !isConnected) {
+				showAlert("error", "Socket not connected");
+				return;
+			}
 			joinRoom(wsTestRoom);
 			showAlert("success", `Joined room: ${wsTestRoom}`);
 		}
@@ -106,6 +110,10 @@ const WebsocketTest: React.FC = () => {
 
 	const handleLeaveRoom = () => {
 		if (wsTestRoom) {
+			if (!socket || !isConnected) {
+				showAlert("error", "Socket not connected");
+				return;
+			}
 			leaveRoom(wsTestRoom);
 			showAlert("success", `Left room: ${wsTestRoom}`);
 		}

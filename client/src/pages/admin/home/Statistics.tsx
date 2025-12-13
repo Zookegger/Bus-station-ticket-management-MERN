@@ -7,6 +7,10 @@ import type { Order } from "@my-types/order";
 import { useSocket } from "@contexts/SocketContext";
 import { ROOMS, RT_EVENTS } from "@constants/realtime";
 import { API_ENDPOINTS } from "@constants/api";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { format } from "date-fns";
 
 const StatisticsPage: React.FC = () => {
 	const [loading, setLoading] = useState<boolean>(true);
@@ -15,7 +19,7 @@ const StatisticsPage: React.FC = () => {
 	const [orders, setOrders] = useState<Order[]>([]);
 	const filterRef = useRef<{ from?: string; to?: string }>({});
 
-	const { socket, joinRoom, leaveRoom } = useSocket();
+	const { socket, isConnected, joinRoom, leaveRoom } = useSocket();
 
 	const fetchDashboardData = async (
 		fromDate?: string,
@@ -58,6 +62,8 @@ const StatisticsPage: React.FC = () => {
 	};
 
 	useEffect(() => {
+		if (!socket || !isConnected) return;
+
 		fetchDashboardData();
 		joinRoom(ROOMS.dashboard);
 
@@ -71,7 +77,7 @@ const StatisticsPage: React.FC = () => {
 			leaveRoom(ROOMS.dashboard);
 			socket?.off(RT_EVENTS.DASHBOARD_METRICS, handleMetricsUpdate);
 		};
-	}, [socket, joinRoom, leaveRoom]);
+	}, [socket, isConnected, joinRoom, leaveRoom]);
 
 	const handleApplyFilter = (from: string, to: string) => {
 		filterRef.current = { from, to };
@@ -81,6 +87,54 @@ const StatisticsPage: React.FC = () => {
 	const handleClearFilter = () => {
 		filterRef.current = {};
 		fetchDashboardData();
+	};
+
+	const handleExportExcel = () => {
+		if (!orders || orders.length === 0) return;
+
+		const exportData = orders.map((order) => ({
+			"Order ID": order.id,
+			"Customer": order.user?.fullName || order.guestPurchaserName || "Guest",
+			"Email": order.user?.email || order.guestPurchaserEmail || "N/A",
+			"Status": order.status,
+			"Total Price": order.totalFinalPrice,
+			"Date": order.createdAt ? new Date(order.createdAt).toLocaleString() : "N/A",
+		}));
+
+		const ws = XLSX.utils.json_to_sheet(exportData);
+		const wb = XLSX.utils.book_new();
+		XLSX.utils.book_append_sheet(wb, ws, "Recent Orders");
+		XLSX.writeFile(wb, `orders_export_${format(new Date(), "yyyyMMdd_HHmmss")}.xlsx`);
+	};
+
+	const handleExportPDF = () => {
+		if (!orders || orders.length === 0) return;
+
+		const doc = new jsPDF();
+
+		const tableColumn = ["Order ID", "Customer", "Email", "Status", "Total Price", "Date"];
+		const tableRows: any[] = [];
+
+		orders.forEach((order) => {
+			const orderData = [
+				order.id,
+				order.user?.fullName || order.guestPurchaserName || "Guest",
+				order.user?.email || order.guestPurchaserEmail || "N/A",
+				order.status,
+				order.totalFinalPrice,
+				order.createdAt ? new Date(order.createdAt).toLocaleString() : "N/A",
+			];
+			tableRows.push(orderData);
+		});
+
+		autoTable(doc, {
+			head: [tableColumn],
+			body: tableRows,
+			startY: 20,
+		});
+
+		doc.text("Recent Orders Report", 14, 15);
+		doc.save(`orders_export_${format(new Date(), "yyyyMMdd_HHmmss")}.pdf`);
 	};
 
 	if (loading && !data) {
@@ -127,8 +181,8 @@ const StatisticsPage: React.FC = () => {
 					loading={loading}
 					on_apply_date_range={handleApplyFilter}
 					on_clear_date_range={handleClearFilter}
-					on_export_excel={() => console.log("Export Excel")}
-					on_export_pdf={() => console.log("Export PDF")}
+					on_export_excel={handleExportExcel}
+					on_export_pdf={handleExportPDF}
 				/>
 			)}
 		</Box>

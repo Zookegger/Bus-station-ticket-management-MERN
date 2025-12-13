@@ -26,7 +26,7 @@ const PaymentResult: React.FC = () => {
 	};
 
 	const handleGoToOrders = () => {
-		navigate(ROUTES.PROFILE);
+		navigate(ROUTES.USER_ORDERS);
 	};
 
 	if (!status) {

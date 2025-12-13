@@ -359,6 +359,13 @@ export const verifyPayment = async (
 export const handlePaymentCallback = async (
 	verificationResult: PaymentVerificationResult
 ): Promise<Payment | null> => {
+	if (!verificationResult.isValid) {
+		logger.error(
+			`Payment verification failed: ${verificationResult.message}`
+		);
+		return null;
+	}
+
 	const transaction =
 		await require("@models/index").default.sequelize.transaction();
 
@@ -406,6 +413,17 @@ export const handlePaymentCallback = async (
 			return null;
 		}
 
+		// Lock the order to prevent race conditions between multiple payment callbacks (e.g. VNPay success vs Momo failure)
+		const lockedOrder = await Order.findByPk(order.id, {
+			transaction,
+			lock: transaction.LOCK.UPDATE,
+		});
+
+		if (!lockedOrder) {
+			await transaction.rollback();
+			return null;
+		}
+
 		// Update payment status
 		const updateData: Partial<PaymentAttributes> = {
 			paymentStatus: verificationResult.status,
@@ -421,7 +439,7 @@ export const handlePaymentCallback = async (
 
 		// If payment is successful, update tickets and seats
 		if (verificationResult.status === PaymentStatus.COMPLETED) {
-			await order.update(
+			await lockedOrder.update(
 				{ status: OrderStatus.CONFIRMED },
 				{ transaction }
 			);
@@ -517,58 +535,64 @@ export const handlePaymentCallback = async (
 			verificationResult.status === PaymentStatus.CANCELLED ||
 			verificationResult.status === PaymentStatus.EXPIRED
 		) {
-			await order.update(
-				{ status: OrderStatus.CANCELLED },
-				{ transaction }
-			);
-			// If payment failed, release tickets and seats
-			const ticketIds = order.tickets?.map((t) => t.id) || [];
+			if (lockedOrder.status === OrderStatus.CONFIRMED) {
+				logger.warn(
+					`Payment ${payment.id} failed/cancelled, but order ${order.id} is already CONFIRMED. Skipping cancellation.`
+				);
+			} else {
+				await lockedOrder.update(
+					{ status: OrderStatus.CANCELLED },
+					{ transaction }
+				);
+				// If payment failed, release tickets and seats
+				const ticketIds = order.tickets?.map((t) => t.id) || [];
 
-			await Ticket.update(
-				{ status: TicketStatus.INVALID },
-				{ where: { id: ticketIds }, transaction }
-			);
-
-			// Release seats
-			const seatIds =
-				order.tickets
-					?.map((t) => t.seatId)
-					.filter((id) => id !== null) || [];
-
-			if (seatIds.length > 0) {
-				await require("@models/index").default.Seat.update(
-					{
-						status: SeatStatus.AVAILABLE,
-						reservedBy: null,
-						reservedUntil: null,
-					},
-					{ where: { id: seatIds }, transaction }
+				await Ticket.update(
+					{ status: TicketStatus.INVALID },
+					{ where: { id: ticketIds }, transaction }
 				);
 
-				// Emit realtime seat update (released)
-				try {
-					const updatedSeats = await Seat.findAll({
-						where: { id: seatIds },
-						transaction,
-					});
-					if (
-						updatedSeats &&
-						updatedSeats.length > 0 &&
-						updatedSeats[0] &&
-						updatedSeats[0].tripId
-					) {
-						emitBulkSeatUpdates(
-							updatedSeats[0].tripId,
-							updatedSeats.map((s) => s.toJSON())
-						);
-					}
-				} catch (err) {
-					logger.error("Failed to emit seat update", err);
-				}
-			}
+				// Release seats
+				const seatIds =
+					order.tickets
+						?.map((t) => t.seatId)
+						.filter((id) => id !== null) || [];
 
-			// Release coupon usage
-			await couponServices.releaseCouponUsage(order.id, transaction);
+				if (seatIds.length > 0) {
+					await require("@models/index").default.Seat.update(
+						{
+							status: SeatStatus.AVAILABLE,
+							reservedBy: null,
+							reservedUntil: null,
+						},
+						{ where: { id: seatIds }, transaction }
+					);
+
+					// Emit realtime seat update (released)
+					try {
+						const updatedSeats = await Seat.findAll({
+							where: { id: seatIds },
+							transaction,
+						});
+						if (
+							updatedSeats &&
+							updatedSeats.length > 0 &&
+							updatedSeats[0] &&
+							updatedSeats[0].tripId
+						) {
+							emitBulkSeatUpdates(
+								updatedSeats[0].tripId,
+								updatedSeats.map((s) => s.toJSON())
+							);
+						}
+					} catch (err) {
+						logger.error("Failed to emit seat update", err);
+					}
+				}
+
+				// Release coupon usage
+				await couponServices.releaseCouponUsage(order.id, transaction);
+			}
 		}
 
 		await transaction.commit();

@@ -583,8 +583,11 @@ export const checkInTicketsByOrder = async (
 	// This creates an array of IDs, which can have one or many items.
 	const bookedTicketIds =
 		order.tickets
-			?.filter((ticket) => ticket.status === TicketStatus.BOOKED)
+			?.filter((ticket) => (ticket.status === TicketStatus.BOOKED))
 			.map((ticket) => ticket.id) ?? [];
+
+	logger.debug(order);
+	logger.debug(order.tickets);
 
 	if (bookedTicketIds.length === 0)
 		throw {

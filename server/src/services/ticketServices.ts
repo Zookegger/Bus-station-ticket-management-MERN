@@ -404,6 +404,7 @@ export const cleanUpMissedTripTickets = async (): Promise<void> => {
 				{
 					model: db.Seat,
 					as: "seat",
+					required: true,
 					include: [
 						{
 							model: db.Trip,
@@ -424,15 +425,15 @@ export const cleanUpMissedTripTickets = async (): Promise<void> => {
 			return;
 		}
 
-		// Mark each missed ticket as INVALID (no-show), but do NOT release the seat
+		// Mark each missed ticket as COMPLETED (assumed travelled), but do NOT release the seat
 		// Seat remains BOOKED since payment was completed
 		for (const ticket of missedTickets) {
 			await ticket.update(
-				{ status: TicketStatus.INVALID },
+				{ status: TicketStatus.COMPLETED },
 				{ transaction }
 			);
 			logger.info(
-				`Marked missed ticket ${ticket.id} as INVALID for completed trip.`
+				`Marked missed ticket ${ticket.id} as COMPLETED for completed trip.`
 			);
 		}
 

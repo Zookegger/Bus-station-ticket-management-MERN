@@ -21,7 +21,7 @@ const Dashboard: React.FC = () => {
 	const [data, setData] = useState<DashboardStats | null>(null);
 	const navigate = useNavigate();
 
-	const { socket, joinRoom, leaveRoom } = useSocket();
+	const { socket, isConnected, joinRoom, leaveRoom } = useSocket();
 
 	const fetchDashboardData = async (isBackground = false) => {
 		if (!isBackground) setLoading(true);
@@ -42,6 +42,8 @@ const Dashboard: React.FC = () => {
 	};
 
 	useEffect(() => {
+		if (!socket || !isConnected) return;
+
 		fetchDashboardData();
 		joinRoom(ROOMS.dashboard);
 
@@ -55,7 +57,7 @@ const Dashboard: React.FC = () => {
 			leaveRoom(ROOMS.dashboard);
 			socket?.off(RT_EVENTS.DASHBOARD_METRICS, handleMetricsUpdate);
 		};
-	}, [socket, joinRoom, leaveRoom]);
+	}, [socket, isConnected, joinRoom, leaveRoom]);
 
 	if (loading && !data) {
 		return (
