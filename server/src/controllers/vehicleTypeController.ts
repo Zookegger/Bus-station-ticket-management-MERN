@@ -13,6 +13,7 @@ import {
 	UpdateVehicleTypeDTO,
 } from "@my_types/vehicleType";
 import { getParamNumericId } from "@utils/request";
+import { emitCrudChange } from "@services/realtimeEvents";
 
 /**
  * Retrieves all vehicle types with comprehensive filtering, sorting, and pagination.
@@ -134,6 +135,14 @@ export const AddVehicleType = async (
 			};
 		}
 
+		const user = (req as any).user;
+		emitCrudChange(
+			"vehicleType",
+			"create",
+			vehicle_type,
+			user ? { id: user.id, name: user.userName } : undefined
+		);
+
 		res.status(201).json(vehicle_type);
 	} catch (err) {
 		next(err);
@@ -176,6 +185,14 @@ export const UpdateVehicleType = async (
 			};
 		}
 
+		const user = (req as any).user;
+		emitCrudChange(
+			"vehicleType",
+			"update",
+			vehicle_type,
+			user ? { id: user.id, name: user.userName } : undefined
+		);
+
 		res.status(200).json(vehicle_type);
 	} catch (err) {
 		next(err);
@@ -207,6 +224,14 @@ export const RemoveVehicleType = async (
 		const id = getParamNumericId(req);
 
 		await vehicleTypeServices.removeVehicleType(id);
+
+		const user = (req as any).user;
+		emitCrudChange(
+			"vehicleType",
+			"delete",
+			{ id },
+			user ? { id: user.id, name: user.userName } : undefined
+		);
 
 		res.status(200).json({
 			success: true,

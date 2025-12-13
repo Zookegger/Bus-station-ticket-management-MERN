@@ -4,6 +4,7 @@ import * as orderServices from "@services/orderServices";
 import { OrderAttributes, OrderStatus } from "@models/orders";
 import { getParamStringId } from "@utils/request";
 import crypto from "crypto";
+import { emitCrudChange } from "@services/realtimeEvents";
 
 // Generate HMAC-based check-in token using CHECK_IN_SECRET and orderId
 const buildCheckInToken = (orderId: string): string => {
@@ -88,6 +89,15 @@ export const RefundTickets = async (
         if (!result) {
             throw { status: 404, message: "Order or tickets not found, or they are not in a refundable state." };
         }
+
+        const user = (req as any).user;
+        emitCrudChange(
+            "order",
+            "update",
+            { id: dto.orderId },
+            user ? { id: user.id, name: user.userName } : undefined
+        );
+
         res.status(200).json(result);
 
     } catch (err) {

@@ -11,6 +11,7 @@ import * as driverServices from "@services/driverServices";
 import { getParamNumericId } from "@utils/request";
 import { CreateDriverDTO, UpdateDriverDTO } from "@my_types/driver";
 import * as tripSchedulingServices from "@services/tripSchedulingServices";
+import { emitCrudChange } from "@services/realtimeEvents";
 
 /**
  * Creates a new driver record.
@@ -45,6 +46,14 @@ export const AddDriver = async (
 				status: 500,
 				message: "No driver added, Something went wrong.",
 			};
+
+		const user = (req as any).user;
+		emitCrudChange(
+			"driver",
+			"create",
+			driver,
+			user ? { id: user.id, name: user.userName } : undefined
+		);
 
 		res.status(201).json(driver);
 	} catch (err) {
@@ -88,6 +97,14 @@ export const UpdateDriver = async (
 				status: 500,
 				message: "No driver information updated, Something went wrong.",
 			};
+
+		const user = (req as any).user;
+		emitCrudChange(
+			"driver",
+			"update",
+			driver,
+			user ? { id: user.id, name: user.userName } : undefined
+		);
 
 		res.status(200).json(driver);
 	} catch (err) {
@@ -136,6 +153,14 @@ export const DeleteDriver = async (
 		const id = getParamNumericId(req);
 
 		await driverServices.deleteDriver(id);
+
+		const user = (req as any).user;
+		emitCrudChange(
+			"driver",
+			"delete",
+			{ id },
+			user ? { id: user.id, name: user.userName } : undefined
+		);
 
 		res.status(200).json({
 			success: true,

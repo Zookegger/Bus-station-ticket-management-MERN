@@ -10,6 +10,7 @@ import { NextFunction, Request, Response } from "express";
 import { getParamNumericId } from "@utils/request";
 import { CreateVehicleDTO, UpdateVehicleDTO } from "@my_types/vehicle";
 import * as vehicleServices from "@services/vehicleServices";
+import { emitCrudChange } from "@services/realtimeEvents";
 
 /**
  * Retrieves all vehicles with comprehensive filtering, sorting, and pagination.
@@ -104,6 +105,14 @@ export const AddVehicle = async (
 			};
 		}
 
+		const user = (req as any).user;
+		emitCrudChange(
+			"vehicle",
+			"create",
+			vehicle,
+			user ? { id: user.id, name: user.userName } : undefined
+		);
+
 		res.status(201).json(vehicle);
 	} catch (err) {
 		next(err);
@@ -144,6 +153,14 @@ export const UpdateVehicle = async (
 			};
 		}
 
+		const user = (req as any).user;
+		emitCrudChange(
+			"vehicle",
+			"update",
+			vehicle,
+			user ? { id: user.id, name: user.userName } : undefined
+		);
+
 		res.status(200).json(vehicle);
 	} catch (err) {
 		next(err);
@@ -175,6 +192,14 @@ export const RemoveVehicle = async (
 		const id = getParamNumericId(req);
 
 		await vehicleServices.removeVehicle(id);
+
+		const user = (req as any).user;
+		emitCrudChange(
+			"vehicle",
+			"delete",
+			{ id },
+			user ? { id: user.id, name: user.userName } : undefined
+		);
 
 		res.status(200).json({
 			success: true,

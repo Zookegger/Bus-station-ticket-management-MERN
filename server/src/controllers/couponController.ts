@@ -6,6 +6,7 @@ import {
 import { NextFunction, Request, Response } from "express";
 import * as couponServices from "@services/couponServices";
 import { getParamNumericId } from "@utils/request";
+import { emitCrudChange } from "@services/realtimeEvents";
 
 export const AddCoupon = async (
 	req: Request,
@@ -25,6 +26,14 @@ export const AddCoupon = async (
 
 		const coupon = await couponServices.addCoupon(dto);
 		if (!coupon) throw { status: 500, message: "Failed to create coupon." };
+
+		const user = (req as any).user;
+		emitCrudChange(
+			"coupon",
+			"create",
+			coupon,
+			user ? { id: user.id, name: user.userName } : undefined
+		);
 
 		res.status(201).json(coupon);
 	} catch (err) {
@@ -51,6 +60,14 @@ export const UpdateCoupon = async (
 		const coupon = await couponServices.updateCoupon(id, dto);
 		if (!coupon) throw { status: 500, message: "Failed to update coupon." };
 
+		const user = (req as any).user;
+		emitCrudChange(
+			"coupon",
+			"update",
+			coupon,
+			user ? { id: user.id, name: user.userName } : undefined
+		);
+
 		res.status(200).json(coupon);
 	} catch (err) {
 		next(err);
@@ -66,6 +83,14 @@ export const DeleteCoupon = async (
 		const id: number = getParamNumericId(req);
 
 		await couponServices.deleteCoupon(id);
+
+		const user = (req as any).user;
+		emitCrudChange(
+			"coupon",
+			"delete",
+			{ id },
+			user ? { id: user.id, name: user.userName } : undefined
+		);
 
 		res.status(200).json({
 			success: true,

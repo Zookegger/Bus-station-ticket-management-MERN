@@ -11,6 +11,7 @@ import * as paymentMethodServices from "@services/paymentMethodServices";
 import logger from "@utils/logger";
 import { getParamStringId } from "@utils/request";
 import { Request, Response, NextFunction } from "express";
+import { emitCrudChange } from "@services/realtimeEvents";
 
 /**
  * Retrieves a single payment method by its unique code.
@@ -189,6 +190,14 @@ export const AddPaymentMethod = async (
 			throw { status: 500, message: "Failed to create payment method" };
 		}
 
+		const user = (req as any).user;
+		emitCrudChange(
+			"paymentMethod",
+			"create",
+			new_method,
+			user ? { id: user.id, name: user.userName } : undefined
+		);
+
 		res.status(201).json(new_method);
 	} catch (err: any) {
         logger.debug("AddPaymentMethod error:", err);
@@ -242,6 +251,14 @@ export const UpdatePaymentMethod = async (
 			throw { status: 404, message: `Payment method with ID '${id}' not found` };
 		}
 
+		const user = (req as any).user;
+		emitCrudChange(
+			"paymentMethod",
+			"update",
+			updated_method,
+			user ? { id: user.id, name: user.userName } : undefined
+		);
+
 		res.status(200).json(updated_method);
 	} catch (err) {
 		next(err);
@@ -282,6 +299,14 @@ export const RemovePaymentMethod = async (
 		if (deleted_method) {
 			throw { status: 500, message: "Payment method deletion failed" };
 		}
+
+		const user = (req as any).user;
+		emitCrudChange(
+			"paymentMethod",
+			"delete",
+			{ id },
+			user ? { id: user.id, name: user.userName } : undefined
+		);
 
 		res.status(200).json({
 			success: true,

@@ -565,17 +565,34 @@ const Profile: React.FC = () => {
 			setIsEditMode(false);
 		} catch (err: any) {
 			const resp = err?.response?.data;
-			if (resp && Array.isArray(resp.errors)) {
-				resp.errors.forEach((e: any) => {
-					if (e && e.type === "field" && e.path) {
-						setFormError(e.path as any, {
-							type: "server",
-							message:
-								e.msg || e.message || resp.message || "Invalid value",
-						}, { shouldFocus: true });
-					}
-				});
-				return;
+			if (resp) {
+				const errorsArr = Array.isArray(resp.errors)
+					? resp.errors
+					: resp.errors && typeof resp.errors === "object"
+					? Object.values(resp.errors)
+					: null;
+				if (Array.isArray(errorsArr)) {
+					errorsArr.forEach((e: any) => {
+						const path = e?.path ?? e?.param ?? e?.field;
+						const message =
+							(e && typeof e === "object" && (e.msg ?? e.message)) ||
+							resp.message ||
+							"Invalid value";
+						if (path) {
+							try {
+								setFormError(path as any, { type: "server", message }, { shouldFocus: true });
+							} catch (err2) {
+								console.warn("setFormError failed for", path, err2);
+							}
+						}
+					});
+					return;
+				}
+				// fallback: show general message
+				if (resp.message) {
+					setError(resp.message);
+					return;
+				}
 			}
 			setError("Failed to update profile.");
 		}

@@ -78,6 +78,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 		handleSubmit,
 		reset,
 		watch,
+		setError: setFormError,
 		formState: { errors, isSubmitting },
 	} = useForm<VehicleInput, any, VehicleFormData>({
 		resolver: zodResolver(vehicleSchema),
@@ -169,7 +170,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 			});
 
 			if (
-				(isEditMode && status !== 200) ||
+				(isEditMode && status !== 200) &&
 				(!isEditMode && status !== 201)
 			) {
 				throw new Error(
@@ -187,6 +188,19 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 			onClose();
 		} catch (err: any) {
 			setErrorMessage(err.message || "An error occurred");
+			const resp = err?.response?.data;
+			if (resp && Array.isArray(resp.errors)) {
+				resp.errors.forEach((e: any) => {
+					if (e && e.type === "field" && e.path) {
+						setFormError(e.path as any, {
+							type: "server",
+							message:
+								e.msg || e.message || resp.message || "Invalid value",
+						}, { shouldFocus: true });
+					}
+				});
+				return;
+			}
 			console.error(err);
 		}
 	};

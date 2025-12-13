@@ -10,6 +10,7 @@ import { NextFunction, Request, Response } from "express";
 import { getParamNumericId } from "@utils/request";
 import { CreateRouteDTO, UpdateRouteDTO } from "@my_types/route";
 import * as routeServices from "@services/routeServices";
+import { emitCrudChange } from "@services/realtimeEvents";
 
 /**
  * Retrieves all routes with comprehensive filtering, sorting, and pagination.
@@ -106,6 +107,14 @@ export const AddRoute = async (
 			};
 		}
 
+		const user = (req as any).user;
+		emitCrudChange(
+			"route",
+			"create",
+			new_route,
+			user ? { id: user.id, name: user.userName } : undefined
+		);
+
 		res.status(201).json(new_route);
 	} catch (err) {
 		next(err);
@@ -139,6 +148,14 @@ export const UpdateRoute = async (
 
 		const route = await routeServices.updateRoute(id, updated_route);
 
+		const user = (req as any).user;
+		emitCrudChange(
+			"route",
+			"update",
+			route,
+			user ? { id: user.id, name: user.userName } : undefined
+		);
+
 		res.status(200).json(route);
 	} catch (err) {
 		next(err);
@@ -170,6 +187,14 @@ export const DeleteRoute = async (
 		const id = getParamNumericId(req);
 
 		await routeServices.deleteRoute(id);
+
+		const user = (req as any).user;
+		emitCrudChange(
+			"route",
+			"delete",
+			{ id },
+			user ? { id: user.id, name: user.userName } : undefined
+		);
 
 		res.status(200).json({
 			success: true,

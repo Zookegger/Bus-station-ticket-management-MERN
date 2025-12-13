@@ -195,7 +195,7 @@ export const AddTrip = async (
 				"trip",
 				"create",
 				{ id: trip.id, routeId: trip.routeId },
-				actor ? { id: String(actor.id), name: `${actor.firstName} ${actor.lastName}` } : undefined
+				actor ? { id: String(actor.id), name: actor.userName } : undefined
 			);
 		} catch (e) {
 			// ignore emit errors
@@ -248,7 +248,7 @@ export const UpdateTrip = async (
 				"trip",
 				"update",
 				{ id: trip.id },
-				actor ? { id: String(actor.id), name: `${actor.firstName} ${actor.lastName}` } : undefined
+				actor ? { id: String(actor.id), name: actor.userName } : undefined
 			);
 		} catch (e) {
 			// ignore
@@ -296,7 +296,7 @@ export const DeleteTrip = async (
 				"trip",
 				"delete",
 				{ id },
-				actor ? { id: String(actor.id), name: `${actor.firstName} ${actor.lastName}` } : undefined
+				actor ? { id: String(actor.id), name: actor.userName } : undefined
 			);
 		} catch (e) {
 			// ignore
@@ -472,7 +472,7 @@ export const CancelTrip = async (
 				"trip",
 				"update",
 				{ id: trip.id, status: trip.status },
-				actor ? { id: String(actor.id), name: `${actor.firstName} ${actor.lastName}` } : undefined
+				actor ? { id: String(actor.id), name: actor.userName } : undefined
 			);
 		} catch (e) {
 			// ignore emit errors

@@ -1,6 +1,7 @@
 
 import { configService, getAllSettings } from "@services/settingServices";
 import { NextFunction, Request, Response } from "express";
+import { emitCrudChange } from "@services/realtimeEvents";
 
 export const GetAllCachedSettings = (_req: Request, res: Response, next: NextFunction): void => {
     try {
@@ -34,6 +35,14 @@ export const UpdateSetting = async (req: Request, res: Response, next: NextFunct
         }
         const updatedSetting = await configService.set(key, value, description);
         
+        const user = (req as any).user;
+        emitCrudChange(
+            "setting",
+            "update",
+            updatedSetting,
+            user ? { id: user.id, name: user.userName } : undefined
+        );
+
         res.status(200).json(updatedSetting);
     } catch (err) {
         next(err);
