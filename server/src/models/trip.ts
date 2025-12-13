@@ -136,6 +136,7 @@ export class Trip
 	public readonly drivers?: Driver[];
 	public readonly template?: Trip;
 	public readonly instances?: Trip[];
+	public readonly returnTrip?: Trip;
 
 	public getRoute!: BelongsToGetAssociationMixin<Route>;
 	public getVehicle!: BelongsToGetAssociationMixin<Vehicle>;

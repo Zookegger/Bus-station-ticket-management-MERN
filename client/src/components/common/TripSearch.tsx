@@ -77,6 +77,8 @@ export interface TripSearchSlotProps {
 interface TripSearchProps {
 	initialFrom?: string | null;
 	initialTo?: string | null;
+	initialFromId?: number | null;
+	initialToId?: number | null;
 	initialDate?: Date | null;
 	initialMin?: number | null;
 	slotProps?: TripSearchSlotProps;
@@ -85,6 +87,8 @@ interface TripSearchProps {
 const TripSearch: React.FC<TripSearchProps> = ({
 	initialFrom,
 	initialTo,
+	initialFromId,
+	initialToId,
 	initialDate,
 	initialMin,
 	slotProps,
@@ -99,8 +103,12 @@ const TripSearch: React.FC<TripSearchProps> = ({
 	const [destination, setDestinationPoint] = useState<string | null>(
 		initialTo || null
 	);
-	const [departureId, setDepartureId] = useState<number | null>(null);
-	const [destinationId, setDestinationId] = useState<number | null>(null);
+	const [departureId, setDepartureId] = useState<number | null>(
+		initialFromId || null
+	);
+	const [destinationId, setDestinationId] = useState<number | null>(
+		initialToId || null
+	);
 	const [locations, setLocations] = useState<Location[]>([]);
 	const [isLoadingLocations, setIsLoadingLocations] =
 		useState<boolean>(false);
@@ -114,11 +122,20 @@ const TripSearch: React.FC<TripSearchProps> = ({
 	useEffect(() => {
 		if (initialFrom) setDeparturePoint(initialFrom);
 		if (initialTo) setDestinationPoint(initialTo);
+		if (initialFromId) setDepartureId(initialFromId);
+		if (initialToId) setDestinationId(initialToId);
 		if (initialDate) setDate(initialDate);
 		if (typeof initialMin !== "undefined" && initialMin !== null) {
 			setMinTickets(initialMin);
 		}
-	}, [initialFrom, initialTo, initialDate, initialMin]);
+	}, [
+		initialFrom,
+		initialTo,
+		initialFromId,
+		initialToId,
+		initialDate,
+		initialMin,
+	]);
 
 	useEffect(() => {
 		const fetchLocations = async () => {
@@ -173,8 +190,15 @@ const TripSearch: React.FC<TripSearchProps> = ({
 	};
 
 	const handleSwap = () => {
-		setDeparturePoint(destination);
-		setDestinationPoint(departure);
+		const tempDep = departure;
+		const tempDest = destination;
+		const tempDepId = departureId;
+		const tempDestId = destinationId;
+
+		setDeparturePoint(tempDest);
+		setDestinationPoint(tempDep);
+		setDepartureId(tempDestId);
+		setDestinationId(tempDepId);
 	};
 
 	const departureOptions = locations.filter(
@@ -241,7 +265,7 @@ const TripSearch: React.FC<TripSearchProps> = ({
 									}
 									value={
 										departureOptions.find(
-											(l) => l.name === departure
+											(l) => l.id === departureId
 										) || null
 									}
 									onChange={(_, val) => {
@@ -329,7 +353,7 @@ const TripSearch: React.FC<TripSearchProps> = ({
 									}
 									value={
 										destinationOptions.find(
-											(l) => l.name === destination
+											(l) => l.id === destinationId
 										) || null
 									}
 									onChange={(_, val) => {
@@ -337,7 +361,7 @@ const TripSearch: React.FC<TripSearchProps> = ({
 										setDestinationId(val ? val.id : null);
 									}}
 									isOptionEqualToValue={(opt, val) =>
-										opt.name === val.name
+										opt.id === val.id
 									}
 									sx={{
 										"& .MuiAutocomplete-popupIndicator": {

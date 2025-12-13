@@ -6,7 +6,7 @@
  * and enforces business rules for trip entities.
  */
 
-import { Op } from "sequelize";
+import { Op, QueryTypes } from "sequelize";
 import logger from "@utils/logger";
 import db from "@models/index";
 import { Trip } from "@models/trip";
@@ -35,16 +35,16 @@ import { Ticket } from "@models/ticket";
  * This function supports two seat generation modes:
  *
  * 1. **Detailed Layout Mode**: If `vehicleType.seatsPerFloor` is provided and valid,
- *    it is parsed as a matrix (array of arrays) representing each floor's seat arrangement.
- *    Each entry in the matrix is a row, and each value in the row is a seat position (truthy for seat, falsy for empty).
- *    - If `vehicleType.rowsPerFloor` is provided, it is validated against the number of rows in each floor's layout.
- *    - Seats are created at every truthy position, with row/column/floor info and a label (e.g., 'A1', 'B2').
+ * it is parsed as a matrix (array of arrays) representing each floor's seat arrangement.
+ * Each entry in the matrix is a row, and each value in the row is a seat position (truthy for seat, falsy for empty).
+ * - If `vehicleType.rowsPerFloor` is provided, it is validated against the number of rows in each floor's layout.
+ * - Seats are created at every truthy position, with row/column/floor info and a label (e.g., 'A1', 'B2').
  *
  * 2. **Simple Generation Mode**: If no detailed layout is provided, seats are generated using total seat count,
- *    total floors, and total columns. If `vehicleType.rowsPerFloor` is provided, it is used to determine the number
- *    of rows per floor; otherwise, rows are derived as `ceil(seatsOnFloor / totalColumns)`.
- *    - Seats are distributed in a grid (rows × columns) for each floor, with labels matching frontend expectations.
- *    - Stops placing seats when the quota for the floor is reached (handles partial rows).
+ * total floors, and total columns. If `vehicleType.rowsPerFloor` is provided, it is used to determine the number
+ * of rows per floor; otherwise, rows are derived as `ceil(seatsOnFloor / totalColumns)`.
+ * - Seats are distributed in a grid (rows × columns) for each floor, with labels matching frontend expectations.
+ * - Stops placing seats when the quota for the floor is reached (handles partial rows).
  *
  * Both modes create seat records with proper numbering, layout positioning (row, column, floor), and associate them
  * with the given trip. The function ensures consistency with frontend seat map rendering and supports multi-floor vehicles.
@@ -358,155 +358,264 @@ export const searchTripsForUser = async (
 		minSeats,
 	} = options;
 
-	logger.debug(fromLocation);
-	logger.debug(toLocation);
+	// 1. Resolve partial location names to IDs
+	let fromId = options.fromLocationId;
+	if (!fromId && fromLocation) {
+		if (!isNaN(Number(fromLocation))) {
+			fromId = parseInt(fromLocation, 10);
+		} else {
+			const loc = await db.Location.findOne({
+				where: { name: { [Op.like]: `%${fromLocation}%` } },
+				attributes: ["id"],
+			});
+			fromId = loc?.id;
+		}
+	}
+
+	let toId = options.toLocationId;
+	if (!toId && toLocation) {
+		if (!isNaN(Number(toLocation))) {
+			toId = parseInt(toLocation, 10);
+		} else {
+			const loc = await db.Location.findOne({
+				where: { name: { [Op.like]: `%${toLocation}%` } },
+				attributes: ["id"],
+			});
+			toId = loc?.id;
+		}
+	}
+
+	logger.debug(`Searching trips from ID: ${fromId} to ID: ${toId}`);
 
 	const where: any = {
-		status: "Scheduled", // Users only see scheduled trips
+		status: TripStatus.SCHEDULED,
 	};
 
-	// Map to store route segment details for price/time calculation
+	// 2. Filter for Available Seats (Fixes Pagination Bug)
+	// We use a literal subquery instead of an INCLUDE to prevent row explosion
+	// which breaks the LIMIT clause in Sequelize.
+	const requiredSeats =
+		typeof minSeats === "number" && minSeats > 0 ? minSeats : 1;
+	const seatAvailabilityLiteral = db.sequelize.literal(
+		`(SELECT COUNT(*) FROM seats WHERE seats.tripId = Trip.id AND seats.status = '${SeatStatus.AVAILABLE}') >= ${requiredSeats}`
+	);
+
+	// Ensure we don't overwrite other Op.and conditions if they exist later
+	where[Op.and] = [seatAvailabilityLiteral];
+
+	// Map to store route segment details for Post-Processing
 	const routeSegmentMap = new Map<
 		number,
 		{
-			origin: { duration: number; distance: number };
-			dest: { duration: number; distance: number };
+			originDur: number;
+			originDist: number;
+			destDur: number;
+			destDist: number;
+			ratio: number;
 		}
 	>();
 
-	// 1. Route Filtering Logic (Location-based)
-	let validRouteIds: number[] | null = null;
+	// -------------------------------------------------------------------------
+	// 3. Dynamic Route & Price Filtering Logic
+	// -------------------------------------------------------------------------
+	if (fromId && toId) {
+		const routes = (await db.sequelize.query(
+			`
+          SELECT 
+             s1.routeId as "routeId",
+             s1.durationFromStart as "originDur",
+             s1.distanceFromStart as "originDist",
+             s2.durationFromStart as "destDur",
+             s2.distanceFromStart as "destDist",
+             r.distance as "totalDist"
+          FROM route_stops s1
+          JOIN route_stops s2 ON s1.routeId = s2.routeId
+          JOIN routes r ON s1.routeId = r.id
+          WHERE s1.locationId = :fromId
+            AND s2.locationId = :toId
+            AND s1.stopOrder < s2.stopOrder
+          `,
+			{
+				replacements: { fromId, toId },
+				type: QueryTypes.SELECT,
+			}
+		)) as Array<{
+			routeId: number;
+			originDur: number;
+			originDist: number;
+			destDur: number;
+			destDist: number;
+			totalDist: number;
+		}>;
 
-	if (fromLocation || toLocation) {
-		// Prefer numeric location ids when provided (more reliable than name matching)
-		const fromStops = options.fromLocationId
-			? await db.RouteStop.findAll({
-					where: { locationId: options.fromLocationId },
-					attributes: [
-						"routeId",
-						"stopOrder",
-						"durationFromStart",
-						"distanceFromStart",
-					],
-			  })
-			: fromLocation
-			? await db.RouteStop.findAll({
-					include: [
-						{
-							model: db.Location,
-							as: "locations",
-							where: { name: { [Op.like]: `%${fromLocation}%` } },
-						},
-					],
-					attributes: [
-						"routeId",
-						"stopOrder",
-						"durationFromStart",
-						"distanceFromStart",
-					],
-			  })
-			: null;
-		logger.debug(fromStops);
-
-		const toStops = options.toLocationId
-			? await db.RouteStop.findAll({
-					where: { locationId: options.toLocationId },
-					attributes: [
-						"routeId",
-						"stopOrder",
-						"durationFromStart",
-						"distanceFromStart",
-					],
-			  })
-			: toLocation
-			? await db.RouteStop.findAll({
-					include: [
-						{
-							model: db.Location,
-							as: "locations",
-							where: { name: { [Op.like]: `%${toLocation}%` } },
-						},
-					],
-					attributes: [
-						"routeId",
-						"stopOrder",
-						"durationFromStart",
-						"distanceFromStart",
-					],
-			  })
-			: null;
-		logger.debug(toStops);
-
-		const matchedIds = new Set<number>();
-
-		if (fromLocation && toLocation && fromStops && toStops) {
-			fromStops.forEach((fs) => {
-				const matchingDest = toStops.find(
-					(ts) =>
-						ts.routeId === fs.routeId && ts.stopOrder > fs.stopOrder
-				);
-
-				if (matchingDest) {
-					matchedIds.add(fs.routeId);
-					routeSegmentMap.set(fs.routeId, {
-						origin: {
-							duration: fs.durationFromStart || 0,
-							distance: fs.distanceFromStart || 0,
-						},
-						dest: {
-							duration: matchingDest.durationFromStart || 0,
-							distance: matchingDest.distanceFromStart || 0,
-						},
-					});
-				}
-			});
-		} else if (fromLocation && fromStops) {
-			fromStops.forEach((fs) => matchedIds.add(fs.routeId));
-		} else if (toLocation && toStops) {
-			toStops.forEach((ts) => matchedIds.add(ts.routeId));
-		}
-
-		validRouteIds = Array.from(matchedIds);
-
-		if (validRouteIds.length === 0) {
+		if (routes.length === 0) {
 			return { rows: [], count: 0 };
 		}
-		where.routeId = { [Op.in]: validRouteIds };
-	}
 
-	// 2. Date Filters
-	// Normalize date filtering to use local-day boundaries to avoid
-	// UTC parsing issues with `new Date("YYYY-MM-DD")` which can be
-	// interpreted as UTC by JS engines. The client sends YYYY-MM-DD.
-	if (date) {
-		// Ensure we only consider the date portion (YYYY-MM-DD)
-		const datePart =
-			typeof date === "string"
-				? date.substring(0, 10)
-				: String(date).substring(0, 10);
+		const routeConditions: any[] = [];
 
-		// Construct local start/end of day timestamps by using the
-		// explicit T00:00:00 / T23:59:59.999 form which JS parses as local time
-		const startOfDay = new Date(`${datePart}T00:00:00`);
-		const endOfDay = new Date(`${datePart}T23:59:59.999`);
+		for (const r of routes) {
+			const segmentDist = r.destDist - r.originDist;
+			let ratio =
+				r.totalDist > 0
+					? Math.min(Math.max(segmentDist / r.totalDist, 0), 1.0)
+					: 1.0;
 
-		where.startTime = {
-			[Op.gte]: startOfDay,
-			[Op.lte]: endOfDay,
-		};
+			// Fallback: If ratio is 0 but we have a valid route distance, it implies missing stop distances.
+			// Default to full price to avoid free tickets.
+			if (ratio === 0 && r.totalDist > 0) {
+				ratio = 1.0;
+			}
+
+			routeSegmentMap.set(r.routeId, {
+				originDur: r.originDur,
+				originDist: r.originDist,
+				destDur: r.destDur,
+				destDist: r.destDist,
+				ratio,
+			});
+
+			const condition: any = { routeId: r.routeId };
+
+			// Dynamic Price Filter
+			if (minPrice || maxPrice) {
+				condition.price = {};
+				if (minPrice) condition.price[Op.gte] = minPrice / (ratio || 1);
+				if (maxPrice) condition.price[Op.lte] = maxPrice / (ratio || 1);
+			}
+
+			// Dynamic Date Filter
+			if (date) {
+				const datePart =
+					typeof date === "string"
+						? date.substring(0, 10)
+						: String(date).substring(0, 10);
+				
+				// Create date in local time (or assume input is YYYY-MM-DD)
+				// We want to cover the full day in the server's timezone (or UTC if that's how it's stored)
+				// Since the input is just a date string, we should construct the range carefully.
+				// Using simple string concatenation for ISO format might assume UTC.
+				
+				const dayStart = new Date(`${datePart}T00:00:00`);
+				const dayEnd = new Date(`${datePart}T23:59:59.999`);
+
+				const shiftedStart = new Date(
+					dayStart.getTime() - r.originDur * 60000
+				);
+				const shiftedEnd = new Date(
+					dayEnd.getTime() - r.originDur * 60000
+				);
+
+				condition.startTime = {
+					[Op.between]: [shiftedStart, shiftedEnd],
+				};
+			} else {
+				const now = new Date();
+				const minStartTime = new Date(
+					now.getTime() - r.originDur * 60000
+				);
+				condition.startTime = { [Op.gte]: minStartTime };
+			}
+
+			routeConditions.push(condition);
+		}
+
+		where[Op.or] = routeConditions;
 	} else {
-		// Default: Show future trips only (from now)
-		where.startTime = { [Op.gte]: new Date() };
-	}
+		// Fallback Logic (Partial/No Location)
+		if (fromId) {
+			const validRoutes = await db.RouteStop.findAll({
+				where: { locationId: fromId },
+				attributes: ["routeId", "durationFromStart"],
+			});
+			if (validRoutes.length === 0) return { rows: [], count: 0 };
 
-	// 3. Price Filters (Base price filter, might be inaccurate if dynamic pricing reduces it, but good for upper bound)
-	if (minPrice || maxPrice) {
-		where.price = {};
-		if (minPrice) where.price[Op.gte] = minPrice;
-		if (maxPrice) where.price[Op.lte] = maxPrice;
+			const routeConditions = validRoutes.map((vr) => {
+				const originDur = vr.durationFromStart || 0;
+				routeSegmentMap.set(vr.routeId, {
+					originDur,
+					originDist: 0,
+					destDur: 0,
+					destDist: 0,
+					ratio: 1,
+				});
+
+				const cond: any = { routeId: vr.routeId };
+				if (date) {
+					const datePart =
+						typeof date === "string"
+							? date.substring(0, 10)
+							: String(date).substring(0, 10);
+					const dayStart = new Date(`${datePart}T00:00:00`);
+					const dayEnd = new Date(`${datePart}T23:59:59.999`);
+					cond.startTime = {
+						[Op.between]: [
+							new Date(dayStart.getTime() - originDur * 60000),
+							new Date(dayEnd.getTime() - originDur * 60000),
+						],
+					};
+				} else {
+					const now = new Date();
+					cond.startTime = {
+						[Op.gte]: new Date(now.getTime() - originDur * 60000),
+					};
+				}
+				return cond;
+			});
+			where[Op.or] = routeConditions;
+
+			if (minPrice || maxPrice) {
+				where.price = {};
+				if (minPrice) where.price[Op.gte] = minPrice;
+				if (maxPrice) where.price[Op.lte] = maxPrice;
+			}
+		} else if (toId) {
+			const validRoutes = await db.RouteStop.findAll({
+				where: { locationId: toId },
+				attributes: ["routeId"],
+			});
+			const ids = validRoutes.map((r) => r.routeId);
+			if (ids.length === 0) return { rows: [], count: 0 };
+			where.routeId = { [Op.in]: ids };
+
+			if (date) {
+				const datePart = String(date).substring(0, 10);
+				where.startTime = {
+					[Op.between]: [
+						new Date(`${datePart}T00:00:00Z`),
+						new Date(`${datePart}T23:59:59.999Z`),
+					],
+				};
+			} else {
+				where.startTime = { [Op.gte]: new Date() };
+			}
+			if (minPrice || maxPrice) {
+				where.price = {};
+				if (minPrice) where.price[Op.gte] = minPrice;
+				if (maxPrice) where.price[Op.lte] = maxPrice;
+			}
+		} else {
+			if (date) {
+				const datePart = String(date).substring(0, 10);
+				where.startTime = {
+					[Op.between]: [
+						new Date(`${datePart}T00:00:00Z`),
+						new Date(`${datePart}T23:59:59.999Z`),
+					],
+				};
+			} else {
+				where.startTime = { [Op.gte]: new Date() };
+			}
+			if (minPrice || maxPrice) {
+				where.price = {};
+				if (minPrice) where.price[Op.gte] = minPrice;
+				if (maxPrice) where.price[Op.lte] = maxPrice;
+			}
+		}
 	}
 
 	// 4. Build Includes
+	// REMOVED: 'Seats' from this array to fix the pagination bug.
 	const include: any[] = [
 		{
 			model: db.Route,
@@ -523,7 +632,7 @@ export const searchTripsForUser = async (
 		{
 			model: db.Vehicle,
 			as: "vehicle",
-			required: true, // Users need a vehicle assigned to book
+			required: true,
 			include: [
 				{
 					model: db.VehicleType,
@@ -531,14 +640,6 @@ export const searchTripsForUser = async (
 					...(vehicleTypeId ? { where: { id: vehicleTypeId } } : {}),
 				},
 			],
-		},
-		{
-			model: db.Seat,
-			as: "seats",
-			attributes: [],
-			where: { status: SeatStatus.AVAILABLE },
-			required: true, // Must have at least one seat
-			duplicating: false,
 		},
 		{
 			model: db.Trip,
@@ -557,12 +658,13 @@ export const searchTripsForUser = async (
 						},
 					],
 				},
+				// We KEEP this for the return trip specifically so we don't return invalid return options
 				{
 					model: db.Seat,
 					as: "seats",
-					attributes: [],
+					attributes: ["id"],
 					where: { status: SeatStatus.AVAILABLE },
-					required: true,
+					required: false,
 				},
 			],
 		},
@@ -577,45 +679,95 @@ export const searchTripsForUser = async (
 		limit: limit,
 	};
 
-	// Apply minimum seats filter via a subquery literal if requested
-	if (typeof minSeats === "number" && minSeats > 0) {
-		// Add a raw condition to require at least `minSeats` available seats for the trip
-		const literalCondition = db.sequelize.literal(
-			`(SELECT COUNT(*) FROM seats WHERE seats.tripId = Trip.id AND seats.status = '${SeatStatus.AVAILABLE}') >= ${minSeats}`
-		);
-		queryOptions.where = {
-			...queryOptions.where,
-			[Op.and]: [literalCondition],
-		};
-	}
-
 	const result = await db.Trip.findAndCountAll(queryOptions);
 
-	// 5. Post-Processing: Dynamic Time & Price Calculation
-	if (routeSegmentMap.size > 0) {
+	// 5. Post-Processing: Update Display Values
+	if (routeSegmentMap.size > 0 || (fromId && toId)) {
 		result.rows.forEach((trip) => {
+			// Filter invalid return trips (no seats)
+			if (trip.returnTrip) {
+				const returnSeats = (trip.returnTrip as any).seats;
+				if (!returnSeats || returnSeats.length === 0) {
+					trip.setDataValue("returnTrip" as any, null);
+				}
+			}
+
 			const segment = routeSegmentMap.get(trip.routeId);
-			if (segment && trip.route) {
+
+			// A. Update Main Trip Display
+			if (segment) {
 				const originalStart = new Date(trip.startTime);
 				const newStartTime = new Date(
-					originalStart.getTime() + segment.origin.duration * 60000
+					originalStart.getTime() + segment.originDur * 60000
 				);
 				trip.setDataValue("startTime", newStartTime);
 
 				const arrivalTime = new Date(
-					originalStart.getTime() + segment.dest.duration * 60000
+					originalStart.getTime() + segment.destDur * 60000
 				);
 				trip.setDataValue("arrivalTime" as any, arrivalTime);
 
-				const totalDist = trip.route.distance || 0;
-				const segmentDist =
-					segment.dest.distance - segment.origin.distance;
-
-				if (totalDist > 0 && segmentDist > 0) {
-					const ratio = Math.min(segmentDist / totalDist, 1.0);
+				if (segment.ratio !== 1 && fromId && toId) {
 					const originalPrice = Number(trip.price);
-					const newPrice = originalPrice * ratio;
+					const newPrice = originalPrice * segment.ratio;
 					trip.setDataValue("price", parseFloat(newPrice.toFixed(2)));
+				}
+			}
+
+			// B. Update Return Trip Display
+			if (trip.returnTrip && fromId && toId) {
+				const returnRouteStops = trip.returnTrip.route?.stops || [];
+				const returnStartStop = returnRouteStops.find(
+					(s) => s.locationId === toId
+				);
+				const returnEndStop = returnRouteStops.find(
+					(s) => s.locationId === fromId
+				);
+
+				if (returnStartStop && returnEndStop) {
+					const retOriginDur = returnStartStop.durationFromStart || 0;
+					const retDestDur = returnEndStop.durationFromStart || 0;
+
+					const retOriginalStart = new Date(
+						trip.returnTrip.startTime
+					);
+					const retNewStart = new Date(
+						retOriginalStart.getTime() + retOriginDur * 60000
+					);
+					const retNewArrival = new Date(
+						retOriginalStart.getTime() + retDestDur * 60000
+					);
+
+					trip.returnTrip.setDataValue("startTime", retNewStart);
+					trip.returnTrip.setDataValue(
+						"arrivalTime" as any,
+						retNewArrival
+					);
+
+					const retTotalDist = trip.returnTrip.route?.distance || 0;
+					const retSegDist =
+						(returnEndStop.distanceFromStart || 0) -
+						(returnStartStop.distanceFromStart || 0);
+
+					let retRatio = 1;
+					if (retTotalDist > 0) {
+						retRatio = Math.min(
+							Math.max(retSegDist / retTotalDist, 0),
+							1.0
+						);
+						if (retRatio === 0) {
+							retRatio = 1.0;
+						}
+					} else if (segment) {
+						retRatio = segment.ratio;
+					}
+
+					const retOriginalPrice = Number(trip.returnTrip.price);
+					const retNewPrice = retOriginalPrice * retRatio;
+					trip.returnTrip.setDataValue(
+						"price",
+						parseFloat(retNewPrice.toFixed(2))
+					);
 				}
 			}
 		});

@@ -6,7 +6,24 @@
     "baseUrl": ".", // Explicitly set baseUrl for test environment
     "outDir": "./dist-test",
     "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "noUnusedParameters": false,
+    "paths": {
+      "@config/*": ["src/config/*"],
+      "@constants/*": ["src/constants/*"],
+      "@constants": ["src/constants/index"],
+      "@controllers/*": ["src/controllers/*"],
+      "@middlewares/*": ["src/middlewares/*"],
+      "@models/*": ["src/models/*"],
+      "@models": ["src/models/index"],
+      "@queues/*": ["src/utils/queues/*"],
+      "@routes/*": ["src/routes/*"],
+      "@services/*": ["src/services/*"],
+      "@my-types": ["src/types"],
+      "@my_types/*": ["src/types/*"],
+      "@utils/*": ["src/utils/*"],
+      "@validators/*": ["src/middlewares/validators/*"],
+      "@workers/*": ["src/utils/workers/*"]
+    }
   },
   "include": [
     "src/**/*.ts",

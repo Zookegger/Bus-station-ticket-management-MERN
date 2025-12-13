@@ -27,6 +27,7 @@ import {
 import type { Route } from "@my-types";
 import { RouteMap } from "@components/map";
 import { formatDistance, formatDuration } from "@utils/map";
+import { formatCurrency } from "@utils/formatting";
 
 interface RouteDetailsDrawerProps {
 	open: boolean;
@@ -162,7 +163,7 @@ const RouteDetailsDrawer: React.FC<RouteDetailsDrawerProps> = ({
 										variant="subtitle2"
 										fontWeight="bold"
 									>
-										{route.price?.toLocaleString("vi-VN")} đ
+										{route.price ? formatCurrency(route.price, "VND", "vi-VN") : "N/A"}
 									</Typography>
 								</Grid>
 								<Divider

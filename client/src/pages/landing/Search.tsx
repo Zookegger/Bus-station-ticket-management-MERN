@@ -25,6 +25,7 @@ import { format, differenceInMinutes } from "date-fns";
 import { DirectionsBus } from "@mui/icons-material";
 import TripSearch from "@components/common/TripSearch";
 import { Container } from "@mui/system";
+import { formatCurrency } from "@utils/formatting";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -35,6 +36,8 @@ const SearchPage: React.FC = () => {
 	const [isSearch, setIsSearch] = useState<boolean>(false);
 	const [fromLocation, setFromLocation] = useState<string>("");
 	const [toLocation, setToLocation] = useState<string>("");
+	const [fromId, setFromId] = useState<string | null>(null);
+	const [toId, setToId] = useState<string | null>(null);
 	const [travelDate, setTravelDate] = useState<string>("");
 	const [minSeats, setMinSeats] = useState<number | null>(null);
 	const [pageNumber, setPageNumber] = useState<number>(1);
@@ -51,6 +54,8 @@ const SearchPage: React.FC = () => {
 	useEffect(() => {
 		const from = searchParams.get("from") ?? "";
 		const to = searchParams.get("to") ?? "";
+		const fId = searchParams.get("fromId");
+		const tId = searchParams.get("toId");
 		const date = searchParams.get("date") ?? "";
 		const page = parseInt(searchParams.get("page") ?? "1", 10) || 1;
 		const min = searchParams.get("minSeats");
@@ -59,13 +64,19 @@ const SearchPage: React.FC = () => {
 
 		setFromLocation(from);
 		setToLocation(to);
+		setFromId(fId);
+		setToId(tId);
 		setTravelDate(date);
 		setPageNumber(page);
 	}, [searchParams]);
 
 	useEffect(() => {
 		// If required params are missing, don't call the API.
-		if (!fromLocation || !toLocation || !travelDate) {
+		if (
+			(!fromLocation && !fromId) ||
+			(!toLocation && !toId) ||
+			!travelDate
+		) {
 			setTrips([]);
 			setTotal(0);
 			return;
@@ -78,7 +89,7 @@ const SearchPage: React.FC = () => {
 				setLoading(true);
 				setError(null);
 
-				const params = {
+				const params: any = {
 					from: fromLocation,
 					to: toLocation,
 					date: travelDate,
@@ -89,6 +100,9 @@ const SearchPage: React.FC = () => {
 					sortOrder,
 					checkSeatAvailability: "true", // Ensure we only see trips with seats
 				};
+
+				if (fromId) params.fromId = fromId;
+				if (toId) params.toId = toId;
 
 				const res = await callApi({
 					method: "GET",
@@ -116,6 +130,18 @@ const SearchPage: React.FC = () => {
 				) {
 					setTrips(data.data.rows);
 					setTotal(data.data.count);
+				} else if ("data" in data && Array.isArray(data.data)) {
+					setTrips(data.data);
+					if (
+						"pagination" in data &&
+						data.pagination &&
+						typeof data.pagination === "object" &&
+						"totalItems" in data.pagination
+					) {
+						setTotal((data.pagination as any).totalItems);
+					} else {
+						setTotal(data.data.length);
+					}
 				} else {
 					setTrips([]);
 					setTotal(0);
@@ -131,7 +157,16 @@ const SearchPage: React.FC = () => {
 		fetchTrips();
 
 		return () => controller.abort();
-	}, [fromLocation, toLocation, travelDate, pageNumber, orderBy, sortOrder]);
+	}, [
+		fromLocation,
+		toLocation,
+		fromId,
+		toId,
+		travelDate,
+		pageNumber,
+		orderBy,
+		sortOrder,
+	]);
 
 	const handlePageChange = (_: React.ChangeEvent<unknown>, value: number) => {
 		const params = new URLSearchParams(Array.from(searchParams.entries()));
@@ -162,6 +197,8 @@ const SearchPage: React.FC = () => {
 				<TripSearch
 					initialFrom={fromLocation}
 					initialTo={toLocation}
+					initialFromId={fromId ? parseInt(fromId, 10) : null}
+					initialToId={toId ? parseInt(toId, 10) : null}
 					initialDate={travelDate ? new Date(travelDate) : null}
 					initialMin={minSeats}
 					slotProps={{
@@ -368,18 +405,6 @@ const SearchPage: React.FC = () => {
 													variant="outlined"
 													icon={<DirectionsBus />}
 												/>
-												{t.status && (
-													<Chip
-														label={t.status}
-														size="small"
-														color={
-															t.status ===
-															"SCHEDULED"
-																? "success"
-																: "default"
-														}
-													/>
-												)}
 											</Stack>
 
 											<Stack
@@ -488,10 +513,11 @@ const SearchPage: React.FC = () => {
 												fontWeight="bold"
 												mb={1}
 											>
-												{t.price?.toLocaleString(
+												{formatCurrency(
+													t.price,
+													"VND",
 													"vi-VN"
-												)}{" "}
-												đ
+												)}
 											</Typography>
 											<Typography
 												variant="body2"

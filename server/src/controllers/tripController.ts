@@ -12,6 +12,7 @@ import { CreateTripDTO, UpdateTripDTO } from "@my_types/trip";
 import * as tripServices from "@services/tripServices";
 import * as tripSchedulingServices from "@services/tripSchedulingServices";
 import { emitCrudChange } from "@services/realtimeEvents";
+import logger from "@utils/logger";
 /**
  * Retrieves all trips with comprehensive filtering, sorting, and pagination.
  *
@@ -136,6 +137,8 @@ export const SearchTrip = async (
 		const { rows, count } = isBookingSearch
 			? await tripServices.searchTripsForUser(options)
 			: await tripServices.searchTripsForAdmin(options);
+
+		logger.debug(rows);
 
 		res.status(200).json({
 			success: true,
