@@ -11,10 +11,10 @@ import { getIO } from "@utils/socket";
 
 const safeEmit = (event: string, room: string, data: any) => {
 	try {
-		getIO().of("/realtime").to(room).emit(event, data);
 		logger.debug("Event:", event);
 		logger.debug("Room:", room);
 		logger.debug("Data:", data);
+		getIO().of("/realtime").to(room).emit(event, data);
 	} catch (err) {
 		// keep silent in production or use logger
 		logger.error("[Socket error]:", err);

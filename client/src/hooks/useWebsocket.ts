@@ -85,16 +85,16 @@ const useWebsocket = (options: WebsocketOptions = {}) => {
 	// Debug logging helper
 	const debugLog = useCallback(
 		(message: string, ...args: unknown[]) => {
-			// if (import.meta.env.NODE_ENV === "development") {
-			// 	if (debug_ref.current) {
-			// 		console.log(
-			// 			`🔌 [WebSocket-${component_id.current.slice(
-			// 				-6
-			// 			)}] ${message}`,
-			// 			...args
-			// 		);
-			// 	}
-			// }
+			if (import.meta.env.NODE_ENV === "development") {
+				if (debug_ref.current) {
+					console.log(
+						`🔌 [WebSocket-${component_id.current.slice(
+							-6
+						)}] ${message}`,
+						...args
+					);
+				}
+			}
 		},
 		[debug_ref]
 	);
