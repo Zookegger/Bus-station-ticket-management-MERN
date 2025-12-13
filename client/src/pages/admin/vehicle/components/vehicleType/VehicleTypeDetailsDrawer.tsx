@@ -26,6 +26,7 @@ import {
 } from "@mui/icons-material";
 import type { VehicleType } from "@my-types/vehicleType";
 import SeatLayoutPreview from "@components/seatmap/SeatLayoutPreview";
+import { formatCurrency } from "@utils/formatting";
 
 interface VehicleTypeDetailsDrawerProps {
 	open: boolean;

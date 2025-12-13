@@ -36,6 +36,15 @@ import { couponSchema, type CouponFormData } from "@schemas/couponSchema";
 
 axios.defaults.withCredentials = true;
 
+// Helper to format 1000 -> "1.000"
+const formatNumber = (val: number | string) => {
+	if (!val) return "";
+	// Ensure we are working with a string of digits
+	const num = String(val).replace(/\D/g, "");
+	// Add dot every 3 digits
+	return num.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+};
+
 interface CouponFormProps {
 	open: boolean;
 	onClose: () => void;
@@ -43,9 +52,6 @@ interface CouponFormProps {
 	initialData?: Coupon | null;
 }
 
-/**
- * Renders the modal dialog that lets admin users create or edit coupons.
- */
 const CouponForm: React.FC<CouponFormProps> = ({
 	open,
 	onClose,
@@ -64,6 +70,9 @@ const CouponForm: React.FC<CouponFormProps> = ({
 		control,
 		handleSubmit,
 		reset,
+		setValue,
+		getValues,
+		watch,
 		formState: { errors, isSubmitting },
 	} = useForm<CouponFormData>({
 		resolver: zodResolver(
@@ -82,10 +91,20 @@ const CouponForm: React.FC<CouponFormProps> = ({
 		},
 	});
 
+	const currentType = watch("type");
+
+	// Local display state to hold the formatted string (e.g., "1.000")
+	const [valueDisplay, setValueDisplay] = useState<string>("");
+
+	// Sync internal form value with display value on load or type change
+	useEffect(() => {
+		const v = getValues("value");
+		setValueDisplay(formatNumber(v));
+	}, [watch("value")]);
+
 	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		if (!("files" in e.target)) return;
 		const file = e.target.files?.[0] ?? null;
-		// restrict preview to image files only
 		if (file && !file.type.startsWith("image/")) {
 			setImageFile(null);
 			setPreviewUrl(null);
@@ -125,6 +144,9 @@ const CouponForm: React.FC<CouponFormProps> = ({
 					maxUsage: initialData.maxUsage,
 					isActive: initialData.isActive,
 				});
+				// Set initial display value
+				setValueDisplay(formatNumber(initialData.value));
+
 				if (initialData.imgUrl && isSafeImageSrc(initialData.imgUrl)) {
 					setPreviewUrl(initialData.imgUrl);
 				}
@@ -140,6 +162,7 @@ const CouponForm: React.FC<CouponFormProps> = ({
 					maxUsage: 1,
 					isActive: true,
 				});
+				setValueDisplay("");
 				setImageFile(null);
 				setPreviewUrl(null);
 				if (fileInputRef.current) {
@@ -149,7 +172,6 @@ const CouponForm: React.FC<CouponFormProps> = ({
 		}
 	}, [open, isEditMode, initialData, reset]);
 
-	// Cleanup object URL to avoid memory leaks
 	useEffect(() => {
 		return () => {
 			if (previewUrl && previewUrl.startsWith("blob:")) {
@@ -270,7 +292,30 @@ const CouponForm: React.FC<CouponFormProps> = ({
 								render={({ field }) => (
 									<FormControl fullWidth>
 										<InputLabel>Type</InputLabel>
-										<Select {...field} label="Type">
+										<Select
+											{...field}
+											label="Type"
+											onChange={(e) => {
+												const newType = e.target
+													.value as CouponType;
+												field.onChange(newType);
+
+												// If switching to PERCENTAGE, clamp value to 100 if it's currently higher
+												if (
+													newType ===
+													CouponType.PERCENTAGE
+												) {
+													const currentValue =
+														getValues("value");
+													if (currentValue > 100) {
+														setValue("value", 100, {
+															shouldValidate:
+																true,
+														});
+													}
+												}
+											}}
+										>
 											<MenuItem
 												value={CouponType.PERCENTAGE}
 											>
@@ -292,21 +337,46 @@ const CouponForm: React.FC<CouponFormProps> = ({
 								control={control}
 								render={({ field }) => (
 									<TextField
-										{...field}
 										label="Value"
-										type="number"
 										fullWidth
+										value={valueDisplay}
+										onChange={(e) => {
+											// 1. Remove non-digits to get raw number
+											const raw = e.target.value.replace(
+												/\D/g,
+												""
+											);
+											const parsed = Number(raw);
+
+											// 2. Limit Check
+											const maxLimit =
+												currentType ===
+												CouponType.PERCENTAGE
+													? 100
+													: 1000000;
+											if (parsed > maxLimit) return;
+
+											// 3. Update React Hook Form (State) with pure number
+											field.onChange(parsed);
+
+											// 4. Update Display (UI) with formatted string (e.g. 1.000)
+											setValueDisplay(
+												formatNumber(parsed)
+											);
+										}}
 										slotProps={{
 											input: {
-												endAdornment: (
-													<InputAdornment position="end">
-														{control._formValues
-															.type ===
-														CouponType.PERCENTAGE
-															? "%"
-															: "VND"}
-													</InputAdornment>
-												),
+												endAdornment:
+													currentType ===
+													CouponType.PERCENTAGE ? (
+														<InputAdornment position="end">
+															%
+														</InputAdornment>
+													) : (
+														<InputAdornment position="end">
+															VND
+														</InputAdornment>
+													),
 											},
 										}}
 										error={!!errors.value}
@@ -331,6 +401,7 @@ const CouponForm: React.FC<CouponFormProps> = ({
 											onChange={(newValue) =>
 												field.onChange(newValue)
 											}
+											disablePast
 											slotProps={{
 												textField: {
 													fullWidth: true,
@@ -361,6 +432,7 @@ const CouponForm: React.FC<CouponFormProps> = ({
 											onChange={(newValue) =>
 												field.onChange(newValue)
 											}
+											disablePast
 											slotProps={{
 												textField: {
 													fullWidth: true,

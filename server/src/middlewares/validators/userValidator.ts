@@ -7,6 +7,7 @@
  * error messages for user data fields.
  */
 
+import { Gender } from "@models/user";
 import { body, param } from "express-validator";
 
 /**
@@ -49,7 +50,7 @@ const fullNameValidator = body("fullName")
 const genderValidator = body("gender")
 	.optional()
 	.custom((value) => {
-		const genders = ["male", "female", "other"];
+		const genders = Object.values(Gender);
 		if (value && !genders.includes(value)) {
 			throw new Error("Invalid Gender");
 		}

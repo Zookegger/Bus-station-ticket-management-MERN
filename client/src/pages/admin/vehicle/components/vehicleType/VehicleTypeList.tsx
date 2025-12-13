@@ -24,6 +24,7 @@ import VehicleTypeForm from "./VehicleTypeForm";
 import callApi from "@utils/apiCaller";
 import { API_ENDPOINTS } from "@constants/index";
 import { useAdminRealtime } from "@hooks/useAdminRealtime";
+import { formatCurrency } from "@utils/formatting";
 
 const VehicleTypeList: React.FC = () => {
 	const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);

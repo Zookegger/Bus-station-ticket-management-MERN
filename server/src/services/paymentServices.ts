@@ -29,6 +29,12 @@ import { broadcastDashboardUpdate } from "@services/dashboardServices";
 import * as notificationServices from "@services/notificationServices";
 import { NotificationPriorities, NotificationTypes } from "@my-types";
 import { emitBulkSeatUpdates } from "./realtimeEvents";
+import { emailQueue } from "@utils/queues/emailQueue";
+import {
+	generateReceiptHTML,
+	generateRefundHTML,
+} from "@services/emailServices";
+import { User } from "@models/user";
 
 /**
  * Payment gateway interface - all gateways must implement this
@@ -375,6 +381,10 @@ export const handlePaymentCallback = async (
 								},
 							],
 						},
+						{
+							model: User,
+							as: "user",
+						},
 					],
 				},
 			],
@@ -443,10 +453,23 @@ export const handlePaymentCallback = async (
 					const updatedSeats = await Seat.findAll({
 						where: { id: seatIds },
 						transaction,
-						attributes: ['id', 'status', 'tripId', 'row', 'column', 'floor', 'number']
+						attributes: [
+							"id",
+							"status",
+							"tripId",
+							"row",
+							"column",
+							"floor",
+							"number",
+						],
 					});
-					
-					if (updatedSeats && updatedSeats.length > 0 && updatedSeats[0] && updatedSeats[0].tripId) {
+
+					if (
+						updatedSeats &&
+						updatedSeats.length > 0 &&
+						updatedSeats[0] &&
+						updatedSeats[0].tripId
+					) {
 						emitBulkSeatUpdates(
 							updatedSeats[0].tripId,
 							updatedSeats.map((s) => s.toJSON())
@@ -473,6 +496,20 @@ export const handlePaymentCallback = async (
 							"Failed to send payment success notification",
 							err
 						)
+					);
+			}
+
+			// Send Email Receipt
+			const userEmail = order.user?.email || order.guestPurchaserEmail;
+			if (userEmail) {
+				emailQueue
+					.add("send-receipt", {
+						to: userEmail,
+						subject: `Payment Receipt - Order #${order.id}`,
+						html: generateReceiptHTML(order),
+					})
+					.catch((err) =>
+						logger.error("Failed to queue receipt email", err)
 					);
 			}
 		} else if (
@@ -514,7 +551,12 @@ export const handlePaymentCallback = async (
 						where: { id: seatIds },
 						transaction,
 					});
-					if (updatedSeats && updatedSeats.length > 0 && updatedSeats[0] && updatedSeats[0].tripId) {
+					if (
+						updatedSeats &&
+						updatedSeats.length > 0 &&
+						updatedSeats[0] &&
+						updatedSeats[0].tripId
+					) {
 						emitBulkSeatUpdates(
 							updatedSeats[0].tripId,
 							updatedSeats.map((s) => s.toJSON())
@@ -569,7 +611,7 @@ export const getPaymentByMerchantOrderRef = async (
 							{
 								model: Seat,
 								as: "seat",
-									include: [{ model: Trip, as: "trip" }],
+								include: [{ model: Trip, as: "trip" }],
 							},
 						],
 					},
@@ -597,6 +639,16 @@ export const processRefund = async (
 			{
 				model: db.PaymentMethod,
 				as: "paymentMethod",
+			},
+			{
+				model: db.Order,
+				as: "order",
+				include: [
+					{
+						model: db.User,
+						as: "user",
+					},
+				],
 			},
 		],
 		transaction,
@@ -672,6 +724,23 @@ export const processRefund = async (
 	logger.info(
 		`Successfully processed refund for payment ${payment.id}.\nGateway transaction ID: ${refund_result.transactionId}`
 	);
+
+	// Send Refund Email
+	if (payment.order) {
+		const userEmail =
+			payment.order.user?.email || payment.order.guestPurchaserEmail;
+		if (userEmail) {
+			emailQueue
+				.add("send-refund", {
+					to: userEmail,
+					subject: `Refund Processed - Order #${payment.order.id}`,
+					html: generateRefundHTML(payment.order, dto.amount),
+				})
+				.catch((err) =>
+					logger.error("Failed to queue refund email", err)
+				);
+		}
+	}
 
 	return refund_result;
 };

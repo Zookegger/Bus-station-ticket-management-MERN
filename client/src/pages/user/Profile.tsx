@@ -36,6 +36,9 @@ import buildImgUrl from "@utils/imageHelper";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { profileSchema, type ProfileForm } from "../../schemas/userSchema";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 
 interface ChangePasswordDialogProps {
 	dialogOpen: boolean;
@@ -454,6 +457,7 @@ const Profile: React.FC = () => {
 		control,
 		handleSubmit,
 		reset,
+		setError: setFormError,
 		formState: { errors, isSubmitting },
 	} = useForm<ProfileForm>({
 		resolver: zodResolver(profileSchema),
@@ -532,7 +536,7 @@ const Profile: React.FC = () => {
 			Object.keys(data).forEach((key) => {
 				const value = data[key as keyof ProfileForm];
 				if (key === "dateOfBirth" && value) {
-					formData.append(key, (value as Date).toISOString());
+					formData.append(key, (value as Date).toISOString().split("T")[0]);
 					return;
 				}
 				if (value !== null && value !== undefined && value !== "") {
@@ -559,7 +563,20 @@ const Profile: React.FC = () => {
 			setSnackbarOpen(true);
 			fetchProfile();
 			setIsEditMode(false);
-		} catch (err) {
+		} catch (err: any) {
+			const resp = err?.response?.data;
+			if (resp && Array.isArray(resp.errors)) {
+				resp.errors.forEach((e: any) => {
+					if (e && e.type === "field" && e.path) {
+						setFormError(e.path as any, {
+							type: "server",
+							message:
+								e.msg || e.message || resp.message || "Invalid value",
+						}, { shouldFocus: true });
+					}
+				});
+				return;
+			}
 			setError("Failed to update profile.");
 		}
 	};
@@ -843,45 +860,37 @@ const Profile: React.FC = () => {
 												name="dateOfBirth"
 												control={control}
 												render={({ field }) => (
-													<TextField
-														{...field}
-														label="Birth"
-														type="date"
-														fullWidth
-														slotProps={{
-															inputLabel: {
-																shrink: true,
-															},
-														}}
-														error={
-															!!errors.dateOfBirth
+													<LocalizationProvider
+														dateAdapter={
+															AdapterDateFns
 														}
-														helperText={
-															errors.dateOfBirth
-																?.message as string
-														}
-														disabled={!isEditMode}
-														value={
-															field.value
-																? new Date(
-																		field.value
-																  )
-																		.toISOString()
-																		.split(
-																			"T"
-																		)[0]
-																: ""
-														}
-														onChange={(e) =>
-															field.onChange(
-																e.target.value
-																	? new Date(
-																			e.target.value
-																	  )
-																	: null
-															)
-														}
-													/>
+													>
+														<DatePicker
+															label="Date of Birth"
+															value={field.value}
+															onChange={(
+																newValue
+															) =>
+																field.onChange(
+																	newValue
+																)
+															}
+															disabled={
+																!isEditMode
+															}
+															slotProps={{
+																textField: {
+																	fullWidth:
+																		true,
+																	error: !!errors.dateOfBirth,
+																	helperText:
+																		errors
+																			.dateOfBirth
+																			?.message,
+																},
+															}}
+														/>
+													</LocalizationProvider>
 												)}
 											/>
 										</Grid>
@@ -982,10 +991,12 @@ const Profile: React.FC = () => {
 											</>
 										) : (
 											<Button
+												type="button"
 												variant="contained"
-												onClick={() =>
-													setIsEditMode(true)
-												}
+												onClick={(e) => {
+													e.preventDefault();
+													setIsEditMode(true);
+												}}
 											>
 												Edit Profile
 											</Button>
@@ -1043,7 +1054,7 @@ const Profile: React.FC = () => {
 						severity={successMessage ? "success" : "info"}
 						onClose={handleSnackbarClose}
 					>
-						{successMessage ?? "Action completed"}
+						{successMessage ?? "Profile Updated"}
 					</Alert>
 				</Snackbar>
 			</Box>

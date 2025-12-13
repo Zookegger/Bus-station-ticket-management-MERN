@@ -333,3 +333,64 @@ export const generateReceiptHTML = (orderInfo: Order): string => {
         </body>
         </html>`;
 };
+
+/**
+ * Generates HTML content for refund emails.
+ *
+ * Creates a styled HTML email template with refund details.
+ *
+ * @param orderInfo - The order information
+ * @param refundAmount - The amount refunded
+ * @returns HTML string containing the formatted refund email
+ */
+export const generateRefundHTML = (orderInfo: Order, refundAmount: number): string => {
+	const issuedAt = new Date().toLocaleString();
+	const total = refundAmount.toLocaleString();
+
+	return `
+        <!doctype html>
+        <html lang="en">
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width,initial-scale=1">
+            <title>Refund - ${orderInfo.id}</title>
+            <style>
+                body { font-family: Arial, Helvetica, sans-serif; background:#f6f7fb; color:#333; margin:0; padding:20px; }
+                .card { max-width:600px; margin:0 auto; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 4px 18px rgba(0,0,0,0.08); }
+                .header { background:linear-gradient(90deg,#dc3545,#fd7e14); color:#fff; padding:20px; }
+                .header h2 { margin:0 0 6px 0; font-size:20px; }
+                .header p { margin:0; font-size:13px; opacity:0.95 }
+                .body { padding:20px; }
+                .meta { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+                .meta .left { font-size:13px; color:#666 }
+                .meta .right { text-align:right }
+                .total { display:flex; justify-content:space-between; margin-top:12px; font-weight:bold; font-size:16px }
+                .footer { padding:16px 20px; font-size:12px; color:#888; border-top:1px solid #f0f0f0; }
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <div class="header">
+                    <h2>EasyRide - Refund Processed</h2>
+                    <p>Order #: ${orderInfo.id}</p>
+                </div>
+                <div class="body">
+                    <div class="meta">
+                        <div class="left">
+                            <div>Processed: ${issuedAt}</div>
+                        </div>
+                        <div class="right">
+                            <div style="font-size:12px;color:#666">Refund Amount</div>
+                            <div style="font-size:18px;color:#111;font-weight:700">${total} VND</div>
+                        </div>
+                    </div>
+                    <p>Your refund has been successfully processed. The amount should appear in your account within 5-10 business days depending on your bank.</p>
+                </div>
+                <div class="footer">
+                    Thank you for using EasyRide. If you have questions, reply to this email or contact customer support.
+                </div>
+            </div>
+        </body>
+        </html>`;
+};
+

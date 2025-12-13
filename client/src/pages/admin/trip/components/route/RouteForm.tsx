@@ -11,7 +11,6 @@ import {
 	Divider,
 	FormControl,
 	Grid,
-	InputAdornment,
 	List,
 	Paper,
 	TextField,

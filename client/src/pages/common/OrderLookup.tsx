@@ -20,6 +20,7 @@ import callApi from "@utils/apiCaller";
 import { API_ENDPOINTS } from "@constants/api";
 import type { Order } from "@my-types/order";
 import { format } from "date-fns";
+import { formatCurrency } from "@utils/formatting";
 
 const OrderLookup: React.FC = () => {
 	const [email, setEmail] = useState("");
@@ -151,7 +152,7 @@ const OrderLookup: React.FC = () => {
 												)}
 											</TableCell>
 											<TableCell>
-												${Number(order.totalFinalPrice).toFixed(2)}
+												{formatCurrency(order.totalFinalPrice,"VND","vi-VN")}
 											</TableCell>
 											<TableCell>
 												<Chip

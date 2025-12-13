@@ -123,7 +123,7 @@ export const API_ENDPOINTS: ApiEndpoints = {
 		CREATE: "/orders",
 		BY_ID: "/orders/:id",
 		BY_USER: "/orders/user/:id",
-		BY_GUEST: "/orders/guest",
+		BY_GUEST: "/orders/guest/list",
 		REFUND: "/orders/:id/refund",
 	},
 	SETTINGS: {

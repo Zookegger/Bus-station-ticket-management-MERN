@@ -39,7 +39,7 @@ orderRouter.get(
 	errorHandler
 );
 orderRouter.get(
-	"/guest",
+	"/guest/list",
 	csrfGuestOrUserProtectionRoute,
 	orderController.GetGuestOrders,
 	errorHandler
