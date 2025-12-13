@@ -26,9 +26,9 @@ import {
 	type TextFieldProps,
 } from "@mui/material";
 import {
-	DateTimePicker,
+	DatePicker,
 	LocalizationProvider,
-	type DateTimePickerProps,
+	type DatePickerProps,
 } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import {
@@ -38,10 +38,10 @@ import {
 	AirlineSeatReclineNormal,
 } from "@mui/icons-material";
 import { createSearchParams, useNavigate } from "react-router-dom";
-import { format } from "date-fns";
 import { type Location } from "@my-types";
 import callApi from "@utils/apiCaller";
 import { API_ENDPOINTS, ROUTES } from "@constants/index";
+import { formatDateForInput } from "@utils/formatting";
 
 // --- Types ---
 
@@ -49,7 +49,7 @@ type TripSearchFormState = {
 	departure: string;
 	destination: string;
 	minTickets: number;
-	date: Date;
+	date: Date | string;
 };
 
 type FormErrorState = Partial<
@@ -62,7 +62,7 @@ export interface TripSearchSlotProps {
 	swapButton?: IconButtonProps;
 	swapIcon?: SvgIconProps;
 	box?: BoxProps;
-	datePicker?: Partial<DateTimePickerProps>;
+	datePicker?: Partial<DatePickerProps>;
 	departureAutocomplete?: Omit<
 		AutocompleteProps<Location, false, false, false>,
 		"options" | "renderInput"
@@ -99,6 +99,8 @@ const TripSearch: React.FC<TripSearchProps> = ({
 	const [destination, setDestinationPoint] = useState<string | null>(
 		initialTo || null
 	);
+	const [departureId, setDepartureId] = useState<number | null>(null);
+	const [destinationId, setDestinationId] = useState<number | null>(null);
 	const [locations, setLocations] = useState<Location[]>([]);
 	const [isLoadingLocations, setIsLoadingLocations] =
 		useState<boolean>(false);
@@ -156,12 +158,15 @@ const TripSearch: React.FC<TripSearchProps> = ({
 		const paramsObj: Record<string, string> = {
 			from: departure,
 			to: destination,
-			date: format(date, "yyyy-MM-dd"),
+			date: formatDateForInput(date),
 		};
 
 		if (minTickets != null && !Number.isNaN(minTickets)) {
 			paramsObj.minSeats = String(Math.max(1, Math.floor(minTickets)));
 		}
+
+		if (departureId) paramsObj.fromId = String(departureId);
+		if (destinationId) paramsObj.toId = String(destinationId);
 
 		const params = createSearchParams(paramsObj).toString();
 		navigate(`${ROUTES.SEARCH}?${params}`);
@@ -239,9 +244,10 @@ const TripSearch: React.FC<TripSearchProps> = ({
 											(l) => l.name === departure
 										) || null
 									}
-									onChange={(_, val) =>
-										setDeparturePoint(val ? val.name : null)
-									}
+									onChange={(_, val) => {
+										setDeparturePoint(val ? val.name : null);
+										setDepartureId(val ? val.id : null);
+									}}
 									isOptionEqualToValue={(opt, val) =>
 										opt.id === val.id
 									}
@@ -326,11 +332,10 @@ const TripSearch: React.FC<TripSearchProps> = ({
 											(l) => l.name === destination
 										) || null
 									}
-									onChange={(_, val) =>
-										setDestinationPoint(
-											val ? val.name : null
-										)
-									}
+									onChange={(_, val) => {
+										setDestinationPoint(val ? val.name : null);
+										setDestinationId(val ? val.id : null);
+									}}
 									isOptionEqualToValue={(opt, val) =>
 										opt.name === val.name
 									}
@@ -413,7 +418,7 @@ const TripSearch: React.FC<TripSearchProps> = ({
 								required
 								error={!!errors.date}
 							>
-								<DateTimePicker
+								<DatePicker
 									{...slotProps?.datePicker}
 									label="Travel Date"
 									format="dd/MM/yyyy"

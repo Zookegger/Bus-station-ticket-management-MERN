@@ -62,4 +62,17 @@ debugRouter.get(
 	errorHandler
 );
 
+/**
+ * @route GET /api/debug/match-routes
+ * @desc Diagnostic: return matched route IDs for given from/to (name or id)
+ * @access Admin
+ */
+debugRouter.get(
+	"/match-routes",
+	authenticateJwt,
+	isAdmin,
+	debugController.GetMatchedRoutes,
+	errorHandler
+);
+
 export default debugRouter;

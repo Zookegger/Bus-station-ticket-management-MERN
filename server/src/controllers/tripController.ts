@@ -50,6 +50,8 @@ export const SearchTrip = async (
 		const {
 			from,
 			to,
+			fromId,
+			toId,
 			date,
 			keywords,
 			orderBy = "createdAt",
@@ -108,9 +110,11 @@ export const SearchTrip = async (
 			...(minPrice && { minPrice: parseFloat(minPrice as string) }),
 			...(maxPrice && { maxPrice: parseFloat(maxPrice as string) }),
 
-			// Location mappings
+			// Location mappings (support name or id)
 			...(from && { fromLocation: from as string }),
 			...(to && { toLocation: to as string }),
+			...(fromId && { fromLocationId: parseInt(fromId as string, 10) }),
+			...(toId && { toLocationId: parseInt(toId as string, 10) }),
 			...(date && { date: date as string }),
 
 			// New Options

@@ -186,6 +186,8 @@ export interface ListOptions {
 	maxPrice?: number | undefined;
 	fromLocation?: string; // Mapped from 'from'
 	toLocation?: string; // Mapped from 'to'
+	fromLocationId?: number | undefined;
+	toLocationId?: number | undefined;
 	date?: string;
 	checkSeatAvailability?: boolean;
 	minSeats?: number | undefined;
@@ -356,6 +358,9 @@ export const searchTripsForUser = async (
 		minSeats,
 	} = options;
 
+	logger.debug(fromLocation);
+	logger.debug(toLocation);
+
 	const where: any = {
 		status: "Scheduled", // Users only see scheduled trips
 	};
@@ -373,7 +378,18 @@ export const searchTripsForUser = async (
 	let validRouteIds: number[] | null = null;
 
 	if (fromLocation || toLocation) {
-		const fromStops = fromLocation
+		// Prefer numeric location ids when provided (more reliable than name matching)
+		const fromStops = options.fromLocationId
+			? await db.RouteStop.findAll({
+					where: { locationId: options.fromLocationId },
+					attributes: [
+						"routeId",
+						"stopOrder",
+						"durationFromStart",
+						"distanceFromStart",
+					],
+			  })
+			: fromLocation
 			? await db.RouteStop.findAll({
 					include: [
 						{
@@ -390,8 +406,19 @@ export const searchTripsForUser = async (
 					],
 			  })
 			: null;
+		logger.debug(fromStops);
 
-		const toStops = toLocation
+		const toStops = options.toLocationId
+			? await db.RouteStop.findAll({
+					where: { locationId: options.toLocationId },
+					attributes: [
+						"routeId",
+						"stopOrder",
+						"durationFromStart",
+						"distanceFromStart",
+					],
+			  })
+			: toLocation
 			? await db.RouteStop.findAll({
 					include: [
 						{
@@ -408,6 +435,7 @@ export const searchTripsForUser = async (
 					],
 			  })
 			: null;
+		logger.debug(toStops);
 
 		const matchedIds = new Set<number>();
 
@@ -447,18 +475,27 @@ export const searchTripsForUser = async (
 	}
 
 	// 2. Date Filters
+	// Normalize date filtering to use local-day boundaries to avoid
+	// UTC parsing issues with `new Date("YYYY-MM-DD")` which can be
+	// interpreted as UTC by JS engines. The client sends YYYY-MM-DD.
 	if (date) {
-		const targetDate = new Date(date);
-		const datePart = date.substring(0, 10);
-		const nextDay = new Date(datePart);
-		nextDay.setDate(nextDay.getDate() + 1);
+		// Ensure we only consider the date portion (YYYY-MM-DD)
+		const datePart =
+			typeof date === "string"
+				? date.substring(0, 10)
+				: String(date).substring(0, 10);
+
+		// Construct local start/end of day timestamps by using the
+		// explicit T00:00:00 / T23:59:59.999 form which JS parses as local time
+		const startOfDay = new Date(`${datePart}T00:00:00`);
+		const endOfDay = new Date(`${datePart}T23:59:59.999`);
 
 		where.startTime = {
-			[Op.gte]: targetDate,
-			[Op.lt]: nextDay,
+			[Op.gte]: startOfDay,
+			[Op.lte]: endOfDay,
 		};
 	} else {
-		// Default: Show future trips only
+		// Default: Show future trips only (from now)
 		where.startTime = { [Op.gte]: new Date() };
 	}
 
@@ -546,7 +583,10 @@ export const searchTripsForUser = async (
 		const literalCondition = db.sequelize.literal(
 			`(SELECT COUNT(*) FROM seats WHERE seats.tripId = Trip.id AND seats.status = '${SeatStatus.AVAILABLE}') >= ${minSeats}`
 		);
-		queryOptions.where = { ...queryOptions.where, [Op.and]: [literalCondition] };
+		queryOptions.where = {
+			...queryOptions.where,
+			[Op.and]: [literalCondition],
+		};
 	}
 
 	const result = await db.Trip.findAndCountAll(queryOptions);

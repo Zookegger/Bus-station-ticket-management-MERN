@@ -110,11 +110,13 @@ const CouponDetailsDrawer: React.FC<CouponDetailsDrawerProps> = ({
 			anchor="right"
 			open={open}
 			onClose={onClose}
-			PaperProps={{
-				sx: {
-					width: 450,
-					maxWidth: "100vw",
-					bgcolor: theme.palette.background.default,
+			slotProps={{
+				paper: {
+					sx: {
+						width: 450,
+						maxWidth: "100vw",
+						bgcolor: theme.palette.background.default,
+					},
 				},
 			}}
 		>

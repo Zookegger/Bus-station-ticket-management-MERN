@@ -494,7 +494,7 @@ const SeatBooking: React.FC = () => {
 					(s) =>
 						s.floor === point.floor + 1 &&
 						s.row === point.row + 1 &&
-						s.column === point.col + 1
+						s.column === point.col + 1 
 				);
 
 				return matchedSeat?.id;
@@ -505,9 +505,7 @@ const SeatBooking: React.FC = () => {
 			alert(
 				"Error: Could not match some selected seats to system records. Please refresh."
 			);
-			console.error(
-				"Error: Could not match some selected seats to system records. Please refresh."
-			);
+			console.error("Error: Could not match some selected seats to system records. Please refresh.", selectedPoints, seatIdsToBook, seats);
 			return;
 		}
 

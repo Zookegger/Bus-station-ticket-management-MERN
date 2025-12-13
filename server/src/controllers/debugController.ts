@@ -3,6 +3,8 @@ import { addCleanupJob } from "@utils/queues/paymentQueue";
 import logger from "@utils/logger";
 import { getIO } from "@utils/socket";
 import { REALTIME_NAMESPACE } from "@constants/realtime";
+import db from "@models/index";
+import { Op } from "sequelize";
 
 /**
  * Manually trigger payment cleanup job (admin/debug only).
@@ -160,6 +162,65 @@ export const GetWebsocketStats = async (
 				rooms: roomStats,
 			},
 		});
+	} catch (err) {
+		next(err);
+	}
+};
+
+/**
+ * Diagnostic: return route IDs that match provided from/to location (name or id).
+ * Useful for troubleshooting why a booking search returns no trips.
+ *
+ * @route GET /api/debug/match-routes
+ * @access Admin
+ */
+export const GetMatchedRoutes = async (
+	req: Request,
+ 	res: Response,
+ 	next: NextFunction
+): Promise<void> => {
+	try {
+		const { from, to, fromId, toId } = req.query;
+
+		const fromLocation = typeof from === 'string' ? from : undefined;
+		const toLocation = typeof to === 'string' ? to : undefined;
+		const fromIdNum = fromId ? parseInt(String(fromId), 10) : undefined;
+		const toIdNum = toId ? parseInt(String(toId), 10) : undefined;
+
+		const attrs = ["routeId", "stopOrder", "durationFromStart", "distanceFromStart"];
+
+		const fromStops = fromIdNum
+			? await db.RouteStop.findAll({ where: { locationId: fromIdNum }, attributes: attrs })
+			: fromLocation
+			? await db.RouteStop.findAll({
+				  include: [{ model: db.Location, as: "locations", where: { name: { [Op.like]: `%${fromLocation}%` } } }],
+				  attributes: attrs,
+			  })
+			: null;
+
+		const toStops = toIdNum
+			? await db.RouteStop.findAll({ where: { locationId: toIdNum }, attributes: attrs })
+			: toLocation
+			? await db.RouteStop.findAll({
+				  include: [{ model: db.Location, as: "locations", where: { name: { [Op.like]: `%${toLocation}%` } } }],
+				  attributes: attrs,
+			  })
+			: null;
+
+		const matchedIds = new Set<number>();
+
+		if (fromStops && toStops) {
+			fromStops.forEach((fs: any) => {
+				const matchingDest = toStops.find((ts: any) => ts.routeId === fs.routeId && ts.stopOrder > fs.stopOrder);
+				if (matchingDest) matchedIds.add(fs.routeId);
+			});
+		} else if (fromStops) {
+			fromStops.forEach((fs: any) => matchedIds.add(fs.routeId));
+		} else if (toStops) {
+			toStops.forEach((ts: any) => matchedIds.add(ts.routeId));
+		}
+
+		res.status(200).json({ success: true, data: { matchedRouteIds: Array.from(matchedIds), fromStopsCount: fromStops ? fromStops.length : 0, toStopsCount: toStops ? toStops.length : 0 } });
 	} catch (err) {
 		next(err);
 	}

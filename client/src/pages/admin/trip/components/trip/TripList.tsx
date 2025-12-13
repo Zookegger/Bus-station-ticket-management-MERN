@@ -413,13 +413,14 @@ const TripList: React.FC = () => {
 						<Tooltip title={hasDriver ? "Re-assign Driver" : "Manual Assign"}>
 							<IconButton
 								size="small"
+								disabled={trip.status === TripStatus.CANCELLED || trip.status === TripStatus.COMPLETED}
 								onClick={(e) => {
 									e.stopPropagation();
 									setSelectedTrip(trip);
 									setManualAssignOpen(true);
 								}}
 							>
-								<PersonAddIcon color="primary" />
+								<PersonAddIcon color={(trip.status === TripStatus.CANCELLED || trip.status === TripStatus.COMPLETED) ? "disabled" : "primary"} />
 							</IconButton>
 						</Tooltip>
 
@@ -446,7 +447,7 @@ const TripList: React.FC = () => {
 										handleUnassign(trip.id);
 									}}
 								>
-									<PersonRemoveIcon color="error" />
+									<PersonRemoveIcon color={(trip.status === TripStatus.CANCELLED || trip.status === TripStatus.COMPLETED) ? "disabled" : "error"} />
 								</IconButton>
 							</Tooltip>
 						)}

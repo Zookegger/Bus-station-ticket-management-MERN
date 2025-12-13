@@ -25,7 +25,6 @@ import {
 	LocalOffer,
 	AccessTime,
 	DirectionsBus,
-	AttachMoney,
 	ChevronLeft,
 	ChevronRight,
 } from "@mui/icons-material";
@@ -33,6 +32,7 @@ import TripSearch from "@components/common/TripSearch";
 import buildImgUrl from "@utils/imageHelper";
 import { format } from "date-fns"; // Restored
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { formatCurrency } from "@utils/formatting";
 
 // --- 1. Cache & Fetchers ---
 const promiseCache = new Map();
@@ -150,7 +150,6 @@ const UpcomingTripsList = () => {
 								variant="h6"
 								component="div"
 								gutterBottom
-								noWrap
 							>
 								{trip.route?.name || `Trip #${trip.id}`}
 							</Typography>
@@ -199,18 +198,13 @@ const UpcomingTripsList = () => {
 								<Stack
 									direction="row"
 									alignItems="center"
-									spacing={1}
 								>
-									<AttachMoney
-										fontSize="small"
-										color="primary"
-									/>
 									<Typography
 										variant="h6"
 										color="primary"
 										fontWeight="bold"
 									>
-										{trip.price}
+										{formatCurrency(trip.price, "VND", "vi-vn")}
 									</Typography>
 								</Stack>
 							</Stack>
