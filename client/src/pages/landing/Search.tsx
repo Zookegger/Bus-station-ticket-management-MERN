@@ -1,7 +1,7 @@
 import {
 	Box,
 	Typography,
-	CircularProgress,
+	LinearProgress,
 	Alert,
 	Button,
 	Pagination,
@@ -14,18 +14,25 @@ import {
 	Paper,
 	Chip,
 	Collapse,
+	Checkbox,
+	FormGroup,
+	FormControlLabel,
 } from "@mui/material";
 import type { SelectChangeEvent } from "@mui/material";
-import { useEffect, useState } from "react";
+import { Activity, useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import callApi from "@utils/apiCaller";
 import { API_ENDPOINTS, ROUTES } from "@constants/index";
 import type { Trip, TripResponse } from "@my-types/trip";
 import { format, differenceInMinutes } from "date-fns";
-import { DirectionsBus } from "@mui/icons-material";
+import { DirectionsBus, Error as ErrorIcon } from "@mui/icons-material";
 import TripSearch from "@components/common/TripSearch";
 import { Container } from "@mui/system";
 import { formatCurrency } from "@utils/formatting";
+import { ViewRouteDialog } from "@components/map";
+import type { RouteStop } from "@my-types/route";
+import MapIcon from "@mui/icons-material/Map";
+import type { VehicleType } from "@my-types/vehicleType";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -41,6 +48,9 @@ const SearchPage: React.FC = () => {
 	const [travelDate, setTravelDate] = useState<string>("");
 	const [minSeats, setMinSeats] = useState<number | null>(null);
 	const [pageNumber, setPageNumber] = useState<number>(1);
+	// Filter states
+	const [vehicleTypeId, setVehicleTypeId] = useState<string | null>(null);
+	const [isRoundTrip, setIsRoundTrip] = useState<boolean>(false);
 
 	// Sorting state
 	const [orderBy, setOrderBy] = useState<string>("startTime");
@@ -50,6 +60,20 @@ const SearchPage: React.FC = () => {
 	const [error, setError] = useState<string | null>(null);
 	const [trips, setTrips] = useState<Trip[]>([]);
 	const [total, setTotal] = useState<number>(0);
+
+	const [viewRouteOpen, setViewRouteOpen] = useState(false);
+	const [selectedRouteStops, setSelectedRouteStops] = useState<RouteStop[]>(
+		[]
+	);
+	const [selectedRouteName, setSelectedRouteName] = useState<string>("");
+
+	const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
+
+	const handleViewRoute = (stops: RouteStop[], routeName: string) => {
+		setSelectedRouteStops(stops);
+		setSelectedRouteName(routeName);
+		setViewRouteOpen(true);
+	};
 
 	useEffect(() => {
 		const from = searchParams.get("from") ?? "";
@@ -68,6 +92,8 @@ const SearchPage: React.FC = () => {
 		setToId(tId);
 		setTravelDate(date);
 		setPageNumber(page);
+		setVehicleTypeId(searchParams.get("vehicleTypeId"));
+		setIsRoundTrip(searchParams.get("isRoundTrip") === "true");
 	}, [searchParams]);
 
 	useEffect(() => {
@@ -99,6 +125,8 @@ const SearchPage: React.FC = () => {
 					orderBy,
 					sortOrder,
 					checkSeatAvailability: "true", // Ensure we only see trips with seats
+					...(vehicleTypeId ? { vehicleTypeId } : {}),
+					...(isRoundTrip ? { isRoundTrip } : {}),
 				};
 
 				if (fromId) params.fromId = fromId;
@@ -166,11 +194,63 @@ const SearchPage: React.FC = () => {
 		pageNumber,
 		orderBy,
 		sortOrder,
+		vehicleTypeId,
+		isRoundTrip,
 	]);
+
+	/**
+	 * Fetches all vehicle types from the API.
+	 * This effect runs once on component mount to populate the vehicle type filter.
+	 */
+	useEffect(() => {
+		const fetchVehicleTypes = async () => {
+			try {
+				const { data } = await callApi(
+					{
+						method: "GET",
+						url: API_ENDPOINTS.VEHICLE_TYPE.BASE,
+					},
+					{ returnFullResponse: true }
+				);
+				setVehicleTypes(data || []);
+			} catch (err) {
+				console.error("Failed to fetch vehicle types:", err);
+			}
+		};
+		fetchVehicleTypes();
+	}, []);
 
 	const handlePageChange = (_: React.ChangeEvent<unknown>, value: number) => {
 		const params = new URLSearchParams(Array.from(searchParams.entries()));
 		params.set("page", String(value));
+		navigate(`${ROUTES.SEARCH}?${params.toString()}`);
+	};
+
+	const handleVehicleTypeChange = (event: SelectChangeEvent) => {
+		const value = event.target.value;
+		setVehicleTypeId(value === "all" ? null : value);
+		const params = new URLSearchParams(Array.from(searchParams.entries()));
+		if (value === "all") {
+			params.delete("vehicleTypeId");
+		} else {
+			params.set("vehicleTypeId", value);
+		}
+		params.set("page", "1"); // Reset to first page on filter change
+		navigate(`${ROUTES.SEARCH}?${params.toString()}`);
+	};
+
+	const handleRoundTripChange = (
+		event: React.ChangeEvent<HTMLInputElement>
+	) => {
+		const value = event.target.checked;
+		setIsRoundTrip(value);
+		const params = new URLSearchParams(Array.from(searchParams.entries()));
+		if (value) {
+			params.set("isRoundTrip", "true");
+		} else {
+			params.delete("isRoundTrip");
+		}
+		params.set("page", "1"); // Reset to first page on filter change
 		navigate(`${ROUTES.SEARCH}?${params.toString()}`);
 	};
 
@@ -198,6 +278,9 @@ const SearchPage: React.FC = () => {
 
 	return (
 		<Container maxWidth={"lg"}>
+			<Box sx={{ position: "relative" }}>
+				{loading && <LinearProgress sx={{ position: "absolute" }} />}
+			</Box>
 			<Collapse in={isSearch}>
 				<TripSearch
 					initialFrom={fromLocation}
@@ -259,6 +342,15 @@ const SearchPage: React.FC = () => {
 				/>
 			</Collapse>
 
+			<Activity mode={Boolean(error) ? "visible" : "hidden"}>
+				<Alert color="error" icon={<ErrorIcon />}>
+					{error}
+				</Alert>
+			</Activity>
+
+			{/* <Activity mode={loading ? "visible" : "hidden"}>
+				<CircularProgress />
+			</Activity> */}
 			<Paper
 				elevation={0}
 				sx={{ p: 3, mb: 3, bgcolor: "background.default" }}
@@ -318,264 +410,318 @@ const SearchPage: React.FC = () => {
 					)}
 				</Stack>
 			</Paper>
-
-			{loading && (
-				<Box display="flex" justifyContent="center" p={8}>
-					<CircularProgress />
-				</Box>
-			)}
-
-			{error && (
-				<Alert severity="error" sx={{ mb: 3 }}>
-					{error}
-				</Alert>
-			)}
-
-			{!loading && !error && trips.length === 0 && (
-				<Paper sx={{ p: 4, textAlign: "center" }}>
-					<Typography variant="h6" color="text.secondary">
-						No trips found for this route on this date.
-					</Typography>
-					<Button
-						variant="outlined"
-						sx={{ mt: 2 }}
-						onClick={() => setIsSearch(true)}
-					>
-						Search Another Date
-					</Button>
-				</Paper>
-			)}
-
-			{!loading && trips.length > 0 && (
-				<Stack spacing={2}>
-					{trips.map((t) => {
-						// Safely access nested properties
-						const stops = t.route?.stops || [];
-						// Sort stops by order just in case
-						const sortedStops = [...stops].sort(
-							(a, b) => a.stopOrder - b.stopOrder
-						);
-
-						const originName =
-							sortedStops.length > 0
-								? sortedStops[0].locations?.name
-								: "Unknown Origin";
-						const destName =
-							sortedStops.length > 0
-								? sortedStops[sortedStops.length - 1].locations
-										?.name
-								: "Unknown Dest";
-
-						const vehicleName =
-							t.vehicle?.vehicleType?.name || "Standard Bus";
-
-						// Calculate duration
-						let durationText = "Direct";
-						if (t.startTime && t.arrivalTime) {
-							const start = new Date(t.startTime);
-							const end = new Date(t.arrivalTime);
-							const diff = differenceInMinutes(end, start);
-							const hours = Math.floor(diff / 60);
-							const minutes = diff % 60;
-							durationText = `${hours}h ${minutes}m`;
-						}
-
-						return (
-							<Paper
-								key={t.id}
-								elevation={2}
-								sx={{
-									p: 0,
-									overflow: "hidden",
-									transition: "transform 0.2s",
-									"&:hover": {
-										transform: "translateY(-2px)",
-										boxShadow: 4,
-									},
-								}}
+			<Stack direction={{ xs: "column", md: "row" }} spacing={3}>
+				{/* Left Sidebar for Filters */}
+				<Box sx={{ width: { xs: "100%", md: "250px" } }}>
+					<Paper elevation={2} sx={{ p: 2, mb: 3 }}>
+						<Typography variant="h6" gutterBottom>
+							Filters
+						</Typography>
+						<FormControl fullWidth size="small" sx={{ mb: 2 }}>
+							<InputLabel>Vehicle Type</InputLabel>
+							<Select
+								value={vehicleTypeId || "all"}
+								label="Vehicle Type"
+								onChange={handleVehicleTypeChange}
 							>
-								<Box p={3}>
-									<Stack
-										direction={{ xs: "column", md: "row" }}
-										spacing={3}
-										alignItems={{
-											xs: "flex-start",
-											md: "center",
+								<MenuItem value="all">
+									All Vehicle Types
+								</MenuItem>
+								{vehicleTypes.map((type) => (
+									<MenuItem key={type.id} value={type.id}>
+										{type.name}
+									</MenuItem>
+								))}
+							</Select>
+						</FormControl>
+						<FormGroup>
+							<FormControlLabel
+								control={
+									<Checkbox
+										checked={isRoundTrip}
+										onChange={handleRoundTripChange}
+									/>
+								}
+								label="Round Trip"
+							/>
+						</FormGroup>
+					</Paper>
+				</Box>
+
+				{/* Main Content */}
+				<Box flex={1}>
+					<Stack spacing={3}>
+						{trips.length > 0 ? (
+							trips.map((t) => {
+								// Sort stops by their order in the trip
+								const sortedStops = [
+									...(t.route?.stops || []),
+								].sort((a, b) => a.stopOrder - b.stopOrder);
+
+								const originName =
+									sortedStops.length > 0
+										? sortedStops[0].locations?.name
+										: "Unknown Origin";
+								const destName =
+									sortedStops.length > 0
+										? sortedStops[sortedStops.length - 1]
+												.locations?.name
+										: "Unknown Dest";
+
+								const vehicleName =
+									t.vehicle?.vehicleType?.name ||
+									"Standard Bus";
+
+								// Calculate duration
+								let durationText = "Direct";
+								if (t.startTime && t.arrivalTime) {
+									const start = new Date(t.startTime);
+									const end = new Date(t.arrivalTime);
+									const diff = differenceInMinutes(
+										end,
+										start
+									);
+									const hours = Math.floor(diff / 60);
+									const minutes = diff % 60;
+									durationText = `${hours}h ${minutes}m`;
+								}
+
+								return (
+									<Paper
+										key={t.id}
+										elevation={2}
+										sx={{
+											p: 0,
+											overflow: "hidden",
+											transition: "transform 0.2s",
+											"&:hover": {
+												transform: "translateY(-2px)",
+												boxShadow: 4,
+											},
 										}}
 									>
-										{/* Time & Route Info */}
-										<Box flex={1}>
+										<Box p={3}>
 											<Stack
-												direction="row"
-												alignItems="center"
-												spacing={1}
-												mb={1}
-											>
-												<Chip
-													label={vehicleName}
-													size="small"
-													color="primary"
-													variant="outlined"
-													icon={<DirectionsBus />}
-												/>
-											</Stack>
-
-											<Stack
-												direction="row"
-												alignItems="center"
+												direction={{
+													xs: "column",
+													md: "row",
+												}}
 												spacing={3}
+												alignItems={{
+													xs: "flex-start",
+													md: "center",
+												}}
 											>
-												<Box>
-													<Typography
-														variant="h5"
-														fontWeight="bold"
+												{/* Time & Route Info */}
+												<Box flex={1}>
+													<Stack
+														direction="row"
+														alignItems="center"
+														spacing={1}
+														mb={1}
 													>
-														{t.startTime
-															? format(
-																	new Date(
-																		t.startTime
-																	),
-																	"HH:mm"
-															  )
-															: "--:--"}
-													</Typography>
-													<Typography
-														variant="body2"
-														color="text.secondary"
+														<Chip
+															label={vehicleName}
+															size="small"
+															color="primary"
+															variant="outlined"
+															icon={
+																<DirectionsBus />
+															}
+														/>
+													</Stack>
+
+													<Stack
+														direction="row"
+														alignItems="center"
+														spacing={3}
 													>
-														{originName}
-													</Typography>
+														<Box>
+															<Typography
+																variant="h5"
+																fontWeight="bold"
+															>
+																{t.startTime
+																	? format(
+																			new Date(
+																				t.startTime
+																			),
+																			"HH:mm"
+																	  )
+																	: "--:--"}
+															</Typography>
+															<Typography
+																variant="body2"
+																color="text.secondary"
+															>
+																{originName}
+															</Typography>
+														</Box>
+
+														<Box
+															sx={{
+																flex: 1,
+																borderBottom:
+																	"1px dashed #ccc",
+																position:
+																	"relative",
+																mx: 2,
+																minWidth: 50,
+															}}
+														>
+															<Typography
+																variant="caption"
+																sx={{
+																	position:
+																		"absolute",
+																	top: -20,
+																	left: "50%",
+																	transform:
+																		"translateX(-50%)",
+																	color: "text.secondary",
+																	whiteSpace:
+																		"nowrap",
+																}}
+															>
+																{durationText}
+															</Typography>
+														</Box>
+
+														<Box textAlign="right">
+															<Typography
+																variant="h5"
+																fontWeight="bold"
+																color="text.secondary"
+															>
+																{t.arrivalTime
+																	? format(
+																			new Date(
+																				t.arrivalTime
+																			),
+																			"HH:mm"
+																	  )
+																	: "--:--"}
+															</Typography>
+															<Typography
+																variant="body2"
+																color="text.secondary"
+															>
+																{destName}
+															</Typography>
+														</Box>
+													</Stack>
 												</Box>
 
-												<Box
+												<Divider
+													orientation="vertical"
+													flexItem
 													sx={{
-														flex: 1,
-														borderBottom:
-															"1px dashed #ccc",
-														position: "relative",
-														mx: 2,
-														minWidth: 50,
+														display: {
+															xs: "none",
+															md: "block",
+														},
+													}}
+												/>
+
+												{/* Price & Action */}
+												<Box
+													minWidth={200}
+													textAlign={{
+														xs: "left",
+														md: "right",
+													}}
+													width={{
+														xs: "100%",
+														md: "auto",
 													}}
 												>
 													<Typography
-														variant="caption"
-														sx={{
-															position:
-																"absolute",
-															top: -20,
-															left: "50%",
-															transform:
-																"translateX(-50%)",
-															color: "text.secondary",
-															whiteSpace:
-																"nowrap",
-														}}
-													>
-														{durationText}
-													</Typography>
-												</Box>
-
-												<Box textAlign="right">
-													<Typography
 														variant="h5"
+														color="primary.main"
 														fontWeight="bold"
-														color="text.secondary"
+														mb={1}
 													>
-														{t.arrivalTime
-															? format(
-																	new Date(
-																		t.arrivalTime
-																	),
-																	"HH:mm"
-															  )
-															: "--:--"}
+														{formatCurrency(
+															t.price,
+															"VND",
+															"vi-VN"
+														)}
 													</Typography>
 													<Typography
 														variant="body2"
 														color="text.secondary"
+														mb={2}
 													>
-														{destName}
+														per seat
 													</Typography>
+													<Button
+														variant="outlined"
+														size="small"
+														startIcon={<MapIcon />}
+														onClick={() =>
+															handleViewRoute(
+																t.route
+																	?.stops ||
+																	[],
+																t.route?.name ||
+																	"Route Map"
+															)
+														}
+														sx={{
+															mb: 1,
+															width: "100%",
+														}}
+													>
+														View Route
+													</Button>
+													<Button
+														variant="contained"
+														size="large"
+														fullWidth
+														onClick={() =>
+															navigate(
+																ROUTES.SEAT_BOOKING.replace(
+																	":tripId",
+																	String(t.id)
+																)
+															)
+														}
+														sx={{ borderRadius: 2 }}
+													>
+														Select Seats
+													</Button>
 												</Box>
 											</Stack>
 										</Box>
+									</Paper>
+								);
+							})
+						) : (
+							<Typography>No trip found</Typography>
+						)}
 
-										<Divider
-											orientation="vertical"
-											flexItem
-											sx={{
-												display: {
-													xs: "none",
-													md: "block",
-												},
-											}}
-										/>
+						<Box display="flex" justifyContent="center" mt={4}>
+							<Pagination
+								count={Math.max(
+									1,
+									Math.ceil(total / DEFAULT_PAGE_SIZE)
+								)}
+								page={pageNumber}
+								onChange={handlePageChange}
+								color="primary"
+								size="large"
+							/>
+						</Box>
+					</Stack>
+				</Box>
+			</Stack>
 
-										{/* Price & Action */}
-										<Box
-											minWidth={200}
-											textAlign={{
-												xs: "left",
-												md: "right",
-											}}
-											width={{ xs: "100%", md: "auto" }}
-										>
-											<Typography
-												variant="h5"
-												color="primary.main"
-												fontWeight="bold"
-												mb={1}
-											>
-												{formatCurrency(
-													t.price,
-													"VND",
-													"vi-VN"
-												)}
-											</Typography>
-											<Typography
-												variant="body2"
-												color="text.secondary"
-												mb={2}
-											>
-												per seat
-											</Typography>
-											<Button
-												variant="contained"
-												size="large"
-												fullWidth
-												onClick={() =>
-													navigate(
-														ROUTES.SEAT_BOOKING.replace(
-															":tripId",
-															String(t.id)
-														)
-													)
-												}
-												sx={{ borderRadius: 2 }}
-											>
-												Select Seats
-											</Button>
-										</Box>
-									</Stack>
-								</Box>
-							</Paper>
-						);
-					})}
-
-					<Box display="flex" justifyContent="center" mt={4}>
-						<Pagination
-							count={Math.max(
-								1,
-								Math.ceil(total / DEFAULT_PAGE_SIZE)
-							)}
-							page={pageNumber}
-							onChange={handlePageChange}
-							color="primary"
-							size="large"
-						/>
-					</Box>
-				</Stack>
-			)}
+			<ViewRouteDialog
+				open={viewRouteOpen}
+				onClose={() => setViewRouteOpen(false)}
+				stops={selectedRouteStops}
+				title={selectedRouteName}
+			/>
 		</Container>
 	);
 };

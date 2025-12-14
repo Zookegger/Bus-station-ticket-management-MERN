@@ -116,7 +116,7 @@ const TripList: React.FC = () => {
 			setSnackbar({
 				open: true,
 				message:
-					error.response?.data?.message || "Auto-assignment failed",
+					error.message || "Auto-assignment failed",
 				severity: "error",
 			});
 		}

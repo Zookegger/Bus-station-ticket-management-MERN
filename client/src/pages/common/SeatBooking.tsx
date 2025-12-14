@@ -48,6 +48,8 @@ import {
 } from "@mui/icons-material";
 import { format } from "date-fns";
 import type { Trip } from "@my-types/trip";
+import { ViewRouteDialog } from "@components/map";
+import MapIcon from "@mui/icons-material/Map";
 import type { Seat } from "@my-types/seat";
 import type { SeatLayout } from "@components/seatmap/types";
 import { API_ENDPOINTS } from "@constants/index";
@@ -118,6 +120,7 @@ const SeatBooking: React.FC = () => {
 	const isDesktop = useMediaQuery(theme.breakpoints.up("lg"));
 
 	const [step, setStep] = useState<number>(1);
+	const [viewRouteOpen, setViewRouteOpen] = useState(false);
 
 	// Determine seat selector size based on breakpoint with a sensible default
 	const seatSelectorSize = isDesktop
@@ -270,24 +273,24 @@ const SeatBooking: React.FC = () => {
 	};
 
 	// Websocket handler for seat updates
-	const handleSeatUpdate = useCallback((payload: Seat[] | Seat) => {
-		const updatedSeats = Array.isArray(payload) ? payload : [payload];
+	const handleSeatUpdate = useCallback(
+		(payload: Seat[] | Seat) => {
+			const updatedSeats = Array.isArray(payload) ? payload : [payload];
 
-		setSeats((prevSeats) => {
-			const newSeats = [...prevSeats];
-			updatedSeats.forEach((update) => {
-				const index = newSeats.findIndex((s) => s.id === update.id);
-				if (index !== -1) {
-					newSeats[index] = { ...newSeats[index], ...update };
-				}
+			setSeats((prevSeats) => {
+				const newSeats = [...prevSeats];
+				updatedSeats.forEach((update) => {
+					const index = newSeats.findIndex((s) => s.id === update.id);
+					if (index !== -1) {
+						newSeats[index] = { ...newSeats[index], ...update };
+					}
+				});
+				return newSeats;
 			});
-			return newSeats;
-		});
 
-		// Remove stolen seats from my selection and notify
-		setSelectedPoints((prevSelected) => {
 			const stolenLabels: string[] = [];
-			const validSelection = prevSelected.filter((point) => {
+
+			const validSelection = selectedPoints.filter((point) => {
 				const isTaken = updatedSeats.some(
 					(s) =>
 						String(s.status).toUpperCase() !==
@@ -304,17 +307,22 @@ const SeatBooking: React.FC = () => {
 				return true;
 			});
 
+			// 3. Perform Side Effects (Alert) and State Updates separately
 			if (stolenLabels.length > 0) {
 				setAlertMsg(
 					`Alert: Seat(s) ${stolenLabels.join(
 						", "
 					)} were just booked by another user.`
 				);
-			}
 
-			return validSelection;
-		});
-	}, []);
+				// Only update selection if seats were actually removed
+				if (validSelection.length !== selectedPoints.length) {
+					setSelectedPoints(validSelection);
+				}
+			}
+		},
+		[selectedPoints]
+	);
 
 	// Memoize options to prevent useWebsocket from reconnecting on every render
 	const websocketOptions = useMemo(
@@ -467,9 +475,7 @@ const SeatBooking: React.FC = () => {
 	) => {
 		event.preventDefault();
 
-		
 		if (!trip) return;
-		
 
 		// basic validations
 		if (!selectedPaymentMethod) {
@@ -500,7 +506,7 @@ const SeatBooking: React.FC = () => {
 					(s) =>
 						s.floor === point.floor + 1 &&
 						s.row === point.row + 1 &&
-						s.column === point.col + 1 
+						s.column === point.col + 1
 				);
 
 				return matchedSeat?.id;
@@ -511,7 +517,12 @@ const SeatBooking: React.FC = () => {
 			alert(
 				"Error: Could not match some selected seats to system records. Please refresh."
 			);
-			console.error("Error: Could not match some selected seats to system records. Please refresh.", selectedPoints, seatIdsToBook, seats);
+			console.error(
+				"Error: Could not match some selected seats to system records. Please refresh.",
+				selectedPoints,
+				seatIdsToBook,
+				seats
+			);
 			return;
 		}
 
@@ -525,11 +536,14 @@ const SeatBooking: React.FC = () => {
 				couponCode: appliedCoupon?.code || null,
 			};
 
-			const { status, data } = await callApi({
-				method: "POST",
-				url: API_ENDPOINTS.ORDER.CREATE,
-				data: payload,
-			}, { returnFullResponse: true });
+			const { status, data } = await callApi(
+				{
+					method: "POST",
+					url: API_ENDPOINTS.ORDER.CREATE,
+					data: payload,
+				},
+				{ returnFullResponse: true }
+			);
 
 			console.log(status);
 			console.log(data);
@@ -537,7 +551,6 @@ const SeatBooking: React.FC = () => {
 			if (status === 201 && data) {
 				window.location.href = data.paymentUrl;
 			}
-
 		} catch (err: any) {
 			console.error(err);
 			alert("Booking failed: " + (err.message || "Unknown error"));
@@ -776,6 +789,16 @@ const SeatBooking: React.FC = () => {
 											</Typography>
 											<Typography variant="body1">
 												<strong>Route:</strong>{" "}
+												<Button
+													size="small"
+													startIcon={<MapIcon />}
+													onClick={() =>
+														setViewRouteOpen(true)
+													}
+													sx={{ ml: 1 }}
+												>
+													View Map
+												</Button>
 											</Typography>
 											<List>
 												{stopsSorted.length > 0
@@ -1570,6 +1593,12 @@ const SeatBooking: React.FC = () => {
 					</>
 				)}
 			</Box>
+			<ViewRouteDialog
+				open={viewRouteOpen}
+				onClose={() => setViewRouteOpen(false)}
+				stops={trip?.route?.stops || []}
+				title={trip?.route?.name || "Route Map"}
+			/>
 		</Container>
 	);
 };
