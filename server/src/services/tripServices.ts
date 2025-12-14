@@ -707,11 +707,11 @@ export const searchTripsForUser = async (
 				);
 				trip.setDataValue("arrivalTime" as any, arrivalTime);
 
-				if (segment.ratio !== 1 && fromId && toId) {
-					const originalPrice = Number(trip.price);
-					const newPrice = originalPrice * segment.ratio;
-					trip.setDataValue("price", parseFloat(newPrice.toFixed(2)));
-				}
+				// if (segment.ratio !== 1 && fromId && toId) {
+				// 	const originalPrice = Number(trip.price);
+				// 	const newPrice = originalPrice * segment.ratio;
+				// 	trip.setDataValue("price", parseFloat(newPrice.toFixed(2)));
+				// }
 			}
 
 			// B. Update Return Trip Display
@@ -762,12 +762,12 @@ export const searchTripsForUser = async (
 						retRatio = segment.ratio;
 					}
 
-					const retOriginalPrice = Number(trip.returnTrip.price);
-					const retNewPrice = retOriginalPrice * retRatio;
-					trip.returnTrip.setDataValue(
-						"price",
-						parseFloat(retNewPrice.toFixed(2))
-					);
+					// const retOriginalPrice = Number(trip.returnTrip.price);
+					// const retNewPrice = retOriginalPrice * retRatio;
+					// trip.returnTrip.setDataValue(
+					// 	"price",
+					// 	parseFloat(retNewPrice.toFixed(2))
+					// );
 				}
 			}
 		});

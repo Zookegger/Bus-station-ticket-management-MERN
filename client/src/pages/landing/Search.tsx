@@ -191,6 +191,11 @@ const SearchPage: React.FC = () => {
 		}
 	};
 
+	const handleToggleSearch = () => {
+		let status = isSearch;
+		setIsSearch(!status);
+	};
+
 	return (
 		<Container maxWidth={"lg"}>
 			<Collapse in={isSearch}>
@@ -276,6 +281,14 @@ const SearchPage: React.FC = () => {
 								  )}`
 								: "Please perform a search from the home page."}
 						</Typography>
+
+						<Button
+							variant="outlined"
+							sx={{ mt: 2 }}
+							onClick={() => handleToggleSearch()}
+						>
+							Search Another Date
+						</Button>
 					</Box>
 
 					{trips.length > 0 && (

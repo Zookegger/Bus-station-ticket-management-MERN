@@ -38,8 +38,9 @@ export const initSocket = (httpServer: HttpServer): SocketServer => {
 	// Auth middleware for namespace
 	namespace.use(async (socket, next) => {
 		logger.debug(
-			`[Socket] Middleware check for ${socket.id}. Auth token present: ${!!socket
-				.handshake.auth?.token}`
+			`[Socket] Middleware check for ${
+				socket.id
+			}. Auth token present: ${!!socket.handshake.auth?.token}`
 		);
 		try {
 			const token = socket.handshake.auth?.token;
@@ -68,12 +69,16 @@ export const initSocket = (httpServer: HttpServer): SocketServer => {
 			logger.debug(`Realtime connected ${socket.id} (Guest)`);
 		}
 
-		socket.on(IN_EVENTS.ROOM_JOIN, (payload: { room: string }) => {
+		socket.on(IN_EVENTS.ROOM_JOIN, (payload: { room: string }, callback) => {
 			logger.debug(
 				`[Socket] ${socket.id} joining room: ${payload?.room}`
 			);
 			if (!payload?.room) return;
 			socket.join(payload.room);
+
+			if (typeof callback === "function") {
+				callback();
+			}
 		});
 
 		socket.on(IN_EVENTS.ROOM_LEAVE, (payload: { room: string }) => {

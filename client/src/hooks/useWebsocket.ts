@@ -63,6 +63,7 @@ const useWebsocket = (options: WebsocketOptions = {}) => {
 	const [error_message, setErrorMessage] = useState<string | null>(null);
 	const component_id = useRef(`component_${Date.now()}_${Math.random()}`);
 	const is_mounted = useRef(false);
+	const joined_rooms = useRef<Set<string>>(new Set());
 
 	const isConnected =
 		connection_state === WEBSOCKET_CONNECTION_STATES.CONNECTED ||
@@ -159,6 +160,12 @@ const useWebsocket = (options: WebsocketOptions = {}) => {
 				return true;
 			}
 
+			// If authentication is already in progress, don't start another one
+			if (authentication_attempted) {
+				debugLog("Authentication already in progress...");
+				return true;
+			}
+
 			const token = await getAuthToken();
 			if (!token) {
 				if (requireAuth) {
@@ -184,12 +191,6 @@ const useWebsocket = (options: WebsocketOptions = {}) => {
 					socket_ref.current.connect();
 				}
 				// The reconnection will trigger 'connect' event which calls authenticateSocket again
-				return true;
-			}
-
-			// If we are here, token is set, just waiting for response
-			if (authentication_attempted) {
-				debugLog("Authentication already in progress...");
 				return true;
 			}
 
@@ -261,7 +262,8 @@ const useWebsocket = (options: WebsocketOptions = {}) => {
 		if (
 			userAuth.isAuthenticated &&
 			socket_ref.current?.connected &&
-			connection_state !== WEBSOCKET_CONNECTION_STATES.AUTHENTICATED
+			connection_state !== WEBSOCKET_CONNECTION_STATES.AUTHENTICATED &&
+			!authentication_attempted
 		) {
 			// Only try if we haven't authenticated yet
 			authenticateSocket();
@@ -478,6 +480,20 @@ const useWebsocket = (options: WebsocketOptions = {}) => {
 	const emitEvent = useCallback(
 		(event_name: string, data: any) => {
 			if (socket_ref.current && socket_ref.current.connected) {
+				// Prevent duplicate room joins
+				if (event_name === "room:join" && data?.room) {
+					if (joined_rooms.current.has(data.room)) {
+						debugLog(`Already joined room: ${data.room}, skipping.`);
+						return true;
+					}
+					joined_rooms.current.add(data.room);
+				}
+
+				// Handle room leave to update tracking
+				if (event_name === "room:leave" && data?.room) {
+					joined_rooms.current.delete(data.room);
+				}
+
 				socket_ref.current.emit(event_name, data);
 				return true;
 			}

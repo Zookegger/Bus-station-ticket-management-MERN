@@ -316,16 +316,22 @@ const SeatBooking: React.FC = () => {
 		});
 	}, []);
 
+	// Memoize options to prevent useWebsocket from reconnecting on every render
+	const websocketOptions = useMemo(
+		() => ({
+			namespace: REALTIME_NAMESPACE,
+			events: {
+				[RT_EVENTS.SEAT_BULK]: handleSeatUpdate,
+				[RT_EVENTS.SEAT_UPDATE]: handleSeatUpdate,
+			},
+			auto_connect: true,
+			requireAuth: false,
+		}),
+		[handleSeatUpdate]
+	);
+
 	// Initialize websocket and subscribe to seat events
-	const { socket, emitEvent, isConnected } = useWebsocket({
-		namespace: REALTIME_NAMESPACE,
-		events: {
-			[RT_EVENTS.SEAT_BULK]: handleSeatUpdate,
-			[RT_EVENTS.SEAT_UPDATE]: handleSeatUpdate,
-		},
-		auto_connect: true,
-		requireAuth: false,
-	});
+	const { socket, emitEvent, isConnected } = useWebsocket(websocketOptions);
 
 	// Join trip room when tripId/socket available
 	useEffect(() => {
