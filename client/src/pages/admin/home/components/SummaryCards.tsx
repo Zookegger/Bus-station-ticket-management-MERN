@@ -19,7 +19,7 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({ stats, currency = "VND" }) 
                                 Total Revenue
                             </Typography>
                             <Typography variant="h5" fontWeight={700}>
-                                {formatCurrency(stats.totalRevenue, currency)}
+                                {formatCurrency(stats.totalRevenue, currency, "vi-VN")}
                             </Typography>
                             <Typography variant="caption">All Time</Typography>
                         </CardContent>
@@ -34,7 +34,7 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({ stats, currency = "VND" }) 
                                 Average Ticket Price
                             </Typography>
                             <Typography variant="h5" fontWeight={700}>
-                                {formatCurrency(stats.avgTicketPrice, currency)}
+                                {formatCurrency(stats.avgTicketPrice, currency, "vi-VN")}
                             </Typography>
                             <Typography variant="caption">Per Ticket</Typography>
                         </CardContent>

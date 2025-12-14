@@ -28,6 +28,7 @@ import { Setting } from "@models/setting";
 import { Order } from "@models/orders";
 import { RouteStop } from "./routeStop";
 import { FederatedCredential } from "./federatedCredential";
+import { Review } from "./review";
 
 /**
  * Interface describing the shape of the 'db' object, which
@@ -55,6 +56,7 @@ export interface DbModels {
 	Payment: typeof Payment;
 	PaymentMethod: typeof PaymentMethod;
 	Order: typeof Order;
+	Review: typeof Review;
 }
 
 const models = {
@@ -78,6 +80,7 @@ const models = {
 	Payment,
 	PaymentMethod,
 	Order,
+	Review,
 };
 
 /**

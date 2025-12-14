@@ -27,6 +27,7 @@ import dashboardRouter from "@routes/api/dashboardRouter";
 import notificationRouter from "@routes/api/notificationRouter";
 import adminRouter from "@routes/api/adminRouter";
 import paymentRouter from "./paymentRouter";
+import reviewRouter from "@routes/api/reviewRouter";
 
 /**
  * Main API router instance.
@@ -87,6 +88,7 @@ apiRouter.use("/dashboard", apiRateLimiter, dashboardRouter);
 apiRouter.use("/notifications", apiRateLimiter, notificationRouter);
 apiRouter.use("/check-in", checkInRouter);
 apiRouter.use("/payments", paymentRouter);
+apiRouter.use("/reviews", apiRateLimiter, reviewRouter);
 
 // Admin routes (user, system management)
 apiRouter.use("/admin", apiRateLimiter, adminRouter);

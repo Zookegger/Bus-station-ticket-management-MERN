@@ -46,6 +46,7 @@ import type { Ticket } from "@my-types/ticket";
 import { format } from "date-fns";
 import { formatCurrency } from "@utils/formatting";
 import TicketQRDialog from "@components/user/TicketQRDialog";
+import { ReviewModal } from "@components/user/ReviewModal";
 
 const ITEMS_PER_PAGE = 5;
 
@@ -97,6 +98,13 @@ const STATUS_CONFIG: Record<
 const UserOrders: React.FC = () => {
 	const [qrOpen, setQrOpen] = useState(false);
 	const [qrOrderId, setQrOrderId] = useState<string | null>(null);
+    const [reviewModalOpen, setReviewModalOpen] = useState(false);
+    const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
+
+    const handleOpenReview = (tripId: number) => {
+        setSelectedTripId(tripId);
+        setReviewModalOpen(true);
+    };
 	const [qrToken, setQrToken] = useState<string | null>(null);
 	const { user } = useAuth();
 	const theme = useTheme();
@@ -530,6 +538,24 @@ const UserOrders: React.FC = () => {
 															View Boarding Pass
 														</Button>
 													)}
+                                                {(() => {
+                                                    const firstTicket = order.tickets?.[0];
+                                                    const trip = firstTicket?.seat?.trip;
+                                                    const isCompleted = firstTicket?.status === "COMPLETED";
+                                                    if (isCompleted && trip) {
+                                                        return (
+                                                            <Button
+                                                                variant="outlined"
+                                                                size="small"
+                                                                sx={{ mt: { xs: 0, sm: 1 } }}
+                                                                onClick={() => handleOpenReview(trip.id)}
+                                                            >
+                                                                Rate Trip
+                                                            </Button>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })()}
 											</Box>
 										</Grid>
 									</Grid>
@@ -844,6 +870,14 @@ const UserOrders: React.FC = () => {
 				orderId={qrOrderId || ""}
 				checkInToken={qrToken || ""}
 			/>
+            <ReviewModal
+                open={reviewModalOpen}
+                onClose={() => setReviewModalOpen(false)}
+                tripId={selectedTripId!}
+                onSuccess={() => {
+                    // Maybe refresh orders?
+                }}
+            />
 		</Container>
 	);
 };
