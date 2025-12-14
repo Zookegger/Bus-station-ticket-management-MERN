@@ -97,6 +97,8 @@ export const createOrder = async (
 		let totalDiscount = 0;
 		let coupon_ref: Coupon | null = null;
 
+		logger.debug(dto.couponCode);
+
 		if (dto.couponCode) {
 			// Delegate to couponServices for validation and discount calculation
 			const preview = await couponServices.applyCoupon(
@@ -131,17 +133,38 @@ export const createOrder = async (
 		);
 
 		// 4. Create Tickets
-		const createdTickets = await Ticket.bulkCreate(
-			seatsWithPricing.map(({ seat, price }) => ({
+		let remainingDiscount = totalDiscount;
+		const ticketsData = seatsWithPricing.map(({ seat, price }, index) => {
+			let ticketDiscount = 0;
+
+			if (totalBasePrice > 0 && totalDiscount > 0) {
+				if (index === seatsWithPricing.length - 1) {
+					// Assign all remaining discount to the last ticket to handle rounding
+					ticketDiscount = remainingDiscount;
+				} else {
+					// Calculate proportional discount
+					const ratio = price / totalBasePrice;
+					// Round to 2 decimal places to match currency precision
+					ticketDiscount = Math.floor(totalDiscount * ratio * 100) / 100;
+					remainingDiscount -= ticketDiscount;
+				}
+			}
+
+			// Ensure we don't discount more than the price (though validation should prevent this)
+			// and handle floating point precision by rounding
+			const finalPrice = Math.max(0, Number((price - ticketDiscount).toFixed(2)));
+
+			return {
 				orderId: order.id,
 				userId: dto.userId ?? null,
 				seatId: seat.id,
 				basePrice: price,
-				finalPrice: price, // Simplified; discount distribution could be more complex
+				finalPrice: finalPrice,
 				status: TicketStatus.PENDING,
-			})),
-			{ transaction }
-		);
+			};
+		});
+
+		const createdTickets = await Ticket.bulkCreate(ticketsData, { transaction });
 
 		if (createdTickets.length <= 0)
 			throw new Error("Something went wrong while creating new tickets");

@@ -1,16 +1,9 @@
-/**
- * Email service module.
- *
- * Provides email sending functionality using nodemailer with SMTP configuration.
- * Handles email verification templates and background email processing through
- * BullMQ queues for reliable delivery.
- */
-
 import nodemailer from "nodemailer";
 import { EmailJobData } from "@utils/queues/emailQueue";
 import logger from "@utils/logger";
 import { SMTP_CONFIG } from "@constants/email";
 import { Order } from "@models/orders";
+import { generateCheckInToken } from "@middlewares/checkInToken";
 
 /**
  * Nodemailer transporter instance.
@@ -219,9 +212,13 @@ export const generateReceiptHTML = (orderInfo: Order): string => {
 	const clientUrl =
 		(process.env.CLIENT_URL || "http://localhost") +
 		(process.env.CLIENT_PORT ? `:${process.env.CLIENT_PORT}` : "");
-	const checkoutUrl = `${clientUrl}/checkout/${orderInfo.id}`;
+
+	// Generate secure Check-In URL (mimicking the TicketQRDialog structure)
+	const token = generateCheckInToken(orderInfo.id);
+	const checkInUrl = `${clientUrl}/check-in/${orderInfo.id}?token=${token}`;
+
 	const qrImageUrl = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(
-		checkoutUrl
+		checkInUrl
 	)}&chld=L|1`;
 
 	const issuedAt = orderInfo.createdAt
@@ -321,9 +318,9 @@ export const generateReceiptHTML = (orderInfo: Order): string => {
                     </table>
 
                     <div class="qr">
-                        <p style="margin:6px 0 8px 0;font-size:13px;color:#555">Scan to complete checkout</p>
-                        <a href="${checkoutUrl}" target="_blank" rel="noopener noreferrer"><img src="${qrImageUrl}" alt="QR code" style="border:0; max-width:200px; height:auto;" /></a>
-                        <div style="margin-top:8px;"><a class="button" href="${checkoutUrl}">Open Checkout</a></div>
+                        <p style="margin:6px 0 8px 0;font-size:13px;color:#555">Boarding Pass (Scan to Check In)</p>
+                        <a href="${checkInUrl}" target="_blank" rel="noopener noreferrer"><img src="${qrImageUrl}" alt="Boarding Pass QR" style="border:0; max-width:200px; height:auto;" /></a>
+                        <div style="margin-top:8px;"><a class="button" href="${checkInUrl}">View Boarding Pass</a></div>
                     </div>
                 </div>
                 <div class="footer">
@@ -343,7 +340,10 @@ export const generateReceiptHTML = (orderInfo: Order): string => {
  * @param refundAmount - The amount refunded
  * @returns HTML string containing the formatted refund email
  */
-export const generateRefundHTML = (orderInfo: Order, refundAmount: number): string => {
+export const generateRefundHTML = (
+	orderInfo: Order,
+	refundAmount: number
+): string => {
 	const issuedAt = new Date().toLocaleString();
 	const total = refundAmount.toLocaleString();
 
@@ -393,4 +393,3 @@ export const generateRefundHTML = (orderInfo: Order, refundAmount: number): stri
         </body>
         </html>`;
 };
-

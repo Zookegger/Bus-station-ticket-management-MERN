@@ -40,18 +40,18 @@ const TicketQRDialog: React.FC<TicketQRDialogProps> = ({
 
 	const handlePrint = () => {
 		// Get the SVG QR code from the dialog to embed in print
-		const qrElement = document.querySelector('#dialog-qr-code');
-		const qrSvg = qrElement?.outerHTML || '';
-		
+		const qrElement = document.querySelector("#dialog-qr-code");
+		const qrSvg = qrElement?.outerHTML || "";
+
 		const now = new Date();
-		const printDate = now.toLocaleDateString('en-US', { 
-			year: 'numeric', 
-			month: 'short', 
-			day: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
+		const printDate = now.toLocaleDateString("en-US", {
+			year: "numeric",
+			month: "short",
+			day: "numeric",
+			hour: "2-digit",
+			minute: "2-digit",
 		});
-		
+
 		const htmlContent = `<!doctype html>
 <html>
 <head>
@@ -143,7 +143,7 @@ const TicketQRDialog: React.FC<TicketQRDialogProps> = ({
 	<div class="receipt">
 		<div class="header">
 			<h1>🚌 BOARDING PASS</h1>
-			<p>${APP_CONFIG.name || 'Bus Ticket Management'}</p>
+			<p>${APP_CONFIG.name || "Bus Ticket Management"}</p>
 		</div>
 
 		<div class="section">
@@ -175,7 +175,9 @@ const TicketQRDialog: React.FC<TicketQRDialogProps> = ({
 			<p>This is your official boarding pass.</p>
 			<p>Please present this to the conductor before boarding.</p>
 			<p style="margin-top: 8px;">━━━━━━━━━━━━━━━━━━━━━━━━━━━</p>
-			<p style="margin-top: 4px;">Thank you for choosing ${APP_CONFIG.name || 'our service'}!</p>
+			<p style="margin-top: 4px;">Thank you for choosing ${
+				APP_CONFIG.name || "our service"
+			}!</p>
 		</div>
 	</div>
 	<script>
@@ -187,10 +189,10 @@ const TicketQRDialog: React.FC<TicketQRDialogProps> = ({
 	</script>
 </body>
 </html>`;
-		
-		const printWindow = window.open('about:blank', '_blank');
+
+		const printWindow = window.open("about:blank", "_blank");
 		if (!printWindow) return;
-		
+
 		printWindow.document.open();
 		printWindow.document.write(htmlContent);
 		printWindow.document.close();

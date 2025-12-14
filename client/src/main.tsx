@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+// import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import "hover.css";
@@ -8,7 +8,7 @@ import { SocketProvider } from "@contexts/SocketContext";
 import { NotificationProvider } from "@contexts/NotificationContext";
 
 createRoot(document.getElementById("root")!).render(
-	<StrictMode>
+	// <StrictMode>
 		<AuthProvider>
 			<SocketProvider>
 				<NotificationProvider>
@@ -16,5 +16,5 @@ createRoot(document.getElementById("root")!).render(
 				</NotificationProvider>
 			</SocketProvider>
 		</AuthProvider>
-	</StrictMode>
+	// </StrictMode>
 );
