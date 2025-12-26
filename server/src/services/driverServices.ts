@@ -10,6 +10,7 @@ import { Op } from "sequelize";
 import db from "@models/index";
 import { Driver, DriverAttributes } from "@models/driver";
 import { CreateDriverDTO, UpdateDriverDTO } from "@my_types/driver";
+import { emitCrudChange } from "./realtimeEvents";
 
 /**
  * Configuration options for driver listing and filtering.
@@ -189,6 +190,7 @@ export const addDriver = async (
 	try {
 		const driver = await db.Driver.create(dto as any, { transaction });
 		await transaction.commit();
+		emitCrudChange("driver", "create", driver);
 		return driver;
 	} catch (err) {
 		await transaction.rollback();
@@ -221,6 +223,7 @@ export const updateDriver = async (
 
 		await driver.update(dto as any, { transaction });
 		await transaction.commit();
+		emitCrudChange("driver", "update", driver);
 		return driver;
 	} catch (err) {
 		await transaction.rollback();
@@ -251,6 +254,7 @@ export const deleteDriver = async (id: number): Promise<void> => {
 
 		await driver.destroy({ transaction });
 		await transaction.commit();
+		emitCrudChange("driver", "delete", { id });
 
 		// Verify deletion by fetching outside transaction
 		const deletedDriver = await getDriverById(id);

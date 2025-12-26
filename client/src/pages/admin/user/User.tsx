@@ -23,6 +23,7 @@ import {
 	Delete as DeleteIcon,
 	Edit as EditIcon,
 	Add as AddIcon,
+	Refresh as RefreshIcon,
 } from "@mui/icons-material";
 
 import {
@@ -338,6 +339,13 @@ const UserPage: React.FC = () => {
 					>
 						Add User
 					</Button>
+					<IconButton
+						color="primary"
+						onClick={fetchUsers}
+						title="Refresh"
+					>
+						<RefreshIcon />
+					</IconButton>
 					{/* Role Filter */}
 					<FormControl size="small" sx={{ minWidth: 150 }}>
 						<InputLabel>Role</InputLabel>

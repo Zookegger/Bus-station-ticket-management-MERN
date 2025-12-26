@@ -541,6 +541,17 @@ export const confirmTickets = async (
 		}
 
 		for (const ticket of tickets) {
+			const tripStartTime = new Date(ticket.seat!.trip!.startTime).getTime();
+			const now = Date.now();
+			const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+
+			if (now < tripStartTime - TWO_HOURS_MS) {
+				throw {
+					status: 400,
+					message: "Check-in only available 2 hours before departure",
+				};
+			}
+
 			if (ticket.status !== TicketStatus.BOOKED) {
 				throw {
 					status: 400,

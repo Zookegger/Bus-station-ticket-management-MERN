@@ -304,7 +304,7 @@ const TripForm: React.FC<TripFormProps> = ({
 				if (status !== 201 || !data) {
 					throw new Error("Failed to create trip.");
 				}
-				onSaved?.("Trip created successfully.");
+				onSaved?.("Trip created. Auto-assignment started.");
 			}
 
 			onClose();

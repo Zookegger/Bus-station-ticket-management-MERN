@@ -41,7 +41,8 @@ export const useAdminRealtime = ({
 			// Notify
 			if (onNotifyRef.current) {
 				const actionText = payload.action === 'create' ? 'created' : payload.action === 'update' ? 'updated' : 'deleted';
-				const msg = `${payload.entity} ${actionText} by ${
+				const formattedEntity = payload.entity.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase());
+				const msg = `${formattedEntity} ${actionText} by ${
 					payload.actor?.name || "System"
 				}`;
 				onNotifyRef.current(msg, "info");

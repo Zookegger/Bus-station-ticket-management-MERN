@@ -12,6 +12,7 @@ import { Vehicle, VehicleAttributes } from "@models/vehicle";
 import { CreateVehicleDTO, UpdateVehicleDTO } from "@my_types/vehicle";
 import { VehicleType } from "@models/vehicleType";
 import { VehicleStatus } from "@models/vehicle";
+import { emitCrudChange } from "./realtimeEvents";
 
 /**
  * Configuration options for vehicle listing and filtering.
@@ -165,6 +166,7 @@ export const addVehicle = async (
 		};
 
 	const vehicle = await db.Vehicle.create(dto);
+	emitCrudChange("vehicle", "create", vehicle);
 	return vehicle;
 };
 
@@ -189,6 +191,7 @@ export const updateVehicle = async (
 		throw { status: 404, message: `No vehicle found with id ${id}` };
 
 	await vehicle.update(dto);
+	emitCrudChange("vehicle", "update", vehicle);
 	return vehicle;
 };
 
@@ -227,6 +230,7 @@ export const removeVehicle = async (id: number): Promise<void> => {
 		throw { status: 404, message: `No vehicle found with id ${id}` };
 
 	await vehicle.destroy();
+	emitCrudChange("vehicle", "delete", { id });
 
 	// Verify deletion was successful
 	const deletedVehicle = await getVehicleById(id);

@@ -41,6 +41,7 @@ const DeleteTrip: FC<DeleteTripProps> = ({ open, onClose, onDeleted, trip }) => 
 	const handleSuccess = useCallback(() => {
 		// Refresh parent state to reflect the deleted trip.
 		onDeleted();
+		onClose();
 	}, [onDeleted]);
 
 	return (

@@ -12,6 +12,7 @@ import { Route } from "@models/route";
 import { RouteStop } from "@models/routeStop";
 import { CreateRouteDTO, UpdateRouteDTO } from "@my_types/route";
 import logger from "@utils/logger";
+import { emitCrudChange } from "./realtimeEvents";
 
 /**
  * Configuration options for route listing and filtering.
@@ -293,6 +294,7 @@ export const addRoute = async (dto: CreateRouteDTO): Promise<Route | null> => {
 				message: "Failed to retrieve newly created route.",
 			};
 		}
+		emitCrudChange("route", "create", new_route);
 		return new_route;
 	} catch (err) {
 		await transaction.rollback();
@@ -411,6 +413,7 @@ export const updateRoute = async (
 		if (!updated_route) {
 			throw { status: 500, message: "Failed to retrieve updated route." };
 		}
+		emitCrudChange("route", "update", updated_route);
 		return updated_route;
 	} catch (err) {
 		await transaction.rollback();
@@ -440,6 +443,7 @@ export const deleteRoute = async (id: number): Promise<void> => {
 		}
 
 		await route_to_delete.destroy({ transaction });
+		emitCrudChange("route", "delete", { id });
 
 		// Verify deletion was successful
 		const deletedRoute = await getRouteById(id);

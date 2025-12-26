@@ -6,6 +6,7 @@ import * as verificationServices from "@services/verificationServices";
 import { CONFIG } from "@constants/config";
 import { Op } from "sequelize";
 import logger from "@utils/logger";
+import { broadcastDashboardUpdate } from "@services/dashboardServices";
 
 /**
  * Service layer encapsulating business logic for user management.
@@ -210,6 +211,11 @@ export const addUser = async (
 		passwordHash: passwordHash ?? null,
 	} as UserAttributes);
 
+	// Broadcast dashboard update
+	broadcastDashboardUpdate().catch((err) =>
+		logger.error("Failed to broadcast dashboard update:", err)
+	);
+
 	return created;
 };
 
@@ -236,7 +242,14 @@ export const updateUser = async (
 		if (exist) throw { status: 400, message: "Email already in use" };
 	}
 
-	return await user.update(updateData);
+	const updated = await user.update(updateData);
+
+	// Broadcast dashboard update
+	broadcastDashboardUpdate().catch((err) =>
+		logger.error("Failed to broadcast dashboard update:", err)
+	);
+
+	return updated;
 };
 
 /**
@@ -251,6 +264,11 @@ export const deleteUser = async (userId: string): Promise<void> => {
 	if (!user) throw { status: 404, message: "User not found" };
 
 	await user.destroy();
+
+	// Broadcast dashboard update
+	broadcastDashboardUpdate().catch((err) =>
+		logger.error("Failed to broadcast dashboard update:", err)
+	);
 };
 
 /**

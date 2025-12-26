@@ -4,22 +4,26 @@ import { Box, Typography, Button, Container, Paper } from "@mui/material";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { ROUTES } from "@constants/routes";
+import { useSnackbar } from "notistack";
 
 const PaymentResult: React.FC = () => {
 	const [searchParams] = useSearchParams();
 	const navigate = useNavigate();
+	const { enqueueSnackbar } = useSnackbar();
 	const [status, setStatus] = useState<"success" | "failure" | "error" | null>(null);
 
 	useEffect(() => {
 		const statusParam = searchParams.get("status");
 		if (statusParam === "success") {
 			setStatus("success");
+			enqueueSnackbar("Payment successful! Ticket sent to email.", { variant: "success" });
 		} else if (statusParam === "failure") {
 			setStatus("failure");
+			enqueueSnackbar("Payment failed. Please try again.", { variant: "error" });
 		} else {
 			setStatus("error");
 		}
-	}, [searchParams]);
+	}, [searchParams, enqueueSnackbar]);
 
 	const handleGoHome = () => {
 		navigate(ROUTES.HOME);

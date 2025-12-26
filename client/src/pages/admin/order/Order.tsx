@@ -17,6 +17,7 @@ import {
 	Search as SearchIcon,
 	Clear as ClearIcon,
 	ErrorOutline as ErrorIcon,
+	Refresh as RefreshIcon,
 } from "@mui/icons-material";
 import { DataGridPageLayout } from "@components/admin";
 import {
@@ -157,6 +158,13 @@ export default function OrderManagement() {
 						flexWrap: "wrap",
 					}}
 				>
+					<IconButton
+						color="primary"
+						onClick={() => setRefreshTrigger((prev) => prev + 1)}
+						title="Refresh"
+					>
+						<RefreshIcon />
+					</IconButton>
 					<TextField
 						size="small"
 						placeholder="Search orders..."

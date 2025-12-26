@@ -19,6 +19,7 @@ import {
 	PersonAdd as PersonAddIcon,
 	PersonRemove as PersonRemoveIcon,
 	Cancel as CancelIcon,
+	Refresh as RefreshIcon,
 } from "@mui/icons-material";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import { format } from "date-fns";
@@ -81,7 +82,7 @@ const TripList: React.FC = () => {
 	}, []);
 
 	useAdminRealtime({
-		entity: "trip",
+		entity: ["trip", "trip_assignment"],
 		onRefresh: fetchTrips,
 		onNotify: (message, severity) =>
 			setSnackbar({
@@ -518,6 +519,13 @@ const TripList: React.FC = () => {
 					>
 						Add Trip
 					</Button>
+					<IconButton
+						color="primary"
+						onClick={fetchTrips}
+						title="Refresh"
+					>
+						<RefreshIcon />
+					</IconButton>
 					<TextField
 						size="small"
 						placeholder="Search trips..."
@@ -570,12 +578,10 @@ const TripList: React.FC = () => {
 						onClose={handleCloseDrawer}
 						trip={selectedTrip}
 						onEdit={(trip) => {
-							handleCloseDrawer();
 							handleOpenEdit(trip);
 						}}
 						onDelete={() => {
 							handleOpenDelete(selectedTrip);
-							handleCloseDrawer();
 						}}
 					/>
 					<DeleteTrip

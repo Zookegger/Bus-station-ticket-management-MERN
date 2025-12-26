@@ -7,7 +7,7 @@ import type { Order } from "@my-types/order";
 import { useSocket } from "@contexts/SocketContext";
 import { ROOMS, RT_EVENTS } from "@constants/realtime";
 import { API_ENDPOINTS } from "@constants/api";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
@@ -89,22 +89,42 @@ const StatisticsPage: React.FC = () => {
 		fetchDashboardData();
 	};
 
-	const handleExportExcel = () => {
+	const handleExportExcel = async () => {
 		if (!orders || orders.length === 0) return;
 
-		const exportData = orders.map((order) => ({
-			"Order ID": order.id,
-			"Customer": order.user?.fullName || order.guestPurchaserName || "Guest",
-			"Email": order.user?.email || order.guestPurchaserEmail || "N/A",
-			"Status": order.status,
-			"Total Price": order.totalFinalPrice,
-			"Date": order.createdAt ? new Date(order.createdAt).toLocaleString() : "N/A",
-		}));
+		const workbook = new ExcelJS.Workbook();
+		const sheet = workbook.addWorksheet("Recent Orders");
 
-		const ws = XLSX.utils.json_to_sheet(exportData);
-		const wb = XLSX.utils.book_new();
-		XLSX.utils.book_append_sheet(wb, ws, "Recent Orders");
-		XLSX.writeFile(wb, `orders_export_${format(new Date(), "yyyyMMdd_HHmmss")}.xlsx`);
+		sheet.columns = [
+			{ header: "Order ID", key: "id", width: 20 },
+			{ header: "Customer", key: "customer", width: 30 },
+			{ header: "Email", key: "email", width: 30 },
+			{ header: "Status", key: "status", width: 15 },
+			{ header: "Total Price", key: "total", width: 15 },
+			{ header: "Date", key: "date", width: 25 },
+		];
+
+		orders.forEach((order) => {
+			sheet.addRow({
+				id: order.id,
+				customer: order.user?.fullName || order.guestPurchaserName || "Guest",
+				email: order.user?.email || order.guestPurchaserEmail || "N/A",
+				status: order.status,
+				total: order.totalFinalPrice,
+				date: order.createdAt ? new Date(order.createdAt).toLocaleString() : "N/A",
+			});
+		});
+
+		const buffer = await workbook.xlsx.writeBuffer();
+		const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = `orders_export_${format(new Date(), "yyyyMMdd_HHmmss")}.xlsx`;
+		document.body.appendChild(a);
+		a.click();
+		a.remove();
+		URL.revokeObjectURL(url);
 	};
 
 	const handleExportPDF = () => {

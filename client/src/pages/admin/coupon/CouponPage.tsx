@@ -1,5 +1,5 @@
 import { API_ENDPOINTS } from "@constants/index";
-import { Button, InputAdornment, Paper, TextField, Snackbar, Alert } from "@mui/material";
+import { Button, InputAdornment, Paper, TextField, Snackbar, Alert, IconButton } from "@mui/material";
 import type { Coupon, CouponType } from "@my-types";
 import { handleAxiosError } from "@utils/handleError";
 import { useEffect, useMemo, useState, useCallback } from "react";
@@ -11,7 +11,7 @@ import {
 } from "./components";
 import { DataGridPageLayout } from "@components/admin";
 import callApi from "@utils/apiCaller";
-import { Search as SearchIcon, Add as AddIcon } from "@mui/icons-material";
+import { Search as SearchIcon, Add as AddIcon, Refresh as RefreshIcon } from "@mui/icons-material";
 import { Box } from "@mui/system";
 import { useAdminRealtime } from "@hooks/useAdminRealtime";
 
@@ -198,6 +198,13 @@ const CouponPage: React.FC = () => {
 			>
 				Add new coupon
 			</Button>
+			<IconButton
+				color="primary"
+				onClick={fetchData}
+				title="Refresh"
+			>
+				<RefreshIcon />
+			</IconButton>
 			{/* Search Field */}
 			<TextField
 				size="small"

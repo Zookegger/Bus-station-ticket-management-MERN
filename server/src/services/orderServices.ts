@@ -23,6 +23,7 @@ import * as ticketServices from "@services/ticketServices";
 import { TicketStatus } from "@my_types/ticket";
 import { NotificationPriorities, NotificationTypes } from "@my-types";
 import { emitBulkSeatUpdates } from "./realtimeEvents";
+import { broadcastDashboardUpdate } from "@services/dashboardServices";
 
 /**
  * Creates an order, reserves seats, applies coupons, and initiates payment.
@@ -209,6 +210,11 @@ export const createOrder = async (
 
 		await transaction.commit();
 
+		// Broadcast dashboard update
+		broadcastDashboardUpdate().catch((err) =>
+			logger.error("Failed to broadcast dashboard update:", err)
+		);
+
 		// Reload order with tickets to return
 		const finalOrder = await Order.findByPk(order.id, {
 			include: [{ model: Ticket, as: "tickets" }],
@@ -372,6 +378,11 @@ export const refundTickets = async (dto: RefundTicketDTO): Promise<Order> => {
 		await order.update({ status: newOrderStatus }, { transaction });
 
 		await transaction.commit();
+
+		// Broadcast dashboard update
+		broadcastDashboardUpdate().catch((err) =>
+			logger.error("Failed to broadcast dashboard update:", err)
+		);
 
 		if (order.userId) {
 			notificationServices
@@ -639,6 +650,11 @@ export const checkInTicketsByOrder = async (
 		};
 
 	await updatedOrder.update({ status: OrderStatus.CHECKED_IN });
+
+	// Broadcast dashboard update
+	broadcastDashboardUpdate().catch((err) =>
+		logger.error("Failed to broadcast dashboard update:", err)
+	);
 
 	return updatedOrder;
 };

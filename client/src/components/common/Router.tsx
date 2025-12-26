@@ -67,6 +67,7 @@ export const router = createBrowserRouter([
 			},
 			{
 				path: ROUTES.SEAT_BOOKING,
+				handle: { title: "Seat Booking • EasyRide" },
 				lazy: async () => {
 					const { default: SeatBooking } = await import(
 						"@pages/common/SeatBooking"

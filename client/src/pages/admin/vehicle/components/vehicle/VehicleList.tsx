@@ -18,6 +18,7 @@ import {
 	Search as SearchIcon,
 	Edit as EditIcon,
 	Delete as DeleteIcon,
+	Refresh as RefreshIcon,
 } from "@mui/icons-material";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import { DataGridPageLayout } from "@components/admin";
@@ -286,6 +287,13 @@ const VehicleList: React.FC = () => {
 					>
 						Add Vehicle
 					</Button>
+					<IconButton
+						color="primary"
+						onClick={fetchVehicles}
+						title="Refresh"
+					>
+						<RefreshIcon />
+					</IconButton>
 					<FormControl size="small" sx={{ minWidth: 150 }}>
 						<InputLabel>Type</InputLabel>
 						<Select

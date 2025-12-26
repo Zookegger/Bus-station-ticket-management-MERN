@@ -47,6 +47,7 @@ import { format } from "date-fns";
 import { formatCurrency } from "@utils/formatting";
 import TicketQRDialog from "@components/user/TicketQRDialog";
 import { ReviewModal } from "@components/user/ReviewModal";
+import { useNavigate } from "react-router-dom";
 
 const ITEMS_PER_PAGE = 5;
 
@@ -96,6 +97,8 @@ const STATUS_CONFIG: Record<
 };
 
 const UserOrders: React.FC = () => {
+	const navigate = useNavigate();
+
 	const [qrOpen, setQrOpen] = useState(false);
 	const [qrOrderId, setQrOrderId] = useState<string | null>(null);
     const [reviewModalOpen, setReviewModalOpen] = useState(false);
@@ -359,8 +362,8 @@ const UserOrders: React.FC = () => {
 					<Typography variant="h6" color="text.primary" gutterBottom>
 						No orders found
 					</Typography>
-					<Button variant="contained" startIcon={<ShoppingBagIcon />}>
-						Start Shopping
+					<Button variant="contained" startIcon={<ShoppingBagIcon />} onClick={() => navigate('/')}>
+						Start Ordering
 					</Button>
 				</Paper>
 			) : filteredOrders.length === 0 ? (

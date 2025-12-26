@@ -47,8 +47,8 @@ const Dashboard: React.FC = () => {
 		fetchDashboardData();
 		joinRoom(ROOMS.dashboard);
 
-		const handleMetricsUpdate = () => {
-			fetchDashboardData(true);
+		const handleMetricsUpdate = (payload: DashboardStats) => {
+			setData(payload);
 		};
 
 		socket?.on(RT_EVENTS.DASHBOARD_METRICS, handleMetricsUpdate);

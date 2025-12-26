@@ -14,6 +14,7 @@ import {
 	Search as SearchIcon,
 	Edit as EditIcon,
 	Delete as DeleteIcon,
+	Refresh as RefreshIcon,
 } from "@mui/icons-material";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import { DataGridPageLayout } from "@components/admin";
@@ -250,6 +251,13 @@ const VehicleTypeList: React.FC = () => {
 					>
 						Add New Type
 					</Button>
+					<IconButton
+						color="primary"
+						onClick={fetchVehicleTypes}
+						title="Refresh"
+					>
+						<RefreshIcon />
+					</IconButton>
 					<TextField
 						size="small"
 						placeholder="Search"

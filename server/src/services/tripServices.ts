@@ -28,6 +28,7 @@ import * as paymentServices from "@services/paymentServices";
 import { PaymentStatus } from "@my_types/payments";
 import { Payment } from "@models/payment";
 import { Ticket } from "@models/ticket";
+import { broadcastDashboardUpdate } from "@services/dashboardServices";
 
 /**
  * Generates seats for a trip based on vehicle type configuration.
@@ -490,12 +491,12 @@ export const searchTripsForUser = async (
 					typeof date === "string"
 						? date.substring(0, 10)
 						: String(date).substring(0, 10);
-				
+
 				// Create date in local time (or assume input is YYYY-MM-DD)
 				// We want to cover the full day in the server's timezone (or UTC if that's how it's stored)
 				// Since the input is just a date string, we should construct the range carefully.
 				// Using simple string concatenation for ISO format might assume UTC.
-				
+
 				const dayStart = new Date(`${datePart}T00:00:00`);
 				const dayEnd = new Date(`${datePart}T23:59:59.999`);
 
@@ -880,21 +881,19 @@ export const addTrip = async (dto: CreateTripDTO): Promise<Trip | null> => {
 		trip = await db.Trip.create(createData, { transaction });
 
 		// Generate seats based on vehicle type configuration
-		if (!trip.isTemplate) {
-			await generateSeatsForTrip(
-				trip.id,
-				vehicle.vehicleType,
-				transaction
-			);
+		await generateSeatsForTrip(
+			trip.id,
+			vehicle.vehicleType,
+			transaction
+		);
 
-			// Fetch default assignment strategy from system settings
-			// We just fetch it here to ensure it exists or for future use,
-			// but actual usage is post-commit.
-			await db.Setting.findOne({
-				where: { key: "DEFAULT_ASSIGNMENT_STRATEGY" },
-				transaction,
-			});
-		}
+		// Fetch default assignment strategy from system settings
+		// We just fetch it here to ensure it exists or for future use,
+		// but actual usage is post-commit.
+		await db.Setting.findOne({
+			where: { key: "DEFAULT_ASSIGNMENT_STRATEGY" },
+			transaction,
+		});
 
 		// Handle Round Trip
 		if (dto.isRoundTrip && dto.returnStartTime) {
@@ -936,6 +935,11 @@ export const addTrip = async (dto: CreateTripDTO): Promise<Trip | null> => {
 		await transaction.rollback();
 		throw err;
 	}
+
+	// Broadcast dashboard update
+	broadcastDashboardUpdate().catch((err) =>
+		logger.error("Failed to broadcast dashboard update:", err)
+	);
 
 	// Post-transaction actions (queues).
 	// These are separated so that a failure here doesn't roll back the created trip.
@@ -1030,8 +1034,8 @@ export const updateTrip = async (
 	const newReturnStartTime = dto.returnStartTime
 		? new Date(dto.returnStartTime)
 		: trip.returnStartTime
-		? new Date(trip.returnStartTime)
-		: null;
+			? new Date(trip.returnStartTime)
+			: null;
 
 	if (newReturnStartTime && newReturnStartTime <= newStartTime) {
 		throw {
@@ -1129,6 +1133,11 @@ export const updateTrip = async (
 
 		await transaction.commit();
 
+		// Broadcast dashboard update
+		broadcastDashboardUpdate().catch((err) =>
+			logger.error("Failed to broadcast dashboard update:", err)
+		);
+
 		// Return fresh trip data after commit
 		return await trip.reload();
 	} catch (err) {
@@ -1195,6 +1204,11 @@ export const deleteTrip = async (id: number): Promise<void> => {
 		});
 
 		await transaction.commit();
+
+		// Broadcast dashboard update
+		broadcastDashboardUpdate().catch((err) =>
+			logger.error("Failed to broadcast dashboard update:", err)
+		);
 
 		// 5. Verify deletion (Optional, but good for safety)
 		const check = await db.Trip.count({ where: { id } });
@@ -1343,6 +1357,12 @@ export const cancelTrip = async (id: number): Promise<Trip> => {
 		}
 
 		await transaction.commit();
+
+		// Broadcast dashboard update
+		broadcastDashboardUpdate().catch((err) =>
+			logger.error("Failed to broadcast dashboard update:", err)
+		);
+
 		return trip;
 	} catch (error) {
 		await transaction.rollback();

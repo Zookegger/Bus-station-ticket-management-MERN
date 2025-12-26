@@ -29,6 +29,7 @@ import {
 	Edit as EditIcon,
 	Error as ErrorIcon,
 	Search as SearchIcon,
+	Refresh as RefreshIcon,
 } from "@mui/icons-material";
 import { format } from "date-fns";
 import { DataGridPageLayout } from "@components/admin";
@@ -416,6 +417,13 @@ const DriverList: React.FC = () => {
 			>
 				Add Driver
 			</Button>
+			<IconButton
+				color="primary"
+				onClick={fetchDrivers}
+				title="Refresh"
+			>
+				<RefreshIcon />
+			</IconButton>
 			<FormControl size="small" sx={{ minWidth: 140 }}>
 				<InputLabel>Status</InputLabel>
 				<Select
