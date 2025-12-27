@@ -24,6 +24,7 @@ import {
 	Notifications as NotificationsIcon,
 	Window as WindowIcon,
 	ShoppingBasket,
+	Star as StarIcon,
 } from "@mui/icons-material";
 import buildImgUrl from "@utils/imageHelper";
 import { useNotifications } from "@contexts/NotificationContext";
@@ -156,6 +157,16 @@ const Header: React.FC = () => {
 											sx={{ marginRight: 1 }}
 										/>
 										Orders
+									</MenuItem>
+									<MenuItem
+										onClick={handleMenuClose}
+										component={RouterLink}
+										to={ROUTES.USER_REVIEWS}
+									>
+										<StarIcon
+											sx={{ marginRight: 1 }}
+										/>
+										Reviews
 									</MenuItem>
 									{isAdmin && (
 										<MenuItem

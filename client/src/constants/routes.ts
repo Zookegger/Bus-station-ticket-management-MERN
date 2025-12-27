@@ -21,6 +21,7 @@ export const ROUTES = {
 	BOARDING_PASS: "/boarding-pass/:orderId",
 	PROFILE: "/user/profile",
 	USER_ORDERS: "/user/orders",
+	USER_REVIEWS: "/user/reviews",
 	ORDER_LOOKUP: "/orders/lookup",
 	VERIFY_EMAIL: "/verify-email",
 	SETTINGS: "/settings",

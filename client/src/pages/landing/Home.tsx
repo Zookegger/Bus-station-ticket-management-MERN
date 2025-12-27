@@ -33,6 +33,9 @@ import buildImgUrl from "@utils/imageHelper";
 import { format } from "date-fns"; // Restored
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { formatCurrency } from "@utils/formatting";
+import { ReviewModal } from "@components/user/ReviewModal";
+import { Alert, AlertTitle } from "@mui/material";
+import { useAuth } from "@hooks/useAuth";
 
 // --- 1. Cache & Fetchers ---
 const promiseCache = new Map();
@@ -407,6 +410,57 @@ const CouponsCarousel = () => {
 	);
 };
 
+const UnreviewedTripsSection = () => {
+    const { isAuthenticated } = useAuth();
+    const [trips, setTrips] = React.useState<Trip[]>([]);
+    const [openReviewModal, setOpenReviewModal] = React.useState(false);
+    const [selectedTrip, setSelectedTrip] = React.useState<Trip | null>(null);
+
+    React.useEffect(() => {
+        if (isAuthenticated) {
+            callApi({
+                method: "GET",
+                url: API_ENDPOINTS.REVIEWS.UNREVIEWED
+            }).then((res: any) => {
+                if (res.data) setTrips(res.data);
+            }).catch(console.error);
+        }
+    }, [isAuthenticated]);
+
+    if (!isAuthenticated || trips.length === 0) return null;
+
+    const handleReviewSuccess = () => {
+        // Remove the reviewed trip from the list
+        if (selectedTrip) {
+            setTrips(prev => prev.filter(t => t.id !== selectedTrip.id));
+        }
+        setOpenReviewModal(false);
+    };
+
+    return (
+        <Container sx={{ mt: 4 }}>
+            <Alert severity="info" sx={{ mb: 2 }}>
+                <AlertTitle>Review your recent trips</AlertTitle>
+                You have {trips.length} unreviewed trips.
+                <Button size="small" onClick={() => {
+                    setSelectedTrip(trips[0]);
+                    setOpenReviewModal(true);
+                }} sx={{ ml: 2 }}>
+                    Review {trips[0].route?.name} ({format(new Date(trips[0].startTime), "MMM dd")})
+                </Button>
+            </Alert>
+            {selectedTrip && (
+                <ReviewModal
+                    open={openReviewModal}
+                    onClose={() => setOpenReviewModal(false)}
+                    tripId={selectedTrip.id}
+                    onSuccess={handleReviewSuccess}
+                />
+            )}
+        </Container>
+    );
+};
+
 // --- 4. Main Home ---
 const Home: React.FC = () => {
 	const [searchParams] = useSearchParams();
@@ -485,6 +539,8 @@ const Home: React.FC = () => {
 					</Box>
 				</Container>
 			</Box>
+
+			<UnreviewedTripsSection />
 
 			{/* Upcoming Trips */}
 			<Box sx={{ py: 4, bgcolor: "background.default" }}>

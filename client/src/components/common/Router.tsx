@@ -201,6 +201,16 @@ export const router = createBrowserRouter([
 					return { Component: UserOrders };
 				},
 			},
+			{
+				path: ROUTES.USER_REVIEWS,
+				handle: { title: "My Reviews • EasyRide" },
+				lazy: async () => {
+					const { default: UserReviews } = await import(
+						"@pages/user/Reviews"
+					);
+					return { Component: UserReviews };
+				},
+			},
 			{ path: "*", element: <Navigate to={ROUTES.NOT_FOUND} replace /> },
 		],
 	},
@@ -311,6 +321,16 @@ export const router = createBrowserRouter([
 						"@pages/admin/system/System"
 					);
 					return { Component: System };
+				},
+			},
+			{
+				path: "review",
+				handle: { title: "Reviews • EasyRide" },
+				lazy: async () => {
+					const { default: ReviewList } = await import(
+						"@pages/admin/review/ReviewList"
+					);
+					return { Component: ReviewList };
 				},
 			},
 		],

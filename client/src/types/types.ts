@@ -149,6 +149,15 @@ export interface ApiEndpoints {
 		readonly UPDATE: (id: string) => string;
 		readonly DELETE: (id: string) => string;
 	};
+	readonly REVIEWS: {
+		readonly BASE: string;
+		readonly BY_TRIP: (tripId: number) => string;
+		readonly BY_USER: string;
+		readonly UNREVIEWED: string;
+		readonly ALL: string;
+		readonly UPDATE: (id: number) => string;
+		readonly DELETE: (id: number) => string;
+	};
 }
 
 export interface StorageKeys {

@@ -35,6 +35,7 @@ import {
 	AccountBox,
 	Logout,
 	Notifications as NotificationsIcon,
+	Star as StarIcon,
 } from "@mui/icons-material";
 import { APP_CONFIG, ROUTES } from "@constants/index";
 import { useAuth } from "@hooks/useAuth";
@@ -97,6 +98,13 @@ const menuItemsData: SidebarMenuItem[] = [
 		tips: "Configure system settings, maintenance, and administrative options",
 		path: "/dashboard/system",
 	},
+	{
+		id: 8,
+		label: "Reviews",
+		icon: "star",
+		tips: "View user reviews",
+		path: "/dashboard/review",
+	},
 ];
 
 interface SidebarMenuItem {
@@ -116,6 +124,7 @@ const iconMap: { [key: string]: React.ComponentType } = {
 	person: PersonIcon,
 	coupon: CardGiftcard,
 	gear: SettingsIcon,
+	star: StarIcon,
 };
 
 interface SidebarProps {
@@ -191,6 +200,7 @@ const PositionedMenu: React.FC<PositionedMenuProps> = ({ isCollapsed, sx }) => {
 							},
 							justifyContent: isCollapsed ? "center" : "flex-end",
 							gap: 1,
+							py: 2,
 						}}
 						size="small"
 						aria-controls={
@@ -557,7 +567,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
 					display: "inline-flex",
 					alignItems: "center",
 					minWidth: isCollapsed ? "auto" : 40,
-					py: 1,
 					justifyContent: "center",
 					borderTop: "3px solid rgba(255, 255, 255, 0.1)",
 				}}

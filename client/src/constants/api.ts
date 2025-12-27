@@ -150,5 +150,14 @@ export const API_ENDPOINTS: ApiEndpoints = {
 		ADD: "/admin/users",
 		UPDATE: (id: string) => `/admin/users/${id}`,
 		DELETE: (id: string) => `/admin/users/${id}`,
+	},
+	REVIEWS: {
+		BASE: "/reviews",
+		BY_TRIP: (tripId: number) => `/reviews/trip/${tripId}`,
+		BY_USER: "/reviews/user/me",
+		UNREVIEWED: "/reviews/user/unreviewed",
+		ALL: "/reviews/admin/all",
+		UPDATE: (id: number) => `/reviews/${id}`,
+		DELETE: (id: number) => `/reviews/${id}`,
 	}
 } as const;

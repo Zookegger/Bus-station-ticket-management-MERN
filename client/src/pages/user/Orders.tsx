@@ -48,6 +48,7 @@ import { formatCurrency } from "@utils/formatting";
 import TicketQRDialog from "@components/user/TicketQRDialog";
 import { ReviewModal } from "@components/user/ReviewModal";
 import { useNavigate } from "react-router-dom";
+import OrderConfirmCancelDialog from "../admin/order/components/OrderConfirmCancelDialog";
 
 const ITEMS_PER_PAGE = 5;
 
@@ -103,13 +104,22 @@ const UserOrders: React.FC = () => {
 	const [qrOrderId, setQrOrderId] = useState<string | null>(null);
 	const [reviewModalOpen, setReviewModalOpen] = useState(false);
 	const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
-
+	const [refundDialogOpen, setRefundDialogOpen] = useState(false);
+	const [selectedOrderForRefund, setSelectedOrderForRefund] =
+		useState<Order | null>(null);
+	const [refreshTrigger, setRefreshTrigger] = useState(0);
 	const [isAscend, setIsAscend] = useState<boolean>(false);
 
 	const handleOpenReview = (tripId: number) => {
 		setSelectedTripId(tripId);
 		setReviewModalOpen(true);
 	};
+
+	const handleOpenRefund = (order: Order) => {
+		setSelectedOrderForRefund(order);
+		setRefundDialogOpen(true);
+	};
+
 	const [qrToken, setQrToken] = useState<string | null>(null);
 	const { user } = useAuth();
 	const theme = useTheme();
@@ -141,7 +151,7 @@ const UserOrders: React.FC = () => {
 		};
 
 		fetchOrders();
-	}, [user]);
+	}, [user, refreshTrigger]);
 
 	const filteredOrders = useMemo(() => {
 		const filtered = orders.filter((order) => {
@@ -666,6 +676,26 @@ const UserOrders: React.FC = () => {
 															View Boarding Pass
 														</Button>
 													)}
+												{order.status ===
+													OrderStatus.CONFIRMED && (
+													<Button
+														variant="outlined"
+														color="error"
+														size="small"
+														sx={{
+															mt: {
+																xs: 0,
+																sm: 1,
+															},
+														}}
+														onClick={(e) => {
+															e.stopPropagation();
+															handleOpenRefund(order);
+														}}
+													>
+														Refund
+													</Button>
+												)}
 												{(() => {
 													const firstTicket =
 														order.tickets?.[0];
@@ -1019,6 +1049,20 @@ const UserOrders: React.FC = () => {
 					// Maybe refresh orders?
 				}}
 			/>
+			{selectedOrderForRefund && (
+				<OrderConfirmCancelDialog
+					open={refundDialogOpen}
+					onClose={() => setRefundDialogOpen(false)}
+					orderId={selectedOrderForRefund.id}
+					tickets={selectedOrderForRefund.tickets || []}
+					initialSelectedTicketIds={
+						selectedOrderForRefund.tickets?.map((t) => t.id) || []
+					}
+					onSuccess={() => {
+						setRefreshTrigger((prev) => prev + 1);
+					}}
+				/>
+			)}
 		</Container>
 	);
 };

@@ -1,5 +1,7 @@
 # Vexe FE - Modern React Application
 
+<!-- Needs to be updated, this is old -->
+
 A well-structured React application built with TypeScript, Vite, and Bootstrap 5, following modern best practices and scalable architecture patterns.
 
 ## 🚀 Features

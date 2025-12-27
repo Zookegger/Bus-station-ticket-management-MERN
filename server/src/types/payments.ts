@@ -253,11 +253,11 @@ export interface PaymentVerificationResult {
  * @property {string} [ipAddress] - IP address of the client initiating the refund.
  */
 export interface PaymentRefundDTO {
-    paymentId: string;
-    amount: number;
-    reason?: string;
-    performedBy?: string;
-    ipAddress?: string;
+	paymentId: string;
+	amount: number;
+	reason?: string;
+	performedBy?: string;
+	ipAddress?: string;
 }
 
 /**
@@ -269,7 +269,7 @@ export interface PaymentRefundDTO {
  */
 export interface PaymentRefundResult {
 	isSuccess: boolean;
-    transactionId?: string;
+	transactionId?: string;
 	gatewayResponseData?: any;
 }
 
@@ -284,12 +284,12 @@ export interface PaymentRefundResult {
  * @property {any} [key] - Allows for additional gateway-specific properties.
  */
 export interface GatewayRefundOptions {
-    amount: number;
-    reason?: string;
-    originalGatewayTxnId: string;
-    performedBy?: string;
-    ipAddress?: string;
-    [key: string]: any; // Allow any other gateway-specific properties
+	amount: number;
+	reason?: string;
+	originalGatewayTxnId: string;
+	performedBy?: string;
+	ipAddress?: string;
+	[key: string]: any; // Allow any other gateway-specific properties
 }
 
 /**
@@ -300,9 +300,9 @@ export interface GatewayRefundOptions {
  * @property {boolean} dryRun - If true, only log without actual deletion
  */
 export interface CleanupConfig {
-    expiryThresholdMinutes?: number;
-    batchSize?: number;
-    dryRun?: boolean;
+	expiryThresholdMinutes?: number;
+	batchSize?: number;
+	dryRun?: boolean;
 }
 
 /**
@@ -314,8 +314,8 @@ export interface CleanupConfig {
  * @property {number} errors - Number of errors encountered
  */
 export interface CleanupResult {
-    expiredPayments: number;
-    cancelledOrders: number;
-    releasedCoupons: number;
-    errors: number;
+	expiredPayments: number;
+	cancelledOrders: number;
+	releasedCoupons: number;
+	errors: number;
 }

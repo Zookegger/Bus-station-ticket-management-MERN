@@ -4,6 +4,7 @@ import { Order, OrderAttributes, OrderStatus } from "@models/orders";
 import { Seat } from "@models/seat";
 import { Ticket } from "@models/ticket";
 import { Trip } from "@models/trip";
+import { Payment } from "@models/payment";
 import {
 	CreateOrderDTO,
 	CreateOrderResult,
@@ -324,10 +325,35 @@ export const refundTickets = async (dto: RefundTicketDTO): Promise<Order> => {
 			(sum, t) => sum + t.finalPrice,
 			0
 		);
-		if (totalRefundAmount > 0 && order.payment) {
+		if (totalRefundAmount > 0) {
+			// Ensure payment exists before attempting refund
+			// Note: order.payment is defined as HasMany in model but we treat it as HasOne here for simplicity
+			// In reality, an order might have multiple payment attempts, but only one successful one usually.
+			// We need to find the successful payment to refund.
+			
+			// If 'payment' is an array (HasMany), find the completed one.
+			// If 'payment' is an object (HasOne/BelongsTo), use it directly.
+			let paymentToRefund: Payment | undefined;
+
+			if (Array.isArray(order.payment)) {
+				paymentToRefund = order.payment.find(
+					(p) => p.paymentStatus === PaymentStatus.COMPLETED
+				);
+			} else if (order.payment) {
+				// It's a single object
+				paymentToRefund = order.payment;
+			}
+
+			if (!paymentToRefund) {
+				throw {
+					status: 400,
+					message: "Cannot refund an order without a completed payment record.",
+				};
+			}
+
 			await paymentServices.processRefund(
 				{
-					paymentId: order.payment.id,
+					paymentId: paymentToRefund.id,
 					amount: totalRefundAmount,
 					reason: dto.refundReason || "Customer request",
 				},
@@ -402,9 +428,14 @@ export const refundTickets = async (dto: RefundTicketDTO): Promise<Order> => {
 		return (await Order.findByPk(order.id, {
 			include: [{ model: db.Ticket, as: "tickets" }],
 		}))!;
-	} catch (err) {
+	} catch (err: any) {
 		await transaction.rollback();
-		logger.error(`Refund for order ${dto.orderId} failed: `, err);
+		logger.error(
+			`Refund for order ${dto.orderId} failed: ${
+				err.message || JSON.stringify(err)
+			}`
+		);
+		if (err.stack) logger.error(err.stack);
 		throw err;
 	}
 };
