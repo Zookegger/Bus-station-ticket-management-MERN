@@ -37,13 +37,43 @@
 		},
 		{
 			"type": "node",
+			"request": "launch",
+			"name": "Run Full Stack (npm run dev)",
+			"runtimeArgs": ["npm", "run", "dev"],
+			"cwd": "${workspaceFolder}",
+			"console": "integratedTerminal",
+			"internalConsoleOptions": "neverOpen",
+			"env": {
+				"NODE_ENV": "development"
+			}
+		},
+		{
+			"type": "node",
 			"request": "attach",
-			"name": "Attach to Process",
+			"name": "Attach to Server Process",
 			"port": 9229,
 			"restart": true,
 			"skipFiles": ["<node_internals>/**"],
 			"sourceMaps": true,
-			"outFiles": ["${workspaceFolder}/server/dist/**/*.js"]
+			"outFiles": ["${workspaceFolder}/server/dist/**/*.js"],
+			"cwd": "${workspaceFolder}/server"
+		},
+		{
+			"type": "node",
+			"request": "attach",
+			"name": "Attach to Client Process",
+			"port": 9228,
+			"restart": true,
+			"skipFiles": ["<node_internals>/**"],
+			"sourceMaps": true,
+			"outFiles": ["${workspaceFolder}/client/dist/**/*.js"],
+			"cwd": "${workspaceFolder}/client"
+		}
+	],
+	"compounds": [
+		{
+			"name": "Attach to Full Stack (Server + Client)",
+			"configurations": ["Attach to Server Process", "Attach to Client Process"]
 		}
 	]
 }

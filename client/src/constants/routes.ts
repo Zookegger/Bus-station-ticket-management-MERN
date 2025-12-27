@@ -18,6 +18,7 @@ export const ROUTES = {
 	DASHBOARD_USER: "/dashboard/user",
 	DASHBOARD_SYSTEM: "/dashboard/system",
 	CHECK_IN: "/check-in/:orderId",
+	BOARDING_PASS: "/boarding-pass/:orderId",
 	PROFILE: "/user/profile",
 	USER_ORDERS: "/user/orders",
 	ORDER_LOOKUP: "/orders/lookup",

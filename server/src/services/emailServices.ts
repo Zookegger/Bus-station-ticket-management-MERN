@@ -4,6 +4,7 @@ import logger from "@utils/logger";
 import { SMTP_CONFIG } from "@constants/email";
 import { Order } from "@models/orders";
 import { generateCheckInToken } from "@middlewares/checkInToken";
+import { Ticket } from "@models/ticket";
 
 /**
  * Nodemailer transporter instance.
@@ -216,21 +217,22 @@ export const generateReceiptHTML = (orderInfo: Order): string => {
 	// Generate secure Check-In URL (mimicking the TicketQRDialog structure)
 	const token = generateCheckInToken(orderInfo.id);
 	const checkInUrl = `${clientUrl}/check-in/${orderInfo.id}?token=${token}`;
+	const boardingPassUrl = `${clientUrl}/boarding-pass/${orderInfo.id}?token=${token}`;
 
-	const qrImageUrl = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(
+	const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
 		checkInUrl
-	)}&chld=L|1`;
+	)}`;
 
 	const issuedAt = orderInfo.createdAt
 		? new Date(orderInfo.createdAt).toLocaleString()
 		: new Date().toLocaleString();
 
 	const ticketRows = (orderInfo.tickets || [])
-		.map((t: any) => {
+		.map((t: Ticket) => {
 			const seat = t?.seat?.number || "N/A";
 			const route =
 				t?.seat?.trip?.route?.name ||
-				t?.seat?.trip?.routeName ||
+				t?.seat?.trip?.route?.getStops.toString() ||
 				"Bus Trip";
 			const depart = t?.seat?.trip?.startTime
 				? new Date(t.seat.trip.startTime).toLocaleString()
@@ -287,7 +289,7 @@ export const generateReceiptHTML = (orderInfo: Order): string => {
                     <p>Order #: ${orderInfo.id}</p>
                 </div>
                 <div class="body">
-                    <div class="meta">
+                    <div class="meta" style="justify-content: space-between;">
                         <div class="left">
                             <div>Issued: ${issuedAt}</div>
                             <div>Items: ${
@@ -320,7 +322,7 @@ export const generateReceiptHTML = (orderInfo: Order): string => {
                     <div class="qr">
                         <p style="margin:6px 0 8px 0;font-size:13px;color:#555">Boarding Pass (Scan to Check In)</p>
                         <a href="${checkInUrl}" target="_blank" rel="noopener noreferrer"><img src="${qrImageUrl}" alt="Boarding Pass QR" style="border:0; max-width:200px; height:auto;" /></a>
-                        <div style="margin-top:8px;"><a class="button" href="${checkInUrl}">View Boarding Pass</a></div>
+                        <div style="margin-top:8px;"><a class="button" href="${boardingPassUrl}">View Boarding Pass</a></div>
                     </div>
                 </div>
                 <div class="footer">

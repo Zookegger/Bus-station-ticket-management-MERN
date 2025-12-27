@@ -17,7 +17,7 @@
 		"build": "tsc && tsc-alias",
 		"start": "node dist/server.js",
 		"start:dev": "ts-node -r tsconfig-paths/register src/server.ts",
-		"dev": "nodemon --exec ts-node -r tsconfig-paths/register src/server.ts",
+		"dev": "NODE_OPTIONS=\"--inspect=9229\" nodemon --exec ts-node -r tsconfig-paths/register src/server.ts",
 		"db:migrate": "npx sequelize-cli db:migrate",
 		"db:migrate:undo": "npx sequelize-cli db:migrate:undo",
 		"db:seed": "npx sequelize-cli db:seed:all",

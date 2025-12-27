@@ -222,8 +222,8 @@ export const applyCoupon = async (
 		throw { status: 400, message: "Invalid coupon configuration." };
 
 	let discount = 0;
-	if (coupon.type === CouponTypes.FIXED) discount = value;
-	else if (coupon.type === CouponTypes.PERCENTAGE)
+	if (coupon.type.toUpperCase() === CouponTypes.FIXED) discount = value;
+	else if (coupon.type.toUpperCase() === CouponTypes.PERCENTAGE)
 		discount = (dto.orderTotal * value) / 100;
 
 	// Discount cannot exceed order total
@@ -261,8 +261,8 @@ export const previewCouponDiscount = async (
 		throw { status: 400, message: "Invalid coupon configuration." };
 
 	let discount = 0;
-	if (coupon.type === CouponTypes.FIXED) discount = value;
-	else if (coupon.type === CouponTypes.PERCENTAGE)
+	if (coupon.type.toUpperCase() === CouponTypes.FIXED) discount = value;
+	else if (coupon.type.toUpperCase() === CouponTypes.PERCENTAGE)
 		discount = (dto.orderTotal * value) / 100;
 
 	// Discount cannot exceed order total

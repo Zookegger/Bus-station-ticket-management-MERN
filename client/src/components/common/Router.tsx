@@ -146,6 +146,16 @@ export const router = createBrowserRouter([
 				},
 			},
 			{
+				path: ROUTES.BOARDING_PASS,
+				handle: { title: "Boarding Pass • EasyRide" },
+				lazy: async () => {
+					const { default: BoardingPass } = await import(
+						"@pages/common/BoardingPassPage"
+					);
+					return { Component: BoardingPass };
+				},
+			},
+			{
 				path: ROUTES.NOT_FOUND,
 				handle: { title: "Not Found • EasyRide" },
 				lazy: async () => {

@@ -1,4 +1,11 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, {
+	useEffect,
+	useState,
+	useMemo,
+	useCallback,
+	Activity,
+	useRef,
+} from "react";
 import useWebsocket from "@hooks/useWebsocket";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -97,6 +104,11 @@ const SeatBooking: React.FC = () => {
 	const [selectedPoints, setSelectedPoints] = useState<SelectedSeatPoint[]>(
 		[]
 	);
+	const selectedPointsRef = useRef<SelectedSeatPoint[]>([]);
+	useEffect(() => {
+		selectedPointsRef.current = selectedPoints;
+	}, [selectedPoints]);
+
 	const [selectedPaymentMethod, setSelectedPaymentMethod] =
 		useState<PaymentMethod | null>(null);
 
@@ -113,6 +125,7 @@ const SeatBooking: React.FC = () => {
 	const [couponApplied, setCouponApplied] = useState<boolean>(false);
 	const [couponError, setCouponError] = useState<string | null>(null);
 	const [discountAmount, setDiscountAmount] = useState<number>(0);
+	const [couponLoading, setCouponLoading] = useState<boolean>(false);
 
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -276,6 +289,7 @@ const SeatBooking: React.FC = () => {
 	const handleSeatUpdate = useCallback(
 		(payload: Seat[] | Seat) => {
 			const updatedSeats = Array.isArray(payload) ? payload : [payload];
+			const currentSelection = selectedPointsRef.current;
 
 			setSeats((prevSeats) => {
 				const newSeats = [...prevSeats];
@@ -285,20 +299,26 @@ const SeatBooking: React.FC = () => {
 						newSeats[index] = { ...newSeats[index], ...update };
 					}
 				});
+				console.log(newSeats);
 				return newSeats;
 			});
 
 			const stolenLabels: string[] = [];
 
-			const validSelection = selectedPoints.filter((point) => {
-				const isTaken = updatedSeats.some(
-					(s) =>
-						String(s.status).toUpperCase() !==
-							SeatStatus.AVAILABLE &&
+			const validSelection = currentSelection.filter((point) => {
+				const isTaken = updatedSeats.some((s) => {
+					const isUnavailable =
+						String(s.status).toUpperCase() !== SeatStatus.AVAILABLE;
+					const isMatch =
 						s.floor === point.floor + 1 &&
 						s.row === point.row + 1 &&
-						s.column === point.col + 1
-				);
+						s.column === point.col + 1;
+
+					console.log(s.floor, " - ", point.floor);
+					console.log(s.row, " - ", point.row);
+					console.log(s.column, " - ", point.col);
+					return isUnavailable && isMatch;
+				});
 
 				if (isTaken) {
 					stolenLabels.push(point.label);
@@ -309,16 +329,12 @@ const SeatBooking: React.FC = () => {
 
 			// 3. Perform Side Effects (Alert) and State Updates separately
 			if (stolenLabels.length > 0) {
+				setSelectedPoints(validSelection);
 				setAlertMsg(
-					`Alert: Seat(s) ${stolenLabels.join(
+					`Seat(s) ${stolenLabels.join(
 						", "
 					)} were just booked by another user.`
 				);
-
-				// Only update selection if seats were actually removed
-				if (validSelection.length !== selectedPoints.length) {
-					setSelectedPoints(validSelection);
-				}
 			}
 		},
 		[selectedPoints]
@@ -362,7 +378,7 @@ const SeatBooking: React.FC = () => {
 		}
 
 		try {
-			setLoading(true);
+			setCouponLoading(true);
 			const { status, data } = await callApi(
 				{
 					method: "GET",
@@ -441,7 +457,7 @@ const SeatBooking: React.FC = () => {
 		} catch (err: any) {
 			setCouponError(err.message);
 		} finally {
-			setLoading(false);
+			setCouponLoading(false);
 		}
 	};
 
@@ -514,7 +530,7 @@ const SeatBooking: React.FC = () => {
 			.filter((id): id is number => id !== undefined && id !== null);
 
 		if (seatIdsToBook.length !== selectedPoints.length) {
-			alert(
+			setAlertMsg(
 				"Error: Could not match some selected seats to system records. Please refresh."
 			);
 			console.error(
@@ -545,30 +561,18 @@ const SeatBooking: React.FC = () => {
 				{ returnFullResponse: true }
 			);
 
-			console.log(status);
-			console.log(data);
-
 			if (status === 201 && data) {
 				window.location.href = data.paymentUrl;
 			}
 		} catch (err: any) {
 			console.error(err);
-			alert("Booking failed: " + (err.message || "Unknown error"));
+			setAlertMsg("Booking failed: " + (err.message || "Unknown error"));
 		} finally {
 			setLoading(false);
 		}
 	};
 
 	// --- Render ---
-
-	if (loading) {
-		return (
-			<Backdrop open={loading}>
-				<CircularProgress />
-			</Backdrop>
-		);
-	}
-
 	if (error || !trip || !seatLayout) {
 		return (
 			<Box p={3}>
@@ -589,600 +593,163 @@ const SeatBooking: React.FC = () => {
 
 	return (
 		<Container maxWidth={"lg"}>
-			<Box
-				sx={{
-					width: "100%",
-					mt: 3,
-					position: "sticky",
-					top: 24,
-				}}
-			>
-				<Stepper activeStep={Math.max(0, step - 1)} alternativeLabel>
-					<Step>
-						<StepLabel>Select seats</StepLabel>
-					</Step>
-					<Step>
-						<StepLabel>Passenger & Payment</StepLabel>
-					</Step>
-				</Stepper>
-				<LinearProgress
-					variant="determinate"
-					value={(step / 2) * 100}
-				/>
-			</Box>
-			<Box
-				p={3}
-				display="flex"
-				justifyContent="center"
-				alignItems="flex-start"
-				flexWrap="wrap"
-				flex={1}
-				gap={3}
-				flexDirection={"row"}
-			>
-				{step === 1 ? (
-					<>
-						{/* Real-time alerts for seat updates */}
-						<Snackbar
-							open={Boolean(alertMsg)}
-							autoHideDuration={6000}
-							onClose={() => setAlertMsg(null)}
-							anchorOrigin={{
-								vertical: "top",
-								horizontal: "center",
-							}}
-						>
-							<Alert
-								severity="warning"
+			<Activity mode={loading ? "hidden" : "visible"}>
+				<Box
+					sx={{
+						width: "100%",
+						mt: 3,
+						position: "sticky",
+						top: 24,
+					}}
+				>
+					<Stepper
+						activeStep={Math.max(0, step - 1)}
+						alternativeLabel
+					>
+						<Step>
+							<StepLabel>Select seats</StepLabel>
+						</Step>
+						<Step>
+							<StepLabel>Passenger & Payment</StepLabel>
+						</Step>
+					</Stepper>
+					<LinearProgress
+						variant="determinate"
+						value={(step / 2) * 100}
+					/>
+				</Box>
+				<Box
+					p={3}
+					display="flex"
+					justifyContent="center"
+					alignItems="flex-start"
+					flexWrap="wrap"
+					flex={1}
+					gap={3}
+					flexDirection={"row"}
+				>
+					{step === 1 ? (
+						<>
+							{/* Real-time alerts for seat updates */}
+							<Snackbar
+								open={Boolean(alertMsg)}
+								autoHideDuration={6000}
 								onClose={() => setAlertMsg(null)}
-								variant="standard"
+								anchorOrigin={{
+									vertical: "top",
+									horizontal: "center",
+								}}
+							>
+								<Alert
+									severity="warning"
+									onClose={() => setAlertMsg(null)}
+									variant="standard"
+								>
+									<Typography
+										variant="h6"
+										textAlign={"center"}
+										sx={{ verticalAlign: "middle" }}
+									>
+										{alertMsg}
+									</Typography>
+								</Alert>
+							</Snackbar>
+							{/* LEFT: Seat Selection Map */}
+							<Paper
+								sx={{
+									flex:
+										isTablet || isDesktop
+											? 3
+											: isMobile
+											? 2
+											: 2,
+									p: 3,
+									display: "flex",
+									flexDirection: "column",
+									height: "100%",
+								}}
+								elevation={3}
 							>
 								<Typography
 									variant="h6"
-									textAlign={"center"}
-									sx={{ verticalAlign: "middle" }}
+									fontWeight={600}
+									mb={2}
 								>
-									{alertMsg}
-								</Typography>
-							</Alert>
-						</Snackbar>
-						{/* LEFT: Seat Selection Map */}
-						<Paper
-							sx={{
-								flex:
-									isTablet || isDesktop
-										? 3
-										: isMobile
-										? 2
-										: 2,
-								p: 3,
-								display: "flex",
-								flexDirection: "column",
-								height: "100%",
-							}}
-							elevation={3}
-						>
-							<Typography variant="h6" fontWeight={600} mb={2}>
-								Select your seats
-							</Typography>
-
-							<SeatBookingSelector
-								initialLayout={seatLayout}
-								bookedSeats={bookedSeats}
-								// Detailed seat status info (optional) — selector can opt-in to use this
-								seatStatusMap={seatStatusMap}
-								occupiedSeatsDetailed={occupiedSeatsDetailed}
-								// We pass the local state to control the component
-								// Note: Ensure SeatBookingSelector supports 'selectedSeats' prop as {floor, row, col}[]
-								selectedSeats={selectedPoints.map((p) => ({
-									floor: p.floor,
-									row: p.row,
-									col: p.col,
-								}))}
-								onSelectionChange={handleSelectionChange}
-								maxSelectable={5}
-								size={seatSelectorSize}
-							/>
-
-							<Divider sx={{ my: 3 }} />
-
-							<Box
-								display="flex"
-								justifyContent="space-between"
-								alignItems="center"
-							>
-								<Typography fontWeight={500}>
-									Selected:{" "}
-									<Typography
-										component="span"
-										fontWeight="bold"
-										color="primary"
-									>
-										{selectedPoints.length > 0
-											? selectedPoints
-													.map((s) => s.label)
-													.join(", ")
-											: "None"}
-									</Typography>
+									Select your seats
 								</Typography>
 
-								{/* Selected chips */}
-								{selectedPoints.length > 0 && (
-									<Box
-										mt={2}
-										display="flex"
-										gap={1}
-										flexWrap="wrap"
-									>
-										{selectedPoints.map((p) => (
-											<Chip
-												key={p.label}
-												label={p.label}
-												onDelete={() =>
-													removeSelectedSeat(p.label)
-												}
-												color="primary"
-												size="medium"
-											/>
-										))}
-									</Box>
-								)}
-							</Box>
-						</Paper>
+								<SeatBookingSelector
+									initialLayout={seatLayout}
+									bookedSeats={bookedSeats}
+									// Detailed seat status info (optional) — selector can opt-in to use this
+									seatStatusMap={seatStatusMap}
+									occupiedSeatsDetailed={
+										occupiedSeatsDetailed
+									}
+									// We pass the local state to control the component
+									// Note: Ensure SeatBookingSelector supports 'selectedSeats' prop as {floor, row, col}[]
+									selectedSeats={selectedPoints.map((p) => ({
+										floor: p.floor,
+										row: p.row,
+										col: p.col,
+									}))}
+									onSelectionChange={handleSelectionChange}
+									maxSelectable={5}
+									size={seatSelectorSize}
+								/>
 
-						{/* RIGHT: Info & Checkout */}
-						<Box
-							flex={isTablet || isDesktop ? 2 : isMobile ? 2 : 1}
-							display="flex"
-							flexDirection="column"
-							gap={2}
-							sx={{
-								position: { md: "sticky" },
-								top: 24,
-							}}
-						>
-							{/* Trip Summary */}
-							<Card>
-								<Paper elevation={2}>
-									<CardHeader
-										title={
-											<InputAdornment position="start">
-												<Route
-													fontSize="medium"
-													sx={{ mr: 0.5 }}
-												/>
-												<Typography
-													variant="h6"
-													fontWeight={600}
-												>
-													Trip Summary
-												</Typography>
-											</InputAdornment>
-										}
-									/>
-
-									<CardContent>
-										<Box
-											display="flex"
-											flexDirection="column"
-											gap={1}
-										>
-											<Typography variant="body1">
-												<strong>Vehicle:</strong>{" "}
-												{trip.vehicle?.numberPlate} (
-												{
-													trip.vehicle?.vehicleType
-														?.name
-												}
-												)
-											</Typography>
-											<Typography variant="body1">
-												<strong>Departure:</strong>{" "}
-												{trip.startTime
-													? format(
-															new Date(
-																trip.startTime
-															),
-															"HH:mm - dd/MM/yyyy"
-													  )
-													: "N/A"}
-											</Typography>
-											<Typography variant="body1">
-												<strong>Route:</strong>{" "}
-												<Button
-													size="small"
-													startIcon={<MapIcon />}
-													onClick={() =>
-														setViewRouteOpen(true)
-													}
-													sx={{ ml: 1 }}
-												>
-													View Map
-												</Button>
-											</Typography>
-											<List>
-												{stopsSorted.length > 0
-													? stopsSorted.map(
-															(stop, index) => {
-																const isEnd =
-																	index ===
-																	stopsSorted.length -
-																		1;
-																const color =
-																	isEnd
-																		? theme
-																				.palette
-																				.primary
-																				.main
-																		: theme
-																				.palette
-																				.text
-																				.primary;
-																return (
-																	<Box
-																		key={
-																			stop.id ||
-																			index
-																		}
-																		sx={{
-																			display:
-																				"flex",
-																			mb:
-																				index ===
-																				stopsSorted.length -
-																					1
-																					? 0
-																					: 2,
-																			position:
-																				"relative",
-																		}}
-																	>
-																		{/* Connecting Line */}
-																		{!isEnd && (
-																			<Box
-																				sx={{
-																					position:
-																						"absolute",
-																					top: 32,
-																					left: 20,
-																					bottom: -16,
-																					width: 2,
-																					bgcolor:
-																						"grey.300",
-																					zIndex: 0,
-																				}}
-																			/>
-																		)}
-
-																		{/* Icon Marker */}
-																		<Box
-																			sx={{
-																				mr: 1,
-																				zIndex: 1,
-																			}}
-																		>
-																			<Avatar
-																				sx={{
-																					width: 40,
-																					height: 40,
-																					bgcolor:
-																						"white",
-																					border: "3px solid",
-																					borderColor:
-																						color,
-																					color: color,
-																				}}
-																			>
-																				<LocationPin fontSize="medium" />
-																			</Avatar>
-																		</Box>
-
-																		{/* Info Card */}
-																		<Paper
-																			elevation={
-																				0
-																			}
-																			variant="outlined"
-																			sx={{
-																				flex: 1,
-																				p: 1.5,
-																				bgcolor:
-																					"background.paper",
-																				border: "1px solid",
-																				borderColor:
-																					"grey.200",
-																				"&:hover":
-																					{
-																						borderColor:
-																							"primary.light",
-																					},
-																			}}
-																		>
-																			<Typography
-																				variant="subtitle2"
-																				fontWeight="600"
-																			>
-																				{
-																					stop.locations!
-																						.name
-																				}
-																			</Typography>
-																			<Typography
-																				variant="body2"
-																				color="text.secondary"
-																				sx={{
-																					fontSize:
-																						"0.85rem",
-																				}}
-																			>
-																				{
-																					stop.locations!
-																						.address
-																				}
-																			</Typography>
-																		</Paper>
-																	</Box>
-																);
-															}
-													  )
-													: "N/A"}
-											</List>
-										</Box>
-
-										<Box
-											display="flex"
-											justifyContent="space-between"
-											mt={2}
-										>
-											<Typography
-												variant="body2"
-												color="text.secondary"
-											>
-												Price per seat
-											</Typography>
-											<Typography fontWeight="bold">
-												{formatCurrency(
-													trip?.price,
-													"VND",
-													"vi-VN"
-												)}
-											</Typography>
-										</Box>
-										<Box
-											display="flex"
-											justifyContent="space-between"
-											mb={2}
-										>
-											<Typography>
-												Seats ({selectedPoints.length})
-											</Typography>
-											<Typography fontWeight="bold">
-												{formatCurrency(
-													totalPrice,
-													"VND",
-													"vi-VN"
-												)}
-											</Typography>
-										</Box>
-									</CardContent>
-
-									<CardActions>
-										<Button
-											variant="contained"
-											fullWidth
-											onClick={() => setStep(2)}
-											disabled={
-												selectedPoints.length === 0
-											}
-											endIcon={<ArrowForward />}
-										>
-											Continue
-										</Button>
-									</CardActions>
-								</Paper>
-							</Card>
-						</Box>
-					</>
-				) : (
-					<>
-						<Box
-							flex={1}
-							display="flex"
-							flexDirection={isMobile ? "column" : "row"}
-							gap={2}
-							sx={{
-								position: { md: "sticky" },
-								top: 24,
-							}}
-						>
-							<Paper
-								variant="outlined"
-								sx={{
-									flex:
-										isDesktop || isTablet
-											? 3
-											: isMobile
-											? 2.5
-											: 2,
-									display: "flex",
-									flexDirection: "column",
-									overflow: "hidden", // Prevents double scrollbars
-									maxHeight: "50vh", // Fixed height for the whole card
-								}}
-							>
-								{/* Checkout info */}
-								<TableContainer
-									component={Paper}
-									variant="outlined"
-									sx={{
-										flex:
-											isDesktop || isTablet
-												? 3
-												: isMobile
-												? 2.5
-												: 2,
-
-										overflowY: "auto",
-									}}
-								>
-									<Table
-										stickyHeader
-										size="medium"
-										aria-label="checkout order table"
-									>
-										<TableHead>
-											<TableRow>
-												<TableCell>
-													<Typography
-														fontWeight={"bold"}
-													>
-														Items
-													</Typography>
-												</TableCell>
-												<TableCell align="right">
-													<Typography
-														fontWeight={"bold"}
-													>
-														Amount
-													</Typography>
-												</TableCell>
-											</TableRow>
-										</TableHead>
-										<TableBody>
-											{/* 1. List Individual Seats */}
-											{selectedPoints.map((point) => (
-												<TableRow key={point.label}>
-													<TableCell scope="row">
-														Seat {point.label}
-														<Typography
-															variant="caption"
-															display="block"
-															color="text.secondary"
-														>
-															{trip?.vehicle
-																?.vehicleType
-																?.name ||
-																"Standard"}
-														</Typography>
-													</TableCell>
-													<TableCell align="right">
-														{formatCurrency(
-															trip?.price,
-															"VND",
-															"vi-VN"
-														)}
-													</TableCell>
-												</TableRow>
-											))}
-										</TableBody>
-									</Table>
-								</TableContainer>
+								<Divider sx={{ my: 3 }} />
 
 								<Box
-									sx={{
-										p: 2,
-										bgcolor: "background.paper",
-										borderTop: "1px solid",
-										borderColor: "divider",
-										zIndex: 1, // Ensures it sits on top if needed
-										boxShadow:
-											"0px -4px 10px rgba(0,0,0,0.05)", // Subtle shadow to indicate depth
-									}}
+									display="flex"
+									justifyContent="space-between"
+									alignItems="center"
 								>
-									{/* Subtotal Row */}
-									<Box
-										display="flex"
-										justifyContent="space-between"
-										mb={1}
-									>
+									<Typography fontWeight={500}>
+										Selected:{" "}
 										<Typography
-											variant="body2"
-											color="text.secondary"
-										>
-											Subtotal ({selectedPoints.length}{" "}
-											items)
-										</Typography>
-										<Typography variant="body2">
-											{formatCurrency(
-												(trip?.price || 0) *
-													selectedPoints.length,
-												"VND",
-												"vi-VN"
-											)}
-										</Typography>
-									</Box>
-
-									{/* Discount Row (Conditional) */}
-									{discountAmount > 0 && (
-										<Box
-											display="flex"
-											justifyContent="space-between"
-											mb={1}
-										>
-											<Typography
-												variant="body2"
-												color="success.main"
-											>
-												Discount{" "}
-												{appliedCoupon
-													? `(${appliedCoupon.code})`
-													: ""}
-											</Typography>
-											<Typography
-												variant="body2"
-												color="success.main"
-											>
-												-{" "}
-												{formatCurrency(
-													discountAmount,
-													"VND",
-													"vi-VN"
-												)}
-											</Typography>
-										</Box>
-									)}
-
-									<Divider sx={{ my: 1 }} />
-
-									{/* Total Row */}
-									<Box
-										display="flex"
-										justifyContent="space-between"
-										alignItems="center"
-									>
-										<Typography
-											variant="h6"
-											fontWeight="bold"
-										>
-											Total
-										</Typography>
-										<Typography
-											variant="h6"
+											component="span"
 											fontWeight="bold"
 											color="primary"
 										>
-											{(() => {
-												const sub =
-													(trip?.price || 0) *
-													selectedPoints.length;
-												const final = Math.max(
-													0,
-													sub - discountAmount
-												);
-												return formatCurrency(
-													final,
-													"VND",
-													"vi-VN"
-												);
-											})()}
+											{selectedPoints.length > 0
+												? selectedPoints
+														.map((s) => s.label)
+														.join(", ")
+												: "None"}
 										</Typography>
-									</Box>
+									</Typography>
+
+									{/* Selected chips */}
+									{selectedPoints.length > 0 && (
+										<Box
+											mt={2}
+											display="flex"
+											gap={1}
+											flexWrap="wrap"
+										>
+											{selectedPoints.map((p) => (
+												<Chip
+													key={p.label}
+													label={p.label}
+													onDelete={() =>
+														removeSelectedSeat(
+															p.label
+														)
+													}
+													color="primary"
+													size="medium"
+												/>
+											))}
+										</Box>
+									)}
 								</Box>
 							</Paper>
 
+							{/* RIGHT: Info & Checkout */}
 							<Box
 								flex={
-									isDesktop || isTablet ? 2 : isMobile ? 2 : 1
+									isTablet || isDesktop ? 2 : isMobile ? 2 : 1
 								}
 								display="flex"
 								flexDirection="column"
@@ -1192,413 +759,919 @@ const SeatBooking: React.FC = () => {
 									top: 24,
 								}}
 							>
-								{/* Passenger Info Form */}
+								{/* Trip Summary */}
 								<Card>
-									<CardHeader
-										title={
-											<InputAdornment position="start">
-												<PersonIcon
-													fontSize="medium"
-													sx={{ mr: 0.5 }}
-												/>
-												<Typography
-													variant="h6"
-													fontWeight={600}
-												>
-													Passenger Information
-												</Typography>
-											</InputAdornment>
-										}
-									/>
-									<Divider />
 									<Paper elevation={2}>
+										<CardHeader
+											title={
+												<InputAdornment position="start">
+													<Route
+														fontSize="medium"
+														sx={{ mr: 0.5 }}
+													/>
+													<Typography
+														variant="h6"
+														fontWeight={600}
+													>
+														Trip Summary
+													</Typography>
+												</InputAdornment>
+											}
+										/>
+
 										<CardContent>
-											{!(isAuthenticated && user) ? (
-												<Box
-													display="flex"
-													flexDirection="column"
-													gap={2}
+											<Box
+												display="flex"
+												flexDirection="column"
+												gap={1}
+											>
+												<Typography variant="body1">
+													<strong>Vehicle:</strong>{" "}
+													{trip.vehicle?.numberPlate}{" "}
+													(
+													{
+														trip.vehicle
+															?.vehicleType?.name
+													}
+													)
+												</Typography>
+												<Typography variant="body1">
+													<strong>Departure:</strong>{" "}
+													{trip.startTime
+														? format(
+																new Date(
+																	trip.startTime
+																),
+																"HH:mm - dd/MM/yyyy"
+														  )
+														: "N/A"}
+												</Typography>
+												<Typography variant="body1">
+													<strong>Route:</strong>{" "}
+													<Button
+														size="small"
+														startIcon={<MapIcon />}
+														onClick={() =>
+															setViewRouteOpen(
+																true
+															)
+														}
+														sx={{ ml: 1 }}
+													>
+														View Map
+													</Button>
+												</Typography>
+												<List>
+													{stopsSorted.length > 0
+														? stopsSorted.map(
+																(
+																	stop,
+																	index
+																) => {
+																	const isEnd =
+																		index ===
+																		stopsSorted.length -
+																			1;
+																	const color =
+																		isEnd
+																			? theme
+																					.palette
+																					.primary
+																					.main
+																			: theme
+																					.palette
+																					.text
+																					.primary;
+																	return (
+																		<Box
+																			key={
+																				stop.id ||
+																				index
+																			}
+																			sx={{
+																				display:
+																					"flex",
+																				mb:
+																					index ===
+																					stopsSorted.length -
+																						1
+																						? 0
+																						: 2,
+																				position:
+																					"relative",
+																			}}
+																		>
+																			{/* Connecting Line */}
+																			{!isEnd && (
+																				<Box
+																					sx={{
+																						position:
+																							"absolute",
+																						top: 32,
+																						left: 20,
+																						bottom: -16,
+																						width: 2,
+																						bgcolor:
+																							"grey.300",
+																						zIndex: 0,
+																					}}
+																				/>
+																			)}
+
+																			{/* Icon Marker */}
+																			<Box
+																				sx={{
+																					mr: 1,
+																					zIndex: 1,
+																				}}
+																			>
+																				<Avatar
+																					sx={{
+																						width: 40,
+																						height: 40,
+																						bgcolor:
+																							"white",
+																						border: "3px solid",
+																						borderColor:
+																							color,
+																						color: color,
+																					}}
+																				>
+																					<LocationPin fontSize="medium" />
+																				</Avatar>
+																			</Box>
+
+																			{/* Info Card */}
+																			<Paper
+																				elevation={
+																					0
+																				}
+																				variant="outlined"
+																				sx={{
+																					flex: 1,
+																					p: 1.5,
+																					bgcolor:
+																						"background.paper",
+																					border: "1px solid",
+																					borderColor:
+																						"grey.200",
+																					"&:hover":
+																						{
+																							borderColor:
+																								"primary.light",
+																						},
+																				}}
+																			>
+																				<Typography
+																					variant="subtitle2"
+																					fontWeight="600"
+																				>
+																					{
+																						stop.locations!
+																							.name
+																					}
+																				</Typography>
+																				<Typography
+																					variant="body2"
+																					color="text.secondary"
+																					sx={{
+																						fontSize:
+																							"0.85rem",
+																					}}
+																				>
+																					{
+																						stop.locations!
+																							.address
+																					}
+																				</Typography>
+																			</Paper>
+																		</Box>
+																	);
+																}
+														  )
+														: "N/A"}
+												</List>
+											</Box>
+
+											<Box
+												display="flex"
+												justifyContent="space-between"
+												mt={2}
+											>
+												<Typography
+													variant="body2"
+													color="text.secondary"
 												>
-													<TextField
-														label="Full Name"
-														fullWidth
-														size="small"
-														value={guestInfo.name}
-														onChange={(e) =>
-															setGuestInfo({
-																...guestInfo,
-																name: e.target
-																	.value,
-															})
-														}
-													/>
-													<TextField
-														label="Email"
-														fullWidth
-														size="small"
-														type="email"
-														value={guestInfo.email}
-														onChange={(e) =>
-															setGuestInfo({
-																...guestInfo,
-																email: e.target
-																	.value,
-															})
-														}
-													/>
-													<TextField
-														label="Phone Number"
-														fullWidth
-														size="small"
-														value={guestInfo.phone}
-														onChange={(e) =>
-															setGuestInfo({
-																...guestInfo,
-																phone: e.target
-																	.value,
-															})
-														}
-													/>
-												</Box>
-											) : (
-												<Box
-													display="flex"
-													flexDirection="column"
-													gap={2}
-												>
-													<Typography>
-														Full Name:{" "}
-														{user.fullName}
-													</Typography>
-													<Typography>
-														Email: {user.email}
-													</Typography>
-													<Typography>
-														Phone Number:{" "}
-														{user.phoneNumber}
-													</Typography>
-												</Box>
-											)}
+													Price per seat
+												</Typography>
+												<Typography fontWeight="bold">
+													{formatCurrency(
+														trip?.price,
+														"VND",
+														"vi-VN"
+													)}
+												</Typography>
+											</Box>
+											<Box
+												display="flex"
+												justifyContent="space-between"
+												mb={2}
+											>
+												<Typography>
+													Seats (
+													{selectedPoints.length})
+												</Typography>
+												<Typography fontWeight="bold">
+													{formatCurrency(
+														totalPrice,
+														"VND",
+														"vi-VN"
+													)}
+												</Typography>
+											</Box>
 										</CardContent>
+
+										<CardActions>
+											<Button
+												variant="contained"
+												fullWidth
+												onClick={() => setStep(2)}
+												disabled={
+													selectedPoints.length === 0
+												}
+												endIcon={<ArrowForward />}
+											>
+												Continue
+											</Button>
+										</CardActions>
 									</Paper>
 								</Card>
+							</Box>
+						</>
+					) : (
+						<>
+							<Box
+								flex={1}
+								display="flex"
+								flexDirection={isMobile ? "column" : "row"}
+								gap={2}
+								sx={{
+									position: { md: "sticky" },
+									top: 24,
+								}}
+							>
+								<Paper
+									variant="outlined"
+									sx={{
+										flex:
+											isDesktop || isTablet
+												? 3
+												: isMobile
+												? 2.5
+												: 2,
+										display: "flex",
+										flexDirection: "column",
+										overflow: "hidden", // Prevents double scrollbars
+										maxHeight: "50vh", // Fixed height for the whole card
+									}}
+								>
+									{/* Checkout info */}
+									<TableContainer
+										component={Paper}
+										variant="outlined"
+										sx={{
+											flex:
+												isDesktop || isTablet
+													? 3
+													: isMobile
+													? 2.5
+													: 2,
 
-								{/* Payment & Submit */}
-								<Card>
-									<Paper elevation={3}>
-										<Stack divider={<Divider />}>
-											<CardHeader
-												title={
-													<InputAdornment position="start">
-														<PaymentIcon
-															fontSize="medium"
-															sx={{ mr: 0.5 }}
-														/>
+											overflowY: "auto",
+										}}
+									>
+										<Table
+											stickyHeader
+											size="medium"
+											aria-label="checkout order table"
+										>
+											<TableHead>
+												<TableRow>
+													<TableCell>
 														<Typography
-															fontWeight={600}
-															variant="h6"
+															fontWeight={"bold"}
 														>
-															Payment
+															Items
 														</Typography>
-													</InputAdornment>
-												}
-											/>
-											<CardContent>
-												<FormControl
-													error={
-														!!formError.payment_method
-													}
-													fullWidth
-													size="medium"
-													// If you are using the outlined variant (default), this is standard
-													variant="outlined"
-												>
-													<InputLabel
-														id="payment-method-label"
-														shrink={true}
-													>
-														Payment method
-													</InputLabel>
-													<Select
-														labelId="payment-method-label"
-														id="payment-method-select"
-														label="Payment method"
-														value={
-															selectedPaymentMethod?.code ||
-															""
-														}
-														displayEmpty
-														onChange={(e) => {
-															const code = e
-																.target
-																.value as string;
-															const found =
-																paymentMethods?.find(
-																	(m) =>
-																		m.code ===
-																		code
-																) || null;
-															setSelectedPaymentMethod(
-																found
-															);
-														}}
-														renderValue={(
-															selected
-														) => {
-															// If nothing is selected, return the placeholder with opacity/styling
-															if (!selected) {
-																return (
-																	<span
-																		style={{
-																			color: "#aaa",
-																		}}
-																	>
-																		Select
-																		payment
-																		method
-																	</span>
-																);
-															}
-															// Since you have the object in state, use it. No need to .find() again.
-															return (
-																selectedPaymentMethod?.name ||
-																selected
-															);
-														}}
-													>
-														{/* Handle the empty/loading state gracefully */}
-														{paymentMethods?.length ? (
-															paymentMethods.map(
-																(method) => (
-																	<MenuItem
-																		key={
-																			method.code
-																		}
-																		value={
-																			method.code
-																		}
-																	>
-																		{method.name ||
-																			method.code}
-																	</MenuItem>
-																)
-															)
-														) : (
-															<MenuItem
-																disabled
-																value=""
-															>
-																<em>
-																	No payment
-																	methods
-																	available
-																</em>
-															</MenuItem>
-														)}
-													</Select>
-
-													{/* Only render helper text if there is an error */}
-													{!!formError.payment_method && (
-														<FormHelperText>
-															{
-																formError.payment_method
-															}
-														</FormHelperText>
-													)}
-												</FormControl>
-
-												{/* Coupon input */}
-												<Box
-													display="flex"
-													gap={1}
-													alignItems="stretch"
-													justifyContent={"center"}
-													mt={2}
-												>
-													<TextField
-														placeholder="Enter coupon code"
-														value={couponCode}
-														onChange={(e) =>
-															setCouponCode(
-																e.target.value
-															)
-														}
-														fullWidth
-														error={!!couponError}
-														slotProps={{
-															htmlInput: {
-																sx: {
-																	height: "100%",
-																	flex: 1,
-																},
-															},
-														}}
-													/>
-													<Button
-														variant="contained"
-														disabled={couponApplied}
-														onClick={applyCoupon}
-													>
-														Apply
-													</Button>
-												</Box>
-												{couponError && (
-													<Typography
-														variant="caption"
-														color="error"
-													>
-														{couponError}
-													</Typography>
-												)}
-
-												{/* Applied coupon summary + breakdown */}
-												{appliedCoupon && (
-													<Box
-														mt={1}
-														display="flex"
-														flexDirection="column"
-														gap={0.5}
-													>
-														<Box
-															display="flex"
-															alignItems="center"
-															gap={1}
+													</TableCell>
+													<TableCell align="right">
+														<Typography
+															fontWeight={"bold"}
 														>
-															<Chip
-																label={`${
-																	appliedCoupon.code
-																} • ${
-																	appliedCoupon.title ||
-																	""
-																}`}
-																color="success"
-																size="small"
-																onDelete={() => {
-																	setAppliedCoupon(
-																		null
-																	);
-																	setCouponApplied(
-																		false
-																	);
-																	setDiscountAmount(
-																		0
-																	);
-																	setCouponCode(
-																		""
-																	);
-																}}
-															/>
+															Amount
+														</Typography>
+													</TableCell>
+												</TableRow>
+											</TableHead>
+											<TableBody>
+												{/* 1. List Individual Seats */}
+												{selectedPoints.map((point) => (
+													<TableRow key={point.label}>
+														<TableCell scope="row">
+															Seat {point.label}
 															<Typography
 																variant="caption"
+																display="block"
 																color="text.secondary"
 															>
-																{appliedCoupon.type.toUpperCase() ===
-																CouponType.PERCENTAGE
-																	? `${appliedCoupon.value}% off`
-																	: `${formatCurrency(
-																			Number(
-																				appliedCoupon.value ||
-																					0
-																			),
-																			"VND",
-																			"vi-VN"
-																	  )} off`}
+																{trip?.vehicle
+																	?.vehicleType
+																	?.name ||
+																	"Standard"}
 															</Typography>
-														</Box>
-														{/* validity */}
-														<Typography
-															variant="caption"
-															color="text.secondary"
-														>
-															Valid until:{" "}
-															{appliedCoupon.endPeriod
-																? format(
-																		new Date(
-																			appliedCoupon.endPeriod
-																		),
-																		"dd/MM/yyyy HH:mm"
-																  )
-																: "N/A"}
+														</TableCell>
+														<TableCell align="right">
+															{formatCurrency(
+																trip?.price,
+																"VND",
+																"vi-VN"
+															)}
+														</TableCell>
+													</TableRow>
+												))}
+											</TableBody>
+										</Table>
+									</TableContainer>
+
+									<Box
+										sx={{
+											p: 2,
+											bgcolor: "background.paper",
+											borderTop: "1px solid",
+											borderColor: "divider",
+											zIndex: 1, // Ensures it sits on top if needed
+											boxShadow:
+												"0px -4px 10px rgba(0,0,0,0.05)", // Subtle shadow to indicate depth
+										}}
+									>
+										{/* Subtotal Row */}
+										<Box
+											display="flex"
+											justifyContent="space-between"
+											mb={1}
+										>
+											<Typography
+												variant="body2"
+												color="text.secondary"
+											>
+												Subtotal (
+												{selectedPoints.length} items)
+											</Typography>
+											<Typography variant="body2">
+												{formatCurrency(
+													(trip?.price || 0) *
+														selectedPoints.length,
+													"VND",
+													"vi-VN"
+												)}
+											</Typography>
+										</Box>
+
+										{/* Discount Row (Conditional) */}
+										{discountAmount > 0 && (
+											<Box
+												display="flex"
+												justifyContent="space-between"
+												mb={1}
+											>
+												<Typography
+													variant="body2"
+													color="success.main"
+												>
+													Discount{" "}
+													{appliedCoupon
+														? `(${appliedCoupon.code})`
+														: ""}
+												</Typography>
+												<Typography
+													variant="body2"
+													color="success.main"
+												>
+													-{" "}
+													{formatCurrency(
+														discountAmount,
+														"VND",
+														"vi-VN"
+													)}
+												</Typography>
+											</Box>
+										)}
+
+										<Divider sx={{ my: 1 }} />
+
+										{/* Total Row */}
+										<Box
+											display="flex"
+											justifyContent="space-between"
+											alignItems="center"
+										>
+											<Typography
+												variant="h6"
+												fontWeight="bold"
+											>
+												Total
+											</Typography>
+											<Typography
+												variant="h6"
+												fontWeight="bold"
+												color="primary"
+											>
+												{(() => {
+													const sub =
+														(trip?.price || 0) *
+														selectedPoints.length;
+													const final = Math.max(
+														0,
+														sub - discountAmount
+													);
+													return formatCurrency(
+														final,
+														"VND",
+														"vi-VN"
+													);
+												})()}
+											</Typography>
+										</Box>
+									</Box>
+								</Paper>
+
+								<Box
+									flex={
+										isDesktop || isTablet
+											? 2
+											: isMobile
+											? 2
+											: 1
+									}
+									display="flex"
+									flexDirection="column"
+									gap={2}
+									sx={{
+										position: { md: "sticky" },
+										top: 24,
+									}}
+								>
+									{/* Passenger Info Form */}
+									<Card>
+										<CardHeader
+											title={
+												<InputAdornment position="start">
+													<PersonIcon
+														fontSize="medium"
+														sx={{ mr: 0.5 }}
+													/>
+													<Typography
+														variant="h6"
+														fontWeight={600}
+													>
+														Passenger Information
+													</Typography>
+												</InputAdornment>
+											}
+										/>
+										<Divider />
+										<Paper elevation={2}>
+											<CardContent>
+												{!(isAuthenticated && user) ? (
+													<Box
+														display="flex"
+														flexDirection="column"
+														gap={2}
+													>
+														<TextField
+															label="Full Name"
+															fullWidth
+															size="small"
+															value={
+																guestInfo.name
+															}
+															error={!!formError.name}
+															helperText={formError.name}
+															onChange={(e) =>
+																setGuestInfo({
+																	...guestInfo,
+																	name: e
+																		.target
+																		.value,
+																})
+															}
+														/>
+														<TextField
+															label="Email"
+															fullWidth
+															size="small"
+															type="email"
+															value={
+																guestInfo.email
+															}
+															error={!!formError.email}
+															helperText={formError.email}
+															onChange={(e) =>
+																setGuestInfo({
+																	...guestInfo,
+																	email: e
+																		.target
+																		.value,
+																})
+															}
+														/>
+														<TextField
+															label="Phone Number"
+															fullWidth
+															size="small"
+															value={
+																guestInfo.phone
+															}
+															error={!!formError.phone}
+															helperText={formError.phone}
+															onChange={(e) =>
+																setGuestInfo({
+																	...guestInfo,
+																	phone: e
+																		.target
+																		.value,
+																})
+															}
+														/>
+													</Box>
+												) : (
+													<Box
+														display="flex"
+														flexDirection="column"
+														gap={2}
+													>
+														<Typography>
+															Full Name:{" "}
+															{user.fullName}
+														</Typography>
+														<Typography>
+															Email: {user.email}
+														</Typography>
+														<Typography>
+															Phone Number:{" "}
+															{user.phoneNumber}
 														</Typography>
 													</Box>
 												)}
 											</CardContent>
-											<CardActions
-												sx={{ alignItems: "stretch" }}
-											>
-												{(() => {
-													const subtotal =
-														(trip?.price || 0) *
-														selectedPoints.length;
-													const discount =
-														discountAmount || 0;
-													const finalTotal = Math.max(
-														0,
-														subtotal - discount
-													);
-													return (
-														<>
-															<Button
-																fullWidth
-																variant="contained"
-																color="success"
-																size="large"
-																disabled={
-																	selectedPoints.length ===
-																		0 ||
-																	!selectedPaymentMethod
-																}
-																onClick={
-																	handleOrderSubmit
-																}
-																sx={{
-																	fontWeight:
-																		"bold",
-																	flex: 3,
-																}}
-																startIcon={
-																	<ShoppingCartCheckout />
-																}
+										</Paper>
+									</Card>
+
+									{/* Payment & Submit */}
+									<Card>
+										<Paper elevation={3}>
+											<Stack divider={<Divider />}>
+												<CardHeader
+													title={
+														<InputAdornment position="start">
+															<PaymentIcon
+																fontSize="medium"
+																sx={{ mr: 0.5 }}
+															/>
+															<Typography
+																fontWeight={600}
+																variant="h6"
 															>
-																Purchase •{" "}
-																{formatCurrency(
-																	finalTotal,
-																	"VND",
-																	"vi-VN"
-																)}
-															</Button>
-															<Button
-																variant="outlined"
-																onClick={() =>
-																	setStep(1)
+																Payment
+															</Typography>
+														</InputAdornment>
+													}
+												/>
+												<CardContent>
+													<FormControl
+														error={
+															!!formError.payment_method
+														}
+														fullWidth
+														size="medium"
+														// If you are using the outlined variant (default), this is standard
+														variant="outlined"
+													>
+														<InputLabel
+															id="payment-method-label"
+															shrink={true}
+														>
+															Payment method
+														</InputLabel>
+														<Select
+															labelId="payment-method-label"
+															id="payment-method-select"
+															label="Payment method"
+															value={
+																selectedPaymentMethod?.code ||
+																""
+															}
+															displayEmpty
+															onChange={(e) => {
+																const code = e
+																	.target
+																	.value as string;
+																const found =
+																	paymentMethods?.find(
+																		(m) =>
+																			m.code ===
+																			code
+																	) || null;
+																setSelectedPaymentMethod(
+																	found
+																);
+															}}
+															renderValue={(
+																selected
+															) => {
+																// If nothing is selected, return the placeholder with opacity/styling
+																if (!selected) {
+																	return (
+																		<span
+																			style={{
+																				color: "#aaa",
+																			}}
+																		>
+																			Select
+																			payment
+																			method
+																		</span>
+																	);
 																}
-																sx={{
-																	flex: 1,
-																}}
-																startIcon={
-																	<ArrowBack />
+																// Since you have the object in state, use it. No need to .find() again.
+																return (
+																	selectedPaymentMethod?.name ||
+																	selected
+																);
+															}}
+														>
+															{/* Handle the empty/loading state gracefully */}
+															{paymentMethods?.length ? (
+																paymentMethods.map(
+																	(
+																		method
+																	) => (
+																		<MenuItem
+																			key={
+																				method.code
+																			}
+																			value={
+																				method.code
+																			}
+																		>
+																			{method.name ||
+																				method.code}
+																		</MenuItem>
+																	)
+																)
+															) : (
+																<MenuItem
+																	disabled
+																	value=""
+																>
+																	<em>
+																		No
+																		payment
+																		methods
+																		available
+																	</em>
+																</MenuItem>
+															)}
+														</Select>
+
+														{/* Only render helper text if there is an error */}
+														{!!formError.payment_method && (
+															<FormHelperText>
+																{
+																	formError.payment_method
 																}
+															</FormHelperText>
+														)}
+													</FormControl>
+
+													{/* Coupon input */}
+													<Box
+														display="flex"
+														gap={1}
+														alignItems="stretch"
+														justifyContent={
+															"center"
+														}
+														mt={2}
+													>
+														<TextField
+															placeholder="Enter coupon code"
+															value={couponCode}
+															onChange={(e) =>
+																setCouponCode(
+																	e.target
+																		.value
+																)
+															}
+															fullWidth
+															disabled={couponApplied}
+															error={
+																!!couponError
+															}
+															slotProps={{
+																htmlInput: {
+																	sx: {
+																		height: "100%",
+																		flex: 1,
+																	},
+																},
+															}}
+														/>
+														<Button
+															variant="contained"
+															disabled={
+																couponApplied ||
+																couponLoading
+															}
+															onClick={
+																applyCoupon
+															}
+														>
+															{couponLoading
+																? "..."
+																: "Apply"}
+														</Button>
+													</Box>
+													{couponError && (
+														<Typography
+															variant="caption"
+															color="error"
+														>
+															{couponError}
+														</Typography>
+													)}
+
+													{/* Applied coupon summary + breakdown */}
+													{appliedCoupon && (
+														<Box
+															mt={1}
+															display="flex"
+															flexDirection="column"
+															gap={0.5}
+														>
+															<Box
+																display="flex"
+																alignItems="center"
+																gap={1}
 															>
-																Back
-															</Button>
-														</>
-													);
-												})()}
-											</CardActions>
-										</Stack>
-									</Paper>
-								</Card>
+																<Chip
+																	label={`${
+																		appliedCoupon.code
+																	} • ${
+																		appliedCoupon.title ||
+																		""
+																	}`}
+																	color="success"
+																	size="small"
+																	onDelete={() => {
+																		setAppliedCoupon(
+																			null
+																		);
+																		setCouponApplied(
+																			false
+																		);
+																		setDiscountAmount(
+																			0
+																		);
+																		setCouponCode(
+																			""
+																		);
+																	}}
+																/>
+																<Typography
+																	variant="caption"
+																	color="text.secondary"
+																>
+																	{appliedCoupon.type.toUpperCase() ===
+																	CouponType.PERCENTAGE
+																		? `${appliedCoupon.value}% off`
+																		: `${formatCurrency(
+																				Number(
+																					appliedCoupon.value ||
+																						0
+																				),
+																				"VND",
+																				"vi-VN"
+																		  )} off`}
+																</Typography>
+															</Box>
+															{/* validity */}
+															<Typography
+																variant="caption"
+																color="text.secondary"
+															>
+																Valid until:{" "}
+																{appliedCoupon.endPeriod
+																	? format(
+																			new Date(
+																				appliedCoupon.endPeriod
+																			),
+																			"dd/MM/yyyy HH:mm"
+																	  )
+																	: "N/A"}
+															</Typography>
+														</Box>
+													)}
+												</CardContent>
+												<CardActions
+													sx={{
+														alignItems: "stretch",
+													}}
+												>
+													{(() => {
+														const subtotal =
+															(trip?.price || 0) *
+															selectedPoints.length;
+														const discount =
+															discountAmount || 0;
+														const finalTotal =
+															Math.max(
+																0,
+																subtotal -
+																	discount
+															);
+														return (
+															<>
+																<Button
+																	fullWidth
+																	variant="contained"
+																	color="success"
+																	size="large"
+																	disabled={
+																		selectedPoints.length ===
+																			0 ||
+																		!selectedPaymentMethod
+																	}
+																	onClick={
+																		handleOrderSubmit
+																	}
+																	sx={{
+																		fontWeight:
+																			"bold",
+																		flex: 3,
+																	}}
+																	startIcon={
+																		<ShoppingCartCheckout />
+																	}
+																>
+																	Purchase •{" "}
+																	{formatCurrency(
+																		finalTotal,
+																		"VND",
+																		"vi-VN"
+																	)}
+																</Button>
+																<Button
+																	variant="outlined"
+																	onClick={() =>
+																		setStep(
+																			1
+																		)
+																	}
+																	sx={{
+																		flex: 1,
+																	}}
+																	startIcon={
+																		<ArrowBack />
+																	}
+																>
+																	Back
+																</Button>
+															</>
+														);
+													})()}
+												</CardActions>
+											</Stack>
+										</Paper>
+									</Card>
+								</Box>
 							</Box>
-						</Box>
-					</>
-				)}
-			</Box>
-			<ViewRouteDialog
-				open={viewRouteOpen}
-				onClose={() => setViewRouteOpen(false)}
-				stops={trip?.route?.stops || []}
-				title={trip?.route?.name || "Route Map"}
-			/>
+						</>
+					)}
+				</Box>
+				<ViewRouteDialog
+					open={viewRouteOpen}
+					onClose={() => setViewRouteOpen(false)}
+					stops={trip?.route?.stops || []}
+					title={trip?.route?.name || "Route Map"}
+				/>
+			</Activity>
+
+			<Activity mode={loading ? "hidden" : "visible"}>
+				<Backdrop open={loading}>
+					<CircularProgress />
+				</Backdrop>
+			</Activity>
 		</Container>
 	);
 };

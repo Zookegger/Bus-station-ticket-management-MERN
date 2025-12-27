@@ -53,3 +53,51 @@ export const executeCheckIn = async (
 		next(err);
 	}
 };
+
+/**
+ * Verifies a check-in token and returns order details without performing check-in.
+ * Used for the "View Boarding Pass" page.
+ *
+ * @param req Express request object containing orderId and token (in query).
+ * @param res Express response object.
+ * @param next Express next function for error handling.
+ *
+ * @route GET /api/check-in/:orderId
+ * @access Public (but secured by token)
+ */
+export const getCheckInDetails = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+): Promise<void> => {
+	const orderId: string = req.params.orderId as string;
+	const token: string = ((req.query && req.query.token) as string) || "";
+
+	try {
+		// 1. Validate inputs
+		if (!token || typeof token !== "string") {
+			throw { status: 400, message: "Security token is missing." };
+		}
+
+		if (!orderId || typeof orderId !== "string") {
+			throw { status: 400, message: "OrderID is missing." };
+		}
+
+		// 2. Verify the security token
+		const isTokenValid = verifyCheckInToken(orderId as string, token);
+		if (!isTokenValid) {
+			throw { status: 403, message: "Invalid or expired QR code." };
+		}
+
+		// 3. Fetch order details without checking in
+		const order = await orderServices.getOrderById(orderId, {});
+
+		// 4. Return the order details
+		res.status(200).json({
+			message: "Token verified.",
+			order: order,
+		});
+	} catch (err) {
+		next(err);
+	}
+};

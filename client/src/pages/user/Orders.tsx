@@ -21,19 +21,21 @@ import {
 	ToggleButtonGroup,
 	ToggleButton,
 	Pagination,
+	InputAdornment,
 } from "@mui/material";
 import {
 	ExpandMore as ExpandMoreIcon,
 	ShoppingBag as ShoppingBagIcon,
 	DateRange as DateRangeIcon,
 	Receipt as ReceiptIcon,
-	FilterList as FilterListIcon,
 	CheckCircle as CheckCircleIcon,
 	Cancel as CancelIcon,
 	AccessTime as AccessTimeIcon,
 	AirlineSeatReclineNormal as SeatIcon,
 	DirectionsBus as BusIcon,
 	ConfirmationNumber as TicketIcon,
+	Sort as SortIcon,
+	Search as SearchIcon,
 } from "@mui/icons-material";
 
 // Ensure these imports point to your actual file paths
@@ -101,13 +103,15 @@ const UserOrders: React.FC = () => {
 
 	const [qrOpen, setQrOpen] = useState(false);
 	const [qrOrderId, setQrOrderId] = useState<string | null>(null);
-    const [reviewModalOpen, setReviewModalOpen] = useState(false);
-    const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
+	const [reviewModalOpen, setReviewModalOpen] = useState(false);
+	const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
 
-    const handleOpenReview = (tripId: number) => {
-        setSelectedTripId(tripId);
-        setReviewModalOpen(true);
-    };
+	const [isAscend, setIsAscend] = useState<boolean>(true);
+
+	const handleOpenReview = (tripId: number) => {
+		setSelectedTripId(tripId);
+		setReviewModalOpen(true);
+	};
 	const [qrToken, setQrToken] = useState<string | null>(null);
 	const { user } = useAuth();
 	const theme = useTheme();
@@ -142,7 +146,7 @@ const UserOrders: React.FC = () => {
 	}, [user]);
 
 	const filteredOrders = useMemo(() => {
-		return orders.filter((order) => {
+		const filtered = orders.filter((order) => {
 			// Status filter
 			if (statusFilter !== "ALL" && order.status !== statusFilter) {
 				return false;
@@ -163,7 +167,15 @@ const UserOrders: React.FC = () => {
 
 			return true;
 		});
-	}, [orders, statusFilter, searchQuery]);
+
+		return filtered.sort((a, b) =>
+			isAscend
+				? new Date(a.createdAt!).getTime() -
+				  new Date(b.createdAt!).getTime()
+				: new Date(a.createdAt!).getTime() +
+				  new Date(b.createdAt!).getTime()
+		);
+	}, [orders, statusFilter, searchQuery, isAscend]);
 
 	const openBoardingPass = (orderId: string, token?: string) => {
 		if (!token) return; // Require token to open dialog
@@ -242,103 +254,214 @@ const UserOrders: React.FC = () => {
 				<Paper
 					elevation={0}
 					sx={{
-						p: 2,
-						mb: 3,
+						p: 3,
+						mb: 4,
 						border: `1px solid ${theme.palette.divider}`,
-						borderRadius: 2,
+						borderRadius: 3,
+						bgcolor: "background.paper",
 					}}
 				>
-					<Stack direction={"row"} spacing={2}>
-						<Stack flex={3}>
-							<Stack
-								direction="row"
-								alignItems="center"
-								spacing={1}
-								mb={1}
-							>
-								<FilterListIcon
-									fontSize="small"
-									color="action"
-								/>
-								<Typography
-									variant="subtitle2"
-									fontWeight="bold"
-								>
-									Filters
-								</Typography>
-							</Stack>
-
+					<Grid container spacing={3} alignItems="center">
+						{/* Search Bar */}
+						<Grid size={{ xs: 12, md: 5 }}>
 							<TextField
-								size="small"
+								fullWidth
 								placeholder="Search by Order ID or Route..."
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
-								fullWidth
-								sx={{ maxWidth: 400 }}
-							/>
-
-							<Typography
-								variant="body2"
-								color="text.secondary"
-								mt={0.5}
-							>
-								Showing {filteredOrders.length} of{" "}
-								{orders.length} orders
-							</Typography>
-						</Stack>
-
-						<Stack flex={2} flexWrap={"wrap"}>
-							<Typography
-								variant="caption"
-								color="text.secondary"
-								sx={{ mb: 1, display: "block" }}
-							>
-								Status
-							</Typography>
-							<ToggleButtonGroup
-								value={statusFilter}
-								exclusive
-								onChange={(_, newValue) => {
-									if (newValue !== null) {
-										setStatusFilter(newValue);
-									}
+								InputProps={{
+									startAdornment: (
+										<InputAdornment position="start">
+											<SearchIcon color="action" />
+										</InputAdornment>
+									),
 								}}
 								size="small"
 								sx={{
-									flexWrap: "wrap",
-									"& .MuiToggleButton-root": {
-										textTransform: "none",
+									"& .MuiOutlinedInput-root": {
+										borderRadius: 2,
+										bgcolor: alpha(
+											theme.palette.common.black,
+											0.03
+										),
+										"& fieldset": {
+											borderColor: "transparent",
+										},
+										"&:hover fieldset": {
+											borderColor: theme.palette.divider,
+										},
+										"&.Mui-focused fieldset": {
+											borderColor:
+												theme.palette.primary.main,
+										},
 									},
 								}}
-							>
-								<ToggleButton value="ALL">All</ToggleButton>
-								{Object.values(OrderStatus).map((v, k) => {
-									return (
-										<ToggleButton key={k} value={v}>
-											{v.charAt(0).toUpperCase() +
-												v
-													.slice(1)
-													.replace("_", " ")
-													.toLowerCase()}
-										</ToggleButton>
-									);
-								})}
-							</ToggleButtonGroup>
-						</Stack>
+							/>
+						</Grid>
 
-						{(searchQuery || statusFilter !== "ALL") && (
-							<Button
-								sx={{ flex: 1 }}
-								size="small"
-								onClick={() => {
-									setSearchQuery("");
-									setStatusFilter("ALL");
-								}}
+						{/* Status Filters */}
+						<Grid size={{ xs: 12 }}>
+							<Stack direction={"row"} alignItems={"center"}>
+								<Typography
+									variant="body2"
+									fontWeight={600}
+									color="text.secondary"
+									textAlign={"center"}
+									mr={2}
+								>
+									Status:
+								</Typography>
+								<Stack
+									direction="row"
+									spacing={2}
+									alignItems="center"
+									justifyContent={{
+										xs: "flex-start",
+										md: "flex-end",
+									}}
+									sx={{ overflowX: "auto", pb: 0.5 }}
+								>
+									<ToggleButtonGroup
+										value={statusFilter}
+										exclusive
+										onChange={(_, newValue) => {
+											if (newValue !== null) {
+												setStatusFilter(newValue);
+											}
+										}}
+										size="small"
+										sx={{
+											gap: 0.5,
+
+											"& .MuiToggleButton-root": {
+												px: 1,
+												py: 0.25,
+												borderRadius: "20px !important",
+												border: `1px solid ${theme.palette.divider}`,
+												textTransform: "none",
+												textWrap: "nowrap",
+												fontWeight: 500,
+												"&:first-of-type": {
+													borderRadius:
+														"20px !important",
+													ml: 0,
+												},
+												"&.Mui-selected": {
+													bgcolor: alpha(
+														theme.palette.primary
+															.main,
+														0.1
+													),
+													color: theme.palette.primary
+														.main,
+													borderColor:
+														theme.palette.primary
+															.main,
+													"&:hover": {
+														bgcolor: alpha(
+															theme.palette
+																.primary.main,
+															0.2
+														),
+													},
+												},
+											},
+										}}
+									>
+										<ToggleButton value="ALL">
+											All
+										</ToggleButton>
+										{Object.values(OrderStatus).map(
+											(v, k) => (
+												<ToggleButton key={k} value={v}>
+													{v.charAt(0).toUpperCase() +
+														v
+															.slice(1)
+															.replace("_", " ")
+															.toLowerCase()}
+												</ToggleButton>
+											)
+										)}
+									</ToggleButtonGroup>
+								</Stack>
+							</Stack>
+						</Grid>
+
+						{/* Bottom Row: Sort + Counts + Clear */}
+						<Grid size={{ xs: 12 }}>
+							<Divider sx={{ my: 1 }} />
+							<Stack
+								direction="row"
+								justifyContent="space-between"
+								alignItems="center"
+								mt={1}
+								flexWrap="wrap"
+								gap={2}
 							>
-								Clear Filters
-							</Button>
-						)}
-					</Stack>
+								<Stack
+									direction="row"
+									spacing={2}
+									alignItems="center"
+								>
+									<Typography
+										variant="body2"
+										color="text.secondary"
+									>
+										Showing{" "}
+										<Box
+											component="span"
+											fontWeight="bold"
+											color="text.primary"
+										>
+											{filteredOrders.length}
+										</Box>{" "}
+										orders
+									</Typography>
+									{(searchQuery ||
+										statusFilter !== "ALL") && (
+										<Button
+											size="small"
+											onClick={() => {
+												setSearchQuery("");
+												setStatusFilter("ALL");
+											}}
+											color="error"
+											startIcon={
+												<CancelIcon fontSize="small" />
+											}
+											sx={{ textTransform: "none" }}
+										>
+											Clear Filters
+										</Button>
+									)}
+								</Stack>
+
+								<Button
+									startIcon={<SortIcon />}
+									onClick={() => setIsAscend(!isAscend)}
+									size="small"
+									color="inherit"
+									sx={{
+										textTransform: "none",
+										color: "text.secondary",
+										"&:hover": {
+											color: "text.primary",
+											bgcolor: "transparent",
+										},
+									}}
+								>
+									Sort by:{" "}
+									<Box
+										component="span"
+										fontWeight="bold"
+										ml={0.5}
+									>
+										{isAscend ? "Newest" : "Oldest"}
+									</Box>
+								</Button>
+							</Stack>
+						</Grid>
+					</Grid>
 				</Paper>
 			)}
 
@@ -362,7 +485,11 @@ const UserOrders: React.FC = () => {
 					<Typography variant="h6" color="text.primary" gutterBottom>
 						No orders found
 					</Typography>
-					<Button variant="contained" startIcon={<ShoppingBagIcon />} onClick={() => navigate('/')}>
+					<Button
+						variant="contained"
+						startIcon={<ShoppingBagIcon />}
+						onClick={() => navigate("/")}
+					>
 						Start Ordering
 					</Button>
 				</Paper>
@@ -541,24 +668,37 @@ const UserOrders: React.FC = () => {
 															View Boarding Pass
 														</Button>
 													)}
-                                                {(() => {
-                                                    const firstTicket = order.tickets?.[0];
-                                                    const trip = firstTicket?.seat?.trip;
-                                                    const isCompleted = firstTicket?.status === "COMPLETED";
-                                                    if (isCompleted && trip) {
-                                                        return (
-                                                            <Button
-                                                                variant="outlined"
-                                                                size="small"
-                                                                sx={{ mt: { xs: 0, sm: 1 } }}
-                                                                onClick={() => handleOpenReview(trip.id)}
-                                                            >
-                                                                Rate Trip
-                                                            </Button>
-                                                        );
-                                                    }
-                                                    return null;
-                                                })()}
+												{(() => {
+													const firstTicket =
+														order.tickets?.[0];
+													const trip =
+														firstTicket?.seat?.trip;
+													const isCompleted =
+														firstTicket?.status ===
+														"COMPLETED";
+													if (isCompleted && trip) {
+														return (
+															<Button
+																variant="outlined"
+																size="small"
+																sx={{
+																	mt: {
+																		xs: 0,
+																		sm: 1,
+																	},
+																}}
+																onClick={() =>
+																	handleOpenReview(
+																		trip.id
+																	)
+																}
+															>
+																Rate Trip
+															</Button>
+														);
+													}
+													return null;
+												})()}
 											</Box>
 										</Grid>
 									</Grid>
@@ -873,14 +1013,14 @@ const UserOrders: React.FC = () => {
 				orderId={qrOrderId || ""}
 				checkInToken={qrToken || ""}
 			/>
-            <ReviewModal
-                open={reviewModalOpen}
-                onClose={() => setReviewModalOpen(false)}
-                tripId={selectedTripId!}
-                onSuccess={() => {
-                    // Maybe refresh orders?
-                }}
-            />
+			<ReviewModal
+				open={reviewModalOpen}
+				onClose={() => setReviewModalOpen(false)}
+				tripId={selectedTripId!}
+				onSuccess={() => {
+					// Maybe refresh orders?
+				}}
+			/>
 		</Container>
 	);
 };

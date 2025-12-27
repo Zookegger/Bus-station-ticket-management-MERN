@@ -52,4 +52,39 @@ checkInRouter.post(
 	errorHandler
 );
 
+/**
+ * @swagger
+ * /api/check-in/{orderId}:
+ *   get:
+ *     summary: Get order details for boarding pass view using a token.
+ *     tags: [CheckIn]
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: The ID of the order.
+ *       - in: query
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The security token.
+ *     responses:
+ *       200:
+ *         description: Token verified. Returns order details.
+ *       403:
+ *         description: Invalid token.
+ */
+checkInRouter.get(
+	"/:orderId",
+	checkInRateLimiter,
+	// We skip checkInValidators because it checks body for token, but here it's in query.
+	// Controller handles validation.
+	checkInController.getCheckInDetails,
+	errorHandler
+);
+
 export default checkInRouter;
