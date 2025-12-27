@@ -37,8 +37,6 @@ import {
 	Sort as SortIcon,
 	Search as SearchIcon,
 } from "@mui/icons-material";
-
-// Ensure these imports point to your actual file paths
 import { useAuth } from "@hooks/useAuth";
 import callApi from "@utils/apiCaller";
 import { API_ENDPOINTS } from "@constants/api";
@@ -106,7 +104,7 @@ const UserOrders: React.FC = () => {
 	const [reviewModalOpen, setReviewModalOpen] = useState(false);
 	const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
 
-	const [isAscend, setIsAscend] = useState<boolean>(true);
+	const [isAscend, setIsAscend] = useState<boolean>(false);
 
 	const handleOpenReview = (tripId: number) => {
 		setSelectedTripId(tripId);
@@ -456,7 +454,7 @@ const UserOrders: React.FC = () => {
 										fontWeight="bold"
 										ml={0.5}
 									>
-										{isAscend ? "Newest" : "Oldest"}
+										{!isAscend ? "Newest" : "Oldest"}
 									</Box>
 								</Button>
 							</Stack>
